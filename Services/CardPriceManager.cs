@@ -87,6 +87,7 @@ public class CardPriceManager : IDisposable
         {
             try
             {
+                OnProgress?.Invoke("Checking for price updates...", 0);
                 await DoCheckAndUpdateAsync();
             }
             catch (Exception ex)
@@ -172,11 +173,13 @@ public class CardPriceManager : IDisposable
             return;
         }
 
-        // 2. Compare with local meta date
+        // 2. Compare with local meta date or check if DB is empty
         var localDate = GetLocalMetaDate();
-        if (!meta.Date.Equals(localDate, StringComparison.OrdinalIgnoreCase))
+        var hasData = await HasPriceDataAsync();
+
+        if (!hasData || !meta.Date.Equals(localDate, StringComparison.OrdinalIgnoreCase))
         {
-            // New prices available - download
+            // New prices available or DB empty - download
             OnProgress?.Invoke("Downloading price data...", 0);
             var downloaded = await DownloadAndExtractPricesAsync();
             if (downloaded)
@@ -184,6 +187,14 @@ public class CardPriceManager : IDisposable
                 SaveLocalMetaDate(meta.Date);
                 ImportDataAsync();
             }
+            else
+            {
+                OnProgress?.Invoke("Price download failed.", 0);
+            }
+        }
+        else
+        {
+            OnProgress?.Invoke("Prices up to date.", 100);
         }
 
         // 3. Check for DB version update (weekly)

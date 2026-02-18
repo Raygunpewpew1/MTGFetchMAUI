@@ -29,6 +29,8 @@ public partial class CardDetailPage : ContentPage
         BindingContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        Unloaded += (s, e) => _viewModel.Dispose();
     }
 
     private async Task LoadCard()
