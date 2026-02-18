@@ -17,6 +17,15 @@ public partial class SearchPage : ContentPage
         _viewModel.AttachGrid(CardGrid);
 
         CardGrid.CardClicked += OnCardClicked;
+
+        _viewModel.SearchCompleted += () =>
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await GridScrollView.ScrollToAsync(0, 0, false);
+            });
+        };
+
         _viewModel.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(SearchViewModel.IsBusy))

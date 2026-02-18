@@ -68,6 +68,13 @@ public class SearchViewModel : BaseViewModel
     {
         if (IsBusy) return;
 
+        // If no text and no options, don't search
+        if (string.IsNullOrWhiteSpace(_searchText) && options == null)
+        {
+            StatusMessage = "Enter a search term";
+            return;
+        }
+
         if (!_cardManager.DatabaseManager.IsConnected)
         {
             StatusMessage = "Connecting to database...";
@@ -256,6 +263,7 @@ public class SearchViewModel : BaseViewModel
         TotalResults = 0;
         HasMorePages = false;
         StatusMessage = "";
+        SearchCompleted?.Invoke();
     }
 
     private static void ApplySearchOptions(MTGSearchHelper helper, SearchOptions options)
