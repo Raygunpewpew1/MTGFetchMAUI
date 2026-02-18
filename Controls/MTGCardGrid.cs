@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using SkiaSharp;
@@ -8,10 +9,9 @@ namespace MTGFetchMAUI.Controls;
 
 /// <summary>
 /// GPU-accelerated card grid using SkiaSharp.
-/// Port of TCustomCardGrid from CustomCardGrid.pas.
-/// Renders cards directly on an SKCanvas for maximum performance.
+/// Virtualized using a sticky viewport for maximum performance.
 /// </summary>
-public class MTGCardGrid : SKCanvasView
+public class MTGCardGrid : Grid
 {
     // ── Constants ──────────────────────────────────────────────────────
     private const float CardImageRatio = 1.3968f;
@@ -20,7 +20,10 @@ public class MTGCardGrid : SKCanvasView
     private const float CardSpacing = 8f;
     private const int OffscreenBuffer = 15;
     private const int CleanupIntervalMs = 2000;
-    private const float ShimmerSpeed = 1.5f;
+
+    // ── Controls ───────────────────────────────────────────────────────
+    private readonly SKCanvasView _canvas;
+    private readonly BoxView _scrollSpacer;
 
     // ── State ──────────────────────────────────────────────────────────
     private readonly List<GridCardData> _cards = [];
@@ -45,8 +48,30 @@ public class MTGCardGrid : SKCanvasView
 
     // Animation
     private float _shimmerPhase;
+    private readonly Stopwatch _animationStopwatch = new();
+    private long _lastFrameTime;
     private IDispatcherTimer? _cleanupTimer;
-    private IDispatcherTimer? _shimmerTimer;
+    private IDispatcherTimer? _animationTimer;
+
+    // ── Cached Skia Objects ────────────────────────────────────────────
+    private SKPaint? _bgPaint;
+    private SKPaint? _labelBgPaint;
+    private SKPaint? _namePaint;
+    private SKPaint? _setPaint;
+    private SKPaint? _hoverPaint;
+    private SKPaint? _chipBgPaint;
+    private SKPaint? _chipTextPaint;
+    private SKPaint? _badgeBgPaint;
+    private SKPaint? _badgeTextPaint;
+    private SKPaint? _shimmerBasePaint;
+    private SKPaint? _shimmerGradientPaint;
+    private SKPaint? _ripplePaint;
+    private SKPaint? _imgPaint;
+    private SKFont? _nameFont;
+    private SKFont? _setFont;
+    private SKFont? _chipFont;
+    private SKFont? _badgeFont;
+    private SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
 
     // ── Events ─────────────────────────────────────────────────────────
     public event Action<string>? CardClicked;
@@ -62,8 +87,24 @@ public class MTGCardGrid : SKCanvasView
     // ── Constructor ────────────────────────────────────────────────────
     public MTGCardGrid()
     {
-        EnableTouchEvents = true;
-        Touch += OnTouch;
+        _scrollSpacer = new BoxView { Color = Colors.Transparent, WidthRequest = 100 };
+
+        // We use SKCanvasView for now, but virtualization will fix the "horrid" FPS
+        _canvas = new SKCanvasView
+        {
+            EnableTouchEvents = true,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Start
+        };
+        _canvas.PaintSurface += OnPaintSurface;
+        _canvas.Touch += OnTouch;
+
+        Children.Add(_scrollSpacer);
+        Children.Add(_canvas);
+
+        _animationStopwatch.Start();
+
+        Unloaded += (s, e) => DisposeResources();
     }
 
     public void StartTimers()
@@ -75,39 +116,50 @@ public class MTGCardGrid : SKCanvasView
         _cleanupTimer.Tick += (_, _) => CleanupOffScreenBitmaps();
         _cleanupTimer.Start();
 
-        _shimmerTimer = Dispatcher.CreateTimer();
-        _shimmerTimer.Interval = TimeSpan.FromMilliseconds(50);
-        _shimmerTimer.Tick += (_, _) =>
-        {
-            _shimmerPhase += 0.03f;
-            if (_shimmerPhase > 1f) _shimmerPhase = 0f;
-
-            // Only invalidate if there are loading cards or animations in progress
-            bool needsInvalidate;
-            lock (_cardsLock)
-            {
-                needsInvalidate = false;
-                for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
-                {
-                    var card = _cards[i];
-                    if (card.Image == null || (card.FirstVisible && card.AnimationProgress < 1f))
-                    {
-                        needsInvalidate = true;
-                        break;
-                    }
-                }
-            }
-            if (needsInvalidate) InvalidateSurface();
-        };
-        _shimmerTimer.Start();
+        _animationTimer = Dispatcher.CreateTimer();
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
+        _animationTimer.Tick += (_, _) => UpdateAnimations();
+        _animationTimer.Start();
     }
 
     public void StopTimers()
     {
         _cleanupTimer?.Stop();
         _cleanupTimer = null;
-        _shimmerTimer?.Stop();
-        _shimmerTimer = null;
+        _animationTimer?.Stop();
+        _animationTimer = null;
+    }
+
+    private void UpdateAnimations()
+    {
+        long currentTime = _animationStopwatch.ElapsedMilliseconds;
+        float deltaTime = (currentTime - _lastFrameTime) / 1000f;
+        _lastFrameTime = currentTime;
+
+        if (deltaTime > 0.1f) deltaTime = 0.016f; // Cap delta to avoid jumps
+
+        _shimmerPhase += deltaTime * 0.6f;
+        if (_shimmerPhase > 1f) _shimmerPhase = 0f;
+
+        bool needsInvalidate = false;
+        lock (_cardsLock)
+        {
+            for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
+            {
+                var card = _cards[i];
+                // Shimmer always needs redraw if images missing
+                if (card.Image == null) needsInvalidate = true;
+
+                // Fade animation
+                if (card.FirstVisible && card.AnimationProgress < 1f)
+                {
+                    card.AnimationProgress = Math.Min(1f, card.AnimationProgress + deltaTime * 3f);
+                    needsInvalidate = true;
+                }
+            }
+        }
+
+        if (needsInvalidate) _canvas.InvalidateSurface();
     }
 
     // ── Public API ─────────────────────────────────────────────────────
@@ -123,7 +175,7 @@ public class MTGCardGrid : SKCanvasView
         }
         _scrollOffset = 0;
         CalculateLayout();
-        InvalidateSurface();
+        _canvas.InvalidateSurface();
     }
 
     public void SetCollection(CollectionItem[] items)
@@ -137,7 +189,7 @@ public class MTGCardGrid : SKCanvasView
         }
         _scrollOffset = 0;
         CalculateLayout();
-        InvalidateSurface();
+        _canvas.InvalidateSurface();
     }
 
     public void AddCards(Card[] cards)
@@ -148,7 +200,7 @@ public class MTGCardGrid : SKCanvasView
                 _cards.Add(GridCardData.FromCard(c));
         }
         CalculateLayout();
-        InvalidateSurface();
+        _canvas.InvalidateSurface();
     }
 
     public void ClearCards()
@@ -162,18 +214,22 @@ public class MTGCardGrid : SKCanvasView
         _visibleStart = 0;
         _visibleEnd = -1;
         CalculateLayout();
-        InvalidateSurface();
+        _canvas.InvalidateSurface();
     }
 
     public void SetScrollOffset(float offset)
     {
         _scrollOffset = offset;
+        _canvas.TranslationY = offset;
+
         var oldStart = _visibleStart;
         var oldEnd = _visibleEnd;
         CalculateVisibleRange();
+
         if (oldStart != _visibleStart || oldEnd != _visibleEnd)
             VisibleRangeChanged?.Invoke(_visibleStart, _visibleEnd);
-        InvalidateSurface();
+
+        _canvas.InvalidateSurface();
     }
 
     public void UpdateCardImage(string uuid, SKImage image, ImageQuality quality)
@@ -207,7 +263,7 @@ public class MTGCardGrid : SKCanvasView
         if (!consumed)
             image.Dispose();
 
-        InvalidateSurface();
+        _canvas.InvalidateSurface();
     }
 
     public void UpdateCardPrices(string uuid, CardPriceData prices)
@@ -224,7 +280,7 @@ public class MTGCardGrid : SKCanvasView
                 }
             }
         }
-        InvalidateSurface();
+        _canvas.InvalidateSurface();
     }
 
     public GridCardData? GetCardAt(int index)
@@ -310,14 +366,19 @@ public class MTGCardGrid : SKCanvasView
         int rowCount = (int)Math.Ceiling((double)count / _columnCount);
         _totalHeight = rowCount * (_cardHeight + CardSpacing) + CardSpacing + 50f;
 
-        HeightRequest = _totalHeight;
+        _scrollSpacer.HeightRequest = _totalHeight;
+
+        float viewportHeight = (float)(Parent is View vp ? vp.Height : Height);
+        if (viewportHeight <= 0) viewportHeight = 1000f;
+        _canvas.HeightRequest = viewportHeight;
+
         CalculateVisibleRange();
     }
 
     private void CalculateVisibleRange()
     {
         float viewportHeight = (float)(Parent is View v ? v.Height : Height);
-        if (viewportHeight <= 0) viewportHeight = 800f;
+        if (viewportHeight <= 0) viewportHeight = 1000f;
 
         float rowHeight = _cardHeight + CardSpacing;
         if (rowHeight <= 0)
@@ -337,16 +398,14 @@ public class MTGCardGrid : SKCanvasView
             return;
         }
 
-        // Ensure _scrollOffset is within reasonable bounds for calculation
         float effectiveOffset = Math.Max(0, _scrollOffset);
 
-        int firstRow = Math.Max(0, (int)((effectiveOffset - CardSpacing) / rowHeight) - 1);
+        int firstRow = Math.Max(0, (int)((effectiveOffset - CardSpacing) / rowHeight));
         int lastRow = (int)((effectiveOffset + viewportHeight + CardSpacing) / rowHeight) + 1;
 
         _visibleStart = Math.Max(0, Math.Min(count - 1, firstRow * _columnCount));
         _visibleEnd = Math.Max(0, Math.Min(count - 1, (lastRow + 1) * _columnCount - 1));
 
-        // If visible start is beyond count, reset it
         if (_visibleStart >= count)
         {
             _visibleStart = 0;
@@ -356,18 +415,52 @@ public class MTGCardGrid : SKCanvasView
 
     // ── Painting ───────────────────────────────────────────────────────
 
-    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    private void EnsureResources()
+    {
+        if (_bgPaint != null) return;
+
+        _bgPaint = new SKPaint { IsAntialias = true };
+        _labelBgPaint = new SKPaint { IsAntialias = true, Color = new SKColor(25, 25, 25) };
+        _namePaint = new SKPaint { IsAntialias = true, Color = new SKColor(240, 240, 240) };
+        _setPaint = new SKPaint { IsAntialias = true, Color = new SKColor(160, 160, 160) };
+        _hoverPaint = new SKPaint
+        {
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 2f,
+            Color = new SKColor(100, 149, 237, 40)
+        };
+        _chipBgPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 180) };
+        _chipTextPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+        _badgeBgPaint = new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
+        _badgeTextPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+        _shimmerBasePaint = new SKPaint { Color = new SKColor(40, 40, 40) };
+        _shimmerGradientPaint = new SKPaint { IsAntialias = true };
+        _ripplePaint = new SKPaint { IsAntialias = true, Color = new SKColor(255, 255, 255, 30) };
+        _imgPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+
+        _nameFont = new SKFont(SKTypeface.Default, 12f);
+        _setFont = new SKFont(SKTypeface.Default, 10f);
+        _chipFont = new SKFont(SKTypeface.Default, 10f);
+        _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
+    }
+
+    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
         var canvas = e.Surface.Canvas;
         var info = e.Info;
-        canvas.Clear(new SKColor(18, 18, 18)); // Dark background
+        canvas.Clear(new SKColor(18, 18, 18));
 
         if (_cardWidth <= 0) CalculateLayout();
+        EnsureResources();
 
         float scale = info.Width / (float)(Width > 0 ? Width : 360);
 
         canvas.Save();
         canvas.Scale(scale);
+
+        // Offset by scroll to draw the correct slice
+        canvas.Translate(0, -_scrollOffset);
 
         lock (_cardsLock)
         {
@@ -386,29 +479,20 @@ public class MTGCardGrid : SKCanvasView
     {
         int row = index / _columnCount;
         int col = index % _columnCount;
-        float x = CardSpacing + col * (_cardWidth + CardSpacing) + 10f; // 10px left padding
+        float x = CardSpacing + col * (_cardWidth + CardSpacing) + 10f;
         float y = CardSpacing + row * (_cardHeight + CardSpacing);
         return new SKRect(x, y, x + _cardWidth, y + _cardHeight);
     }
 
     private void DrawCard(SKCanvas canvas, GridCardData card, SKRect rect, int index)
     {
-        // Fade-in animation
-        float alpha = card.FirstVisible ? Math.Min(1f, card.AnimationProgress + 0.05f) : 1f;
-        if (card.FirstVisible && card.AnimationProgress < 1f)
-            card.AnimationProgress = alpha;
-
-        byte alphaByte = (byte)(alpha * 255);
+        byte alphaByte = (byte)(card.AnimationProgress * 255);
+        if (!card.FirstVisible) alphaByte = 255;
 
         // Card background
-        using var bgPaint = new SKPaint
-        {
-            Color = new SKColor(30, 30, 30, alphaByte),
-            IsAntialias = true
-        };
-        canvas.DrawRoundRect(rect, 8f, 8f, bgPaint);
+        _bgPaint!.Color = new SKColor(30, 30, 30, alphaByte);
+        canvas.DrawRoundRect(rect, 8f, 8f, _bgPaint);
 
-        // Image area
         float imageHeight = _cardWidth * CardImageRatio;
         var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + imageHeight);
 
@@ -425,129 +509,81 @@ public class MTGCardGrid : SKCanvasView
         float labelY = rect.Top + imageHeight;
         var labelRect = new SKRect(rect.Left, labelY, rect.Right, rect.Bottom);
 
-        using var labelBgPaint = new SKPaint
-        {
-            Color = new SKColor(25, 25, 25, alphaByte),
-            IsAntialias = true
-        };
+        _labelBgPaint!.Color = new SKColor(25, 25, 25, alphaByte);
         var labelRR = new SKRoundRect();
         labelRR.SetRectRadii(labelRect,
         [
-            new SKPoint(0, 0), new SKPoint(0, 0),   // top-left, top-right
-            new SKPoint(8, 8), new SKPoint(8, 8)     // bottom-right, bottom-left
+            new SKPoint(0, 0), new SKPoint(0, 0),
+            new SKPoint(8, 8), new SKPoint(8, 8)
         ]);
-        canvas.DrawRoundRect(labelRR, labelBgPaint);
+        canvas.DrawRoundRect(labelRR, _labelBgPaint);
 
         // Card name
-        using var namePaint = new SKPaint
+        _namePaint!.Color = new SKColor(240, 240, 240, alphaByte);
+        if (card.TruncatedName == "" || card.LastKnownCardWidth != _cardWidth)
         {
-            Color = new SKColor(240, 240, 240, alphaByte),
-            IsAntialias = true
-        };
-        using var nameFont = new SKFont(SKTypeface.Default, 12f);
-        string displayName = TruncateText(card.Name, nameFont, _cardWidth - 8f);
-        canvas.DrawText(displayName, rect.Left + 4f, labelY + 16f, nameFont, namePaint);
-
-        // Set code + number
-        using var setPaint = new SKPaint
-        {
-            Color = new SKColor(160, 160, 160, alphaByte),
-            IsAntialias = true
-        };
-        using var setFont = new SKFont(SKTypeface.Default, 10f);
-        string setInfo = $"{card.SetCode} #{card.Number}";
-        canvas.DrawText(setInfo, rect.Left + 4f, labelY + 32f, setFont, setPaint);
-
-        // Hover highlight
-        if (index == _hoveredIndex)
-        {
-            using var hoverPaint = new SKPaint
-            {
-                Color = new SKColor(100, 149, 237, 40),
-                Style = SKPaintStyle.Stroke,
-                StrokeWidth = 2f,
-                IsAntialias = true
-            };
-            canvas.DrawRoundRect(rect, 8f, 8f, hoverPaint);
+            card.TruncatedName = TruncateText(card.Name, _nameFont!, _cardWidth - 8f);
+            card.LastKnownCardWidth = _cardWidth;
         }
+        canvas.DrawText(card.TruncatedName, rect.Left + 4f, labelY + 16f, _nameFont!, _namePaint);
+
+        // Set info
+        _setPaint!.Color = new SKColor(160, 160, 160, alphaByte);
+        string setInfo = $"{card.SetCode} #{card.Number}";
+        canvas.DrawText(setInfo, rect.Left + 4f, labelY + 32f, _setFont!, _setPaint);
+
+        if (index == _hoveredIndex)
+            canvas.DrawRoundRect(rect, 8f, 8f, _hoverPaint!);
     }
 
     private void DrawCardImage(SKCanvas canvas, GridCardData card, SKRect imageRect, byte alpha, int index)
     {
-        // Clip to rounded top corners
         canvas.Save();
-        var clipPath = new SKPath();
-        var topRR = new SKRoundRect();
+        using var clipPath = new SKPath();
+        using var topRR = new SKRoundRect();
         topRR.SetRectRadii(imageRect,
         [
-            new SKPoint(8, 8), new SKPoint(8, 8),   // top-left, top-right
-            new SKPoint(0, 0), new SKPoint(0, 0)     // bottom-right, bottom-left
+            new SKPoint(8, 8), new SKPoint(8, 8),
+            new SKPoint(0, 0), new SKPoint(0, 0)
         ]);
         clipPath.AddRoundRect(topRR);
         canvas.ClipPath(clipPath);
 
-        using var imgPaint = new SKPaint
-        {
-            Color = new SKColor(255, 255, 255, alpha),
-            IsAntialias = true
-        };
-        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
-        canvas.DrawImage(card.Image!, imageRect, sampling, imgPaint);
+        _imgPaint!.Color = new SKColor(255, 255, 255, alpha);
+        canvas.DrawImage(card.Image!, imageRect, _sampling, _imgPaint);
 
         canvas.Restore();
-        clipPath.Dispose();
 
-        // Price chip
         string price = card.GetDisplayPrice();
         if (!string.IsNullOrEmpty(price))
         {
-            using var chipBg = new SKPaint { Color = new SKColor(0, 0, 0, 180), IsAntialias = true };
-            using var chipTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
-            using var chipFont = new SKFont(SKTypeface.Default, 10f);
-            float tw = chipFont.MeasureText(price);
+            float tw = _chipFont!.MeasureText(price);
             float chipX = imageRect.MidX - (tw + 12f) / 2f;
             float chipY = imageRect.Bottom - 22f;
-            canvas.DrawRoundRect(chipX, chipY, tw + 12f, 18f, 9f, 9f, chipBg);
-            canvas.DrawText(price, chipX + 6f, chipY + 13f, chipFont, chipTextPaint);
+            canvas.DrawRoundRect(chipX, chipY, tw + 12f, 18f, 9f, 9f, _chipBgPaint!);
+            canvas.DrawText(price, chipX + 6f, chipY + 13f, _chipFont, _chipTextPaint!);
         }
 
-        // Quantity badge
         if (card.Quantity > 0)
         {
-            using var badgePaint = new SKPaint { Color = new SKColor(220, 50, 50), IsAntialias = true };
-            using var badgeTextPaint = new SKPaint
-            {
-                Color = SKColors.White,
-                IsAntialias = true
-            };
-            using var badgeTypeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
-            using var badgeFont = new SKFont(badgeTypeface, 11f);
             string qtyStr = card.Quantity.ToString();
-            float tw = badgeFont.MeasureText(qtyStr);
+            float tw = _badgeFont!.MeasureText(qtyStr);
             float bw = Math.Max(20f, tw + 10f);
             float bx = imageRect.Right - bw - 4f;
             float by = imageRect.Top + 4f;
-            canvas.DrawRoundRect(bx, by, bw, 20f, 10f, 10f, badgePaint);
-            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 15f, badgeFont, badgeTextPaint);
+            canvas.DrawRoundRect(bx, by, bw, 20f, 10f, 10f, _badgeBgPaint!);
+            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 15f, _badgeFont, _badgeTextPaint!);
         }
 
-        // Pressed ripple effect
         if (index == _pressedIndex)
-        {
-            using var ripplePaint = new SKPaint
-            {
-                Color = new SKColor(255, 255, 255, 30),
-                IsAntialias = true
-            };
-            canvas.DrawRoundRect(imageRect, 8f, 8f, ripplePaint);
-        }
+            canvas.DrawRoundRect(imageRect, 8f, 8f, _ripplePaint!);
     }
 
     private void DrawShimmer(SKCanvas canvas, SKRect rect, byte alpha)
     {
         canvas.Save();
-        var clipPath = new SKPath();
-        var shimmerRR = new SKRoundRect();
+        using var clipPath = new SKPath();
+        using var shimmerRR = new SKRoundRect();
         shimmerRR.SetRectRadii(rect,
         [
             new SKPoint(8, 8), new SKPoint(8, 8),
@@ -556,32 +592,35 @@ public class MTGCardGrid : SKCanvasView
         clipPath.AddRoundRect(shimmerRR);
         canvas.ClipPath(clipPath);
 
-        // Base dark background
-        using var basePaint = new SKPaint { Color = new SKColor(40, 40, 40, alpha) };
-        canvas.DrawRect(rect, basePaint);
+        _shimmerBasePaint!.Color = new SKColor(40, 40, 40, alpha);
+        canvas.DrawRect(rect, _shimmerBasePaint);
 
-        // Shimmer gradient sweep
         float shimmerX = rect.Left + (rect.Width * 2f) * _shimmerPhase - rect.Width * 0.5f;
-        using var shimmerPaint = new SKPaint { IsAntialias = true };
-        shimmerPaint.Shader = SKShader.CreateLinearGradient(
+        using var shader = SKShader.CreateLinearGradient(
             new SKPoint(shimmerX - rect.Width * 0.3f, rect.Top),
             new SKPoint(shimmerX + rect.Width * 0.3f, rect.Top),
             [new SKColor(40, 40, 40, alpha), new SKColor(60, 60, 60, alpha), new SKColor(40, 40, 40, alpha)],
             [0f, 0.5f, 1f],
             SKShaderTileMode.Clamp);
-        canvas.DrawRect(rect, shimmerPaint);
+        _shimmerGradientPaint!.Shader = shader;
+        canvas.DrawRect(rect, _shimmerGradientPaint);
+        _shimmerGradientPaint.Shader = null;
 
         canvas.Restore();
-        clipPath.Dispose();
     }
 
     // ── Touch Handling ─────────────────────────────────────────────────
 
     private void OnTouch(object? sender, SKTouchEventArgs e)
     {
-        float scale = (float)(CanvasSize.Width / (Width > 0 ? Width : 360));
+        float scale = (float)(_canvas.CanvasSize.Width / (Width > 0 ? Width : 360));
+
+        // Touch coordinates are relative to the view.
+        // Our view is sticky at TranslateY = _scrollOffset.
+        // But Skia is translated by -_scrollOffset internally.
+        // So we need to add _scrollOffset to the Y touch coordinate to match the drawn cards.
         float x = e.Location.X / scale;
-        float y = e.Location.Y / scale;
+        float y = (e.Location.Y / scale) + _scrollOffset;
 
         switch (e.ActionType)
         {
@@ -589,7 +628,7 @@ public class MTGCardGrid : SKCanvasView
                 _pressPoint = new SKPoint(x, y);
                 _pointerMoved = false;
                 _pressedIndex = HitTestCard(x, y);
-                InvalidateSurface();
+                _canvas.InvalidateSurface();
                 e.Handled = true;
                 break;
 
@@ -613,13 +652,13 @@ public class MTGCardGrid : SKCanvasView
                         CardClicked?.Invoke(card.UUID);
                 }
                 _pressedIndex = -1;
-                InvalidateSurface();
+                _canvas.InvalidateSurface();
                 e.Handled = true;
                 break;
 
             case SKTouchAction.Cancelled:
                 _pressedIndex = -1;
-                InvalidateSurface();
+                _canvas.InvalidateSurface();
                 e.Handled = true;
                 break;
         }
@@ -675,6 +714,29 @@ public class MTGCardGrid : SKCanvasView
         }
     }
 
+    private void DisposeResources()
+    {
+        _bgPaint?.Dispose();
+        _labelBgPaint?.Dispose();
+        _namePaint?.Dispose();
+        _setPaint?.Dispose();
+        _hoverPaint?.Dispose();
+        _chipBgPaint?.Dispose();
+        _chipTextPaint?.Dispose();
+        _badgeBgPaint?.Dispose();
+        _badgeTextPaint?.Dispose();
+        _shimmerBasePaint?.Dispose();
+        _shimmerGradientPaint?.Dispose();
+        _ripplePaint?.Dispose();
+        _imgPaint?.Dispose();
+        _nameFont?.Dispose();
+        _setFont?.Dispose();
+        _chipFont?.Dispose();
+        _badgeFont?.Dispose();
+
+        _bgPaint = null;
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private static string TruncateText(string text, SKFont font, float maxWidth)
@@ -695,4 +757,6 @@ public class MTGCardGrid : SKCanvasView
         if (width > 0)
             CalculateLayout();
     }
+
+    public void InvalidateSurface() => _canvas.InvalidateSurface();
 }
