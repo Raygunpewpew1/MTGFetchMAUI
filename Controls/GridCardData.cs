@@ -40,6 +40,10 @@ public class GridCardData
     // Animation
     public float AnimationProgress { get; set; }
 
+    // Cached UI elements
+    public string TruncatedName { get; set; } = "";
+    public float LastKnownCardWidth { get; set; }
+
     // Price
     public CardPriceData? PriceData { get; set; }
     public string CachedDisplayPrice { get; set; } = "";
