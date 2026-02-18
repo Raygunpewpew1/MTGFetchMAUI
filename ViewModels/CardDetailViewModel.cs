@@ -11,7 +11,7 @@ namespace MTGFetchMAUI.ViewModels;
 /// Loads card data, images, faces, legalities, and prices.
 /// Port of TCardDetailFrame logic from CardDetailFrame.pas.
 /// </summary>
-public class CardDetailViewModel : BaseViewModel
+public class CardDetailViewModel : BaseViewModel, IDisposable
 {
     private readonly CardManager _cardManager;
     private Card _card = new();
@@ -83,6 +83,27 @@ public class CardDetailViewModel : BaseViewModel
         AddToCollectionCommand = new Command<int>(async qty => await AddToCollectionAsync(qty));
         RemoveFromCollectionCommand = new Command(async () => await RemoveFromCollectionAsync());
         ToggleLegalitiesCommand = new Command(() => ShowLegalities = !ShowLegalities);
+
+        _cardManager.OnPricesUpdated += HandlePricesUpdated;
+    }
+
+    private async void HandlePricesUpdated()
+    {
+        if (Card != null && !string.IsNullOrEmpty(Card.UUID))
+        {
+            await LoadPriceAsync();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                OnPropertyChanged(nameof(PriceDisplay));
+                OnPropertyChanged(nameof(CurrentFace)); // Triggers UI update
+            });
+        }
+    }
+
+    public void Dispose()
+    {
+        _cardManager.OnPricesUpdated -= HandlePricesUpdated;
+        GC.SuppressFinalize(this);
     }
 
     public async Task LoadCardAsync(string uuid)

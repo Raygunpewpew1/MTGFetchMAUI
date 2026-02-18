@@ -23,22 +23,22 @@ public class CardManager : IDisposable
     // ── Events ───────────────────────────────────────────────────────
 
     /// <summary>Progress callback for downloads: (message, percent).</summary>
-    public Action<string, int>? OnProgress { get; set; }
+    public event Action<string, int>? OnProgress;
 
     /// <summary>Fired when the database is ready after download/connect.</summary>
-    public Action? OnDatabaseReady { get; set; }
+    public event Action? OnDatabaseReady;
 
     /// <summary>Fired with success status on database operations.</summary>
-    public Action<bool>? OnDatabaseError { get; set; }
+    public event Action<bool>? OnDatabaseError;
 
     /// <summary>Fired when a new MTG database version is available remotely.</summary>
-    public Action<string>? OnDatabaseUpdateAvailable { get; set; }
+    public event Action<string>? OnDatabaseUpdateAvailable;
 
     /// <summary>One-shot callback when prices first become available.</summary>
     public Action? OnPricesReady { get; set; }
 
     /// <summary>Persistent callback for subsequent price refreshes.</summary>
-    public Action? OnPricesUpdated { get; set; }
+    public event Action? OnPricesUpdated;
 
     // ── Properties ───────────────────────────────────────────────────
 

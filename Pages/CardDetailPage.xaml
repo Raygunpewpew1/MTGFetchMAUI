@@ -85,7 +85,9 @@
                         Padding="12"
                         x:Name="TextBorder"
                         IsVisible="False">
-                    <controls:CardTextView x:Name="CardTextView" />
+                    <controls:CardTextView x:Name="CardTextView"
+                                           HorizontalOptions="Fill"
+                                           HeightRequest="60" />
                 </Border>
 
                 <Border StrokeShape="RoundRectangle 8"

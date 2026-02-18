@@ -166,6 +166,11 @@ public class CardTextView : SKCanvasView
             return;
         }
         RebuildRuns();
+
+        // Ensure we have some height to trigger a paint pass
+        if (HeightRequest < 0)
+            HeightRequest = 40;
+
         InvalidateSurface();
     }
 
@@ -267,16 +272,16 @@ public class CardTextView : SKCanvasView
         var info = e.Info;
         canvas.Clear(SKColors.Transparent);
 
-        if (_runs.Count == 0) return;
+        if (_runs.Count == 0 || info.Width == 0) return;
 
-        float scale = info.Width / (float)(Width > 0 ? Width : 300);
+        float viewWidth = (float)(Width > 0 ? Width : 300);
+        float scale = info.Width / viewWidth;
+
         canvas.Save();
         canvas.Scale(scale);
 
-        float maxWidth = (float)(Width > 0 ? Width : 300);
-
         // Layout runs into positioned glyphs with word wrapping
-        var glyphs = LayoutGlyphs(maxWidth);
+        var glyphs = LayoutGlyphs(viewWidth);
 
         // Draw shadow layer first
         if (_shadowBlur > 0)
