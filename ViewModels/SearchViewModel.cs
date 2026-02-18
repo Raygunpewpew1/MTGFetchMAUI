@@ -243,13 +243,16 @@ public class SearchViewModel : BaseViewModel
                 _grid.MarkUpgrading(card.UUID);
 
             string uuid = card.UUID;
-            _cardManager.DownloadCardImageAsync(card.ScryfallId, (bitmap, success) =>
+            _cardManager.DownloadCardImageAsync(card.ScryfallId, (image, success) =>
             {
-                if (success && bitmap != null)
+                if (success && image != null)
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        _grid?.UpdateCardImage(uuid, bitmap, quality);
+                        if (_grid != null)
+                            _grid.UpdateCardImage(uuid, image, quality);
+                        else
+                            image.Dispose();
                     });
                 }
             }, imageSize);

@@ -47,9 +47,9 @@ public class FileImageCache : IDisposable
     }
 
     /// <summary>
-    /// Returns a cached SKBitmap, or null if not found or expired.
+    /// Returns a cached SKImage, or null if not found or expired.
     /// </summary>
-    public async Task<SKBitmap?> GetImageAsync(string key)
+    public async Task<SKImage?> GetImageAsync(string key)
     {
         var filePath = GetCacheFilePath(key);
         if (!File.Exists(filePath)) return null;
@@ -64,7 +64,7 @@ public class FileImageCache : IDisposable
             }
 
             var data = await File.ReadAllBytesAsync(filePath);
-            return SKBitmap.Decode(data);
+            return SKImage.FromEncodedData(data);
         }
         catch (Exception ex)
         {
@@ -80,7 +80,7 @@ public class FileImageCache : IDisposable
     /// <summary>
     /// Convenience: generates key, gets image, returns success.
     /// </summary>
-    public async Task<(bool found, SKBitmap? image)> TryGetImageAsync(string urlOrPath, string size = "")
+    public async Task<(bool found, SKImage? image)> TryGetImageAsync(string urlOrPath, string size = "")
     {
         var key = GenerateKey(urlOrPath, size);
         var image = await GetImageAsync(key);
@@ -88,9 +88,9 @@ public class FileImageCache : IDisposable
     }
 
     /// <summary>
-    /// Saves an SKBitmap to the cache as a WebP file.
+    /// Saves an SKImage to the cache as a WebP file.
     /// </summary>
-    public async Task SaveImageAsync(string key, SKBitmap image)
+    public async Task SaveImageAsync(string key, SKImage image)
     {
         await _lock.WaitAsync();
         try

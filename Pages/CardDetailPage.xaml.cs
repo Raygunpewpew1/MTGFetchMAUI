@@ -145,17 +145,18 @@ public partial class CardDetailPage : ContentPage
         var canvas = e.Surface.Canvas;
         canvas.Clear(new SKColor(30, 30, 30));
 
-        var bitmap = _viewModel.CardImage;
-        if (bitmap == null) return;
+        var image = _viewModel.CardImage;
+        if (image == null) return;
 
         var info = e.Info;
-        float scale = Math.Min((float)info.Width / bitmap.Width, (float)info.Height / bitmap.Height);
-        float x = (info.Width - bitmap.Width * scale) / 2f;
-        float y = (info.Height - bitmap.Height * scale) / 2f;
+        float scale = Math.Min((float)info.Width / image.Width, (float)info.Height / image.Height);
+        float x = (info.Width - image.Width * scale) / 2f;
+        float y = (info.Height - image.Height * scale) / 2f;
 
-        var destRect = new SKRect(x, y, x + bitmap.Width * scale, y + bitmap.Height * scale);
-        using var paint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
-        canvas.DrawBitmap(bitmap, destRect, paint);
+        var destRect = new SKRect(x, y, x + image.Width * scale, y + image.Height * scale);
+        using var paint = new SKPaint { IsAntialias = true };
+        var sampling = new SKSamplingOptions(SKCubicResampler.Mitchell);
+        canvas.DrawImage(image, destRect, sampling, paint);
     }
 
     private async void OnAddClicked(object? sender, EventArgs e)

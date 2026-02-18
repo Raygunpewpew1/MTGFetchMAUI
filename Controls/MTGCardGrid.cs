@@ -176,8 +176,9 @@ public class MTGCardGrid : SKCanvasView
         InvalidateSurface();
     }
 
-    public void UpdateCardImage(string uuid, SKBitmap image, ImageQuality quality)
+    public void UpdateCardImage(string uuid, SKImage image, ImageQuality quality)
     {
+        bool consumed = false;
         lock (_cardsLock)
         {
             for (int i = 0; i < _cards.Count; i++)
@@ -196,11 +197,16 @@ public class MTGCardGrid : SKCanvasView
                             _cards[i].FirstVisible = true;
                             _cards[i].AnimationProgress = 0f;
                         }
+                        consumed = true;
                     }
                     break;
                 }
             }
         }
+
+        if (!consumed)
+            image.Dispose();
+
         InvalidateSurface();
     }
 
@@ -436,22 +442,21 @@ public class MTGCardGrid : SKCanvasView
         using var namePaint = new SKPaint
         {
             Color = new SKColor(240, 240, 240, alphaByte),
-            TextSize = 12f,
-            IsAntialias = true,
-            Typeface = SKTypeface.Default
+            IsAntialias = true
         };
-        string displayName = TruncateText(card.Name, namePaint, _cardWidth - 8f);
-        canvas.DrawText(displayName, rect.Left + 4f, labelY + 16f, namePaint);
+        using var nameFont = new SKFont(SKTypeface.Default, 12f);
+        string displayName = TruncateText(card.Name, nameFont, _cardWidth - 8f);
+        canvas.DrawText(displayName, rect.Left + 4f, labelY + 16f, nameFont, namePaint);
 
         // Set code + number
         using var setPaint = new SKPaint
         {
             Color = new SKColor(160, 160, 160, alphaByte),
-            TextSize = 10f,
             IsAntialias = true
         };
+        using var setFont = new SKFont(SKTypeface.Default, 10f);
         string setInfo = $"{card.SetCode} #{card.Number}";
-        canvas.DrawText(setInfo, rect.Left + 4f, labelY + 32f, setPaint);
+        canvas.DrawText(setInfo, rect.Left + 4f, labelY + 32f, setFont, setPaint);
 
         // Hover highlight
         if (index == _hoveredIndex)
@@ -484,10 +489,10 @@ public class MTGCardGrid : SKCanvasView
         using var imgPaint = new SKPaint
         {
             Color = new SKColor(255, 255, 255, alpha),
-            FilterQuality = SKFilterQuality.Medium,
             IsAntialias = true
         };
-        canvas.DrawBitmap(card.Image!, imageRect, imgPaint);
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+        canvas.DrawImage(card.Image!, imageRect, sampling, imgPaint);
 
         canvas.Restore();
         clipPath.Dispose();
@@ -497,29 +502,33 @@ public class MTGCardGrid : SKCanvasView
         if (!string.IsNullOrEmpty(price))
         {
             using var chipBg = new SKPaint { Color = new SKColor(0, 0, 0, 180), IsAntialias = true };
-            using var chipText = new SKPaint { Color = SKColors.White, TextSize = 10f, IsAntialias = true };
-            float tw = chipText.MeasureText(price);
+            using var chipTextPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+            using var chipFont = new SKFont(SKTypeface.Default, 10f);
+            float tw = chipFont.MeasureText(price);
             float chipX = imageRect.MidX - (tw + 12f) / 2f;
             float chipY = imageRect.Bottom - 22f;
             canvas.DrawRoundRect(chipX, chipY, tw + 12f, 18f, 9f, 9f, chipBg);
-            canvas.DrawText(price, chipX + 6f, chipY + 13f, chipText);
+            canvas.DrawText(price, chipX + 6f, chipY + 13f, chipFont, chipTextPaint);
         }
 
         // Quantity badge
         if (card.Quantity > 0)
         {
             using var badgePaint = new SKPaint { Color = new SKColor(220, 50, 50), IsAntialias = true };
-            using var badgeText = new SKPaint
+            using var badgeTextPaint = new SKPaint
             {
-                Color = SKColors.White, TextSize = 11f, IsAntialias = true,
-                FakeBoldText = true
+                Color = SKColors.White,
+                IsAntialias = true
             };
+            using var badgeTypeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
+            using var badgeFont = new SKFont(badgeTypeface, 11f);
             string qtyStr = card.Quantity.ToString();
-            float bw = Math.Max(20f, badgeText.MeasureText(qtyStr) + 10f);
+            float tw = badgeFont.MeasureText(qtyStr);
+            float bw = Math.Max(20f, tw + 10f);
             float bx = imageRect.Right - bw - 4f;
             float by = imageRect.Top + 4f;
             canvas.DrawRoundRect(bx, by, bw, 20f, 10f, 10f, badgePaint);
-            canvas.DrawText(qtyStr, bx + (bw - badgeText.MeasureText(qtyStr)) / 2f, by + 15f, badgeText);
+            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 15f, badgeFont, badgeTextPaint);
         }
 
         // Pressed ripple effect
@@ -668,13 +677,13 @@ public class MTGCardGrid : SKCanvasView
 
     // ── Helpers ─────────────────────────────────────────────────────────
 
-    private static string TruncateText(string text, SKPaint paint, float maxWidth)
+    private static string TruncateText(string text, SKFont font, float maxWidth)
     {
-        if (paint.MeasureText(text) <= maxWidth) return text;
+        if (font.MeasureText(text) <= maxWidth) return text;
         for (int len = text.Length - 1; len > 0; len--)
         {
             string truncated = text[..len] + "...";
-            if (paint.MeasureText(truncated) <= maxWidth)
+            if (font.MeasureText(truncated) <= maxWidth)
                 return truncated;
         }
         return "...";

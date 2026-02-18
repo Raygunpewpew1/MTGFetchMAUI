@@ -31,7 +31,7 @@ public class GridCardData
     public bool IsOnlineOnly { get; set; }
 
     // Image state
-    public SKBitmap? Image { get; set; }
+    public SKImage? Image { get; set; }
     public ImageQuality Quality { get; set; } = ImageQuality.None;
     public bool IsLoading { get; set; }
     public bool IsUpgrading { get; set; }

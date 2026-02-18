@@ -57,7 +57,7 @@ public class ImageDownloadService : IDisposable
     /// </summary>
     public void DownloadImageAsync(
         string scryfallId,
-        Action<SKBitmap?, bool> callback,
+        Action<SKImage?, bool> callback,
         string imageSize = "normal",
         string face = "")
     {
@@ -65,13 +65,13 @@ public class ImageDownloadService : IDisposable
 
         _ = Task.Run(async () =>
         {
-            SKBitmap? bitmap = null;
+            SKImage? image = null;
             bool success = false;
 
             try
             {
-                bitmap = await DownloadImageCoreAsync(scryfallId, imageSize, gen, face);
-                success = bitmap != null;
+                image = await DownloadImageCoreAsync(scryfallId, imageSize, gen, face);
+                success = image != null;
             }
             catch (Exception ex)
             {
@@ -80,14 +80,16 @@ public class ImageDownloadService : IDisposable
 
             // Only deliver if generation hasn't changed
             if (gen == Generation)
-                callback(bitmap, success);
+                callback(image, success);
+            else
+                image?.Dispose();
         });
     }
 
     /// <summary>
     /// Downloads an image and returns it directly (async).
     /// </summary>
-    public async Task<SKBitmap?> DownloadImageDirectAsync(
+    public async Task<SKImage?> DownloadImageDirectAsync(
         string scryfallId,
         string imageSize = "normal",
         string face = "")
@@ -98,7 +100,7 @@ public class ImageDownloadService : IDisposable
     /// <summary>
     /// Returns a cached image, or null if not cached.
     /// </summary>
-    public async Task<SKBitmap?> GetCachedImageAsync(
+    public async Task<SKImage?> GetCachedImageAsync(
         string scryfallId,
         string imageSize = "normal",
         string face = "")
@@ -162,7 +164,7 @@ public class ImageDownloadService : IDisposable
 
     // ── Core Download Logic ──────────────────────────────────────────
 
-    private async Task<SKBitmap?> DownloadImageCoreAsync(
+    private async Task<SKImage?> DownloadImageCoreAsync(
         string scryfallId, string imageSize, int generation, string face)
     {
         if (string.IsNullOrEmpty(scryfallId)) return null;
@@ -225,7 +227,7 @@ public class ImageDownloadService : IDisposable
         }
     }
 
-    private async Task<SKBitmap?> DownloadWithRetryAsync(
+    private async Task<SKImage?> DownloadWithRetryAsync(
         string scryfallId, string imageSize, string face, string cacheKey, int generation)
     {
         var scryfallFace = face.Equals("back", StringComparison.OrdinalIgnoreCase)
@@ -268,8 +270,7 @@ public class ImageDownloadService : IDisposable
                 }
 
                 // Decode and return
-                var bitmap = SKBitmap.Decode(data);
-                return bitmap;
+                return SKImage.FromEncodedData(data);
             }
             catch (Exception ex)
             {
