@@ -208,6 +208,23 @@ public class CardRepository : ICardRepository
         return cards.ToArray();
     }
 
+    public async Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper)
+    {
+        var (sql, parameters) = searchHelper.BuildCount();
+
+        return await WithMTGReaderAsync(sql, cmd =>
+        {
+            foreach (var (name, value) in parameters)
+                cmd.Parameters.AddWithValue(name, value);
+        },
+        async reader =>
+        {
+            if (await reader.ReadAsync())
+                return reader.GetInt32(0);
+            return 0;
+        });
+    }
+
     public MTGSearchHelper CreateSearchHelper() => new();
 
     // ── Private helpers ─────────────────────────────────────────────

@@ -221,6 +221,11 @@ public class CardManager : IDisposable
         return await _cardRepository.SearchCardsAdvancedAsync(searchHelper);
     }
 
+    public async Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper)
+    {
+        return await _cardRepository.GetCountAdvancedAsync(searchHelper);
+    }
+
     // ── Card Detail Methods ──────────────────────────────────────────
 
     public async Task<Card> GetCardDetailsAsync(string uuid)
