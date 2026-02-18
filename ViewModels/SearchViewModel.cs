@@ -56,6 +56,28 @@ public class SearchViewModel : BaseViewModel
         _cardManager = cardManager;
         SearchCommand = new Command(async () => await PerformSearchAsync());
         ClearCommand = new Command(ClearSearch);
+
+        // Subscribe to CardManager events for status updates
+        _cardManager.OnProgress += (msg, pct) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => StatusMessage = msg);
+        };
+        _cardManager.OnDatabaseReady += () =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => StatusMessage = "Database ready");
+        };
+        _cardManager.OnPricesUpdated += () =>
+        {
+            // If we have cards, refresh the grid to show prices
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (_grid != null && _grid.CardCount > 0)
+                {
+                    var range = _grid.GetVisibleRange();
+                    LoadVisiblePrices(range.start, range.end);
+                }
+            });
+        };
     }
 
     public void AttachGrid(MTGCardGrid grid)
