@@ -17,7 +17,7 @@ public class CardDetailViewModel : BaseViewModel
     private Card _card = new();
     private Card[] _faces = [];
     private int _currentFaceIndex;
-    private SKBitmap? _cardImage;
+    private SKImage? _cardImage;
     private bool _isInCollection;
     private string _priceDisplay = "";
     private bool _showLegalities;
@@ -34,10 +34,17 @@ public class CardDetailViewModel : BaseViewModel
         set => SetProperty(ref _faces, value);
     }
 
-    public SKBitmap? CardImage
+    public SKImage? CardImage
     {
         get => _cardImage;
-        set => SetProperty(ref _cardImage, value);
+        set
+        {
+            if (_cardImage != value)
+            {
+                _cardImage?.Dispose();
+                SetProperty(ref _cardImage, value);
+            }
+        }
     }
 
     public bool IsInCollection
@@ -173,11 +180,11 @@ public class CardDetailViewModel : BaseViewModel
             return;
         }
 
-        _cardManager.DownloadCardImageAsync(currentFace.ScryfallId, (bitmap, success) =>
+        _cardManager.DownloadCardImageAsync(currentFace.ScryfallId, (image, success) =>
         {
-            if (success && bitmap != null)
+            if (success && image != null)
             {
-                MainThread.BeginInvokeOnMainThread(() => CardImage = bitmap);
+                MainThread.BeginInvokeOnMainThread(() => CardImage = image);
             }
         }, MTGConstants.ImageSizeNormal, faceParam);
     }

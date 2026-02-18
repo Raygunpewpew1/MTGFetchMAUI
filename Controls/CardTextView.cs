@@ -284,14 +284,14 @@ public class CardTextView : SKCanvasView
             using var shadowPaint = new SKPaint
             {
                 Color = _shadowColor,
-                TextSize = _textSize,
                 IsAntialias = true,
                 MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, _shadowBlur)
             };
+            using var shadowFont = new SKFont(SKTypeface.Default, _textSize);
             foreach (var g in glyphs)
             {
                 if (g.Type is RunType.Normal or RunType.Keyword)
-                    canvas.DrawText(g.Text, g.X + 1f, g.Y + 1f, shadowPaint);
+                    canvas.DrawText(g.Text, g.X + 1f, g.Y + 1f, shadowFont, shadowPaint);
             }
         }
 
@@ -299,28 +299,28 @@ public class CardTextView : SKCanvasView
         using var normalPaint = new SKPaint
         {
             Color = _textColor,
-            TextSize = _textSize,
             IsAntialias = true
         };
+        using var normalFont = new SKFont(SKTypeface.Default, _textSize);
 
         using var keywordPaint = new SKPaint
         {
             Color = _keywordColor,
-            TextSize = _textSize,
-            IsAntialias = true,
-            FakeBoldText = _keywordBold
+            IsAntialias = true
         };
+        using var keywordTypeface = _keywordBold ? SKTypeface.FromFamilyName(null, SKFontStyle.Bold) : SKTypeface.Default;
+        using var keywordFont = new SKFont(keywordTypeface, _textSize);
 
         foreach (var g in glyphs)
         {
             switch (g.Type)
             {
                 case RunType.Normal:
-                    canvas.DrawText(g.Text, g.X, g.Y, normalPaint);
+                    canvas.DrawText(g.Text, g.X, g.Y, normalFont, normalPaint);
                     break;
 
                 case RunType.Keyword:
-                    canvas.DrawText(g.Text, g.X, g.Y, keywordPaint);
+                    canvas.DrawText(g.Text, g.X, g.Y, keywordFont, keywordPaint);
                     break;
 
                 case RunType.Symbol:
@@ -348,11 +348,7 @@ public class CardTextView : SKCanvasView
     {
         var result = new List<LayoutGlyph>();
 
-        using var measurePaint = new SKPaint
-        {
-            TextSize = _textSize,
-            IsAntialias = true
-        };
+        using var measureFont = new SKFont(SKTypeface.Default, _textSize);
 
         float lineHeight = _textSize * _lineSpacing;
         float x = 0;
@@ -387,7 +383,7 @@ public class CardTextView : SKCanvasView
             var words = SplitIntoWords(run.Text);
             foreach (var word in words)
             {
-                float wordWidth = measurePaint.MeasureText(word);
+                float wordWidth = measureFont.MeasureText(word);
 
                 // Wrap if needed
                 if (x + wordWidth > maxWidth && x > 0)
