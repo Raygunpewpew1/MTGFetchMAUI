@@ -15,6 +15,42 @@ public partial class StatsPage : ContentPage
         _viewModel = viewModel;
         _cardManager = cardManager;
         BindingContext = _viewModel;
+
+        // Subscribe to database events once
+        _cardManager.OnProgress += (msg, pct) =>
+        {
+            if (DownloadProgress.IsVisible)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    DownloadProgress.Progress = pct / 100.0;
+                    DownloadStatusLabel.Text = msg;
+                });
+            }
+        };
+
+        _cardManager.OnDatabaseReady += () =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                DbStatusLabel.Text = "Connected";
+                DbStatusLabel.TextColor = Color.FromArgb("#4CAF50");
+                DownloadProgress.IsVisible = false;
+                DownloadStatusLabel.Text = "Download complete!";
+            });
+        };
+
+        _cardManager.OnDatabaseError += success =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                DbStatusLabel.Text = "Download failed";
+                DbStatusLabel.TextColor = Color.FromArgb("#F44336");
+                DownloadDbBtn.IsVisible = true;
+                DownloadProgress.IsVisible = false;
+                DownloadStatusLabel.Text = "Download failed. Please try again.";
+            });
+        };
     }
 
     protected override async void OnAppearing()
@@ -73,38 +109,6 @@ public partial class StatsPage : ContentPage
         DownloadDbBtn.IsVisible = false;
         DownloadProgress.IsVisible = true;
         DownloadStatusLabel.IsVisible = true;
-
-        _cardManager.OnProgress = (msg, pct) =>
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                DownloadProgress.Progress = pct / 100.0;
-                DownloadStatusLabel.Text = msg;
-            });
-        };
-
-        _cardManager.OnDatabaseReady = () =>
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                DbStatusLabel.Text = "Connected";
-                DbStatusLabel.TextColor = Color.FromArgb("#4CAF50");
-                DownloadProgress.IsVisible = false;
-                DownloadStatusLabel.Text = "Download complete!";
-            });
-        };
-
-        _cardManager.OnDatabaseError = success =>
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                DbStatusLabel.Text = "Download failed";
-                DbStatusLabel.TextColor = Color.FromArgb("#F44336");
-                DownloadDbBtn.IsVisible = true;
-                DownloadProgress.IsVisible = false;
-                DownloadStatusLabel.Text = "Download failed. Please try again.";
-            });
-        };
 
         _cardManager.DownloadDatabase();
     }
