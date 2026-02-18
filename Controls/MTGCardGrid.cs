@@ -21,6 +21,11 @@ public class MTGCardGrid : Grid
     private const int OffscreenBuffer = 15;
     private const int CleanupIntervalMs = 2000;
 
+    private static readonly SKPoint[] LabelRadii = [
+        new SKPoint(0, 0), new SKPoint(0, 0),
+        new SKPoint(8, 8), new SKPoint(8, 8)
+    ];
+
     // ── Controls ───────────────────────────────────────────────────────
     private readonly SKGLView _canvas;
     private readonly BoxView _scrollSpacer;
@@ -71,6 +76,9 @@ public class MTGCardGrid : Grid
     private SKFont? _setFont;
     private SKFont? _chipFont;
     private SKFont? _badgeFont;
+    private readonly SKRoundRect _cardRoundRect = new();
+    private readonly SKRoundRect _imageRoundRect = new();
+    private readonly SKRoundRect _labelRoundRect = new();
     private SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
 
     // ── Events ─────────────────────────────────────────────────────────
@@ -503,7 +511,8 @@ public class MTGCardGrid : Grid
 
         // Card background
         _bgPaint!.Color = new SKColor(30, 30, 30, alphaByte);
-        canvas.DrawRoundRect(rect, 8f, 8f, _bgPaint);
+        _cardRoundRect.SetRect(rect, 8f, 8f);
+        canvas.DrawRoundRect(_cardRoundRect, _bgPaint);
 
         float imageHeight = _cardWidth * CardImageRatio;
         var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + imageHeight);
@@ -522,13 +531,8 @@ public class MTGCardGrid : Grid
         var labelRect = new SKRect(rect.Left, labelY, rect.Right, rect.Bottom);
 
         _labelBgPaint!.Color = new SKColor(25, 25, 25, alphaByte);
-        var labelRR = new SKRoundRect();
-        labelRR.SetRectRadii(labelRect,
-        [
-            new SKPoint(0, 0), new SKPoint(0, 0),
-            new SKPoint(8, 8), new SKPoint(8, 8)
-        ]);
-        canvas.DrawRoundRect(labelRR, _labelBgPaint);
+        _labelRoundRect.SetRectRadii(labelRect, LabelRadii);
+        canvas.DrawRoundRect(_labelRoundRect, _labelBgPaint);
 
         // Card name
         _namePaint!.Color = new SKColor(240, 240, 240, alphaByte);
@@ -545,7 +549,7 @@ public class MTGCardGrid : Grid
         canvas.DrawText(setInfo, rect.Left + 4f, labelY + 32f, _setFont!, _setPaint);
 
         if (index == _hoveredIndex)
-            canvas.DrawRoundRect(rect, 8f, 8f, _hoverPaint!);
+            canvas.DrawRoundRect(_cardRoundRect, _hoverPaint!);
     }
 
     private void DrawCardImage(SKCanvas canvas, GridCardData card, SKRect imageRect, byte alpha, int index)
@@ -554,7 +558,8 @@ public class MTGCardGrid : Grid
 
         // Use a simpler clip if possible, or at least avoid recreating path every frame
         // For now, we keep the round corners but we could optimize this by caching the path per card size
-        canvas.ClipRoundRect(imageRect, 8f, 8f);
+        _imageRoundRect.SetRect(imageRect, 8f, 8f);
+        canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
         _imgPaint!.Color = new SKColor(255, 255, 255, alpha);
         canvas.DrawImage(card.Image!, imageRect, _sampling, _imgPaint);
@@ -583,13 +588,14 @@ public class MTGCardGrid : Grid
         }
 
         if (index == _pressedIndex)
-            canvas.DrawRoundRect(imageRect, 8f, 8f, _ripplePaint!);
+            canvas.DrawRoundRect(_imageRoundRect, _ripplePaint!);
     }
 
     private void DrawShimmer(SKCanvas canvas, SKRect rect, byte alpha)
     {
         canvas.Save();
-        canvas.ClipRoundRect(rect, 8f, 8f);
+        _imageRoundRect.SetRect(rect, 8f, 8f);
+        canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
         _shimmerBasePaint!.Color = new SKColor(40, 40, 40, alpha);
         canvas.DrawRect(rect, _shimmerBasePaint);
@@ -735,6 +741,10 @@ public class MTGCardGrid : Grid
         _setFont?.Dispose();
         _chipFont?.Dispose();
         _badgeFont?.Dispose();
+
+        _cardRoundRect.Dispose();
+        _imageRoundRect.Dispose();
+        _labelRoundRect.Dispose();
 
         _bgPaint = null;
     }
