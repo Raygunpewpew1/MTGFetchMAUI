@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
+             x:Class="MTGFetchMAUI.Pages.SearchPage"
+             Title="Search"
+             BackgroundColor="{StaticResource Background}">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Search Bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto"
+              Padding="8,8,8,4" ColumnSpacing="8">
+            <Entry x:Name="SearchEntry"
+                   Placeholder="Search cards..."
+                   ReturnType="Search"
+                   Completed="OnSearchCompleted"
+                   BackgroundColor="{StaticResource Surface}"
+                   TextColor="{StaticResource TextPrimary}"
+                   PlaceholderColor="{StaticResource TextSecondary}"
+                   HeightRequest="44" />
+
+            <Button Grid.Column="1"
+                    Text="Search"
+                    Clicked="OnSearchClicked"
+                    HeightRequest="44"
+                    Padding="16,0" />
+
+            <Button Grid.Column="2"
+                    Text="Filters"
+                    Clicked="OnFiltersClicked"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    HeightRequest="44"
+                    Padding="12,0" />
+        </Grid>
+
+        <!-- Status Bar -->
+        <Grid Grid.Row="1" Padding="8,0,8,4">
+            <Label x:Name="StatusLabel"
+                   TextColor="{StaticResource TextSecondary}"
+                   FontSize="12" />
+            <ActivityIndicator x:Name="LoadingIndicator"
+                               IsRunning="False"
+                               IsVisible="False"
+                               HorizontalOptions="End"
+                               HeightRequest="20"
+                               WidthRequest="20"
+                               Color="{StaticResource Primary}" />
+        </Grid>
+
+        <!-- Card Grid in ScrollView -->
+        <ScrollView Grid.Row="2"
+                    x:Name="GridScrollView"
+                    Scrolled="OnGridScrolled">
+            <controls:MTGCardGrid x:Name="CardGrid" />
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

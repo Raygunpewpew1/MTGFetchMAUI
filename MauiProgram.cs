@@ -1,0 +1,63 @@
+using MTGFetchMAUI.Data;
+using MTGFetchMAUI.Pages;
+using MTGFetchMAUI.Services;
+using MTGFetchMAUI.ViewModels;
+using SkiaSharp.Views.Maui.Controls.Hosting;
+#if ANDROID
+using Plugin.Maui.OCR;
+#endif
+
+namespace MTGFetchMAUI;
+
+public static class MauiProgram
+{
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+
+        builder
+            .UseMauiApp<App>()
+            .UseSkiaSharp()
+            .ConfigureFonts(fonts =>
+            {
+                // Fonts registered here must exist in Resources/Fonts/
+                // OpenSans ships with MAUI's default template but isn't included yet
+            });
+
+#if ANDROID
+        // Plugin.Maui.OCR uses native Google ML Kit - only available on Android
+        try
+        {
+            builder.UseOcr();
+            builder.Services.AddSingleton(Plugin.Maui.OCR.OcrPlugin.Default);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OCR plugin init failed: {ex}");
+        }
+#endif
+
+        // ── Services ─────────────────────────────────────────────────
+        builder.Services.AddSingleton<DatabaseManager>();
+        builder.Services.AddSingleton<ICardRepository, CardRepository>();
+        builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
+        builder.Services.AddSingleton<FileImageCache>();
+        builder.Services.AddSingleton<ImageDownloadService>();
+        builder.Services.AddSingleton<CardManager>();
+
+        // ── ViewModels ──────────────────────────────────────────────
+        builder.Services.AddSingleton<SearchViewModel>();
+        builder.Services.AddSingleton<CollectionViewModel>();
+        builder.Services.AddSingleton<StatsViewModel>();
+        builder.Services.AddTransient<CardDetailViewModel>();
+
+        // ── Pages ───────────────────────────────────────────────────
+        builder.Services.AddSingleton<SearchPage>();
+        builder.Services.AddSingleton<CollectionPage>();
+        builder.Services.AddSingleton<StatsPage>();
+        builder.Services.AddTransient<CardDetailPage>();
+        builder.Services.AddTransient<SearchFiltersPage>();
+
+        return builder.Build();
+    }
+}

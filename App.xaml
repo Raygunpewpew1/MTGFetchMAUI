@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MTGFetchMAUI.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Colors -->
+            <Color x:Key="Primary">#6200EE</Color>
+            <Color x:Key="PrimaryDark">#3700B3</Color>
+            <Color x:Key="Accent">#03DAC5</Color>
+            <Color x:Key="Background">#121212</Color>
+            <Color x:Key="Surface">#1E1E1E</Color>
+            <Color x:Key="CardBackground">#252525</Color>
+            <Color x:Key="TextPrimary">#F0F0F0</Color>
+            <Color x:Key="TextSecondary">#A0A0A0</Color>
+            <Color x:Key="ErrorColor">#CF6679</Color>
+            <Color x:Key="LegalGreen">#4CAF50</Color>
+            <Color x:Key="BannedRed">#F44336</Color>
+            <Color x:Key="RestrictedYellow">#FFC107</Color>
+
+            <!-- Styles -->
+            <Style TargetType="Page" ApplyToDerivedTypes="True">
+                <Setter Property="BackgroundColor" Value="{StaticResource Background}" />
+            </Style>
+
+            <Style TargetType="Shell" ApplyToDerivedTypes="True">
+                <Setter Property="Shell.BackgroundColor" Value="{StaticResource Surface}" />
+                <Setter Property="Shell.ForegroundColor" Value="{StaticResource TextPrimary}" />
+                <Setter Property="Shell.TabBarBackgroundColor" Value="{StaticResource Surface}" />
+                <Setter Property="Shell.TabBarForegroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="Shell.TabBarUnselectedColor" Value="{StaticResource TextSecondary}" />
+                <Setter Property="Shell.TitleColor" Value="{StaticResource TextPrimary}" />
+            </Style>
+
+            <Style TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+            </Style>
+
+            <Style TargetType="Entry">
+                <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+                <Setter Property="PlaceholderColor" Value="{StaticResource TextSecondary}" />
+                <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+            </Style>
+
+            <Style TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="TextColor" Value="White" />
+                <Setter Property="CornerRadius" Value="8" />
+            </Style>
+
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
+                <Setter Property="Stroke" Value="Transparent" />
+                <Setter Property="StrokeShape" Value="RoundRectangle 8" />
+                <Setter Property="Padding" Value="12" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

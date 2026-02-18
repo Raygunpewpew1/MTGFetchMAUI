@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:MTGFetchMAUI.Pages"
+       x:Class="MTGFetchMAUI.AppShell"
+       Title="MTG Fetch"
+       Shell.BackgroundColor="{StaticResource Surface}"
+       Shell.ForegroundColor="{StaticResource TextPrimary}">
+
+    <TabBar>
+        <ShellContent
+            Title="Search"
+            ContentTemplate="{DataTemplate pages:SearchPage}" />
+
+        <ShellContent
+            Title="Collection"
+            ContentTemplate="{DataTemplate pages:CollectionPage}" />
+
+        <ShellContent
+            Title="Stats"
+            ContentTemplate="{DataTemplate pages:StatsPage}" />
+    </TabBar>
+
+    <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>
+
+
+</Shell>

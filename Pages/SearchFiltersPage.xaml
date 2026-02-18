@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MTGFetchMAUI.Pages.SearchFiltersPage"
+             Title="Search Filters"
+             BackgroundColor="{StaticResource Background}"
+             Shell.PresentationMode="ModalAnimated">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0" Padding="16">
+            <VerticalStackLayout Spacing="16">
+
+                <!-- Colors -->
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Colors" FontSize="16" FontAttributes="Bold" />
+                    <FlexLayout x:Name="ColorButtons" Wrap="Wrap" JustifyContent="Start" />
+                </VerticalStackLayout>
+
+                <!-- Card Text / Keywords -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Card Text" FontSize="14" />
+                    <Entry x:Name="KeywordsEntry"
+                           Placeholder="Search card text..."
+                           BackgroundColor="{StaticResource Surface}" />
+                </VerticalStackLayout>
+
+                <!-- Card Type -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Card Type" FontSize="14" />
+                    <Picker x:Name="TypePicker"
+                            Title="Any Type"
+                            TextColor="{StaticResource TextPrimary}"
+                            TitleColor="{StaticResource TextSecondary}">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>Any</x:String>
+                                <x:String>Artifact</x:String>
+                                <x:String>Battle</x:String>
+                                <x:String>Creature</x:String>
+                                <x:String>Enchantment</x:String>
+                                <x:String>Instant</x:String>
+                                <x:String>Land</x:String>
+                                <x:String>Planeswalker</x:String>
+                                <x:String>Sorcery</x:String>
+                                <x:String>Kindred</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </VerticalStackLayout>
+
+                <!-- Subtype -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Subtype" FontSize="14" />
+                    <Entry x:Name="SubtypeEntry"
+                           Placeholder="e.g. Elf, Dragon..."
+                           BackgroundColor="{StaticResource Surface}" />
+                </VerticalStackLayout>
+
+                <!-- Supertype -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Supertype" FontSize="14" />
+                    <Entry x:Name="SupertypeEntry"
+                           Placeholder="e.g. Legendary..."
+                           BackgroundColor="{StaticResource Surface}" />
+                </VerticalStackLayout>
+
+                <!-- Rarity -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Rarity" FontSize="14" />
+                    <FlexLayout Wrap="Wrap" JustifyContent="Start">
+                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
+                            <CheckBox x:Name="ChkCommon" Color="{StaticResource Primary}" />
+                            <Label Text="Common" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
+                            <CheckBox x:Name="ChkUncommon" Color="{StaticResource Primary}" />
+                            <Label Text="Uncommon" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
+                            <CheckBox x:Name="ChkRare" Color="{StaticResource Primary}" />
+                            <Label Text="Rare" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
+                            <CheckBox x:Name="ChkMythic" Color="{StaticResource Primary}" />
+                            <Label Text="Mythic" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <!-- CMC Range -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Mana Value (CMC)" FontSize="14" />
+                    <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
+                        <VerticalStackLayout>
+                            <Label x:Name="CMCMinLabel" Text="Min: 0" FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Slider x:Name="CMCMinSlider" Minimum="0" Maximum="16"
+                                    ValueChanged="OnCMCChanged"
+                                    ThumbColor="{StaticResource Primary}"
+                                    MinimumTrackColor="{StaticResource Primary}" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1" Text="to" VerticalOptions="End" Margin="0,0,0,8" />
+                        <VerticalStackLayout Grid.Column="2">
+                            <Label x:Name="CMCMaxLabel" Text="Max: 16+" FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Slider x:Name="CMCMaxSlider" Minimum="0" Maximum="16" Value="16"
+                                    ValueChanged="OnCMCChanged"
+                                    ThumbColor="{StaticResource Primary}"
+                                    MinimumTrackColor="{StaticResource Primary}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+
+                <!-- Power / Toughness -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Power" FontSize="14" />
+                        <Entry x:Name="PowerEntry" Placeholder="e.g. 3"
+                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                        <Label Text="Toughness" FontSize="14" />
+                        <Entry x:Name="ToughnessEntry" Placeholder="e.g. 4"
+                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- Format Legality -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Format" FontSize="14" />
+                    <Picker x:Name="FormatPicker"
+                            Title="Any Format"
+                            TextColor="{StaticResource TextPrimary}"
+                            TitleColor="{StaticResource TextSecondary}" />
+                </VerticalStackLayout>
+
+                <!-- Set Code -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Set Code" FontSize="14" />
+                    <Entry x:Name="SetEntry" Placeholder="e.g. MH2, ZEN..."
+                           BackgroundColor="{StaticResource Surface}" />
+                </VerticalStackLayout>
+
+                <!-- Artist -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Artist" FontSize="14" />
+                    <Entry x:Name="ArtistEntry" Placeholder="Artist name..."
+                           BackgroundColor="{StaticResource Surface}" />
+                </VerticalStackLayout>
+
+                <!-- Special Options -->
+                <VerticalStackLayout Spacing="4">
+                    <HorizontalStackLayout Spacing="8">
+                        <CheckBox x:Name="ChkPrimarySide" IsChecked="True" Color="{StaticResource Primary}" />
+                        <Label Text="Primary side only" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="8">
+                        <CheckBox x:Name="ChkNoVariations" Color="{StaticResource Primary}" />
+                        <Label Text="Exclude variations" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom buttons -->
+        <Grid Grid.Row="1"
+              Padding="16,8"
+              ColumnDefinitions="*,*,*"
+              ColumnSpacing="8"
+              BackgroundColor="{StaticResource Surface}">
+            <Button Text="Reset"
+                    Clicked="OnResetClicked"
+                    BackgroundColor="{StaticResource CardBackground}" />
+            <Button Grid.Column="1"
+                    Text="Cancel"
+                    Clicked="OnCancelClicked"
+                    BackgroundColor="{StaticResource CardBackground}" />
+            <Button Grid.Column="2"
+                    Text="Apply"
+                    Clicked="OnApplyClicked" />
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

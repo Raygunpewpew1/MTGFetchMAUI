@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MTGFetchMAUI.Pages.StatsPage"
+             Title="Stats"
+             BackgroundColor="{StaticResource Background}">
+
+    <ScrollView Padding="16">
+        <VerticalStackLayout Spacing="16">
+
+            <!-- Database Status -->
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Database" FontSize="18" FontAttributes="Bold" />
+                    <Label x:Name="DbStatusLabel"
+                           Text="Checking..."
+                           FontSize="14"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Button x:Name="DownloadDbBtn"
+                            Text="Download Database"
+                            Clicked="OnDownloadDbClicked"
+                            IsVisible="False" />
+                    <ProgressBar x:Name="DownloadProgress"
+                                 IsVisible="False"
+                                 ProgressColor="{StaticResource Primary}" />
+                    <Label x:Name="DownloadStatusLabel"
+                           IsVisible="False"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Collection Stats -->
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Collection" FontSize="18" FontAttributes="Bold" />
+
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
+                        <Label Text="Total Cards:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="TotalCardsLabel" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="1" Text="Unique Cards:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="UniqueCardsLabel" Grid.Row="1" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="2" Text="Average CMC:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="AvgCMCLabel" Grid.Row="2" Grid.Column="1" Text="0.00" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="3" Text="Foils:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="FoilCountLabel" Grid.Row="3" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
+                    </Grid>
+
+                    <!-- Type Breakdown -->
+                    <Label Text="By Type" FontSize="14" FontAttributes="Bold" Margin="0,8,0,0" />
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto" ColumnSpacing="8">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="CreatureCountLabel" Text="0" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Text="Creatures" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                            <Label x:Name="SpellCountLabel" Text="0" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Text="Spells" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
+                            <Label x:Name="LandCountLabel" Text="0" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Text="Lands" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- Rarity Breakdown -->
+                    <Label Text="By Rarity" FontSize="14" FontAttributes="Bold" Margin="0,8,0,0" />
+                    <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto" ColumnSpacing="4">
+                        <VerticalStackLayout HorizontalOptions="Center">
+                            <Label x:Name="CommonLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                                   TextColor="#C0C0C0" />
+                            <Label Text="C" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
+                            <Label x:Name="UncommonLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                                   TextColor="#B0C4DE" />
+                            <Label Text="U" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
+                            <Label x:Name="RareLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                                   TextColor="#FFD700" />
+                            <Label Text="R" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="3" HorizontalOptions="Center">
+                            <Label x:Name="MythicLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                                   TextColor="#FF8C00" />
+                            <Label Text="M" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Cache Stats -->
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Image Cache" FontSize="18" FontAttributes="Bold" />
+                    <Label x:Name="CacheStatsLabel"
+                           Text="Loading..."
+                           FontSize="13"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Button Text="Clear Cache"
+                            Clicked="OnClearCacheClicked"
+                            BackgroundColor="{StaticResource ErrorColor}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- App Info -->
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="MTG Fetch Mobile" FontSize="14" FontAttributes="Bold" />
+                    <Label Text="Version 1.0 (.NET MAUI)"
+                           FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                    <Label Text="Card data: MTGJSON | Images: Scryfall"
+                           FontSize="11" TextColor="{StaticResource TextSecondary}" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

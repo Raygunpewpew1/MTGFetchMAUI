@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
+             xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
+             x:Class="MTGFetchMAUI.Pages.CardDetailPage"
+             x:Name="DetailScreen"
+             Title="Card Details"
+             BackgroundColor="{StaticResource Background}"
+             Shell.PresentationMode="ModalAnimated">
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior Command="{Binding BindingContext.BackCommand, Source={x:Reference DetailScreen}}" />
+    </Shell.BackButtonBehavior>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="16" Spacing="12">
+
+                <Border StrokeShape="RoundRectangle 12"
+                        StrokeThickness="0"
+                        HeightRequest="380"
+                        HorizontalOptions="Center"
+                        WidthRequest="272">
+                    <Grid>
+                        <skia:SKCanvasView x:Name="CardImageView"
+                                           PaintSurface="OnCardImagePaint"
+                                           HeightRequest="380"
+                                           WidthRequest="272" />
+                        <ActivityIndicator x:Name="ImageLoading"
+                                           IsRunning="True"
+                                           IsVisible="True"
+                                           VerticalOptions="Center"
+                                           HorizontalOptions="Center"
+                                           Color="{StaticResource Primary}" />
+                    </Grid>
+                </Border>
+
+                <Label x:Name="FlipHint"
+                       Text="Tap image to flip"
+                       IsVisible="False"
+                       HorizontalOptions="Center"
+                       FontSize="11"
+                       TextColor="{StaticResource TextSecondary}" />
+
+                <Grid ColumnDefinitions="*,Auto" Padding="0,4,0,0">
+                    <Label x:Name="CardNameLabel"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}"
+                           LineBreakMode="TailTruncation" />
+                    <controls:ManaCostView x:Name="ManaCost"
+                                           Grid.Column="1"
+                                           VerticalOptions="Center" />
+                </Grid>
+
+                <Label x:Name="TypeLineLabel"
+                       FontSize="14"
+                       TextColor="{StaticResource TextSecondary}" />
+
+                <HorizontalStackLayout Spacing="8">
+                    <Label x:Name="SetInfoLabel"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Label x:Name="RarityLabel"
+                           FontSize="12"
+                           FontAttributes="Bold" />
+                </HorizontalStackLayout>
+
+                <Label x:Name="PriceLabel"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource Accent}"
+                       IsVisible="False" />
+
+                <Label x:Name="PTLabel"
+                       FontSize="14"
+                       TextColor="{StaticResource TextPrimary}"
+                       IsVisible="False" />
+
+                <Border StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        Padding="12"
+                        x:Name="TextBorder"
+                        IsVisible="False">
+                    <controls:CardTextView x:Name="CardTextView" />
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        Padding="12"
+                        x:Name="FlavorBorder"
+                        IsVisible="False">
+                    <Label x:Name="FlavorTextLabel"
+                           FontSize="13"
+                           FontAttributes="Italic"
+                           TextColor="{StaticResource TextSecondary}"
+                           LineBreakMode="WordWrap" />
+                </Border>
+
+                <Label x:Name="ArtistLabel"
+                       FontSize="11"
+                       TextColor="{StaticResource TextSecondary}"
+                       IsVisible="False" />
+
+                <Border StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        Padding="12"
+                        x:Name="LegalitiesBorder"
+                        IsVisible="False">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Format Legality"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               Margin="0,0,0,8" />
+                        <VerticalStackLayout x:Name="LegalitiesStack" Spacing="2" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        Padding="12"
+                        x:Name="RulingsBorder"
+                        IsVisible="False">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Rulings"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               Margin="0,0,0,4" />
+                        <VerticalStackLayout x:Name="RulingsStack" Spacing="8" />
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="1"
+              BackgroundColor="{StaticResource Surface}"
+              Padding="12,8"
+              ColumnDefinitions="*,Auto,Auto,Auto"
+              ColumnSpacing="8">
+
+            <Button Text="Add to Collection"
+                    Clicked="OnAddClicked"
+                    HeightRequest="40"
+                    FontSize="13"
+                    Padding="16,0" />
+
+            <Button Grid.Column="1"
+                    x:Name="RemoveBtn"
+                    Text="Remove"
+                    Clicked="OnRemoveClicked"
+                    BackgroundColor="{StaticResource ErrorColor}"
+                    HeightRequest="40"
+                    FontSize="13"
+                    Padding="12,0"
+                    IsVisible="False" />
+
+            <Button Grid.Column="2"
+                    Text="Legalities"
+                    Clicked="OnLegalitiesClicked"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    HeightRequest="40"
+                    FontSize="13"
+                    Padding="12,0" />
+
+            <Button Grid.Column="3"
+                    x:Name="FlipBtn"
+                    Text="Flip"
+                    Clicked="OnFlipClicked"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    HeightRequest="40"
+                    FontSize="13"
+                    Padding="12,0"
+                    IsVisible="False" />
+        </Grid>
+
+    </Grid>
+
+</ContentPage>
