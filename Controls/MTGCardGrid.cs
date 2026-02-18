@@ -22,7 +22,7 @@ public class MTGCardGrid : Grid
     private const int CleanupIntervalMs = 2000;
 
     // ── Controls ───────────────────────────────────────────────────────
-    private readonly SKCanvasView _canvas;
+    private readonly SKGLView _canvas;
     private readonly BoxView _scrollSpacer;
 
     // ── State ──────────────────────────────────────────────────────────
@@ -89,8 +89,8 @@ public class MTGCardGrid : Grid
     {
         _scrollSpacer = new BoxView { Color = Colors.Transparent, WidthRequest = 100 };
 
-        // We use SKCanvasView for now, but virtualization will fix the "horrid" FPS
-        _canvas = new SKCanvasView
+        // Use SKGLView for hardware-accelerated rendering
+        _canvas = new SKGLView
         {
             EnableTouchEvents = true,
             HorizontalOptions = LayoutOptions.Fill,
@@ -132,34 +132,46 @@ public class MTGCardGrid : Grid
 
     private void UpdateAnimations()
     {
+        if (CardCount == 0) return;
+
         long currentTime = _animationStopwatch.ElapsedMilliseconds;
         float deltaTime = (currentTime - _lastFrameTime) / 1000f;
         _lastFrameTime = currentTime;
 
         if (deltaTime > 0.1f) deltaTime = 0.016f; // Cap delta to avoid jumps
 
-        _shimmerPhase += deltaTime * 0.6f;
-        if (_shimmerPhase > 1f) _shimmerPhase = 0f;
+        _shimmerPhase += deltaTime * 0.8f; // Slightly faster shimmer
+        if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
 
         bool needsInvalidate = false;
+
         lock (_cardsLock)
         {
-            for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
+            int start = _visibleStart;
+            int end = _visibleEnd;
+            int count = _cards.Count;
+
+            for (int i = start; i <= end && i < count; i++)
             {
                 var card = _cards[i];
-                // Shimmer always needs redraw if images missing
-                if (card.Image == null) needsInvalidate = true;
+
+                // Shimmer always needs redraw if images missing in visible range
+                if (card.Image == null && !string.IsNullOrEmpty(card.ScryfallId))
+                {
+                    needsInvalidate = true;
+                }
 
                 // Fade animation
                 if (card.FirstVisible && card.AnimationProgress < 1f)
                 {
-                    card.AnimationProgress = Math.Min(1f, card.AnimationProgress + deltaTime * 3f);
+                    card.AnimationProgress = Math.Min(1f, card.AnimationProgress + deltaTime * 4f);
                     needsInvalidate = true;
                 }
             }
         }
 
-        if (needsInvalidate) _canvas.InvalidateSurface();
+        if (needsInvalidate)
+            _canvas.InvalidateSurface();
     }
 
     // ── Public API ─────────────────────────────────────────────────────
@@ -445,7 +457,7 @@ public class MTGCardGrid : Grid
         _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
     }
 
-    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
+    private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
         var canvas = e.Surface.Canvas;
         var info = e.Info;
@@ -539,15 +551,10 @@ public class MTGCardGrid : Grid
     private void DrawCardImage(SKCanvas canvas, GridCardData card, SKRect imageRect, byte alpha, int index)
     {
         canvas.Save();
-        using var clipPath = new SKPath();
-        using var topRR = new SKRoundRect();
-        topRR.SetRectRadii(imageRect,
-        [
-            new SKPoint(8, 8), new SKPoint(8, 8),
-            new SKPoint(0, 0), new SKPoint(0, 0)
-        ]);
-        clipPath.AddRoundRect(topRR);
-        canvas.ClipPath(clipPath);
+
+        // Use a simpler clip if possible, or at least avoid recreating path every frame
+        // For now, we keep the round corners but we could optimize this by caching the path per card size
+        canvas.ClipRoundRect(imageRect, 8f, 8f);
 
         _imgPaint!.Color = new SKColor(255, 255, 255, alpha);
         canvas.DrawImage(card.Image!, imageRect, _sampling, _imgPaint);
@@ -582,26 +589,21 @@ public class MTGCardGrid : Grid
     private void DrawShimmer(SKCanvas canvas, SKRect rect, byte alpha)
     {
         canvas.Save();
-        using var clipPath = new SKPath();
-        using var shimmerRR = new SKRoundRect();
-        shimmerRR.SetRectRadii(rect,
-        [
-            new SKPoint(8, 8), new SKPoint(8, 8),
-            new SKPoint(0, 0), new SKPoint(0, 0)
-        ]);
-        clipPath.AddRoundRect(shimmerRR);
-        canvas.ClipPath(clipPath);
+        canvas.ClipRoundRect(rect, 8f, 8f);
 
         _shimmerBasePaint!.Color = new SKColor(40, 40, 40, alpha);
         canvas.DrawRect(rect, _shimmerBasePaint);
 
-        float shimmerX = rect.Left + (rect.Width * 2f) * _shimmerPhase - rect.Width * 0.5f;
+        float shimmerWidth = rect.Width * 1.5f;
+        float shimmerX = rect.Left - rect.Width + (rect.Width * 3f) * _shimmerPhase;
+
         using var shader = SKShader.CreateLinearGradient(
-            new SKPoint(shimmerX - rect.Width * 0.3f, rect.Top),
-            new SKPoint(shimmerX + rect.Width * 0.3f, rect.Top),
-            [new SKColor(40, 40, 40, alpha), new SKColor(60, 60, 60, alpha), new SKColor(40, 40, 40, alpha)],
+            new SKPoint(shimmerX, rect.Top),
+            new SKPoint(shimmerX + shimmerWidth, rect.Top),
+            [SKColors.Transparent, new SKColor(255, 255, 255, (byte)(alpha / 4)), SKColors.Transparent],
             [0f, 0.5f, 1f],
             SKShaderTileMode.Clamp);
+
         _shimmerGradientPaint!.Shader = shader;
         canvas.DrawRect(rect, _shimmerGradientPaint);
         _shimmerGradientPaint.Shader = null;
