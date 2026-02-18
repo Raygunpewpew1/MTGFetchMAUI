@@ -121,6 +121,7 @@ public class MTGCardGrid : SKCanvasView
             foreach (var c in cards)
                 _cards.Add(GridCardData.FromCard(c));
         }
+        _scrollOffset = 0;
         CalculateLayout();
         InvalidateSurface();
     }
@@ -134,6 +135,7 @@ public class MTGCardGrid : SKCanvasView
             foreach (var item in items)
                 _cards.Add(GridCardData.FromCard(item.Card, item.Quantity));
         }
+        _scrollOffset = 0;
         CalculateLayout();
         InvalidateSurface();
     }
@@ -312,16 +314,38 @@ public class MTGCardGrid : SKCanvasView
         if (viewportHeight <= 0) viewportHeight = 800f;
 
         float rowHeight = _cardHeight + CardSpacing;
-        if (rowHeight <= 0) return;
-
-        int firstRow = Math.Max(0, (int)((_scrollOffset - CardSpacing) / rowHeight) - 1);
-        int lastRow = (int)((_scrollOffset + viewportHeight + CardSpacing) / rowHeight) + 1;
+        if (rowHeight <= 0)
+        {
+            _visibleStart = 0;
+            _visibleEnd = -1;
+            return;
+        }
 
         int count;
         lock (_cardsLock) count = _cards.Count;
 
-        _visibleStart = firstRow * _columnCount;
-        _visibleEnd = Math.Min(count - 1, (lastRow + 1) * _columnCount - 1);
+        if (count == 0)
+        {
+            _visibleStart = 0;
+            _visibleEnd = -1;
+            return;
+        }
+
+        // Ensure _scrollOffset is within reasonable bounds for calculation
+        float effectiveOffset = Math.Max(0, _scrollOffset);
+
+        int firstRow = Math.Max(0, (int)((effectiveOffset - CardSpacing) / rowHeight) - 1);
+        int lastRow = (int)((effectiveOffset + viewportHeight + CardSpacing) / rowHeight) + 1;
+
+        _visibleStart = Math.Max(0, Math.Min(count - 1, firstRow * _columnCount));
+        _visibleEnd = Math.Max(0, Math.Min(count - 1, (lastRow + 1) * _columnCount - 1));
+
+        // If visible start is beyond count, reset it
+        if (_visibleStart >= count)
+        {
+            _visibleStart = 0;
+            _visibleEnd = -1;
+        }
     }
 
     // ── Painting ───────────────────────────────────────────────────────
@@ -548,7 +572,7 @@ public class MTGCardGrid : SKCanvasView
     {
         float scale = (float)(CanvasSize.Width / (Width > 0 ? Width : 360));
         float x = e.Location.X / scale;
-        float y = e.Location.Y / scale + _scrollOffset;
+        float y = e.Location.Y / scale;
 
         switch (e.ActionType)
         {
