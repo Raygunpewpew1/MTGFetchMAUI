@@ -143,13 +143,16 @@ public class CollectionViewModel : BaseViewModel
             _grid.MarkLoading(card.UUID);
             string uuid = card.UUID;
 
-            _cardManager.DownloadCardImageAsync(card.ScryfallId, (bitmap, success) =>
+            _cardManager.DownloadCardImageAsync(card.ScryfallId, (image, success) =>
             {
-                if (success && bitmap != null)
+                if (success && image != null)
                 {
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        _grid?.UpdateCardImage(uuid, bitmap, ImageQuality.Small);
+                        if (_grid != null)
+                            _grid.UpdateCardImage(uuid, image, ImageQuality.Small);
+                        else
+                            image.Dispose();
                     });
                 }
             }, MTGConstants.ImageSizeSmall);

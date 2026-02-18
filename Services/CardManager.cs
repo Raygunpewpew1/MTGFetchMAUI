@@ -284,14 +284,14 @@ public class CardManager : IDisposable
 
     public void DownloadCardImageAsync(
         string scryfallId,
-        Action<SKBitmap?, bool> callback,
+        Action<SKImage?, bool> callback,
         string imageSize = "normal",
         string face = "")
     {
         ImageService.DownloadImageAsync(scryfallId, callback, imageSize, face);
     }
 
-    public async Task<SKBitmap?> GetCachedCardImageAsync(
+    public async Task<SKImage?> GetCachedCardImageAsync(
         string scryfallId, string imageSize = "normal", string face = "")
     {
         return await ImageService.GetCachedImageAsync(scryfallId, imageSize, face);

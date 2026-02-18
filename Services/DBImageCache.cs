@@ -35,7 +35,7 @@ public class DBImageCache : IDisposable
     /// Retrieves a cached thumbnail by key, or null if not found.
     /// Updates the last_accessed timestamp for LRU tracking.
     /// </summary>
-    public async Task<SKBitmap?> GetImageAsync(string key)
+    public async Task<SKImage?> GetImageAsync(string key)
     {
         await _lock.WaitAsync();
         try
@@ -57,7 +57,7 @@ public class DBImageCache : IDisposable
             updateCmd.Parameters.AddWithValue("@cache_key", key);
             await updateCmd.ExecuteNonQueryAsync();
 
-            return SKBitmap.Decode(data);
+            return SKImage.FromEncodedData(data);
         }
         catch (Exception ex)
         {
