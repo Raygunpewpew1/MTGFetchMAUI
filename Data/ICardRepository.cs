@@ -25,5 +25,6 @@ public interface ICardRepository
 
     Task<Card[]> SearchCardsAsync(string searchText, int limit = 100);
     Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper);
+    Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper);
     MTGSearchHelper CreateSearchHelper();
 }

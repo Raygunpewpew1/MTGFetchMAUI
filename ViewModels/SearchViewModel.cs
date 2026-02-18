@@ -5,6 +5,7 @@ using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using SkiaSharp;
+using MTGFetchMAUI;
 
 namespace MTGFetchMAUI.ViewModels;
 
@@ -72,13 +73,10 @@ public class SearchViewModel : BaseViewModel
             StatusMessage = "Connecting to database...";
             if (!await _cardManager.InitializeAsync())
             {
-                StatusMessage = "Database not found or connection failed.";
-                return;
-            }
-            await _cardManager.InitializePricesAsync();
                 StatusMessage = "Database not found. Please download.";
                 return;
             }
+            await _cardManager.InitializePricesAsync();
         }
 
         IsBusy = true;
@@ -106,9 +104,8 @@ public class SearchViewModel : BaseViewModel
                 var countHelper = _cardManager.CreateSearchHelper();
                 countHelper.SearchCards();
                 ApplySearchOptions(countHelper, _currentOptions);
-                var (countSql, countParams) = countHelper.BuildCount();
-                TotalResults = results.Length; // Approximate until we get real count
-                HasMorePages = true;
+                TotalResults = await _cardManager.GetCountAdvancedAsync(countHelper);
+                HasMorePages = TotalResults > results.Length;
             }
 
             _grid?.SetCards(results);
@@ -118,7 +115,7 @@ public class SearchViewModel : BaseViewModel
             await Task.Delay(50);
             LoadVisibleImages(ImageQuality.Small);
 
-            StatusMessage = $"Found {results.Length}+ cards";
+            StatusMessage = $"Found {TotalResults} cards";
             SearchCompleted?.Invoke();
         }
         catch (Exception ex)
