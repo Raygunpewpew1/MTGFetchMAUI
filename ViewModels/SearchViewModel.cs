@@ -158,6 +158,42 @@ public class SearchViewModel : BaseViewModel
         }
     }
 
+    public async Task<Card?> GetCardDetailsAsync(string uuid)
+    {
+        try
+        {
+            return await _cardManager.GetCardDetailsAsync(uuid);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<int> GetCollectionQuantityAsync(string uuid)
+    {
+        try
+        {
+            return await _cardManager.GetQuantityAsync(uuid);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    public async Task UpdateCollectionAsync(string uuid, int quantity)
+    {
+        try
+        {
+            await _cardManager.UpdateCardQuantityAsync(uuid, quantity);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to update collection: {ex.Message}", LogLevel.Error);
+        }
+    }
+
     public async Task LoadNextPageAsync()
     {
         if (_isLoadingPage || !HasMorePages || _grid == null) return;

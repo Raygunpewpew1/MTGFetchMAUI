@@ -38,6 +38,7 @@ public static class MauiProgram
 #endif
 
         // ── Services ─────────────────────────────────────────────────
+        builder.Services.AddSingleton<IToastService, ToastService>();
         builder.Services.AddSingleton<DatabaseManager>();
         builder.Services.AddSingleton<ICardRepository, CardRepository>();
         builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();

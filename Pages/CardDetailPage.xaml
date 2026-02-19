@@ -156,6 +156,10 @@
             </VerticalStackLayout>
         </ScrollView>
 
+        <!-- Overlays -->
+        <controls:CollectionAddSheet Grid.RowSpan="2" x:Name="AddSheet" />
+        <controls:Snackbar Grid.RowSpan="2" x:Name="DetailSnackbar" />
+
         <Grid Grid.Row="1"
               BackgroundColor="{StaticResource Surface}"
               Padding="12,8"

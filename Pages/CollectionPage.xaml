@@ -44,6 +44,10 @@
             <controls:MTGCardGrid x:Name="CollectionGrid" />
         </ScrollView>
 
+        <!-- Overlays -->
+        <controls:CollectionAddSheet Grid.RowSpan="2" x:Name="AddSheet" />
+        <controls:Snackbar Grid.RowSpan="2" x:Name="GridSnackbar" />
+
     </Grid>
 
 </ContentPage>

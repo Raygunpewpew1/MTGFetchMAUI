@@ -51,6 +51,8 @@ public class MTGCardGrid : Grid
     private int _pressedIndex = -1;
     private SKPoint _pressPoint;
     private bool _pointerMoved;
+    private IDispatcherTimer? _longPressTimer;
+    private float _longPressProgress; // 0 to 1
 
     // Animation
     private float _shimmerPhase;
@@ -146,6 +148,8 @@ public class MTGCardGrid : Grid
         _cleanupTimer = null;
         _animationTimer?.Stop();
         _animationTimer = null;
+        _longPressTimer?.Stop();
+        _longPressTimer = null;
     }
 
     private void UpdateAnimations()
@@ -162,6 +166,12 @@ public class MTGCardGrid : Grid
         if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
 
         bool needsInvalidate = false;
+
+        if (_pressedIndex >= 0 && _longPressTimer != null)
+        {
+            _longPressProgress = Math.Min(1f, _longPressProgress + deltaTime * 2f);
+            needsInvalidate = true;
+        }
 
         lock (_cardsLock)
         {
@@ -583,6 +593,12 @@ public class MTGCardGrid : Grid
     {
         canvas.Save();
 
+        if (index == _pressedIndex && _longPressProgress > 0)
+        {
+            float grow = 1f + (_longPressProgress * 0.05f);
+            canvas.Scale(grow, grow, imageRect.MidX, imageRect.MidY);
+        }
+
         // Use a simpler clip if possible, or at least avoid recreating path every frame
         // For now, we keep the round corners but we could optimize this by caching the path per card size
         _imageRoundRect!.SetRect(imageRect, 8f, 8f);
@@ -615,7 +631,50 @@ public class MTGCardGrid : Grid
         }
 
         if (index == _pressedIndex)
-            canvas.DrawRoundRect(_imageRoundRect, _ripplePaint!);
+        {
+            if (_longPressProgress > 0)
+            {
+                // Draw a progress border or overlay
+                using var progressPaint = new SKPaint
+                {
+                    IsAntialias = true,
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 4f,
+                    Color = new SKColor(255, 255, 255, (byte)(100 + _longPressProgress * 155))
+                };
+
+                // Draw only part of the border based on progress
+                using var path = new SKPath();
+                path.AddRoundRect(_imageRoundRect.Rect, 8f, 8f);
+
+                canvas.Save();
+                canvas.ClipPath(path);
+
+                // Overlay
+                _ripplePaint!.Color = new SKColor(255, 255, 255, (byte)(30 + _longPressProgress * 40));
+                canvas.DrawRect(imageRect, _ripplePaint);
+
+                canvas.Restore();
+
+                // Animated border
+                if (_longPressProgress < 1f)
+                {
+                    using var measure = new SKPathMeasure(path);
+                    float length = measure.Length;
+                    using var dash = SKPathEffect.CreateDash([length * _longPressProgress, length], 0);
+                    progressPaint.PathEffect = dash;
+                    canvas.DrawPath(path, progressPaint);
+                }
+                else
+                {
+                    canvas.DrawPath(path, progressPaint);
+                }
+            }
+            else
+            {
+                canvas.DrawRoundRect(_imageRoundRect, _ripplePaint!);
+            }
+        }
     }
 
     private void DrawShimmer(SKCanvas canvas, SKRect rect, byte alpha)
@@ -663,6 +722,37 @@ public class MTGCardGrid : Grid
                 _pressPoint = new SKPoint(x, y);
                 _pointerMoved = false;
                 _pressedIndex = HitTestCard(x, y);
+                _longPressProgress = 0;
+
+                if (_pressedIndex >= 0)
+                {
+                    _longPressTimer?.Stop();
+                    _longPressTimer = Dispatcher.CreateTimer();
+                    _longPressTimer.Interval = TimeSpan.FromMilliseconds(500);
+                    _longPressTimer.Tick += (s, ev) =>
+                    {
+                        if (!_pointerMoved && _pressedIndex >= 0)
+                        {
+                            string? uuid = null;
+                            lock (_cardsLock)
+                            {
+                                if (_pressedIndex < _cards.Count)
+                                    uuid = _cards[_pressedIndex].UUID;
+                            }
+                            if (uuid != null)
+                            {
+                                CardLongPressed?.Invoke(uuid);
+                                _pressedIndex = -1; // Prevent click on release
+                                _longPressProgress = 0;
+                            }
+                        }
+                        _longPressTimer?.Stop();
+                        _longPressTimer = null;
+                        _canvas.InvalidateSurface();
+                    };
+                    _longPressTimer.Start();
+                }
+
                 _canvas.InvalidateSurface();
                 e.Handled = true;
                 break;
@@ -670,12 +760,23 @@ public class MTGCardGrid : Grid
             case SKTouchAction.Moved:
                 float dx = x - _pressPoint.X;
                 float dy = y - _pressPoint.Y;
-                if (Math.Sqrt(dx * dx + dy * dy) > 10)
-                    _pointerMoved = true;
+                if (Math.Sqrt(dx * dx + dy * dy) > 15)
+                {
+                    if (!_pointerMoved)
+                    {
+                        _pointerMoved = true;
+                        _longPressTimer?.Stop();
+                        _longPressTimer = null;
+                        _longPressProgress = 0;
+                    }
+                }
                 e.Handled = true;
                 break;
 
             case SKTouchAction.Released:
+                _longPressTimer?.Stop();
+                _longPressTimer = null;
+
                 if (!_pointerMoved && _pressedIndex >= 0)
                 {
                     GridCardData? card;
@@ -687,12 +788,16 @@ public class MTGCardGrid : Grid
                         CardClicked?.Invoke(card.UUID);
                 }
                 _pressedIndex = -1;
+                _longPressProgress = 0;
                 _canvas.InvalidateSurface();
                 e.Handled = true;
                 break;
 
             case SKTouchAction.Cancelled:
+                _longPressTimer?.Stop();
+                _longPressTimer = null;
                 _pressedIndex = -1;
+                _longPressProgress = 0;
                 _canvas.InvalidateSurface();
                 e.Handled = true;
                 break;

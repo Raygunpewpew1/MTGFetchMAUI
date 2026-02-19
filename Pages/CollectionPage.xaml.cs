@@ -1,3 +1,4 @@
+using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 
 namespace MTGFetchMAUI.Pages;
@@ -5,17 +6,20 @@ namespace MTGFetchMAUI.Pages;
 public partial class CollectionPage : ContentPage
 {
     private readonly CollectionViewModel _viewModel;
+    private readonly IToastService _toastService;
     private bool _loaded;
 
-    public CollectionPage(CollectionViewModel viewModel)
+    public CollectionPage(CollectionViewModel viewModel, IToastService toastService)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _toastService = toastService;
         BindingContext = _viewModel;
 
         _viewModel.AttachGrid(CollectionGrid);
 
         CollectionGrid.CardClicked += OnCardClicked;
+        CollectionGrid.CardLongPressed += OnCardLongPressed;
 
         _viewModel.CollectionLoaded += () =>
         {
@@ -43,6 +47,7 @@ public partial class CollectionPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _toastService.OnShow += OnToastShow;
         CollectionGrid.StartTimers();
 
         // Ensure scroll is synced after a tab switch
@@ -62,7 +67,13 @@ public partial class CollectionPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        _toastService.OnShow -= OnToastShow;
         CollectionGrid.StopTimers();
+    }
+
+    private void OnToastShow(string message, int duration)
+    {
+        MainThread.BeginInvokeOnMainThread(() => _ = GridSnackbar.ShowAsync(message, duration));
     }
 
     private async void OnRefreshClicked(object? sender, EventArgs e)
@@ -78,5 +89,24 @@ public partial class CollectionPage : ContentPage
     private async void OnCardClicked(string uuid)
     {
         await Shell.Current.GoToAsync($"carddetail?uuid={uuid}");
+    }
+
+    private async void OnCardLongPressed(string uuid)
+    {
+        var card = await _viewModel.GetCardDetailsAsync(uuid);
+        if (card == null) return;
+
+        int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
+
+        var result = await AddSheet.ShowAsync(card.Name, $"{card.SetCode} #{card.Number}", currentQty);
+
+        if (result.HasValue)
+        {
+            await _viewModel.UpdateCollectionAsync(uuid, result.Value);
+            _toastService.Show($"{result.Value}x {card.Name} in collection");
+
+            // Refresh collection to show updated quantity
+            await _viewModel.LoadCollectionAsync();
+        }
     }
 }
