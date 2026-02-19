@@ -40,6 +40,11 @@ public record VendorPrices
     public PriceEntry BuylistNormal { get; init; }
     public PriceCurrency Currency { get; init; }
 
+    // Historical data (last 90 days)
+    public List<PriceEntry> RetailNormalHistory { get; init; } = [];
+    public List<PriceEntry> RetailFoilHistory { get; init; } = [];
+    public List<PriceEntry> BuylistNormalHistory { get; init; } = [];
+
     public bool IsValid => RetailNormal.Price > 0 || RetailFoil.Price > 0;
 
     public static readonly VendorPrices Empty = new()
@@ -93,6 +98,14 @@ public static class PriceDateParser
     public static DateTime ParseISO8601Date(string s)
     {
         if (DateTime.TryParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var result))
+            return result;
+        return DateTime.MinValue;
+    }
+
+    public static DateTime ParseCompactDate(string s)
+    {
+        if (DateTime.TryParseExact(s, "yyyyMMdd", CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out var result))
             return result;
         return DateTime.MinValue;
