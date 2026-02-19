@@ -72,7 +72,7 @@ public class ImageDownloadService : IDisposable
                 image = await DownloadImageCoreAsync(scryfallId, imageSize, gen, face);
                 success = image != null;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
             {
                 Logger.LogStuff($"Image download error for {scryfallId}: {ex.Message}", LogLevel.Error);
             }
@@ -271,7 +271,7 @@ public class ImageDownloadService : IDisposable
                 // Decode and return
                 return SKImage.FromEncodedData(data);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
             {
                 Logger.LogStuff(
                     $"Image download attempt {attempt + 1} failed for {scryfallId}: {ex.Message}",
