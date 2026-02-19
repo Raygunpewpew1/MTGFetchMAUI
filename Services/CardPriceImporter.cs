@@ -167,7 +167,7 @@ public class CardPriceImporter
                             // Serialize history compactly
                             pHistory.Value = SerializeHistory(tcg, cm, ck, mp);
 
-                            await insertCmd.ExecuteNonQueryAsync();
+                            insertCmd.ExecuteNonQuery();
                             totalCards++;
                             batchCount++;
 
