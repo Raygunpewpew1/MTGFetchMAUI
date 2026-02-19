@@ -138,13 +138,17 @@ public class CardPriceImporter
                         using var doc = JsonDocument.ParseValue(ref reader);
                         var cardData = doc.RootElement;
 
-                        if (cardData.TryGetProperty("paper", out var paperElement))
-                        {
-                            var tcg = ReadVendorPrices(paperElement, "tcgplayer");
-                            var cm = ReadVendorPrices(paperElement, "cardmarket");
-                            var ck = ReadVendorPrices(paperElement, "cardkingdom");
-                            var mp = ReadVendorPrices(paperElement, "manapool");
+                        // Try to get 'paper' property, but fallback to root if it's missing (AllPricesToday structure)
+                        var paperElement = cardData.TryGetProperty("paper", out var pEl) ? pEl : cardData;
 
+                        var tcg = ReadVendorPrices(paperElement, "tcgplayer");
+                        var cm = ReadVendorPrices(paperElement, "cardmarket");
+                        var ck = ReadVendorPrices(paperElement, "cardkingdom");
+                        var mp = ReadVendorPrices(paperElement, "manapool");
+
+                        // Only insert if we actually found some prices for this card
+                        if (tcg.IsValid || cm.IsValid || ck.IsValid || mp.IsValid)
+                        {
                             pUuid.Value = uuid;
                             pTcgRn.Value = tcg.RetailNormal.Price;
                             pTcgRf.Value = tcg.RetailFoil.Price;
@@ -243,14 +247,24 @@ public class CardPriceImporter
         if (!catElement.TryGetProperty(type, out var typeElement)) return [];
 
         var history = new List<PriceEntry>();
-        foreach (var datePricePair in typeElement.EnumerateObject())
+
+        if (typeElement.ValueKind == JsonValueKind.Object)
         {
-            var date = PriceDateParser.ParseISO8601Date(datePricePair.Name);
-            if (datePricePair.Value.TryGetDouble(out var price))
+            foreach (var datePricePair in typeElement.EnumerateObject())
             {
-                history.Add(new PriceEntry(date, price));
+                var date = PriceDateParser.ParseISO8601Date(datePricePair.Name);
+                if (datePricePair.Value.TryGetDouble(out var price))
+                {
+                    history.Add(new PriceEntry(date, price));
+                }
             }
         }
+        else if (typeElement.ValueKind == JsonValueKind.Number)
+        {
+            // Fallback for direct price if not in date-dictionary format
+            history.Add(new PriceEntry(DateTime.Now, typeElement.GetDouble()));
+        }
+
         history.Sort((a, b) => a.Date.CompareTo(b.Date));
         return history;
     }
