@@ -22,16 +22,16 @@ public partial class Snackbar : ContentView
 
             // Slide up and fade in
             await Task.WhenAll(
-                Container.TranslateTo(0, 0, 300, Easing.CubicOut),
-                Container.FadeTo(1, 300, Easing.Linear)
+                Container.TranslateToAsync(0, 0, 300, Easing.CubicOut),
+                Container.FadeToAsync(1, 300, Easing.Linear)
             );
 
             await Task.Delay(durationMs, token);
 
             // Slide down and fade out
             await Task.WhenAll(
-                Container.TranslateTo(0, 100, 300, Easing.CubicIn),
-                Container.FadeTo(0, 300, Easing.Linear)
+                Container.TranslateToAsync(0, 100, 300, Easing.CubicIn),
+                Container.FadeToAsync(0, 300, Easing.Linear)
             );
 
             if (!token.IsCancellationRequested)
