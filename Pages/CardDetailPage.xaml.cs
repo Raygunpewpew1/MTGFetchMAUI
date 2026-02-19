@@ -334,4 +334,14 @@ public partial class CardDetailPage : ContentPage
             }
         }
     }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (AddSheet.IsVisible)
+        {
+            _ = AddSheet.HandleBackAsync();
+            return true;
+        }
+        return base.OnBackButtonPressed();
+    }
 }
