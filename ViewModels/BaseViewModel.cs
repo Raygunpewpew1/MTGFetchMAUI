@@ -8,20 +8,17 @@ namespace MTGFetchMAUI.ViewModels;
 /// </summary>
 public abstract class BaseViewModel : INotifyPropertyChanged
 {
-    private bool _isBusy;
-    private string _statusMessage = "";
-
     public bool IsBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public string StatusMessage
     {
-        get => _statusMessage;
-        set => SetProperty(ref _statusMessage, value);
-    }
+        get;
+        set => SetProperty(ref field, value);
+    } = "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
