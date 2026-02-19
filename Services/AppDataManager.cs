@@ -11,6 +11,7 @@ public static class AppDataManager
     private const string MtgjsonUrl = "https://github.com/Raygunpewpew1/MTGFetchMAUI/releases/latest/download/MTG_App_DB.zip";
     private const int ResponseTimeoutSeconds = 300;
     private const long MinValidDatabaseSize = 1_000_000; // 1 MB
+    private const string VersionFile = "main_db_version.txt";
 
     // 1. ADDED: The Semaphore to prevent concurrent downloads
     private static readonly SemaphoreSlim _downloadLock = new SemaphoreSlim(1, 1);
@@ -53,13 +54,92 @@ public static class AppDataManager
     public static string GetPricesJsonPath() =>
         Path.Combine(GetAppDataPath(), MTGConstants.FilePricesJson);
 
+    public static string GetVersionFilePath() =>
+        Path.Combine(GetAppDataPath(), VersionFile);
+
     // ── Database Checks ──────────────────────────────────────────────
+
+    public static string GetLocalDatabaseVersion()
+    {
+        var path = GetVersionFilePath();
+        return File.Exists(path) ? File.ReadAllText(path).Trim() : string.Empty;
+    }
+
+    private static void SetLocalDatabaseVersion(string version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return;
+        File.WriteAllText(GetVersionFilePath(), version);
+    }
 
     public static bool MTGDatabaseExists()
     {
         var path = GetMTGDatabasePath();
         if (!File.Exists(path)) return false;
         return new FileInfo(path).Length > MinValidDatabaseSize;
+    }
+
+    /// <summary>
+    /// Checks if a new database version is available on GitHub.
+    /// Returns (updateAvailable, localVersion, remoteVersion).
+    /// </summary>
+    public static async Task<(bool updateAvailable, string localVersion, string remoteVersion)> CheckForDatabaseUpdateAsync()
+    {
+        var localVersion = GetLocalDatabaseVersion();
+        var remoteVersion = await GetRemoteDatabaseVersionAsync();
+
+        if (string.IsNullOrEmpty(remoteVersion))
+            return (false, localVersion, remoteVersion); // Failed to get remote version
+
+        // If local is empty or different, update is available.
+        bool updateAvailable = string.IsNullOrEmpty(localVersion) || !localVersion.Equals(remoteVersion, StringComparison.OrdinalIgnoreCase);
+
+        return (updateAvailable, localVersion, remoteVersion);
+    }
+
+    /// <summary>
+    /// Fetches the version tag from the GitHub release redirect URL.
+    /// </summary>
+    public static async Task<string> GetRemoteDatabaseVersionAsync()
+    {
+        try
+        {
+            // We need a client that DOES NOT follow redirects to capture the location header
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+
+            using var request = new HttpRequestMessage(HttpMethod.Head, MtgjsonUrl);
+            using var response = await client.SendAsync(request);
+
+            // GitHub "latest" redirects to "download/<TAG>/..."
+            // Expected 302 Found or 307/308
+            if (response.StatusCode == System.Net.HttpStatusCode.Redirect ||
+                response.StatusCode == System.Net.HttpStatusCode.MovedPermanently ||
+                response.StatusCode == System.Net.HttpStatusCode.Found ||
+                response.StatusCode == System.Net.HttpStatusCode.TemporaryRedirect)
+            {
+                var location = response.Headers.Location;
+                if (location != null)
+                {
+                    // URL format: .../releases/download/<TAG>/MTG_App_DB.zip
+                    // segments: ... "download/", "<TAG>/", "MTG_App_DB.zip"
+                    var segments = location.Segments;
+                    // Find the segment after "download/"
+                    for (int i = 0; i < segments.Length - 1; i++)
+                    {
+                        if (segments[i].TrimEnd('/').Equals("download", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return segments[i + 1].TrimEnd('/');
+                        }
+                    }
+                }
+            }
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[WARNING] Failed to check remote version: {ex.Message}");
+            return string.Empty;
+        }
     }
 
     // ── Download ─────────────────────────────────────────────────────
@@ -70,13 +150,15 @@ public static class AppDataManager
         await _downloadLock.WaitAsync(ct);
 
         var zipPath = Path.Combine(GetAppDataPath(), MTGConstants.FileAllPrintingsZip);
+        string? remoteVersion = null;
 
         try
         {
-            // Optional: If we just downloaded it successfully 10 seconds ago, maybe skip?
-            // For now, we force download as requested.
+            UpdateProgress("Checking version...", 0);
+            // Try to get version before download to save it later
+            remoteVersion = await GetRemoteDatabaseVersionAsync();
 
-            UpdateProgress("Connecting to MTGJSON...", 0);
+            UpdateProgress("Connecting to GitHub...", 5);
 
             using var client = CreateHttpClient();
             using var response = await client.GetAsync(MtgjsonUrl, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -117,6 +199,12 @@ public static class AppDataManager
             await Task.Run(() => ExtractDatabase(zipPath), ct);
 
             UpdateProgress("Download complete.", 100);
+
+            if (!string.IsNullOrEmpty(remoteVersion) && MTGDatabaseExists())
+            {
+                SetLocalDatabaseVersion(remoteVersion);
+            }
+
             return MTGDatabaseExists();
         }
         catch (OperationCanceledException)
