@@ -313,8 +313,9 @@ public class CardTextView : SKCanvasView
             Color = _keywordColor,
             IsAntialias = true
         };
-        using var keywordTypeface = _keywordBold ? SKTypeface.FromFamilyName(null, SKFontStyle.Bold) : SKTypeface.Default;
-        using var keywordFont = new SKFont(keywordTypeface, _textSize);
+
+        SKTypeface? customTypeface = _keywordBold ? SKTypeface.FromFamilyName(null, SKFontStyle.Bold) : null;
+        using var keywordFont = new SKFont(customTypeface ?? SKTypeface.Default, _textSize);
 
         foreach (var g in glyphs)
         {
@@ -336,6 +337,7 @@ public class CardTextView : SKCanvasView
         }
 
         canvas.Restore();
+        customTypeface?.Dispose();
 
         // Update height if measured height changed
         if (glyphs.Count > 0)

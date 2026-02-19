@@ -33,6 +33,7 @@ public class MTGCardGrid : Grid
     // ── State ──────────────────────────────────────────────────────────
     private readonly List<GridCardData> _cards = [];
     private readonly object _cardsLock = new();
+    private readonly object _renderLock = new();
 
     // Layout metrics
     private int _columnCount;
@@ -76,10 +77,11 @@ public class MTGCardGrid : Grid
     private SKFont? _setFont;
     private SKFont? _chipFont;
     private SKFont? _badgeFont;
-    private readonly SKRoundRect _cardRoundRect = new();
-    private readonly SKRoundRect _imageRoundRect = new();
-    private readonly SKRoundRect _labelRoundRect = new();
-    private SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
+    private SKTypeface? _badgeTypeface;
+    private SKRoundRect? _cardRoundRect;
+    private SKRoundRect? _imageRoundRect;
+    private SKRoundRect? _labelRoundRect;
+    private readonly SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
 
     // ── Events ─────────────────────────────────────────────────────────
     public event Action<string>? CardClicked;
@@ -462,37 +464,46 @@ public class MTGCardGrid : Grid
         _nameFont = new SKFont(SKTypeface.Default, 12f);
         _setFont = new SKFont(SKTypeface.Default, 10f);
         _chipFont = new SKFont(SKTypeface.Default, 10f);
-        _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
+
+        _badgeTypeface ??= SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
+        _badgeFont = new SKFont(_badgeTypeface, 11f);
+
+        _cardRoundRect ??= new SKRoundRect();
+        _imageRoundRect ??= new SKRoundRect();
+        _labelRoundRect ??= new SKRoundRect();
     }
 
     private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
-        var canvas = e.Surface.Canvas;
-        var info = e.Info;
-        canvas.Clear(new SKColor(18, 18, 18));
-
-        if (_cardWidth <= 0) CalculateLayout();
-        EnsureResources();
-
-        float scale = info.Width / (float)(Width > 0 ? Width : 360);
-
-        canvas.Save();
-        canvas.Scale(scale);
-
-        // Offset by scroll to draw the correct slice
-        canvas.Translate(0, -_scrollOffset);
-
-        lock (_cardsLock)
+        lock (_renderLock)
         {
-            for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
-            {
-                var card = _cards[i];
-                var rect = GetCardRect(i);
-                DrawCard(canvas, card, rect, i);
-            }
-        }
+            var canvas = e.Surface.Canvas;
+            var info = e.Info;
+            canvas.Clear(new SKColor(18, 18, 18));
 
-        canvas.Restore();
+            if (_cardWidth <= 0) CalculateLayout();
+            EnsureResources();
+
+            float scale = info.Width / (float)(Width > 0 ? Width : 360);
+
+            canvas.Save();
+            canvas.Scale(scale);
+
+            // Offset by scroll to draw the correct slice
+            canvas.Translate(0, -_scrollOffset);
+
+            lock (_cardsLock)
+            {
+                for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
+                {
+                    var card = _cards[i];
+                    var rect = GetCardRect(i);
+                    DrawCard(canvas, card, rect, i);
+                }
+            }
+
+            canvas.Restore();
+        }
     }
 
     private SKRect GetCardRect(int index)
@@ -511,7 +522,7 @@ public class MTGCardGrid : Grid
 
         // Card background
         _bgPaint!.Color = new SKColor(30, 30, 30, alphaByte);
-        _cardRoundRect.SetRect(rect, 8f, 8f);
+        _cardRoundRect!.SetRect(rect, 8f, 8f);
         canvas.DrawRoundRect(_cardRoundRect, _bgPaint);
 
         float imageHeight = _cardWidth * CardImageRatio;
@@ -531,7 +542,7 @@ public class MTGCardGrid : Grid
         var labelRect = new SKRect(rect.Left, labelY, rect.Right, rect.Bottom);
 
         _labelBgPaint!.Color = new SKColor(25, 25, 25, alphaByte);
-        _labelRoundRect.SetRectRadii(labelRect, LabelRadii);
+        _labelRoundRect!.SetRectRadii(labelRect, LabelRadii);
         canvas.DrawRoundRect(_labelRoundRect, _labelBgPaint);
 
         // Card name
@@ -558,7 +569,7 @@ public class MTGCardGrid : Grid
 
         // Use a simpler clip if possible, or at least avoid recreating path every frame
         // For now, we keep the round corners but we could optimize this by caching the path per card size
-        _imageRoundRect.SetRect(imageRect, 8f, 8f);
+        _imageRoundRect!.SetRect(imageRect, 8f, 8f);
         canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
         _imgPaint!.Color = new SKColor(255, 255, 255, alpha);
@@ -594,7 +605,7 @@ public class MTGCardGrid : Grid
     private void DrawShimmer(SKCanvas canvas, SKRect rect, byte alpha)
     {
         canvas.Save();
-        _imageRoundRect.SetRect(rect, 8f, 8f);
+        _imageRoundRect!.SetRect(rect, 8f, 8f);
         canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
         _shimmerBasePaint!.Color = new SKColor(40, 40, 40, alpha);
@@ -724,29 +735,54 @@ public class MTGCardGrid : Grid
 
     private void DisposeResources()
     {
-        _bgPaint?.Dispose();
-        _labelBgPaint?.Dispose();
-        _namePaint?.Dispose();
-        _setPaint?.Dispose();
-        _hoverPaint?.Dispose();
-        _chipBgPaint?.Dispose();
-        _chipTextPaint?.Dispose();
-        _badgeBgPaint?.Dispose();
-        _badgeTextPaint?.Dispose();
-        _shimmerBasePaint?.Dispose();
-        _shimmerGradientPaint?.Dispose();
-        _ripplePaint?.Dispose();
-        _imgPaint?.Dispose();
-        _nameFont?.Dispose();
-        _setFont?.Dispose();
-        _chipFont?.Dispose();
-        _badgeFont?.Dispose();
+        StopTimers();
+        lock (_renderLock)
+        {
+            _bgPaint?.Dispose();
+            _bgPaint = null;
+            _labelBgPaint?.Dispose();
+            _labelBgPaint = null;
+            _namePaint?.Dispose();
+            _namePaint = null;
+            _setPaint?.Dispose();
+            _setPaint = null;
+            _hoverPaint?.Dispose();
+            _hoverPaint = null;
+            _chipBgPaint?.Dispose();
+            _chipBgPaint = null;
+            _chipTextPaint?.Dispose();
+            _chipTextPaint = null;
+            _badgeBgPaint?.Dispose();
+            _badgeBgPaint = null;
+            _badgeTextPaint?.Dispose();
+            _badgeTextPaint = null;
+            _shimmerBasePaint?.Dispose();
+            _shimmerBasePaint = null;
+            _shimmerGradientPaint?.Dispose();
+            _shimmerGradientPaint = null;
+            _ripplePaint?.Dispose();
+            _ripplePaint = null;
+            _imgPaint?.Dispose();
+            _imgPaint = null;
 
-        _cardRoundRect.Dispose();
-        _imageRoundRect.Dispose();
-        _labelRoundRect.Dispose();
+            _nameFont?.Dispose();
+            _nameFont = null;
+            _setFont?.Dispose();
+            _setFont = null;
+            _chipFont?.Dispose();
+            _chipFont = null;
+            _badgeFont?.Dispose();
+            _badgeFont = null;
+            _badgeTypeface?.Dispose();
+            _badgeTypeface = null;
 
-        _bgPaint = null;
+            _cardRoundRect?.Dispose();
+            _cardRoundRect = null;
+            _imageRoundRect?.Dispose();
+            _imageRoundRect = null;
+            _labelRoundRect?.Dispose();
+            _labelRoundRect = null;
+        }
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
