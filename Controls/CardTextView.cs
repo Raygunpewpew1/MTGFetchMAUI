@@ -359,10 +359,13 @@ public class CardTextView : SKCanvasView
 
         float lineHeight = _textSize * _lineSpacing;
         float x = 0;
-        float y = lineHeight; // Start at first baseline
+        float y = lineHeight;
+        float spaceWidth = measureFont.MeasureText(" ");
 
-        foreach (var run in _runs)
+        for (int ri = 0; ri < _runs.Count; ri++)
         {
+            var run = _runs[ri];
+
             if (run.Type == RunType.Newline)
             {
                 x = 0;
@@ -374,7 +377,6 @@ public class CardTextView : SKCanvasView
             {
                 float symW = _symbolSize + 2f;
 
-                // Wrap if symbol doesn't fit
                 if (x + symW > maxWidth && x > 0)
                 {
                     x = 0;
@@ -382,17 +384,18 @@ public class CardTextView : SKCanvasView
                 }
 
                 result.Add(new LayoutGlyph(x, y, symW, _symbolSize, RunType.Symbol, run.Text));
-                x += symW;
+
+                bool nextIsSymbol = ri + 1 < _runs.Count && _runs[ri + 1].Type == RunType.Symbol;
+                x += symW + (nextIsSymbol ? 0 : spaceWidth);
                 continue;
             }
 
-            // Text run - word wrap
+            // Text run (Normal or Keyword) - word wrap
             var words = SplitIntoWords(run.Text);
             foreach (var word in words)
             {
                 float wordWidth = measureFont.MeasureText(word);
 
-                // Wrap if needed
                 if (x + wordWidth > maxWidth && x > 0)
                 {
                     x = 0;
@@ -401,6 +404,9 @@ public class CardTextView : SKCanvasView
 
                 result.Add(new LayoutGlyph(x, y, wordWidth, _textSize, run.Type, word));
                 x += wordWidth;
+
+                if (run.Type == RunType.Keyword && !word.EndsWith(' '))
+                    x += spaceWidth;
             }
         }
 
