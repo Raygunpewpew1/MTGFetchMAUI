@@ -25,18 +25,33 @@ public partial class CollectionAddSheet : ContentView
 
         UpdateQuantityUI();
 
-        // Prepare for animation
-        this.Opacity = 0;
-        SheetContainer.TranslationY = 400;
-        IsVisible = true;
+        // 1. Reset State
+        this.Opacity = 1;           // Ensure root is visible
+        Dimmer.Opacity = 0;         // Hide dimmer initially
+        IsVisible = true;           // Make control part of visual tree
 
-        // Small delay to ensure layout is ready
-        await Task.Delay(16);
+        // 2. Push Sheet Off-Screen
+        // Use a large value initially to guarantee it's hidden while layout happens
+        SheetContainer.TranslationY = 2000;
 
-        // Start animations in parallel
+        // 3. Wait for Layout
+        // Mandatory yield to UI thread to let Android measure the views
+        await Task.Delay(50);
+
+        // 4. Calculate proper start position
+        // Determine the height to slide from
+        double screenHeight = DeviceDisplay.MainDisplayInfo.Height / DeviceDisplay.MainDisplayInfo.Density;
+        double startY = this.Height > 0 ? this.Height : screenHeight;
+        if (startY <= 0) startY = 1000; // Safe fallback
+
+        // Set the actual start position (off-screen)
+        SheetContainer.TranslationY = startY;
+
+        // 5. Animate In
+        // Dimmer fades in, Sheet slides up to 0 (its natural layout position)
         await Task.WhenAll(
-            this.FadeToAsync(1, 250, Easing.CubicOut),
-            SheetContainer.TranslateToAsync(0, 0, 400, Easing.SpringOut)
+            Dimmer.FadeTo(1, 250, Easing.CubicOut),
+            SheetContainer.TranslateTo(0, 0, 400, Easing.SpringOut)
         );
 
         return await _tcs.Task;
@@ -44,12 +59,20 @@ public partial class CollectionAddSheet : ContentView
 
     private async Task HideAsync(int? result)
     {
+        // Calculate off-screen position
+        double screenHeight = DeviceDisplay.MainDisplayInfo.Height / DeviceDisplay.MainDisplayInfo.Density;
+        double endY = this.Height > 0 ? this.Height : screenHeight;
+        if (endY <= 0) endY = 1000;
+
+        // Animate Out
+        // Slide to (0, endY)
         await Task.WhenAll(
-            SheetContainer.TranslateToAsync(0, 400, 250, Easing.CubicIn),
-            this.FadeToAsync(0, 200, Easing.CubicIn)
+            SheetContainer.TranslateTo(0, endY, 250, Easing.CubicIn),
+            Dimmer.FadeTo(0, 200, Easing.CubicIn)
         );
+
         IsVisible = false;
-        _tcs?.SetResult(result);
+        _tcs?.TrySetResult(result);
     }
 
     private void UpdateQuantityUI()
