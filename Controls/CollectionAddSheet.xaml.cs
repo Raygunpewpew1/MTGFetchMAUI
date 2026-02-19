@@ -50,8 +50,8 @@ public partial class CollectionAddSheet : ContentView
         // 5. Animate In
         // Dimmer fades in, Sheet slides up to 0 (its natural layout position)
         await Task.WhenAll(
-            Dimmer.FadeTo(1, 250, Easing.CubicOut),
-            SheetContainer.TranslateTo(0, 0, 400, Easing.SpringOut)
+            Dimmer.FadeToAsync(1, 250, Easing.CubicOut),
+            SheetContainer.TranslateToAsync(0, 0, 400, Easing.SpringOut)
         );
 
         return await _tcs.Task;
@@ -67,8 +67,8 @@ public partial class CollectionAddSheet : ContentView
         // Animate Out
         // Slide to (0, endY)
         await Task.WhenAll(
-            SheetContainer.TranslateTo(0, endY, 250, Easing.CubicIn),
-            Dimmer.FadeTo(0, 200, Easing.CubicIn)
+            SheetContainer.TranslateToAsync(0, endY, 250, Easing.CubicIn),
+            Dimmer.FadeToAsync(0, 200, Easing.CubicIn)
         );
 
         IsVisible = false;
