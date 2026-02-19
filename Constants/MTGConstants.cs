@@ -74,10 +74,15 @@ public static class MTGConstants
 
     public const string DbDriverSqlite = "SQLite";
 
-    // ── File / Path Constants ───────────────────────────────────────
+    // ── File / Path Constants ──────────────────────────────────────
 
+    // OLD:
+    // public const string FileAllPrintings = "AllPrintings.sqlite";
+    // public const string FileAllPrintingsZip = "AllPrintings.sqlite.zip";
+
+    // NEW:
     public const string FileAllPrintings = "AllPrintings.sqlite";
-    public const string FileAllPrintingsZip = "AllPrintings.sqlite.zip";
+    public const string FileAllPrintingsZip = "MTG_App_DB.zip"; // Matches your GitHub release asset 
     public const string FileCollectionDb = "MyCollection.sqlite";
     public const string FilePricesDb = "prices.sqlite";
     public const string FileSymbolCache = "SymbolCache.json";
