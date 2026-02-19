@@ -563,6 +563,19 @@ public class MTGCardGrid : Grid
             DrawShimmer(canvas, imageRect, alphaByte);
         }
 
+        // Draw price chip if available (always, even if image is null/shimmering)
+        string price = card.GetDisplayPrice();
+        if (!string.IsNullOrEmpty(price))
+        {
+            float tw = _chipFont!.MeasureText(price);
+            float chipX = imageRect.MidX - (tw + 12f) / 2f;
+            float chipY = imageRect.Bottom - 22f;
+            _chipBgPaint!.Color = new SKColor(0, 0, 0, (byte)(180 * alphaByte / 255));
+            _chipTextPaint!.Color = new SKColor(255, 255, 255, alphaByte);
+            canvas.DrawRoundRect(chipX, chipY, tw + 12f, 18f, 9f, 9f, _chipBgPaint!);
+            canvas.DrawText(price, chipX + 6f, chipY + 13f, _chipFont, _chipTextPaint!);
+        }
+
         // Label area
         float labelY = rect.Top + imageHeight;
         var labelRect = new SKRect(rect.Left, labelY, rect.Right, rect.Bottom);
@@ -608,16 +621,6 @@ public class MTGCardGrid : Grid
         canvas.DrawImage(card.Image!, imageRect, _sampling, _imgPaint);
 
         canvas.Restore();
-
-        string price = card.GetDisplayPrice();
-        if (!string.IsNullOrEmpty(price))
-        {
-            float tw = _chipFont!.MeasureText(price);
-            float chipX = imageRect.MidX - (tw + 12f) / 2f;
-            float chipY = imageRect.Bottom - 22f;
-            canvas.DrawRoundRect(chipX, chipY, tw + 12f, 18f, 9f, 9f, _chipBgPaint!);
-            canvas.DrawText(price, chipX + 6f, chipY + 13f, _chipFont, _chipTextPaint!);
-        }
 
         if (card.Quantity > 0)
         {
