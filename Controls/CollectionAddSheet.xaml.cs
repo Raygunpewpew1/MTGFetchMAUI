@@ -25,21 +25,26 @@ public partial class CollectionAddSheet : ContentView
 
         UpdateQuantityUI();
 
+        // Prepare for animation
+        this.Opacity = 0;
+        SheetContainer.TranslationY = 600;
         IsVisible = true;
 
-        // Ensure opacity is 1 for the background, but the sheet starts offscreen
-        this.Opacity = 0;
-        await this.FadeToAsync(1, 200);
-
-        await SheetContainer.TranslateToAsync(0, 0, 350, Easing.SpringOut);
+        // Start animations in parallel
+        await Task.WhenAll(
+            this.FadeToAsync(1, 250, Easing.CubicOut),
+            SheetContainer.TranslateToAsync(0, 0, 400, Easing.SpringOut)
+        );
 
         return await _tcs.Task;
     }
 
     private async Task HideAsync(int? result)
     {
-        await SheetContainer.TranslateToAsync(0, 600, 300, Easing.CubicIn);
-        await this.FadeToAsync(0, 200);
+        await Task.WhenAll(
+            SheetContainer.TranslateToAsync(0, 600, 250, Easing.CubicIn),
+            this.FadeToAsync(0, 200, Easing.CubicIn)
+        );
         IsVisible = false;
         _tcs?.SetResult(result);
     }
