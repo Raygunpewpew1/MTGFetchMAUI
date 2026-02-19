@@ -31,17 +31,17 @@ public partial class CollectionAddSheet : ContentView
 
         // Ensure opacity is 1 for the background, but the sheet starts offscreen
         this.Opacity = 0;
-        await this.FadeTo(1, 200);
+        await this.FadeToAsync(1, 200);
 
-        await SheetContainer.TranslateTo(0, 0, 350, Easing.SpringOut);
+        await SheetContainer.TranslateToAsync(0, 0, 350, Easing.SpringOut);
 
         return await _tcs.Task;
     }
 
     private async Task HideAsync(int? result)
     {
-        await SheetContainer.TranslateTo(0, 600, 300, Easing.CubicIn);
-        await this.FadeTo(0, 200);
+        await SheetContainer.TranslateToAsync(0, 600, 300, Easing.CubicIn);
+        await this.FadeToAsync(0, 200);
         IsVisible = false;
         _tcs?.SetResult(result);
     }
