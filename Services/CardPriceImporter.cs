@@ -113,6 +113,10 @@ public class CardPriceImporter
             bool isFinalBlock = (streamPos + bytesRead >= totalLength);
             var reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead), isFinalBlock, state);
 
+            var safeState = state;
+            long safeConsumed = 0;
+            bool incompleteCard = false;
+
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.PropertyName)
@@ -123,6 +127,9 @@ public class CardPriceImporter
                         inData = true;
                         // Capture depth of 'data' property
                         depth = reader.CurrentDepth;
+
+                        safeConsumed = reader.BytesConsumed;
+                        safeState = reader.CurrentState;
                         continue;
                     }
 
@@ -131,6 +138,15 @@ public class CardPriceImporter
                     {
                         // This is a UUID
                         var uuid = propName;
+
+                        // Check if we have the full object in buffer
+                        var tempReader = reader;
+                        if (!tempReader.Read() || !tempReader.TrySkip())
+                        {
+                            Logger.LogStuff($"Incomplete card {uuid} at buffer end, rewinding...", LogLevel.Debug);
+                            incompleteCard = true;
+                            break;
+                        }
 
                         // Move to value (the card prices object)
                         reader.Read();
@@ -193,16 +209,29 @@ public class CardPriceImporter
                 {
                     inData = false;
                 }
+
+                safeConsumed = reader.BytesConsumed;
+                safeState = reader.CurrentState;
             }
 
             streamPos += bytesRead;
-            state = reader.CurrentState;
 
-            // If the buffer ended mid-token, we need to handle it.
-            // Utf8JsonReader does this via reader.BytesConsumed.
-            if (reader.BytesConsumed < bytesRead)
+            long consumed;
+            if (incompleteCard)
             {
-                var remaining = bytesRead - (int)reader.BytesConsumed;
+                state = safeState;
+                consumed = safeConsumed;
+            }
+            else
+            {
+                state = reader.CurrentState;
+                consumed = reader.BytesConsumed;
+            }
+
+            // If the buffer ended mid-token (or we rewound due to incomplete card), handle it.
+            if (consumed < bytesRead)
+            {
+                var remaining = bytesRead - (int)consumed;
                 fileStream.Position -= remaining;
                 streamPos -= remaining;
             }
