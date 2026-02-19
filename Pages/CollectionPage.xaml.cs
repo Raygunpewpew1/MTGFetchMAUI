@@ -109,4 +109,14 @@ public partial class CollectionPage : ContentPage
             await _viewModel.LoadCollectionAsync();
         }
     }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (AddSheet.IsVisible)
+        {
+            _ = AddSheet.HandleBackAsync();
+            return true;
+        }
+        return base.OnBackButtonPressed();
+    }
 }

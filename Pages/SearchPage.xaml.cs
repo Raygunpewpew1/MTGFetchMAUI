@@ -114,4 +114,14 @@ public partial class SearchPage : ContentPage
             _toastService.Show($"{result.Value}x {card.Name} in collection");
         }
     }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (AddSheet.IsVisible)
+        {
+            _ = AddSheet.HandleBackAsync();
+            return true;
+        }
+        return base.OnBackButtonPressed();
+    }
 }

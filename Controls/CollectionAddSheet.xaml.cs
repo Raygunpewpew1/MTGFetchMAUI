@@ -57,6 +57,16 @@ public partial class CollectionAddSheet : ContentView
         return await _tcs.Task;
     }
 
+    public async Task<bool> HandleBackAsync()
+    {
+        if (IsVisible)
+        {
+            await HideAsync(null);
+            return true;
+        }
+        return false;
+    }
+
     private async Task HideAsync(int? result)
     {
         // Calculate off-screen position
