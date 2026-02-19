@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using MTGFetchMAUI.Data;
 
@@ -124,42 +125,66 @@ public class CardPriceDatabase : IDisposable
 
     private static CardPriceData PopulatePriceData(SqliteDataReader reader)
     {
+        var historyJson = SafeStr(reader, "history_json");
+        var historyDict = ParseHistory(historyJson);
+
         return new CardPriceData
         {
             UUID = SafeStr(reader, "card_uuid"),
             Paper = new PaperPlatform
             {
-                TCGPlayer = new VendorPrices
-                {
-                    RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "tcg_retail_normal")),
-                    RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, "tcg_retail_foil")),
-                    BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "tcg_buylist_normal")),
-                    Currency = ParseCurrency(SafeStr(reader, "tcg_currency"))
-                },
-                Cardmarket = new VendorPrices
-                {
-                    RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "cm_retail_normal")),
-                    RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, "cm_retail_foil")),
-                    BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "cm_buylist_normal")),
-                    Currency = ParseCurrency(SafeStr(reader, "cm_currency"))
-                },
-                CardKingdom = new VendorPrices
-                {
-                    RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "ck_retail_normal")),
-                    RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, "ck_retail_foil")),
-                    BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "ck_buylist_normal")),
-                    Currency = ParseCurrency(SafeStr(reader, "ck_currency"))
-                },
-                ManaPool = new VendorPrices
-                {
-                    RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "mp_retail_normal")),
-                    RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, "mp_retail_foil")),
-                    BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, "mp_buylist_normal")),
-                    Currency = ParseCurrency(SafeStr(reader, "mp_currency"))
-                }
+                TCGPlayer = PopulateVendor(reader, "tcg", historyDict, "tcg"),
+                Cardmarket = PopulateVendor(reader, "cm", historyDict, "cm"),
+                CardKingdom = PopulateVendor(reader, "ck", historyDict, "ck"),
+                ManaPool = PopulateVendor(reader, "mp", historyDict, "mp")
             },
             LastUpdated = DateTime.Now
         };
+    }
+
+    private static VendorPrices PopulateVendor(SqliteDataReader reader, string prefix, Dictionary<string, JsonElement> historyDict, string historyKey)
+    {
+        var vendorHistory = historyDict.TryGetValue(historyKey, out var el) ? el : (JsonElement?)null;
+
+        return new VendorPrices
+        {
+            RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_retail_normal")),
+            RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_retail_foil")),
+            BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_buylist_normal")),
+            Currency = ParseCurrency(SafeStr(reader, $"{prefix}_currency")),
+            RetailNormalHistory = ParsePriceEntries(vendorHistory, "rn"),
+            RetailFoilHistory = ParsePriceEntries(vendorHistory, "rf"),
+            BuylistNormalHistory = ParsePriceEntries(vendorHistory, "bn")
+        };
+    }
+
+    private static Dictionary<string, JsonElement> ParseHistory(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? [];
+        }
+        catch { return []; }
+    }
+
+    private static List<PriceEntry> ParsePriceEntries(JsonElement? vendorHistory, string key)
+    {
+        if (vendorHistory == null || !vendorHistory.Value.TryGetProperty(key, out var listEl))
+            return [];
+
+        var list = new List<PriceEntry>();
+        foreach (var item in listEl.EnumerateArray())
+        {
+            if (item.GetArrayLength() == 2)
+            {
+                var dateStr = item[0].GetString() ?? "";
+                var price = item[1].GetDouble();
+                var date = PriceDateParser.ParseCompactDate(dateStr);
+                list.Add(new PriceEntry(date, price));
+            }
+        }
+        return list;
     }
 
     private static string SafeStr(SqliteDataReader reader, string col)

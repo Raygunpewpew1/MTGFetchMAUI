@@ -83,6 +83,21 @@
                         BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
                         Padding="12"
+                        x:Name="PriceHistoryBorder"
+                        IsVisible="False">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Price Trend (Last 90 Days)"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               Margin="0,0,0,4" />
+                        <VerticalStackLayout x:Name="HistoryStack" Spacing="4" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        Padding="12"
                         x:Name="TextBorder"
                         IsVisible="False">
                     <controls:CardTextView x:Name="CardTextView"

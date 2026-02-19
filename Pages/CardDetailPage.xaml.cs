@@ -115,6 +115,9 @@ public partial class CardDetailPage : ContentPage
         // Collection status
         RemoveBtn.IsVisible = _viewModel.IsInCollection;
 
+        // Price History
+        PopulateHistory();
+
         // Image
         ImageLoading.IsVisible = _viewModel.CardImage == null;
         ImageLoading.IsRunning = _viewModel.CardImage == null;
@@ -139,6 +142,10 @@ public partial class CardDetailPage : ContentPage
         else if (e.PropertyName == nameof(CardDetailViewModel.IsInCollection))
         {
             MainThread.BeginInvokeOnMainThread(() => RemoveBtn.IsVisible = _viewModel.IsInCollection);
+        }
+        else if (e.PropertyName == nameof(CardDetailViewModel.PriceData))
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateUI);
         }
     }
 
@@ -189,6 +196,51 @@ public partial class CardDetailPage : ContentPage
     private void OnFlipClicked(object? sender, EventArgs e)
     {
         _viewModel.FlipFaceCommand.Execute(null);
+    }
+
+    private void PopulateHistory()
+    {
+        HistoryStack.Children.Clear();
+        var data = _viewModel.PriceData;
+        if (data == CardPriceData.Empty)
+        {
+            PriceHistoryBorder.IsVisible = false;
+            return;
+        }
+
+        // We'll show a sample of history (last 5 entries) to prove it works
+        var tcgHistory = data.Paper.TCGPlayer.RetailNormalHistory;
+        var cmHistory = data.Paper.Cardmarket.RetailNormalHistory;
+
+        bool added = false;
+        if (tcgHistory.Count > 0)
+        {
+            added = true;
+            AddHistoryItems("TCGPlayer Retail", tcgHistory);
+        }
+
+        if (cmHistory.Count > 0)
+        {
+            added = true;
+            AddHistoryItems("Cardmarket Retail", cmHistory);
+        }
+
+        PriceHistoryBorder.IsVisible = added;
+    }
+
+    private void AddHistoryItems(string label, List<PriceEntry> history)
+    {
+        HistoryStack.Add(new Label { Text = label, FontSize = 13, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 4, 0, 2) });
+
+        // Take last 5 points
+        var points = history.Skip(Math.Max(0, history.Count - 5)).ToList();
+        foreach (var entry in points)
+        {
+            var row = new Grid { ColumnDefinitions = [new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto)] };
+            row.Add(new Label { Text = entry.Date.ToShortDateString(), FontSize = 12, TextColor = Color.FromArgb("#A0A0A0") });
+            row.Add(new Label { Text = $"${entry.Price:F2}", FontSize = 12, HorizontalTextAlignment = TextAlignment.End }, 1);
+            HistoryStack.Add(row);
+        }
     }
 
     private void PopulateLegalities()
