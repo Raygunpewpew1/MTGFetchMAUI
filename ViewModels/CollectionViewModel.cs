@@ -30,6 +30,8 @@ public class CollectionViewModel : BaseViewModel
 
     public ICommand RefreshCommand { get; }
 
+    public event Action? CollectionLoaded;
+
     public CollectionViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
@@ -66,6 +68,7 @@ public class CollectionViewModel : BaseViewModel
             UniqueCards = items.Length;
 
             _grid?.SetCollection(items);
+            CollectionLoaded?.Invoke();
 
             // Load images for visible cards
             await Task.Delay(50);
@@ -131,7 +134,7 @@ public class CollectionViewModel : BaseViewModel
         });
     }
 
-    private void LoadVisibleImages()
+    public void LoadVisibleImages()
     {
         if (_grid == null) return;
 

@@ -16,6 +16,16 @@ public partial class CollectionPage : ContentPage
         _viewModel.AttachGrid(CollectionGrid);
 
         CollectionGrid.CardClicked += OnCardClicked;
+
+        _viewModel.CollectionLoaded += () =>
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                if (CollectionScrollView.ScrollY > 0)
+                    await CollectionScrollView.ScrollToAsync(0, 0, false);
+            });
+        };
+
         _viewModel.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(CollectionViewModel.IsBusy))
@@ -34,6 +44,13 @@ public partial class CollectionPage : ContentPage
     {
         base.OnAppearing();
         CollectionGrid.StartTimers();
+
+        // Ensure scroll is synced after a tab switch
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            CollectionGrid.SetScrollOffset((float)CollectionScrollView.ScrollY);
+            _viewModel.LoadVisibleImages();
+        });
 
         if (!_loaded)
         {
