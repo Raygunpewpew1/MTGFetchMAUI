@@ -94,6 +94,9 @@ public class CollectionViewModel : BaseViewModel
             }
         }
 
+        // Ensure prices are initialized
+        await _cardManager.InitializePricesAsync();
+
         IsBusy = true;
         StatusMessage = "Loading collection...";
 
