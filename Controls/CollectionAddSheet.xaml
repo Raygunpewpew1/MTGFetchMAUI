@@ -3,12 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MTGFetchMAUI.Controls.CollectionAddSheet"
              IsVisible="False"
-             BackgroundColor="#80000000"
+             BackgroundColor="Transparent"
              InputTransparent="False">
 
     <Grid VerticalOptions="Fill" HorizontalOptions="Fill" BackgroundColor="Transparent">
-        <!-- Transparent background for tap-to-dismiss -->
-        <BoxView BackgroundColor="Transparent">
+        <!-- Dimmer background -->
+        <BoxView x:Name="Dimmer"
+                 BackgroundColor="#80000000"
+                 Opacity="0">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnBackgroundTapped" />
             </BoxView.GestureRecognizers>
@@ -19,8 +21,7 @@
                 StrokeThickness="0"
                 StrokeShape="RoundRectangle 24,24,0,0"
                 Padding="20,16,20,32"
-                VerticalOptions="End"
-                TranslationY="600">
+                VerticalOptions="End">
             <Border.Shadow>
                 <Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.6" />
             </Border.Shadow>
