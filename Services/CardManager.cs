@@ -93,6 +93,15 @@ public class CardManager : IDisposable
     }
 
     /// <summary>
+    /// Checks if a new main database version is available.
+    /// Returns (updateAvailable, localVersion, remoteVersion).
+    /// </summary>
+    public async Task<(bool updateAvailable, string localVersion, string remoteVersion)> CheckForMainDatabaseUpdateAsync()
+    {
+        return await AppDataManager.CheckForDatabaseUpdateAsync();
+    }
+
+    /// <summary>
     /// Downloads the MTG database from MTGJSON asynchronously.
     /// </summary>
     public void DownloadDatabase()
