@@ -19,6 +19,7 @@ public class CardManager : IDisposable
     private DBImageCache? _thumbnailCache;
     private CardPriceManager? _priceManager;
     private CancellationTokenSource? _downloadCts;
+    private readonly SemaphoreSlim _priceInitLock = new(1, 1);
 
     // ── Events ───────────────────────────────────────────────────────
 
@@ -131,28 +132,36 @@ public class CardManager : IDisposable
     /// </summary>
     public async Task InitializePricesAsync()
     {
-        if (_priceManager != null) return;
-
-        _priceManager = new CardPriceManager();
-        await _priceManager.InitializeAsync();
-
-        _priceManager.OnProgress = (msg, pct) => OnProgress?.Invoke(msg, pct);
-        _priceManager.OnDatabaseUpdateAvailable = version => OnDatabaseUpdateAvailable?.Invoke(version);
-        _priceManager.OnLoadComplete = (success, message) =>
+        await _priceInitLock.WaitAsync();
+        try
         {
-            if (success)
-            {
-                var ready = OnPricesReady;
-                OnPricesReady = null; // One-shot
-                ready?.Invoke();
-                OnPricesUpdated?.Invoke();
-            }
-        };
+            if (_priceManager != null) return;
 
-        // Try importing existing local data, then check for updates
-        _priceManager.ImportDataAsync();
-        _priceManager.CheckForUpdates();
-        _priceManager.StartPeriodicCheck();
+            _priceManager = new CardPriceManager();
+            await _priceManager.InitializeAsync();
+
+            _priceManager.OnProgress = (msg, pct) => OnProgress?.Invoke(msg, pct);
+            _priceManager.OnDatabaseUpdateAvailable = version => OnDatabaseUpdateAvailable?.Invoke(version);
+            _priceManager.OnLoadComplete = (success, message) =>
+            {
+                if (success)
+                {
+                    var ready = OnPricesReady;
+                    OnPricesReady = null; // One-shot
+                    ready?.Invoke();
+                    OnPricesUpdated?.Invoke();
+                }
+            };
+
+            // Try importing existing local data, then check for updates
+            _priceManager.ImportDataAsync();
+            _priceManager.CheckForUpdates();
+            _priceManager.StartPeriodicCheck();
+        }
+        finally
+        {
+            _priceInitLock.Release();
+        }
     }
 
     /// <summary>
@@ -334,6 +343,7 @@ public class CardManager : IDisposable
         _thumbnailCache?.Dispose();
         _priceManager?.Dispose();
         _databaseManager.Dispose();
+        _priceInitLock.Dispose();
         GC.SuppressFinalize(this);
     }
 
