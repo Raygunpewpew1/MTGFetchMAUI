@@ -16,7 +16,7 @@ public class CardPriceManager : IDisposable
     private readonly SemaphoreSlim _updateLock = new(1, 1);
 
     private const string MtgjsonMetaUrl = "https://mtgjson.com/api/v5/Meta.json";
-    private const string MtgjsonPricesUrl = "https://mtgjson.com/api/v5/AllPrices.json.zip";
+    private const string MtgjsonPricesUrl = "https://mtgjson.com/api/v5/AllPricesToday.json.zip";
     private const int ConnectionTimeoutSeconds = 15;
     private const int ResponseTimeoutSeconds = 300;
     private const int CheckIntervalMs = 12 * 60 * 60 * 1000; // 12 hours
@@ -25,7 +25,7 @@ public class CardPriceManager : IDisposable
     private const string MetaDateFile = "prices_meta_date.txt";
     private const string DbVersionFile = "db_meta_version.txt";
     private const string DbLastCheckFile = "db_last_checked.txt";
-    private const string PricesZipFile = "AllPrices.json.zip";
+    private const string PricesZipFile = "AllPricesToday.json.zip";
 
     /// <summary>Fired when price data load completes: (success, message).</summary>
     public Action<bool, string>? OnLoadComplete { get; set; }

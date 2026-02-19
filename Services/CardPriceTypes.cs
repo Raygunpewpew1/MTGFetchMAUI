@@ -40,7 +40,7 @@ public record VendorPrices
     public PriceEntry BuylistNormal { get; init; }
     public PriceCurrency Currency { get; init; }
 
-    // Historical data (last 90 days)
+    // Historical data (now only today or from persistent DB)
     public List<PriceEntry> RetailNormalHistory { get; init; } = [];
     public List<PriceEntry> RetailFoilHistory { get; init; } = [];
     public List<PriceEntry> BuylistNormalHistory { get; init; } = [];
