@@ -81,7 +81,7 @@ public static class MTGConstants
     public const string FileCollectionDb = "MyCollection.sqlite";
     public const string FilePricesDb = "prices.sqlite";
     public const string FileSymbolCache = "SymbolCache.json";
-    public const string FilePricesJson = "AllPrices.json";
+    public const string FilePricesJson = "AllPricesToday.json";
     public const string AppRootFolder = "MTGApp";
 
     // ── Legality Display Strings ────────────────────────────────────
