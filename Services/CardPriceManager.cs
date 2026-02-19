@@ -72,7 +72,14 @@ public class CardPriceManager : IDisposable
     {
         var jsonPath = AppDataManager.GetPricesJsonPath();
         if (File.Exists(jsonPath))
+        {
+            Logger.LogStuff($"Starting price import from {jsonPath}", LogLevel.Info);
             _importer.ImportAsync(jsonPath);
+        }
+        else
+        {
+            Logger.LogStuff("Price JSON file not found, skipping import.", LogLevel.Debug);
+        }
     }
 
     /// <summary>
@@ -180,11 +187,13 @@ public class CardPriceManager : IDisposable
 
         if (!hasData || !meta.Date.Equals(localDate, StringComparison.OrdinalIgnoreCase))
         {
+            Logger.LogStuff($"Prices out of date or missing. Local: {localDate}, Remote: {meta.Date}, HasData: {hasData}", LogLevel.Info);
             // New prices available or DB empty - download
             OnProgress?.Invoke("Downloading price data...", 0);
             var downloaded = await DownloadAndExtractPricesAsync();
             if (downloaded)
             {
+                Logger.LogStuff("Price download and extraction successful.", LogLevel.Info);
                 SaveLocalMetaDate(meta.Date);
                 ImportDataAsync();
             }

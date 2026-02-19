@@ -103,8 +103,10 @@ public class SearchViewModel : BaseViewModel
                 StatusMessage = "Database not found. Please download.";
                 return;
             }
-            await _cardManager.InitializePricesAsync();
         }
+
+        // Ensure prices are initialized
+        await _cardManager.InitializePricesAsync();
 
         IsBusy = true;
         StatusMessage = "Searching...";
