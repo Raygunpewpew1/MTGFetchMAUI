@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using MTGFetchMAUI.Data;
@@ -6,25 +7,17 @@ namespace MTGFetchMAUI.Services;
 
 /// <summary>
 /// Streams MTGJSON price JSON and batch-inserts into the prices SQLite database.
-/// Port of TCardPriceImporter from CardPriceImporter.pas.
+/// Optimized for large files using Utf8JsonReader.
 /// </summary>
 public class CardPriceImporter
 {
     private volatile bool _isImporting;
+    private const int BatchSize = 2000;
 
-    private const int BatchSize = 5000;
-
-    /// <summary>Fired on completion with (success, cardCount, errorMessage).</summary>
     public Action<bool, int, string>? OnComplete { get; set; }
-
-    /// <summary>Progress callback: (message, percent).</summary>
     public Action<string, int>? OnProgress { get; set; }
-
     public bool IsImporting => _isImporting;
 
-    /// <summary>
-    /// Starts an async import of the given JSON file into the price database.
-    /// </summary>
     public void ImportAsync(string jsonFilePath)
     {
         if (_isImporting) return;
@@ -65,7 +58,6 @@ public class CardPriceImporter
         await using var conn = new SqliteConnection(connStr);
         await conn.OpenAsync();
 
-        // Configure for bulk import
         using (var pragma = conn.CreateCommand())
         {
             pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000; " +
@@ -73,40 +65,19 @@ public class CardPriceImporter
             await pragma.ExecuteNonQueryAsync();
         }
 
-        // Ensure schema
         await ExecuteAsync(conn, SQLQueries.CreatePricesTable);
         await ExecuteAsync(conn, SQLQueries.CreatePricesIndex);
 
-        // Clear existing data
-        await ExecuteAsync(conn, SQLQueries.PricesDeleteAll);
+        // NOTE: We no longer delete all, to support "prices right away" (keep old until updated)
+        // await ExecuteAsync(conn, SQLQueries.PricesDeleteAll);
 
-        OnProgress?.Invoke("Reading price data...", 5);
+        OnProgress?.Invoke("Preparing import...", 5);
 
-        int totalCards = 0;
         await using var fileStream = File.OpenRead(jsonFilePath);
-        using var doc = await JsonDocument.ParseAsync(fileStream);
+        var totalLength = fileStream.Length;
 
-        var root = doc.RootElement;
-        if (!root.TryGetProperty("data", out var dataElement))
-        {
-            OnComplete?.Invoke(false, 0, "JSON missing 'data' property.");
-            return;
-        }
-
-        // Count total for progress
-        int totalEntries = 0;
-        foreach (var _ in dataElement.EnumerateObject())
-            totalEntries++;
-
-        OnProgress?.Invoke($"Importing {totalEntries} cards...", 10);
-
-        // Batch insert
-        var currentTransaction = conn.BeginTransaction();
         using var insertCmd = conn.CreateCommand();
         insertCmd.CommandText = SQLQueries.PricesInsert;
-        insertCmd.Transaction = currentTransaction;
-
-        // Pre-create parameters
         var pUuid = insertCmd.Parameters.Add("@uuid", SqliteType.Text);
         var pTcgRn = insertCmd.Parameters.Add("@tcg_rn", SqliteType.Real);
         var pTcgRf = insertCmd.Parameters.Add("@tcg_rf", SqliteType.Real);
@@ -124,83 +95,122 @@ public class CardPriceImporter
         var pMpRf = insertCmd.Parameters.Add("@mp_rf", SqliteType.Real);
         var pMpBn = insertCmd.Parameters.Add("@mp_bn", SqliteType.Real);
         var pMpCur = insertCmd.Parameters.Add("@mp_cur", SqliteType.Text);
+        var pHistory = insertCmd.Parameters.Add("@history", SqliteType.Text);
 
+        var buffer = new byte[1024 * 1024]; // 1MB buffer
+        int bytesRead;
+        int totalCards = 0;
+        var state = new JsonReaderState();
+        bool inData = false;
+        int depth = 0;
         int batchCount = 0;
+        var transaction = conn.BeginTransaction();
+        insertCmd.Transaction = transaction;
 
-        try
+        long streamPos = 0;
+
+        while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)
         {
-            foreach (var cardEntry in dataElement.EnumerateObject())
+            bool isFinalBlock = (streamPos + bytesRead >= totalLength);
+            var reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead), isFinalBlock, state);
+
+            while (reader.Read())
             {
-                var uuid = cardEntry.Name;
-                var cardData = cardEntry.Value;
-
-                // Extract paper prices
-                if (!cardData.TryGetProperty("paper", out var paperElement))
-                    continue;
-
-                var tcg = ReadVendorPrices(paperElement, "tcgplayer");
-                var cm = ReadVendorPrices(paperElement, "cardmarket");
-                var ck = ReadVendorPrices(paperElement, "cardkingdom");
-                var mp = ReadVendorPrices(paperElement, "manapool");
-
-                // Skip if all zeros
-                if (tcg.RetailNormal.Price == 0 && tcg.RetailFoil.Price == 0 &&
-                    cm.RetailNormal.Price == 0 && cm.RetailFoil.Price == 0 &&
-                    ck.RetailNormal.Price == 0 && ck.RetailFoil.Price == 0 &&
-                    mp.RetailNormal.Price == 0 && mp.RetailFoil.Price == 0)
-                    continue;
-
-                pUuid.Value = uuid;
-                pTcgRn.Value = tcg.RetailNormal.Price;
-                pTcgRf.Value = tcg.RetailFoil.Price;
-                pTcgBn.Value = tcg.BuylistNormal.Price;
-                pTcgCur.Value = tcg.Currency.ToString();
-                pCmRn.Value = cm.RetailNormal.Price;
-                pCmRf.Value = cm.RetailFoil.Price;
-                pCmBn.Value = cm.BuylistNormal.Price;
-                pCmCur.Value = cm.Currency.ToString();
-                pCkRn.Value = ck.RetailNormal.Price;
-                pCkRf.Value = ck.RetailFoil.Price;
-                pCkBn.Value = ck.BuylistNormal.Price;
-                pCkCur.Value = ck.Currency.ToString();
-                pMpRn.Value = mp.RetailNormal.Price;
-                pMpRf.Value = mp.RetailFoil.Price;
-                pMpBn.Value = mp.BuylistNormal.Price;
-                pMpCur.Value = mp.Currency.ToString();
-
-                await insertCmd.ExecuteNonQueryAsync();
-                totalCards++;
-                batchCount++;
-
-                if (batchCount >= BatchSize)
+                if (reader.TokenType == JsonTokenType.PropertyName)
                 {
-                    currentTransaction.Commit();
-                    currentTransaction.Dispose();
-                    currentTransaction = conn.BeginTransaction();
-                    insertCmd.Transaction = currentTransaction;
-                    batchCount = 0;
+                    var propName = reader.GetString();
+                    if (!inData && propName == "data")
+                    {
+                        inData = true;
+                        reader.Read(); // Start object
+                        depth = reader.CurrentDepth;
+                        continue;
+                    }
 
-                    var percent = 10 + (int)(totalCards * 85.0 / totalEntries);
-                    OnProgress?.Invoke($"Imported {totalCards} cards...", Math.Min(percent, 95));
+                    if (inData && reader.CurrentDepth == depth)
+                    {
+                        // This is a UUID
+                        var uuid = propName;
+
+                        // Move to value (the card prices object)
+                        reader.Read();
+
+                        // Capture the card data element to parse it
+                        using var doc = JsonDocument.ParseValue(ref reader);
+                        var cardData = doc.RootElement;
+
+                        if (cardData.TryGetProperty("paper", out var paperElement))
+                        {
+                            var tcg = ReadVendorPrices(paperElement, "tcgplayer");
+                            var cm = ReadVendorPrices(paperElement, "cardmarket");
+                            var ck = ReadVendorPrices(paperElement, "cardkingdom");
+                            var mp = ReadVendorPrices(paperElement, "manapool");
+
+                            pUuid.Value = uuid;
+                            pTcgRn.Value = tcg.RetailNormal.Price;
+                            pTcgRf.Value = tcg.RetailFoil.Price;
+                            pTcgBn.Value = tcg.BuylistNormal.Price;
+                            pTcgCur.Value = tcg.Currency.ToString();
+                            pCmRn.Value = cm.RetailNormal.Price;
+                            pCmRf.Value = cm.RetailFoil.Price;
+                            pCmBn.Value = cm.BuylistNormal.Price;
+                            pCmCur.Value = cm.Currency.ToString();
+                            pCkRn.Value = ck.RetailNormal.Price;
+                            pCkRf.Value = ck.RetailFoil.Price;
+                            pCkBn.Value = ck.BuylistNormal.Price;
+                            pCkCur.Value = ck.Currency.ToString();
+                            pMpRn.Value = mp.RetailNormal.Price;
+                            pMpRf.Value = mp.RetailFoil.Price;
+                            pMpBn.Value = mp.BuylistNormal.Price;
+                            pMpCur.Value = mp.Currency.ToString();
+
+                            // Serialize history compactly
+                            pHistory.Value = SerializeHistory(tcg, cm, ck, mp);
+
+                            await insertCmd.ExecuteNonQueryAsync();
+                            totalCards++;
+                            batchCount++;
+
+                            if (batchCount >= BatchSize)
+                            {
+                                transaction.Commit();
+                                transaction.Dispose();
+                                transaction = conn.BeginTransaction();
+                                insertCmd.Transaction = transaction;
+                                batchCount = 0;
+
+                                int percent = (int)(streamPos * 100 / totalLength);
+                                OnProgress?.Invoke($"Imported {totalCards} cards...", Math.Min(percent, 99));
+                            }
+                        }
+                    }
+                }
+                else if (reader.TokenType == JsonTokenType.EndObject && reader.CurrentDepth == depth - 1 && inData)
+                {
+                    inData = false;
                 }
             }
 
-            // Commit remaining
-            if (batchCount > 0)
-                currentTransaction.Commit();
+            streamPos += bytesRead;
+            state = reader.CurrentState;
+
+            // If the buffer ended mid-token, we need to handle it.
+            // Utf8JsonReader does this via reader.BytesConsumed.
+            if (reader.BytesConsumed < bytesRead)
+            {
+                var remaining = bytesRead - (int)reader.BytesConsumed;
+                fileStream.Position -= remaining;
+                streamPos -= remaining;
+            }
         }
-        finally
-        {
-            currentTransaction.Dispose();
-        }
+
+        transaction.Commit();
+        transaction.Dispose();
 
         OnProgress?.Invoke("Import complete.", 100);
         OnComplete?.Invoke(true, totalCards, "");
-
         Logger.LogStuff($"Price import complete: {totalCards} cards imported", LogLevel.Info);
     }
-
-    // ── JSON Reading Helpers ─────────────────────────────────────────
 
     private static VendorPrices ReadVendorPrices(JsonElement paperElement, string vendorName)
     {
@@ -212,35 +222,75 @@ public class CardPriceImporter
             currency = currEl.GetString()?.Equals("EUR", StringComparison.OrdinalIgnoreCase) == true
                 ? PriceCurrency.EUR : PriceCurrency.USD;
 
+        var retailNormal = ReadHistory(vendorElement, "retail", "normal");
+        var retailFoil = ReadHistory(vendorElement, "retail", "foil");
+        var buylistNormal = ReadHistory(vendorElement, "buylist", "normal");
+
         return new VendorPrices
         {
-            RetailNormal = ReadLatestPrice(vendorElement, "retail", "normal"),
-            RetailFoil = ReadLatestPrice(vendorElement, "retail", "foil"),
-            BuylistNormal = ReadLatestPrice(vendorElement, "buylist", "normal"),
+            RetailNormal = GetLatest(retailNormal),
+            RetailFoil = GetLatest(retailFoil),
+            BuylistNormal = GetLatest(buylistNormal),
+            RetailNormalHistory = retailNormal,
+            RetailFoilHistory = retailFoil,
+            BuylistNormalHistory = buylistNormal,
             Currency = currency
         };
     }
 
-    private static PriceEntry ReadLatestPrice(JsonElement vendorElement, string category, string type)
+    private static List<PriceEntry> ReadHistory(JsonElement vendorElement, string category, string type)
     {
-        if (!vendorElement.TryGetProperty(category, out var catElement)) return PriceEntry.Empty;
-        if (!catElement.TryGetProperty(type, out var typeElement)) return PriceEntry.Empty;
+        if (!vendorElement.TryGetProperty(category, out var catElement)) return [];
+        if (!catElement.TryGetProperty(type, out var typeElement)) return [];
 
-        // The type element contains date->price pairs; pick the latest
-        DateTime latestDate = DateTime.MinValue;
-        double latestPrice = 0;
-
+        var history = new List<PriceEntry>();
         foreach (var datePricePair in typeElement.EnumerateObject())
         {
             var date = PriceDateParser.ParseISO8601Date(datePricePair.Name);
-            if (datePricePair.Value.TryGetDouble(out var price) && date > latestDate)
+            if (datePricePair.Value.TryGetDouble(out var price))
             {
-                latestDate = date;
-                latestPrice = price;
+                history.Add(new PriceEntry(date, price));
             }
         }
+        history.Sort((a, b) => a.Date.CompareTo(b.Date));
+        return history;
+    }
 
-        return latestPrice > 0 ? new PriceEntry(latestDate, latestPrice) : PriceEntry.Empty;
+    private static PriceEntry GetLatest(List<PriceEntry> history)
+    {
+        return history.Count > 0 ? history[^1] : PriceEntry.Empty;
+    }
+
+    private static string SerializeHistory(VendorPrices tcg, VendorPrices cm, VendorPrices ck, VendorPrices mp)
+    {
+        // Simple JSON serialization of history data
+        var historyObj = new Dictionary<string, object>();
+
+        AddHistory(historyObj, "tcg", tcg);
+        AddHistory(historyObj, "cm", cm);
+        AddHistory(historyObj, "ck", ck);
+        AddHistory(historyObj, "mp", mp);
+
+        return JsonSerializer.Serialize(historyObj);
+    }
+
+    private static void AddHistory(Dictionary<string, object> root, string key, VendorPrices v)
+    {
+        if (v.RetailNormalHistory.Count == 0 && v.RetailFoilHistory.Count == 0 && v.BuylistNormalHistory.Count == 0)
+            return;
+
+        var vendorObj = new Dictionary<string, object>();
+        if (v.RetailNormalHistory.Count > 0) vendorObj["rn"] = MapHistory(v.RetailNormalHistory);
+        if (v.RetailFoilHistory.Count > 0) vendorObj["rf"] = MapHistory(v.RetailFoilHistory);
+        if (v.BuylistNormalHistory.Count > 0) vendorObj["bn"] = MapHistory(v.BuylistNormalHistory);
+
+        root[key] = vendorObj;
+    }
+
+    private static object MapHistory(List<PriceEntry> history)
+    {
+        // Store as array of [ticks, price] to save space
+        return history.Select(h => new object[] { h.Date.ToString("yyyyMMdd"), h.Price }).ToArray();
     }
 
     private static async Task ExecuteAsync(SqliteConnection conn, string sql)

@@ -20,6 +20,7 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
     private SKImage? _cardImage;
     private bool _isInCollection;
     private string _priceDisplay = "";
+    private CardPriceData _priceData = CardPriceData.Empty;
     private bool _showLegalities;
 
     public Card Card
@@ -58,6 +59,16 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
         get => _priceDisplay;
         set => SetProperty(ref _priceDisplay, value);
     }
+
+    public CardPriceData PriceData
+    {
+        get => _priceData;
+        set { SetProperty(ref _priceData, value); OnPropertyChanged(nameof(HasPriceHistory)); }
+    }
+
+    public bool HasPriceHistory => _priceData != CardPriceData.Empty &&
+                                   (_priceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
+                                    _priceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
 
     public bool ShowLegalities
     {
@@ -213,7 +224,9 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
     private async Task LoadPriceAsync()
     {
         var (found, prices) = await _cardManager.GetCardPricesAsync(Card.UUID);
-        if (!found) { PriceDisplay = ""; return; }
+        if (!found) { PriceDisplay = ""; PriceData = CardPriceData.Empty; return; }
+
+        PriceData = prices;
 
         VendorPrices[] vendors = [prices.Paper.TCGPlayer, prices.Paper.Cardmarket, prices.Paper.CardKingdom];
         foreach (var v in vendors)
