@@ -18,7 +18,7 @@ public class MTGCardGrid : Grid
     private const float LabelHeight = 42f;
     private const float MinCardWidth = 100f;
     private const float CardSpacing = 8f;
-    private const int OffscreenBuffer = 15;
+    private const int OffscreenBuffer = 40;
     private const int CleanupIntervalMs = 2000;
 
     private static readonly SKPoint[] LabelRadii = [
@@ -114,7 +114,15 @@ public class MTGCardGrid : Grid
 
         _animationStopwatch.Start();
 
+        Loaded += (s, e) => SyncLayout();
         Unloaded += (s, e) => DisposeResources();
+    }
+
+    private void SyncLayout()
+    {
+        CalculateLayout();
+        _canvas.TranslationY = _scrollOffset;
+        _canvas.InvalidateSurface();
     }
 
     public void StartTimers()
@@ -142,7 +150,7 @@ public class MTGCardGrid : Grid
 
     private void UpdateAnimations()
     {
-        if (CardCount == 0) return;
+        if (CardCount == 0 || _visibleEnd < 0) return;
 
         long currentTime = _animationStopwatch.ElapsedMilliseconds;
         float deltaTime = (currentTime - _lastFrameTime) / 1000f;
@@ -196,6 +204,7 @@ public class MTGCardGrid : Grid
                 _cards.Add(GridCardData.FromCard(c));
         }
         _scrollOffset = 0;
+        _canvas.TranslationY = 0;
         CalculateLayout();
         _canvas.InvalidateSurface();
     }
@@ -210,6 +219,7 @@ public class MTGCardGrid : Grid
                 _cards.Add(GridCardData.FromCard(item.Card, item.Quantity));
         }
         _scrollOffset = 0;
+        _canvas.TranslationY = 0;
         CalculateLayout();
         _canvas.InvalidateSurface();
     }
@@ -233,6 +243,7 @@ public class MTGCardGrid : Grid
             _cards.Clear();
         }
         _scrollOffset = 0;
+        _canvas.TranslationY = 0;
         _visibleStart = 0;
         _visibleEnd = -1;
         CalculateLayout();
@@ -241,6 +252,8 @@ public class MTGCardGrid : Grid
 
     public void SetScrollOffset(float offset)
     {
+        if (float.IsNaN(offset) || float.IsInfinity(offset)) return;
+
         _scrollOffset = offset;
         _canvas.TranslationY = offset;
 
@@ -324,6 +337,9 @@ public class MTGCardGrid : Grid
         {
             int start = Math.Max(0, _visibleStart);
             int end = Math.Min(_cards.Count - 1, _visibleEnd);
+
+            if (end < start || _cards.Count == 0) return result;
+
             // Center-outward ordering
             int mid = (start + end) / 2;
             int left = mid, right = mid + 1;
@@ -703,6 +719,8 @@ public class MTGCardGrid : Grid
     {
         lock (_cardsLock)
         {
+            if (_visibleEnd < 0 || _cards.Count == 0) return;
+
             int bufferStart = Math.Max(0, _visibleStart - OffscreenBuffer);
             int bufferEnd = Math.Min(_cards.Count - 1, _visibleEnd + OffscreenBuffer);
 

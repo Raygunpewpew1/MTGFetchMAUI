@@ -44,6 +44,13 @@ public partial class SearchPage : ContentPage
     {
         base.OnAppearing();
         CardGrid.StartTimers();
+
+        // Ensure scroll is synced after a tab switch
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            CardGrid.SetScrollOffset((float)GridScrollView.ScrollY);
+            _viewModel.LoadVisibleImages(ImageQuality.Small);
+        });
     }
 
     protected override void OnDisappearing()

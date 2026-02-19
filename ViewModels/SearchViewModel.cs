@@ -242,7 +242,7 @@ public class SearchViewModel : BaseViewModel
         });
     }
 
-    private void LoadVisibleImages(ImageQuality quality)
+    public void LoadVisibleImages(ImageQuality quality)
     {
         if (_grid == null) return;
 
