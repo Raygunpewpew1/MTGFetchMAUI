@@ -65,7 +65,7 @@ public class FileImageCache : IDisposable
             var data = await File.ReadAllBytesAsync(filePath);
             return SKImage.FromEncodedData(data);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
             Logger.LogStuff($"FileImageCache.GetImage failed for {key}: {ex.Message}", LogLevel.Warning);
             return null;
@@ -103,7 +103,7 @@ public class FileImageCache : IDisposable
 
             UpdateCacheSize(new FileInfo(filePath).Length);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
             Logger.LogStuff($"FileImageCache.SaveImage failed for {key}: {ex.Message}", LogLevel.Warning);
         }
@@ -129,7 +129,7 @@ public class FileImageCache : IDisposable
 
             UpdateCacheSize(new FileInfo(filePath).Length);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
             Logger.LogStuff($"FileImageCache.SaveRawStream failed for {key}: {ex.Message}", LogLevel.Warning);
         }
@@ -188,7 +188,8 @@ public class FileImageCache : IDisposable
         {
             foreach (var file in Directory.GetFiles(_cacheDir, $"*{FileExtension}"))
             {
-                try { File.Delete(file); } catch { }
+                try { File.Delete(file); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
             }
 
             _currentCacheSize = 0;
@@ -266,7 +267,7 @@ public class FileImageCache : IDisposable
                 freedBytes += files[i].Length;
                 files[i].Delete();
             }
-            catch { }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
 
         _currentCacheSize = Math.Max(0, _currentCacheSize - freedBytes);
@@ -286,13 +287,13 @@ public class FileImageCache : IDisposable
             foreach (var file in files)
             {
                 try { totalSize += new FileInfo(file).Length; }
-                catch { }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
             }
 
             _currentCacheSize = totalSize;
             _fileCount = files.Length;
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _currentCacheSize = 0;
             _fileCount = 0;
@@ -308,6 +309,7 @@ public class FileImageCache : IDisposable
 
     private static void TryDeleteFile(string path)
     {
-        try { File.Delete(path); } catch { }
+        try { File.Delete(path); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 }

@@ -124,7 +124,7 @@ public static class ManaSvgCache
             svg.FromSvg(svgContent);
             return svg;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Logger.LogStuff($"Failed to load SVG '{normalizedName}': {ex.Message}", LogLevel.Warning);
             return null;

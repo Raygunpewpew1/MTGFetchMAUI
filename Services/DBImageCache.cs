@@ -58,7 +58,7 @@ public class DBImageCache : IDisposable
 
             return SKImage.FromEncodedData(data);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
         {
             Logger.LogStuff($"DBImageCache.GetImage failed for {key}: {ex.Message}", LogLevel.Warning);
             return null;
@@ -97,7 +97,7 @@ public class DBImageCache : IDisposable
 
             UpdateStats(data.Length, 1);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
         {
             Logger.LogStuff($"DBImageCache.SaveRawStream failed for {key}: {ex.Message}", LogLevel.Warning);
         }
@@ -123,7 +123,7 @@ public class DBImageCache : IDisposable
             using var reader = await cmd.ExecuteReaderAsync();
             return await reader.ReadAsync();
         }
-        catch
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
         {
             return false;
         }
@@ -222,7 +222,7 @@ public class DBImageCache : IDisposable
                 _cachedTotalSize = 0;
             }
         }
-        catch
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
         {
             _cachedRowCount = 0;
             _cachedTotalSize = 0;
@@ -265,7 +265,7 @@ public class DBImageCache : IDisposable
 
             Logger.LogStuff($"DBImageCache: evicted {EvictBatchSize} oldest entries", LogLevel.Info);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
         {
             Logger.LogStuff($"DBImageCache eviction failed: {ex.Message}", LogLevel.Error);
         }
