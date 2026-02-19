@@ -8,7 +8,7 @@ namespace MTGFetchMAUI.Services;
 /// </summary>
 public static class AppDataManager
 {
-    private const string MtgjsonUrl = "https://mtgjson.com/api/v5/AllPrintings.sqlite.zip";
+    private const string MtgjsonUrl = "https://github.com/Raygunpewpew1/MTGFetchMAUI/releases/latest/download/MTG_App_DB.zip";
     private const int ResponseTimeoutSeconds = 300;
     private const long MinValidDatabaseSize = 1_000_000; // 1 MB
 
