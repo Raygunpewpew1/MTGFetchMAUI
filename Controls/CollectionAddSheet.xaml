@@ -3,12 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MTGFetchMAUI.Controls.CollectionAddSheet"
              IsVisible="False"
-             BackgroundColor="#A0000000">
+             BackgroundColor="#80000000"
+             InputTransparent="False">
 
-    <Grid VerticalOptions="Fill" HorizontalOptions="Fill">
-        <Grid.GestureRecognizers>
-            <TapGestureRecognizer Tapped="OnBackgroundTapped" />
-        </Grid.GestureRecognizers>
+    <Grid VerticalOptions="Fill" HorizontalOptions="Fill" BackgroundColor="Transparent">
+        <!-- Transparent background for tap-to-dismiss -->
+        <BoxView BackgroundColor="Transparent">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBackgroundTapped" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
 
         <Border x:Name="SheetContainer"
                 BackgroundColor="{StaticResource Surface}"
@@ -103,7 +107,9 @@
                             Text="Add to Collection"
                             Clicked="OnConfirmClicked"
                             HeightRequest="52"
-                            FontAttributes="Bold" />
+                            FontAttributes="Bold"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="White" />
                 </Grid>
             </VerticalStackLayout>
         </Border>
