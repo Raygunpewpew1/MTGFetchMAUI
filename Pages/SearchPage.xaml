@@ -56,8 +56,8 @@
         </ScrollView>
 
         <!-- Overlays -->
-        <controls:CollectionAddSheet Grid.RowSpan="3" x:Name="AddSheet" />
-        <controls:Snackbar Grid.RowSpan="3" x:Name="GridSnackbar" />
+        <controls:CollectionAddSheet Grid.RowSpan="3" x:Name="AddSheet" ZIndex="1000" HorizontalOptions="Fill" VerticalOptions="Fill" />
+        <controls:Snackbar Grid.RowSpan="3" x:Name="GridSnackbar" ZIndex="1001" HorizontalOptions="Fill" VerticalOptions="Fill" />
 
     </Grid>
 
