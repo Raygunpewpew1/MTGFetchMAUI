@@ -128,6 +128,7 @@ public static class SQLQueries
             mp_retail_foil REAL DEFAULT 0,
             mp_buylist_normal REAL DEFAULT 0,
             mp_currency TEXT DEFAULT 'USD',
+            history_json TEXT,
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """;
@@ -143,6 +144,7 @@ public static class SQLQueries
             cm_retail_normal, cm_retail_foil, cm_buylist_normal, cm_currency,
             ck_retail_normal, ck_retail_foil, ck_buylist_normal, ck_currency,
             mp_retail_normal, mp_retail_foil, mp_buylist_normal, mp_currency,
+            history_json,
             last_updated
         ) VALUES (
             @uuid,
@@ -150,6 +152,7 @@ public static class SQLQueries
             @cm_rn, @cm_rf, @cm_bn, @cm_cur,
             @ck_rn, @ck_rf, @ck_bn, @ck_cur,
             @mp_rn, @mp_rf, @mp_bn, @mp_cur,
+            @history,
             CURRENT_TIMESTAMP
         )
         """;
