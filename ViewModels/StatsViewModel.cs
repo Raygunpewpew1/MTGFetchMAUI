@@ -1,6 +1,6 @@
-using System.Windows.Input;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
+using System.Windows.Input;
 
 namespace MTGFetchMAUI.ViewModels;
 

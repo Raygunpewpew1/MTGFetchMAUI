@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Text.Json;
-using MTGFetchMAUI;
 
 namespace MTGFetchMAUI.Services;
 

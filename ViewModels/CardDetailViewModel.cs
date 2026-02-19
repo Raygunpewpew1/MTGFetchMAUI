@@ -1,8 +1,8 @@
-using System.Windows.Input;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using SkiaSharp;
+using System.Windows.Input;
 
 namespace MTGFetchMAUI.ViewModels;
 

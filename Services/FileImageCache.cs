@@ -1,4 +1,3 @@
-using MTGFetchMAUI;
 using SkiaSharp;
 
 namespace MTGFetchMAUI.Services;

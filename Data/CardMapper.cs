@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Models;
+using System.Text.Json;
 
 namespace MTGFetchMAUI.Data;
 

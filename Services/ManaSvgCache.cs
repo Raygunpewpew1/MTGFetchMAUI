@@ -1,6 +1,6 @@
-using System.Reflection;
 using SkiaSharp;
 using Svg.Skia;
+using System.Reflection;
 
 namespace MTGFetchMAUI.Services;
 

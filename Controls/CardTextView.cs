@@ -1,8 +1,8 @@
-using System.Text.RegularExpressions;
 using MTGFetchMAUI.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
+using System.Text.RegularExpressions;
 
 namespace MTGFetchMAUI.Controls;
 

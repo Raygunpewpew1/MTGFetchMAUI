@@ -1,4 +1,3 @@
-using MTGFetchMAUI;
 using MTGFetchMAUI.Core;
 using SkiaSharp;
 

@@ -1,5 +1,3 @@
-using MTGFetchMAUI.Models;
-
 namespace MTGFetchMAUI.Controls;
 
 public partial class CollectionAddSheet : ContentView

@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using MTGFetchMAUI.Data;
 using SkiaSharp;
 

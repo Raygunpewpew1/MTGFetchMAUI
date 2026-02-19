@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
+using System.Diagnostics;
 
 namespace MTGFetchMAUI.Controls;
 
