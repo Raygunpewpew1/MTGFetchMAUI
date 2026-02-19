@@ -33,14 +33,14 @@ public partial class CollectionAddSheet : ContentView
         this.Opacity = 0;
         await this.FadeTo(1, 200);
 
-        await SheetContainer.TranslateTo(0, 0, 350, Easing.OutBack);
+        await SheetContainer.TranslateTo(0, 0, 350, Easing.SpringOut);
 
         return await _tcs.Task;
     }
 
     private async Task HideAsync(int? result)
     {
-        await SheetContainer.TranslateTo(0, 600, 300, Easing.InCubic);
+        await SheetContainer.TranslateTo(0, 600, 300, Easing.CubicIn);
         await this.FadeTo(0, 200);
         IsVisible = false;
         _tcs?.SetResult(result);
