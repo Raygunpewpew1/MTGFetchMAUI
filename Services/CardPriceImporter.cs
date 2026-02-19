@@ -121,12 +121,13 @@ public class CardPriceImporter
                     if (!inData && propName == "data")
                     {
                         inData = true;
-                        reader.Read(); // Start object
+                        // Capture depth of 'data' property
                         depth = reader.CurrentDepth;
                         continue;
                     }
 
-                    if (inData && reader.CurrentDepth == depth)
+                    // Items are inside the object, so depth + 1
+                    if (inData && reader.CurrentDepth == depth + 1)
                     {
                         // This is a UUID
                         var uuid = propName;
@@ -188,7 +189,7 @@ public class CardPriceImporter
                         }
                     }
                 }
-                else if (reader.TokenType == JsonTokenType.EndObject && reader.CurrentDepth == depth - 1 && inData)
+                else if (reader.TokenType == JsonTokenType.EndObject && reader.CurrentDepth == depth && inData)
                 {
                     inData = false;
                 }
