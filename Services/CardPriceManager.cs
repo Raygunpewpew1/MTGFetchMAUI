@@ -14,6 +14,7 @@ public class CardPriceManager : IDisposable
     private readonly CardPriceImporter _importer = new();
     private Timer? _checkTimer;
     private volatile bool _isChecking;
+    private readonly SemaphoreSlim _updateLock = new(1, 1);
 
     private const string MtgjsonMetaUrl = "https://mtgjson.com/api/v5/Meta.json";
     private const string MtgjsonPricesUrl = "https://mtgjson.com/api/v5/AllPricesToday.json.zip";
@@ -158,6 +159,7 @@ public class CardPriceManager : IDisposable
     {
         StopPeriodicCheck();
         _database.Dispose();
+        _updateLock.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -227,38 +229,75 @@ public class CardPriceManager : IDisposable
 
     private async Task<bool> DownloadAndExtractPricesAsync()
     {
+        await _updateLock.WaitAsync();
+        try
+        {
+            const int maxRetries = 3;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    if (attempt > 1)
+                        OnProgress?.Invoke($"Retrying price download (attempt {attempt})...", 0);
+
+                    if (await DoDownloadAndExtractAsync())
+                        return true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogStuff($"Price download attempt {attempt} failed: {ex.Message}", LogLevel.Error);
+                    if (attempt == maxRetries)
+                    {
+                        OnProgress?.Invoke($"Price download failed: {ex.Message}", 0);
+                        throw;
+                    }
+                    await Task.Delay(2000 * attempt); // Exponential backoff
+                }
+            }
+            return false;
+        }
+        finally
+        {
+            _updateLock.Release();
+        }
+    }
+
+    private async Task<bool> DoDownloadAndExtractAsync()
+    {
         var zipPath = Path.Combine(AppDataManager.GetAppDataPath(), PricesZipFile);
         var jsonPath = AppDataManager.GetPricesJsonPath();
 
         try
         {
             using var client = CreateHttpClient();
-            using var response = await client.GetAsync(MtgjsonPricesUrl);
+            using var response = await client.GetAsync(MtgjsonPricesUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
-            await using var contentStream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await contentStream.CopyToAsync(fileStream);
+            // 1. Download to ZIP file
+            await using (var contentStream = await response.Content.ReadAsStreamAsync())
+            {
+                await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await contentStream.CopyToAsync(fileStream);
+                } // fileStream is DISPOSED here, releasing the lock
+            }
 
             OnProgress?.Invoke("Extracting price data...", 80);
 
-            // Extract JSON from ZIP
-            using var archive = ZipFile.OpenRead(zipPath);
-            foreach (var entry in archive.Entries)
+            // 2. Extract JSON from ZIP
+            using (var archive = ZipFile.OpenRead(zipPath))
             {
-                if (entry.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                foreach (var entry in archive.Entries)
                 {
-                    entry.ExtractToFile(jsonPath, overwrite: true);
-                    break;
+                    if (entry.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        entry.ExtractToFile(jsonPath, overwrite: true);
+                        break;
+                    }
                 }
             }
 
             return File.Exists(jsonPath);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogStuff($"Price download failed: {ex.Message}", LogLevel.Error);
-            return false;
         }
         finally
         {
