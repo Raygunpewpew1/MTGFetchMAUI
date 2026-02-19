@@ -20,6 +20,9 @@ public partial class Snackbar : ContentView
             MessageLabel.Text = message;
             IsVisible = true;
 
+            // Small delay to ensure layout is ready
+            await Task.Delay(16);
+
             // Slide up and fade in
             await Task.WhenAll(
                 Container.TranslateToAsync(0, 0, 300, Easing.CubicOut),

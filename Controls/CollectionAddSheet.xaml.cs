@@ -27,8 +27,11 @@ public partial class CollectionAddSheet : ContentView
 
         // Prepare for animation
         this.Opacity = 0;
-        SheetContainer.TranslationY = 600;
+        SheetContainer.TranslationY = 400;
         IsVisible = true;
+
+        // Small delay to ensure layout is ready
+        await Task.Delay(16);
 
         // Start animations in parallel
         await Task.WhenAll(
@@ -42,7 +45,7 @@ public partial class CollectionAddSheet : ContentView
     private async Task HideAsync(int? result)
     {
         await Task.WhenAll(
-            SheetContainer.TranslateToAsync(0, 600, 250, Easing.CubicIn),
+            SheetContainer.TranslateToAsync(0, 400, 250, Easing.CubicIn),
             this.FadeToAsync(0, 200, Easing.CubicIn)
         );
         IsVisible = false;
