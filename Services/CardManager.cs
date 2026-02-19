@@ -279,6 +279,11 @@ public class CardManager : IDisposable
         return await _collectionRepository.IsInCollectionAsync(cardUUID);
     }
 
+    public async Task<int> GetQuantityAsync(string cardUUID)
+    {
+        return await _collectionRepository.GetQuantityAsync(cardUUID);
+    }
+
     public async Task<CollectionItem[]> GetCollectionAsync()
     {
         return await _collectionRepository.GetCollectionAsync();

@@ -117,6 +117,18 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public async Task<int> GetCollectionQuantityAsync()
+    {
+        try
+        {
+            return await _cardManager.GetQuantityAsync(Card.UUID);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
     public async Task LoadCardAsync(string uuid)
     {
         if (!_cardManager.DatabaseManager.IsConnected)
