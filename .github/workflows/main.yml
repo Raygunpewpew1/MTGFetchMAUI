@@ -23,7 +23,8 @@ jobs:
       - name: Drop Heavy Tables & Vacuum
         run: |
           sqlite3 AllPrintings.sqlite <<EOF
-          DROP TABLE IF EXISTS foreignData;
+          DROP TABLE IF EXISTS cardForeignData;
+          DROP TABLE IF EXISTS cardPurchaseUrls;
           VACUUM;
           EOF
 
