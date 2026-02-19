@@ -10,6 +10,7 @@ namespace MTGFetchMAUI.Pages;
 public partial class CardDetailPage : ContentPage
 {
     private readonly CardDetailViewModel _viewModel;
+    private readonly IToastService _toastService;
     private string _cardUUID = "";
 
     public string CardUUID
@@ -22,15 +23,33 @@ public partial class CardDetailPage : ContentPage
         }
     }
 
-    public CardDetailPage(CardDetailViewModel viewModel)
+    public CardDetailPage(CardDetailViewModel viewModel, IToastService toastService)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _toastService = toastService;
         BindingContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
         Unloaded += (s, e) => _viewModel.Dispose();
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _toastService.OnShow += OnToastShow;
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _toastService.OnShow -= OnToastShow;
+    }
+
+    private void OnToastShow(string message, int duration)
+    {
+        MainThread.BeginInvokeOnMainThread(() => _ = DetailSnackbar.ShowAsync(message, duration));
     }
 
     private async Task LoadCard()
@@ -170,12 +189,13 @@ public partial class CardDetailPage : ContentPage
 
     private async void OnAddClicked(object? sender, EventArgs e)
     {
-        string result = await DisplayPromptAsync("Add to Collection", "How many copies?",
-            initialValue: "1", keyboard: Keyboard.Numeric);
-        if (int.TryParse(result, out int qty) && qty > 0)
+        int currentQty = await _viewModel.GetCollectionQuantityAsync();
+        var result = await AddSheet.ShowAsync(_viewModel.Card.Name, $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}", currentQty);
+
+        if (result.HasValue)
         {
-            _viewModel.AddToCollectionCommand.Execute(qty);
-            await DisplayAlertAsync("Added", $"Added {qty}x {_viewModel.Card.Name} to collection", "OK");
+            _viewModel.AddToCollectionCommand.Execute(result.Value);
+            _toastService.Show($"{result.Value}x {_viewModel.Card.Name} in collection");
         }
     }
 
