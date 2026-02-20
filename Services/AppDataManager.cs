@@ -105,7 +105,7 @@ public static class AppDataManager
         {
             // We need a client that DOES NOT follow redirects to capture the location header
             using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler);
 
             using var request = new HttpRequestMessage(HttpMethod.Head, MtgjsonUrl);
             using var response = await client.SendAsync(request);
@@ -160,7 +160,7 @@ public static class AppDataManager
 
             UpdateProgress("Connecting to GitHub...", 5);
 
-            using var client = CreateHttpClient();
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
             using var response = await client.GetAsync(MtgjsonUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
 
@@ -233,7 +233,7 @@ public static class AppDataManager
     {
         try
         {
-            using var client = CreateHttpClient();
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
             using var request = new HttpRequestMessage(HttpMethod.Head, MtgjsonUrl);
             using var response = await client.SendAsync(request, ct);
             return response.IsSuccessStatusCode;
@@ -279,17 +279,6 @@ public static class AppDataManager
         }
 
         File.Move(tempDbPath, targetPath);
-    }
-
-    private static HttpClient CreateHttpClient()
-    {
-        var handler = new HttpClientHandler();
-        var client = new HttpClient(handler)
-        {
-            Timeout = TimeSpan.FromSeconds(ResponseTimeoutSeconds)
-        };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(MTGConstants.ScryfallUserAgent);
-        return client;
     }
 
     private static void UpdateProgress(string message, int percent)

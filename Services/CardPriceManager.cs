@@ -215,7 +215,7 @@ public class CardPriceManager : IDisposable
     {
         try
         {
-            using var client = CreateHttpClient();
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
             var json = await client.GetStringAsync(MtgjsonMetaUrl);
             using var doc = JsonDocument.Parse(json);
 
@@ -277,7 +277,7 @@ public class CardPriceManager : IDisposable
 
         try
         {
-            using var client = CreateHttpClient();
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
             using var response = await client.GetAsync(MtgjsonPricesUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
@@ -369,15 +369,5 @@ public class CardPriceManager : IDisposable
     {
         var path = Path.Combine(AppDataManager.GetAppDataPath(), DbLastCheckFile);
         File.WriteAllText(path, date.ToOADate().ToString());
-    }
-
-    private static HttpClient CreateHttpClient()
-    {
-        var client = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(ResponseTimeoutSeconds)
-        };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(MTGConstants.ScryfallUserAgent);
-        return client;
     }
 }
