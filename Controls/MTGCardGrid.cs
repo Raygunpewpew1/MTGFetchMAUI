@@ -370,21 +370,19 @@ public class MTGCardGrid : ContentView, IDisposable
                         _longPressTimer?.Stop();
                         if (_pressedIndex >= 0)
                         {
-                             var card = GetCardAt(_pressedIndex);
-                             if (card != null) CardLongPressed?.Invoke(card.UUID);
-                             _pressedIndex = -1; // Reset
-                             _canvas.InvalidateSurface();
+                            var card = GetCardAt(_pressedIndex);
+                            if (card != null) CardLongPressed?.Invoke(card.UUID);
+                            _pressedIndex = -1; // Reset
+                            _canvas.InvalidateSurface();
                         }
                     };
                     _longPressTimer.Start();
                     _canvas.InvalidateSurface();
                 }
 
-                // Allow ScrollView to handle touch if we didn't consume?
-                // Actually if we want ScrollView to scroll, we should probably set Handled = false?
-                // But we want to capture long press.
-                // Standard behavior: ScrollView intercepts 'Moved' if it exceeds threshold.
-                e.Handled = false;
+                // We must handle Pressed to receive Moved/Released/Cancelled events.
+                // The parent ScrollView will intercept Moved events for scrolling.
+                e.Handled = true;
                 break;
 
             case SKTouchAction.Moved:
@@ -397,7 +395,7 @@ public class MTGCardGrid : ContentView, IDisposable
                         _canvas.InvalidateSurface();
                     }
                 }
-                e.Handled = false;
+                e.Handled = true;
                 break;
 
             case SKTouchAction.Released:
@@ -409,14 +407,14 @@ public class MTGCardGrid : ContentView, IDisposable
                 }
                 _pressedIndex = -1;
                 _canvas.InvalidateSurface();
-                e.Handled = false;
+                e.Handled = true;
                 break;
 
             case SKTouchAction.Cancelled:
                 _longPressTimer?.Stop();
                 _pressedIndex = -1;
                 _canvas.InvalidateSurface();
-                e.Handled = false;
+                e.Handled = true;
                 break;
         }
     }
