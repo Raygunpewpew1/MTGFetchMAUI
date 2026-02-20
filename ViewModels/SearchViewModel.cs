@@ -25,7 +25,6 @@ public class SearchViewModel : BaseViewModel
     public SearchOptions CurrentOptions { get; private set; } = new();
 
     private const int PageSize = 50;
-    private const int PreloadBuffer = 6;
 
     public string SearchText
     {
@@ -150,10 +149,6 @@ public class SearchViewModel : BaseViewModel
             _grid?.SetCards(results);
             _cardManager.ImageService.CancelPendingDownloads();
 
-            // Load images for initial visible cards
-            await Task.Delay(50);
-            LoadVisibleImages(ImageQuality.Small);
-
             StatusMessage = $"Found {TotalResults} cards";
             SearchCompleted?.Invoke();
         }
@@ -241,8 +236,6 @@ public class SearchViewModel : BaseViewModel
 
     public void OnScrollChanged(float scrollY, float viewportHeight, float contentHeight)
     {
-        _grid?.SetScrollOffset(scrollY);
-
         // Infinite scroll: load next page when near bottom
         if (HasMorePages && !_isLoadingPage)
         {
@@ -253,15 +246,7 @@ public class SearchViewModel : BaseViewModel
 
     private void OnVisibleRangeChanged(int start, int end)
     {
-        LoadVisibleImages(ImageQuality.Small);
         LoadVisiblePrices(start, end);
-
-        // Delayed quality upgrade for center cards
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(300);
-            LoadVisibleImages(ImageQuality.Normal);
-        });
     }
 
     private void LoadVisiblePrices(int start, int end)
@@ -289,45 +274,6 @@ public class SearchViewModel : BaseViewModel
                 });
             }
         });
-    }
-
-    public void LoadVisibleImages(ImageQuality quality)
-    {
-        if (_grid == null) return;
-
-        var needed = _grid.GetCardsNeedingImages(quality);
-        foreach (var (index, card) in needed)
-        {
-            if (string.IsNullOrEmpty(card.ScryfallId)) continue;
-
-            string imageSize = quality switch
-            {
-                ImageQuality.Small => MTGConstants.ImageSizeSmall,
-                ImageQuality.Normal => MTGConstants.ImageSizeNormal,
-                ImageQuality.Large => MTGConstants.ImageSizeLarge,
-                _ => MTGConstants.ImageSizeSmall
-            };
-
-            if (quality <= ImageQuality.Small)
-                _grid.MarkLoading(card.UUID);
-            else
-                _grid.MarkUpgrading(card.UUID);
-
-            string uuid = card.UUID;
-            _cardManager.DownloadCardImageAsync(card.ScryfallId, (image, success) =>
-            {
-                if (success && image != null)
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        if (_grid != null)
-                            _grid.UpdateCardImage(uuid, image, quality);
-                        else
-                            image.Dispose();
-                    });
-                }
-            }, imageSize);
-        }
     }
 
     private void ClearSearch()

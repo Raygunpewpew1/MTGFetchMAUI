@@ -109,10 +109,6 @@ public class CollectionViewModel : BaseViewModel
             _grid?.SetCollection(items);
             CollectionLoaded?.Invoke();
 
-            // Load images for visible cards
-            await Task.Delay(50);
-            LoadVisibleImages();
-
             StatusMessage = $"{TotalCards} cards ({UniqueCards} unique)";
         }
         catch (Exception ex)
@@ -138,14 +134,8 @@ public class CollectionViewModel : BaseViewModel
         await LoadCollectionAsync();
     }
 
-    public void OnScrollChanged(float scrollY)
-    {
-        _grid?.SetScrollOffset(scrollY);
-    }
-
     private void OnVisibleRangeChanged(int start, int end)
     {
-        LoadVisibleImages();
         LoadVisiblePrices(start, end);
     }
 
@@ -171,33 +161,5 @@ public class CollectionViewModel : BaseViewModel
                 }
             }
         });
-    }
-
-    public void LoadVisibleImages()
-    {
-        if (_grid == null) return;
-
-        var needed = _grid.GetCardsNeedingImages();
-        foreach (var (_, card) in needed)
-        {
-            if (string.IsNullOrEmpty(card.ScryfallId)) continue;
-
-            _grid.MarkLoading(card.UUID);
-            string uuid = card.UUID;
-
-            _cardManager.DownloadCardImageAsync(card.ScryfallId, (image, success) =>
-            {
-                if (success && image != null)
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        if (_grid != null)
-                            _grid.UpdateCardImage(uuid, image, ImageQuality.Small);
-                        else
-                            image.Dispose();
-                    });
-                }
-            }, MTGConstants.ImageSizeSmall);
-        }
     }
 }
