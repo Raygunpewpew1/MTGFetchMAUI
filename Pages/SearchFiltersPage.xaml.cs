@@ -150,6 +150,9 @@ public partial class SearchFiltersPage : ContentPage
     private async void OnApplyClicked(object? sender, EventArgs e)
     {
         var options = BuildSearchOptions();
+        // Preserve the existing name filter from the view model
+        options.NameFilter = _searchViewModel.SearchText;
+
         await Shell.Current.GoToAsync("..");
         await _searchViewModel.PerformSearchAsync(options);
     }

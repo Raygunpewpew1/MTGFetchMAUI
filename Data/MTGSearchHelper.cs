@@ -232,7 +232,7 @@ public class MTGSearchHelper
         }
 
         if (conditions.Count > 0)
-            _whereConditions.Add("(" + string.Join(" AND ", conditions) + ")");
+            _whereConditions.Add("(" + string.Join(" OR ", conditions) + ")");
         return this;
     }
 
@@ -335,7 +335,7 @@ public class MTGSearchHelper
     {
         var param = NextParam("Leg");
         var column = format.ToDbField();
-        _whereConditions.Add($"cl.{column} = @{param}");
+        _whereConditions.Add($"cl.{column} LIKE @{param}");
         _params.Add(param, status.ToDbString());
         return this;
     }
@@ -348,7 +348,7 @@ public class MTGSearchHelper
         foreach (var fmt in formats)
         {
             var param = NextParam("Leg");
-            conditions.Add($"cl.{fmt.ToDbField()} = @{param}");
+            conditions.Add($"cl.{fmt.ToDbField()} LIKE @{param}");
             _params.Add(param, LegalityStatus.Legal.ToDbString());
         }
         _whereConditions.Add("(" + string.Join(" OR ", conditions) + ")");
