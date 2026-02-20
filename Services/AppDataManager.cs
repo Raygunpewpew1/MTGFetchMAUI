@@ -8,7 +8,6 @@ namespace MTGFetchMAUI.Services;
 /// </summary>
 public static class AppDataManager
 {
-    private const string MtgjsonUrl = "https://github.com/Raygunpewpew1/MTGFetchMAUI/releases/latest/download/MTG_App_DB.zip";
     private const int ResponseTimeoutSeconds = 300;
     private const long MinValidDatabaseSize = 1_000_000; // 1 MB
     private const string VersionFile = "main_db_version.txt";
@@ -107,7 +106,7 @@ public static class AppDataManager
             using var handler = new HttpClientHandler { AllowAutoRedirect = false };
             using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler);
 
-            using var request = new HttpRequestMessage(HttpMethod.Head, MtgjsonUrl);
+            using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
             using var response = await client.SendAsync(request);
 
             // GitHub "latest" redirects to "download/<TAG>/..."
