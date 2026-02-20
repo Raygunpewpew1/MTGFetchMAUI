@@ -347,6 +347,13 @@ public class CardManager : IDisposable
             : (false, CardPriceData.Empty);
     }
 
+    public async Task<Dictionary<string, CardPriceData>> GetCardPricesBulkAsync(IEnumerable<string> uuids)
+    {
+        return _priceManager != null
+            ? await _priceManager.GetCardPricesBulkAsync(uuids)
+            : [];
+    }
+
     // ── Dispose ──────────────────────────────────────────────────────
 
     public void Dispose()

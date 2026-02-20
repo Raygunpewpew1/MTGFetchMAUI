@@ -82,6 +82,60 @@ public class CardPriceDatabase : IDisposable
     }
 
     /// <summary>
+    /// Looks up price data for multiple cards by UUID.
+    /// </summary>
+    public async Task<Dictionary<string, CardPriceData>> GetCardPricesBulkAsync(IEnumerable<string> uuids)
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            if (!IsConnected)
+                return [];
+
+            var result = new Dictionary<string, CardPriceData>();
+            var uuidList = uuids.Distinct().ToList();
+            if (uuidList.Count == 0) return result;
+
+            const int chunkSize = 500;
+            for (int i = 0; i < uuidList.Count; i += chunkSize)
+            {
+                var chunk = uuidList.Skip(i).Take(chunkSize).ToList();
+                using var cmd = _connection!.CreateCommand();
+
+                var paramsList = new List<string>(chunk.Count);
+                for (int j = 0; j < chunk.Count; j++)
+                {
+                    var pName = $"@p{j}";
+                    cmd.Parameters.AddWithValue(pName, chunk[j]);
+                    paramsList.Add(pName);
+                }
+
+                cmd.CommandText = $"SELECT * FROM card_prices WHERE card_uuid IN ({string.Join(",", paramsList)})";
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var data = PopulatePriceData(reader);
+                    if (!string.IsNullOrEmpty(data.UUID))
+                    {
+                        result[data.UUID] = data;
+                    }
+                }
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"GetCardPricesBulk failed: {ex.Message}", LogLevel.Error);
+            return [];
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>
     /// Returns true if the price database has any data.
     /// </summary>
     public async Task<bool> HasPriceDataAsync()

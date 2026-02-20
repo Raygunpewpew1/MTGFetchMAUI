@@ -328,6 +328,25 @@ public class MTGCardGrid : Grid
         _canvas.InvalidateSurface();
     }
 
+    public void UpdateCardPricesBulk(Dictionary<string, CardPriceData> pricesMap)
+    {
+        bool anyUpdated = false;
+        lock (_cardsLock)
+        {
+            foreach (var card in _cards)
+            {
+                if (pricesMap.TryGetValue(card.UUID, out var prices))
+                {
+                    card.PriceData = prices;
+                    card.CachedDisplayPrice = "";
+                    anyUpdated = true;
+                }
+            }
+        }
+        if (anyUpdated)
+            _canvas.InvalidateSurface();
+    }
+
     public GridCardData? GetCardAt(int index)
     {
         lock (_cardsLock)

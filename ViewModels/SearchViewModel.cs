@@ -260,20 +260,23 @@ public class SearchViewModel : BaseViewModel
 
         _ = Task.Run(async () =>
         {
+            var uuids = new HashSet<string>();
             for (int i = start; i <= end; i++)
             {
                 var card = _grid.GetCardAt(i);
                 if (card == null || card.PriceData != null) continue;
+                uuids.Add(card.UUID);
+            }
 
-                var (found, prices) = await _cardManager.GetCardPricesAsync(card.UUID);
-                if (found)
+            if (uuids.Count == 0) return;
+
+            var pricesMap = await _cardManager.GetCardPricesBulkAsync(uuids);
+            if (pricesMap.Count > 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    string uuid = card.UUID;
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        _grid?.UpdateCardPrices(uuid, prices);
-                    });
-                }
+                    _grid?.UpdateCardPricesBulk(pricesMap);
+                });
             }
         });
     }

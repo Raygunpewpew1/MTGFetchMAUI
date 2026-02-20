@@ -135,6 +135,14 @@ public class CardPriceManager : IDisposable
     }
 
     /// <summary>
+    /// Looks up price data for multiple cards by UUID.
+    /// </summary>
+    public async Task<Dictionary<string, CardPriceData>> GetCardPricesBulkAsync(IEnumerable<string> uuids)
+    {
+        return await _database.GetCardPricesBulkAsync(uuids);
+    }
+
+    /// <summary>
     /// Returns true if the price database has any data.
     /// </summary>
     public async Task<bool> HasPriceDataAsync()
