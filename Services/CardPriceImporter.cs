@@ -8,6 +8,13 @@ namespace MTGFetchMAUI.Services;
 /// <summary>
 /// Streams MTGJSON price JSON and batch-inserts into the prices SQLite database.
 /// Optimized for large files using Utf8JsonReader and Bulk Inserts.
+///
+/// Note on JSON Library:
+/// This class explicitly uses System.Text.Json.Utf8JsonReader instead of Newtonsoft.Json or
+/// JsonDocument.Parse(stream) for memory efficiency on mobile devices.
+/// MTGJSON files (e.g. AllPricesToday.json) can be large (100MB+), and loading the full DOM
+/// or using a less efficient reader would cause high GC pressure and potential OOM crashes on Android.
+/// The manual buffer management ensures we only hold a small chunk of the file in memory at once.
 /// </summary>
 public class CardPriceImporter
 {
@@ -253,11 +260,6 @@ public class CardPriceImporter
 
         if (history.Length > 0)
         {
-            // Remove trailing comma from history string if it exists
-            // Since we append commas unconditionally in AppendHistory if valid, we need to handle the start carefully
-            // Actually, my AppendHistory logic handles commas differently. Let's ensure consistency.
-            // I'll make AppendHistory always prepend a comma if length > 0.
-
             using var cmd = conn.CreateCommand();
             cmd.Transaction = trans;
             cmd.CommandText =
