@@ -128,7 +128,7 @@
                         StrokeThickness="0"
                         Padding="12"
                         x:Name="LegalitiesBorder"
-                        IsVisible="False">
+                        IsVisible="{Binding ShowLegalities}">
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Format Legality"
                                FontSize="16"
@@ -143,7 +143,7 @@
                         StrokeThickness="0"
                         Padding="12"
                         x:Name="RulingsBorder"
-                        IsVisible="False">
+                        IsVisible="{Binding ShowRulings}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Rulings"
                                FontSize="16"
@@ -179,12 +179,12 @@
                     IsVisible="False" />
 
             <Button Grid.Column="2"
-                    Text="Legalities"
-                    Clicked="OnLegalitiesClicked"
-                    BackgroundColor="{StaticResource CardBackground}"
-                    HeightRequest="40"
-                    FontSize="13"
-                    Padding="12,0" />
+                  Text="Legalities"
+                  Command="{Binding ToggleLegalitiesCommand}"
+                  BackgroundColor="{StaticResource CardBackground}"
+                  HeightRequest="40"
+                  FontSize="13"
+                  Padding="12,0" />
 
             <Button Grid.Column="3"
                     x:Name="FlipBtn"

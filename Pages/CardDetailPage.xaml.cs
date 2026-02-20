@@ -137,6 +137,8 @@ public partial class CardDetailPage : ContentPage
         // Price History
         PopulateHistory();
 
+        PopulateLegalities();
+
         // Image
         ImageLoading.IsVisible = _viewModel.CardImage == null;
         ImageLoading.IsRunning = _viewModel.CardImage == null;
@@ -206,12 +208,12 @@ public partial class CardDetailPage : ContentPage
             _viewModel.RemoveFromCollectionCommand.Execute(null);
     }
 
-    private void OnLegalitiesClicked(object? sender, EventArgs e)
-    {
-        LegalitiesBorder.IsVisible = !LegalitiesBorder.IsVisible;
-        if (LegalitiesBorder.IsVisible)
-            PopulateLegalities();
-    }
+    //private void OnLegalitiesClicked(object? sender, EventArgs e)
+    //{
+    //    LegalitiesBorder.IsVisible = !LegalitiesBorder.IsVisible;
+    //    if (LegalitiesBorder.IsVisible)
+    //        PopulateLegalities();
+    //}
 
     private void OnFlipClicked(object? sender, EventArgs e)
     {
@@ -311,7 +313,7 @@ public partial class CardDetailPage : ContentPage
         // Rulings
         if (_viewModel.Card.Rulings.Count > 0)
         {
-            RulingsBorder.IsVisible = true;
+          //  RulingsBorder.IsVisible = true;
             RulingsStack.Children.Clear();
 
             foreach (var ruling in _viewModel.Card.Rulings)
