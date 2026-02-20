@@ -83,6 +83,7 @@ public partial class SearchPage : ContentPage
 
     private async void OnFiltersClicked(object? sender, EventArgs e)
     {
+        _viewModel.SearchText = SearchEntry.Text ?? "";
         await Shell.Current.GoToAsync("searchfilters");
     }
 
