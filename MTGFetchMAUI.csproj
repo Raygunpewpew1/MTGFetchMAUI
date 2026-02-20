@@ -49,4 +49,10 @@
 		<EmbeddedResource Include="Assets\SVGMana\*.svg" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Compile Remove="MTGFetchMAUI.Tests\**" />
+		<EmbeddedResource Remove="MTGFetchMAUI.Tests\**" />
+		<None Remove="MTGFetchMAUI.Tests\**" />
+	</ItemGroup>
+
 </Project>
