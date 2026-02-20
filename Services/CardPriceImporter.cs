@@ -97,113 +97,127 @@ public class CardPriceImporter
         while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)
         {
             bool isFinalBlock = (streamPos + bytesRead >= totalLength);
-            var reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead), isFinalBlock, state);
 
-            var safeState = state;
-            long safeConsumed = 0;
+            // Local variables to capture reader state before it goes out of scope
+            JsonReaderState nextState;
+            long consumedBytes;
             bool incompleteCard = false;
 
-            while (reader.Read())
+            // Block scope for Utf8JsonReader (ref struct)
             {
-                if (reader.TokenType == JsonTokenType.PropertyName)
+                var reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead), isFinalBlock, state);
+                var safeState = state;
+                long safeConsumed = 0;
+
+                while (reader.Read())
                 {
-                    var propName = reader.GetString();
-                    if (!inData && propName == "data")
+                    if (reader.TokenType == JsonTokenType.PropertyName)
                     {
-                        inData = true;
-                        depth = reader.CurrentDepth;
-                        safeConsumed = reader.BytesConsumed;
-                        safeState = reader.CurrentState;
-                        continue;
-                    }
-
-                    if (inData && reader.CurrentDepth == depth + 1)
-                    {
-                        var uuid = propName;
-
-                        var tempReader = reader;
-                        if (!tempReader.Read() || !tempReader.TrySkip())
+                        var propName = reader.GetString();
+                        if (!inData && propName == "data")
                         {
-                            incompleteCard = true;
-                            break;
+                            inData = true;
+                            depth = reader.CurrentDepth;
+                            safeConsumed = reader.BytesConsumed;
+                            safeState = reader.CurrentState;
+                            continue;
                         }
 
-                        reader.Read();
-                        using var doc = JsonDocument.ParseValue(ref reader);
-                        var cardData = doc.RootElement;
-                        var paperElement = cardData.TryGetProperty("paper", out var pEl) ? pEl : cardData;
-
-                        var tcg = ReadVendorPrices(paperElement, "tcgplayer");
-                        var cm = ReadVendorPrices(paperElement, "cardmarket");
-                        var ck = ReadVendorPrices(paperElement, "cardkingdom");
-                        var mp = ReadVendorPrices(paperElement, "manapool");
-
-                        if (tcg.IsValid || cm.IsValid || ck.IsValid || mp.IsValid)
+                        if (inData && reader.CurrentDepth == depth + 1)
                         {
-                            if (pendingCount > 0) pricesValues.Append(",");
-                            pricesValues.AppendFormat(System.Globalization.CultureInfo.InvariantCulture,
-                                "('{0}',{1},{2},{3},'{4}',{5},{6},{7},'{8}',{9},{10},{11},'{12}',{13},{14},{15},'{16}',CURRENT_TIMESTAMP)",
-                                uuid,
-                                tcg.RetailNormal.Price, tcg.RetailFoil.Price, tcg.BuylistNormal.Price, tcg.Currency,
-                                cm.RetailNormal.Price, cm.RetailFoil.Price, cm.BuylistNormal.Price, cm.Currency,
-                                ck.RetailNormal.Price, ck.RetailFoil.Price, ck.BuylistNormal.Price, ck.Currency,
-                                mp.RetailNormal.Price, mp.RetailFoil.Price, mp.BuylistNormal.Price, mp.Currency
-                            );
-
-                            AppendHistory(historyValues, uuid, todayInt, "tcg", tcg);
-                            AppendHistory(historyValues, uuid, todayInt, "cm", cm);
-                            AppendHistory(historyValues, uuid, todayInt, "ck", ck);
-                            AppendHistory(historyValues, uuid, todayInt, "mp", mp);
-
-                            totalCards++;
-                            pendingCount++;
-
-                            if (pendingCount >= BatchSize)
+                            var uuid = propName;
+                            // Fix CS8604: ensure uuid is not null
+                            if (string.IsNullOrEmpty(uuid))
                             {
-                                await FlushBatchAsync(conn, transaction, pricesValues, historyValues);
-                                pricesValues.Clear();
-                                historyValues.Clear();
-                                pendingCount = 0;
+                                safeConsumed = reader.BytesConsumed;
+                                safeState = reader.CurrentState;
+                                continue;
+                            }
 
-                                // Renew transaction periodically to keep WAL manageable
-                                await transaction.CommitAsync();
-                                await transaction.DisposeAsync();
-                                transaction = conn.BeginTransaction();
+                            var tempReader = reader;
+                            if (!tempReader.Read() || !tempReader.TrySkip())
+                            {
+                                incompleteCard = true;
+                                break;
+                            }
 
-                                int percent = (int)(streamPos * 100 / totalLength);
-                                OnProgress?.Invoke($"Imported {totalCards} cards...", Math.Min(percent, 99));
+                            reader.Read();
+                            using var doc = JsonDocument.ParseValue(ref reader);
+                            var cardData = doc.RootElement;
+                            var paperElement = cardData.TryGetProperty("paper", out var pEl) ? pEl : cardData;
+
+                            var tcg = ReadVendorPrices(paperElement, "tcgplayer");
+                            var cm = ReadVendorPrices(paperElement, "cardmarket");
+                            var ck = ReadVendorPrices(paperElement, "cardkingdom");
+                            var mp = ReadVendorPrices(paperElement, "manapool");
+
+                            if (tcg.IsValid || cm.IsValid || ck.IsValid || mp.IsValid)
+                            {
+                                if (pendingCount > 0) pricesValues.Append(",");
+                                pricesValues.AppendFormat(System.Globalization.CultureInfo.InvariantCulture,
+                                    "('{0}',{1},{2},{3},'{4}',{5},{6},{7},'{8}',{9},{10},{11},'{12}',{13},{14},{15},'{16}',CURRENT_TIMESTAMP)",
+                                    uuid,
+                                    tcg.RetailNormal.Price, tcg.RetailFoil.Price, tcg.BuylistNormal.Price, tcg.Currency,
+                                    cm.RetailNormal.Price, cm.RetailFoil.Price, cm.BuylistNormal.Price, cm.Currency,
+                                    ck.RetailNormal.Price, ck.RetailFoil.Price, ck.BuylistNormal.Price, ck.Currency,
+                                    mp.RetailNormal.Price, mp.RetailFoil.Price, mp.BuylistNormal.Price, mp.Currency
+                                );
+
+                                AppendHistory(historyValues, uuid, todayInt, "tcg", tcg);
+                                AppendHistory(historyValues, uuid, todayInt, "cm", cm);
+                                AppendHistory(historyValues, uuid, todayInt, "ck", ck);
+                                AppendHistory(historyValues, uuid, todayInt, "mp", mp);
+
+                                totalCards++;
+                                pendingCount++;
                             }
                         }
                     }
+                    else if (reader.TokenType == JsonTokenType.EndObject && reader.CurrentDepth == depth && inData)
+                    {
+                        inData = false;
+                    }
+
+                    safeConsumed = reader.BytesConsumed;
+                    safeState = reader.CurrentState;
                 }
-                else if (reader.TokenType == JsonTokenType.EndObject && reader.CurrentDepth == depth && inData)
+
+                if (incompleteCard)
                 {
-                    inData = false;
+                    nextState = safeState;
+                    consumedBytes = safeConsumed;
                 }
+                else
+                {
+                    nextState = reader.CurrentState;
+                    consumedBytes = reader.BytesConsumed;
+                }
+            } // End of reader scope
 
-                safeConsumed = reader.BytesConsumed;
-                safeState = reader.CurrentState;
-            }
-
+            state = nextState;
             streamPos += bytesRead;
 
-            long consumed;
-            if (incompleteCard)
+            if (consumedBytes < bytesRead)
             {
-                state = safeState;
-                consumed = safeConsumed;
-            }
-            else
-            {
-                state = reader.CurrentState;
-                consumed = reader.BytesConsumed;
-            }
-
-            if (consumed < bytesRead)
-            {
-                var remaining = bytesRead - (int)consumed;
+                var remaining = bytesRead - (int)consumedBytes;
                 fileStream.Position -= remaining;
                 streamPos -= remaining;
+            }
+
+            if (pendingCount >= BatchSize)
+            {
+                await FlushBatchAsync(conn, transaction, pricesValues, historyValues);
+                pricesValues.Clear();
+                historyValues.Clear();
+                pendingCount = 0;
+
+                // Renew transaction periodically to keep WAL manageable
+                await transaction.CommitAsync();
+                await transaction.DisposeAsync();
+                transaction = conn.BeginTransaction();
+
+                int percent = (int)(streamPos * 100 / totalLength);
+                OnProgress?.Invoke($"Imported {totalCards} cards...", Math.Min(percent, 99));
             }
         }
 
