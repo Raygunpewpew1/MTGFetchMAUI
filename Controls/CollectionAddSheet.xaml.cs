@@ -120,7 +120,9 @@ public partial class CollectionAddSheet : ContentView
 
     private void OnSetTo4(object? sender, EventArgs e)
     {
-        _quantity = 4;
+        int needed = 4 - _currentInCollection;
+        if (needed < 1) needed = 1;
+        _quantity = needed;
         UpdateQuantityUI();
     }
 
