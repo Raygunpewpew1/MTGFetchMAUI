@@ -43,6 +43,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICardRepository, CardRepository>();
         builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
         builder.Services.AddSingleton<FileImageCache>();
+        builder.Services.AddSingleton<DBImageCache>();
+        builder.Services.AddSingleton<ImageCacheService>();
         builder.Services.AddSingleton<ImageDownloadService>();
         builder.Services.AddSingleton<CardManager>();
 
@@ -58,6 +60,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<StatsPage>();
         builder.Services.AddTransient<CardDetailPage>();
         builder.Services.AddTransient<SearchFiltersPage>();
+        builder.Services.AddSingleton<ModernGridTestPage>();
 
         return builder.Build();
     }
