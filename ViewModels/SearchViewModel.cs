@@ -376,6 +376,8 @@ public class SearchViewModel : BaseViewModel
 
         if (options.PrimarySideOnly)
             helper.WherePrimarySideOnly();
+        else
+            helper.IncludeAllFaces();
 
         if (options.NoVariations)
             helper.WhereNoVariations();
