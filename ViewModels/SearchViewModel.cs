@@ -20,8 +20,9 @@ public class SearchViewModel : BaseViewModel
     private int _currentPage;
     private bool _isLoadingPage;
     private bool _hasMorePages;
-    private SearchOptions _currentOptions = new();
     private MTGCardGrid? _grid;
+
+    public SearchOptions CurrentOptions { get; private set; } = new();
 
     private const int PageSize = 50;
     private const int PreloadBuffer = 6;
@@ -110,14 +111,23 @@ public class SearchViewModel : BaseViewModel
 
         IsBusy = true;
         StatusMessage = "Searching...";
-        _currentOptions = options ?? new SearchOptions { NameFilter = _searchText };
+
+        if (options != null)
+        {
+            CurrentOptions = options;
+        }
+        else
+        {
+            CurrentOptions.NameFilter = _searchText;
+        }
+
         _currentPage = 1;
 
         try
         {
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards();
-            ApplySearchOptions(helper, _currentOptions);
+            ApplySearchOptions(helper, CurrentOptions);
             helper.OrderBy("c.name").Limit(PageSize).Offset(0);
 
             var results = await Task.Run(() => _cardManager.ExecuteSearchAsync(helper));
@@ -132,7 +142,7 @@ public class SearchViewModel : BaseViewModel
                 // Get total count
                 var countHelper = _cardManager.CreateSearchHelper();
                 countHelper.SearchCards();
-                ApplySearchOptions(countHelper, _currentOptions);
+                ApplySearchOptions(countHelper, CurrentOptions);
                 TotalResults = await _cardManager.GetCountAdvancedAsync(countHelper);
                 HasMorePages = TotalResults > results.Length;
             }
@@ -205,7 +215,7 @@ public class SearchViewModel : BaseViewModel
         {
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards();
-            ApplySearchOptions(helper, _currentOptions);
+            ApplySearchOptions(helper, CurrentOptions);
             helper.OrderBy("c.name")
                   .Limit(PageSize)
                   .Offset((_currentPage - 1) * PageSize);
@@ -323,6 +333,7 @@ public class SearchViewModel : BaseViewModel
     private void ClearSearch()
     {
         SearchText = "";
+        CurrentOptions = new SearchOptions();
         _grid?.ClearCards();
         TotalResults = 0;
         HasMorePages = false;

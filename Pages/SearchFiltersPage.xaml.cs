@@ -25,6 +25,8 @@ public partial class SearchFiltersPage : ContentPage
 
         BuildColorButtons();
         BuildFormatPicker();
+
+        LoadFromOptions(_searchViewModel.CurrentOptions);
     }
 
     private void BuildColorButtons()
@@ -159,29 +161,94 @@ public partial class SearchFiltersPage : ContentPage
 
     private void OnResetClicked(object? sender, EventArgs e)
     {
+        LoadFromOptions(new SearchOptions());
+    }
+
+    private void LoadFromOptions(SearchOptions options)
+    {
+        // Colors
         _selectedColors.Clear();
-        foreach (var child in ColorButtons.Children)
+        if (!string.IsNullOrEmpty(options.ColorFilter))
         {
-            if (child is Button btn) { btn.Opacity = 0.5; btn.Scale = 1.0; }
+            var colors = options.ColorFilter.Split(',');
+            foreach (var c in colors) _selectedColors.Add(c.Trim());
         }
 
-        KeywordsEntry.Text = "";
-        TypePicker.SelectedIndex = 0;
-        SubtypeEntry.Text = "";
-        SupertypeEntry.Text = "";
-        ChkCommon.IsChecked = false;
-        ChkUncommon.IsChecked = false;
-        ChkRare.IsChecked = false;
-        ChkMythic.IsChecked = false;
-        CMCMinSlider.Value = 0;
-        CMCMaxSlider.Value = 16;
-        PowerEntry.Text = "";
-        ToughnessEntry.Text = "";
-        FormatPicker.SelectedIndex = 0;
-        SetEntry.Text = "";
-        ArtistEntry.Text = "";
-        ChkPrimarySide.IsChecked = true;
-        ChkNoVariations.IsChecked = false;
+        foreach (var child in ColorButtons.Children)
+        {
+            if (child is Button btn && btn.Text != null)
+            {
+                bool isSelected = _selectedColors.Contains(btn.Text);
+                btn.Opacity = isSelected ? 1.0 : 0.5;
+                btn.Scale = isSelected ? 1.1 : 1.0;
+            }
+        }
+
+        // Keywords
+        KeywordsEntry.Text = options.TextFilter;
+
+        // Type
+        if (string.IsNullOrEmpty(options.TypeFilter) || options.TypeFilter == "Any")
+        {
+            TypePicker.SelectedIndex = 0;
+        }
+        else
+        {
+            var src = TypePicker.ItemsSource as System.Collections.IList;
+            if (src != null)
+            {
+                for (int i = 0; i < src.Count; i++)
+                {
+                    if (src[i]?.ToString() == options.TypeFilter)
+                    {
+                        TypePicker.SelectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Subtype / Supertype
+        SubtypeEntry.Text = options.SubtypeFilter;
+        SupertypeEntry.Text = options.SupertypeFilter;
+
+        // Rarity
+        ChkCommon.IsChecked = options.RarityFilter.Contains(CardRarity.Common);
+        ChkUncommon.IsChecked = options.RarityFilter.Contains(CardRarity.Uncommon);
+        ChkRare.IsChecked = options.RarityFilter.Contains(CardRarity.Rare);
+        ChkMythic.IsChecked = options.RarityFilter.Contains(CardRarity.Mythic);
+
+        // CMC
+        if (options.UseCMCRange)
+        {
+            CMCMinSlider.Value = options.CMCMin;
+            CMCMaxSlider.Value = options.CMCMax;
+        }
+        else if (options.UseCMCExact)
+        {
+            CMCMinSlider.Value = options.CMCExact;
+            CMCMaxSlider.Value = options.CMCExact;
+        }
+        else
+        {
+            CMCMinSlider.Value = 0;
+            CMCMaxSlider.Value = 16;
+        }
+
+        // Power/Toughness
+        PowerEntry.Text = options.PowerFilter;
+        ToughnessEntry.Text = options.ToughnessFilter;
+
+        // Format
+        FormatPicker.SelectedIndex = options.UseLegalFormat ? (int)options.LegalFormat + 1 : 0;
+
+        // Set/Artist
+        SetEntry.Text = options.SetFilter;
+        ArtistEntry.Text = options.ArtistFilter;
+
+        // Special
+        ChkPrimarySide.IsChecked = options.PrimarySideOnly;
+        ChkNoVariations.IsChecked = options.NoVariations;
     }
 
     private async void OnCancelClicked(object? sender, EventArgs e)
