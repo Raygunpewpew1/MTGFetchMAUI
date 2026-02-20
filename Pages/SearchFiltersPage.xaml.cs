@@ -1,5 +1,6 @@
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.ViewModels;
+using MTGFetchMAUI.Controls;
 
 namespace MTGFetchMAUI.Pages;
 
@@ -8,15 +9,7 @@ public partial class SearchFiltersPage : ContentPage
     private readonly SearchViewModel _searchViewModel;
     private readonly HashSet<string> _selectedColors = [];
 
-    private static readonly (string code, string name, Color color)[] ColorDefs =
-    [
-        ("W", "White", Color.FromArgb("#F8E7B9")),
-        ("U", "Blue", Color.FromArgb("#0E68AB")),
-        ("B", "Black", Color.FromArgb("#150B00")),
-        ("R", "Red", Color.FromArgb("#D3202A")),
-        ("G", "Green", Color.FromArgb("#00733E")),
-        ("C", "Colorless", Color.FromArgb("#CCC2C1")),
-    ];
+    private static readonly string[] ColorCodes = ["W", "U", "B", "R", "G", "C"];
 
     public SearchFiltersPage(SearchViewModel searchViewModel)
     {
@@ -31,39 +24,47 @@ public partial class SearchFiltersPage : ContentPage
 
     private void BuildColorButtons()
     {
-        foreach (var (code, name, color) in ColorDefs)
+        foreach (var code in ColorCodes)
         {
-            var btn = new Button
+            var symbolView = new ManaSymbolView
             {
-                Text = code,
-                BackgroundColor = color,
-                TextColor = code is "W" or "C" ? Colors.Black : Colors.White,
+                Symbol = code,
+                InputTransparent = true,
+                VerticalOptions = LayoutOptions.Fill,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+
+            var container = new Grid
+            {
                 WidthRequest = 48,
                 HeightRequest = 48,
-                CornerRadius = 24,
                 Margin = new Thickness(4),
-                FontSize = 16,
-                FontAttributes = FontAttributes.Bold,
-                Opacity = 0.5
+                Opacity = 0.5,
+                StyleId = code
             };
-            btn.Clicked += (s, e) => ToggleColor(btn, code);
-            ColorButtons.Add(btn);
+            container.Children.Add(symbolView);
+
+            var tapGesture = new TapGestureRecognizer();
+            tapGesture.Tapped += (s, e) => ToggleColor(container, code);
+            container.GestureRecognizers.Add(tapGesture);
+
+            ColorButtons.Add(container);
         }
     }
 
-    private void ToggleColor(Button btn, string code)
+    private void ToggleColor(View view, string code)
     {
         if (_selectedColors.Contains(code))
         {
             _selectedColors.Remove(code);
-            btn.Opacity = 0.5;
-            btn.Scale = 1.0;
+            view.Opacity = 0.5;
+            view.Scale = 1.0;
         }
         else
         {
             _selectedColors.Add(code);
-            btn.Opacity = 1.0;
-            btn.Scale = 1.1;
+            view.Opacity = 1.0;
+            view.Scale = 1.1;
         }
     }
 
@@ -176,11 +177,11 @@ public partial class SearchFiltersPage : ContentPage
 
         foreach (var child in ColorButtons.Children)
         {
-            if (child is Button btn && btn.Text != null)
+            if (child is View view && !string.IsNullOrEmpty(view.StyleId))
             {
-                bool isSelected = _selectedColors.Contains(btn.Text);
-                btn.Opacity = isSelected ? 1.0 : 0.5;
-                btn.Scale = isSelected ? 1.1 : 1.0;
+                bool isSelected = _selectedColors.Contains(view.StyleId);
+                view.Opacity = isSelected ? 1.0 : 0.5;
+                view.Scale = isSelected ? 1.1 : 1.0;
             }
         }
 
