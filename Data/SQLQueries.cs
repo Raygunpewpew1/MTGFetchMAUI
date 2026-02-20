@@ -128,37 +128,36 @@ public static class SQLQueries
             mp_retail_foil REAL DEFAULT 0,
             mp_buylist_normal REAL DEFAULT 0,
             mp_currency TEXT DEFAULT 'USD',
-            history_json TEXT,
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """;
+
+    public const string CreatePriceHistoryTable =
+        """
+        CREATE TABLE IF NOT EXISTS card_price_history (
+            card_uuid TEXT,
+            price_date INTEGER,
+            vendor TEXT,
+            price_type TEXT,
+            price_value REAL,
+            PRIMARY KEY (card_uuid, price_date, vendor, price_type)
         )
         """;
 
     public const string CreatePricesIndex =
         "CREATE INDEX IF NOT EXISTS idx_prices_uuid ON card_prices(card_uuid)";
 
-    public const string PricesInsert =
-        """
-        INSERT OR REPLACE INTO card_prices (
-            card_uuid,
-            tcg_retail_normal, tcg_retail_foil, tcg_buylist_normal, tcg_currency,
-            cm_retail_normal, cm_retail_foil, cm_buylist_normal, cm_currency,
-            ck_retail_normal, ck_retail_foil, ck_buylist_normal, ck_currency,
-            mp_retail_normal, mp_retail_foil, mp_buylist_normal, mp_currency,
-            history_json,
-            last_updated
-        ) VALUES (
-            @uuid,
-            @tcg_rn, @tcg_rf, @tcg_bn, @tcg_cur,
-            @cm_rn, @cm_rf, @cm_bn, @cm_cur,
-            @ck_rn, @ck_rf, @ck_bn, @ck_cur,
-            @mp_rn, @mp_rf, @mp_bn, @mp_cur,
-            @history,
-            CURRENT_TIMESTAMP
-        )
-        """;
+    public const string CreatePriceHistoryIndex =
+        "CREATE INDEX IF NOT EXISTS idx_history_uuid ON card_price_history(card_uuid)";
+
+    // NOTE: PricesInsert is now generated dynamically for bulk insert, but we keep a template here if needed
+    // or we can remove it. For now, we will use dynamic SQL generation in the importer.
 
     public const string PricesGetByUuid =
         "SELECT * FROM card_prices WHERE card_uuid = @uuid";
+
+    public const string PricesGetHistoryByUuid =
+        "SELECT * FROM card_price_history WHERE card_uuid = @uuid ORDER BY price_date ASC";
 
     public const string PricesCount =
         "SELECT COUNT(*) FROM card_prices";
