@@ -18,7 +18,7 @@ public class ImageDownloadService : IDisposable
     private int _generation;
     private DBImageCache? _thumbnailCache;
 
-    private static readonly HttpClient SharedHttpClient = CreateSharedHttpClient();
+    private static readonly HttpClient SharedHttpClient = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15));
 
     private const int MaxConcurrentDownloads = 6;
     private const int MinRequestIntervalMs = 120;
@@ -314,16 +314,5 @@ public class ImageDownloadService : IDisposable
     {
         var raw = string.IsNullOrEmpty(face) ? $"{scryfallId}_{imageSize}" : $"{scryfallId}_{imageSize}_{face}";
         return FileImageCache.GenerateKey(raw);
-    }
-
-    private static HttpClient CreateSharedHttpClient()
-    {
-        var handler = new HttpClientHandler();
-        var client = new HttpClient(handler)
-        {
-            Timeout = TimeSpan.FromSeconds(15)
-        };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(MTGConstants.ScryfallUserAgent);
-        return client;
     }
 }
