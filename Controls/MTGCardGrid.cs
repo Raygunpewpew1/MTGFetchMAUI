@@ -173,7 +173,16 @@ public class MTGCardGrid : ContentView, IDisposable
     {
         UpdateState(s =>
         {
-            var index = s.Cards.FindIndex(c => c.Id.Value == uuid);
+            int index = -1;
+            for (int i = 0; i < s.Cards.Length; i++)
+            {
+                if (s.Cards[i].Id.Value == uuid)
+                {
+                    index = i;
+                    break;
+                }
+            }
+
             if (index >= 0)
             {
                 var card = s.Cards[index];
