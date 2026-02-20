@@ -30,8 +30,8 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
         {
             SetProperty(ref _card, value);
             OnPropertyChanged(nameof(HasMultipleFaces));
-            OnPropertyChanged(nameof(HasRulings));       
-            OnPropertyChanged(nameof(ShowRulings));     
+            OnPropertyChanged(nameof(HasRulings));
+            OnPropertyChanged(nameof(ShowRulings));
         }
     }
 

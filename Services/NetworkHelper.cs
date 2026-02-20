@@ -1,5 +1,3 @@
-using MTGFetchMAUI.Services;
-
 namespace MTGFetchMAUI.Services;
 
 /// <summary>

@@ -313,7 +313,7 @@ public partial class CardDetailPage : ContentPage
         // Rulings
         if (_viewModel.Card.Rulings.Count > 0)
         {
-          //  RulingsBorder.IsVisible = true;
+            //  RulingsBorder.IsVisible = true;
             RulingsStack.Children.Clear();
 
             foreach (var ruling in _viewModel.Card.Rulings)

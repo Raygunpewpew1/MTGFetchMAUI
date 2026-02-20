@@ -42,7 +42,7 @@
 
 	<ItemGroup>
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#6200EE" />
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#121212" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#121212" BaseSize="512,512" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -53,6 +53,10 @@
 		<Compile Remove="MTGFetchMAUI.Tests\**" />
 		<EmbeddedResource Remove="MTGFetchMAUI.Tests\**" />
 		<None Remove="MTGFetchMAUI.Tests\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Resources\Splash\_splash.svg" />
 	</ItemGroup>
 
 </Project>
