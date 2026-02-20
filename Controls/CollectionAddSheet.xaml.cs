@@ -126,7 +126,9 @@ public partial class CollectionAddSheet : ContentView
 
     private async void OnConfirmClicked(object? sender, EventArgs e)
     {
-        await HideAsync(_quantity);
+        // Return the existing amount PLUS the amount they just added
+        int newTotal = _currentInCollection + _quantity;
+        await HideAsync(newTotal);
     }
 
     private async void OnCancelClicked(object? sender, EventArgs e)

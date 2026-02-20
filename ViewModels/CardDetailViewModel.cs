@@ -26,7 +26,13 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
     public Card Card
     {
         get => _card;
-        set { SetProperty(ref _card, value); OnPropertyChanged(nameof(HasMultipleFaces)); }
+        set
+        {
+            SetProperty(ref _card, value);
+            OnPropertyChanged(nameof(HasMultipleFaces));
+            OnPropertyChanged(nameof(HasRulings));       
+            OnPropertyChanged(nameof(ShowRulings));     
+        }
     }
 
     public Card[] Faces
@@ -73,8 +79,21 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
     public bool ShowLegalities
     {
         get => _showLegalities;
-        set => SetProperty(ref _showLegalities, value);
+        set
+        {
+            if (SetProperty(ref _showLegalities, value))
+            {
+                // Whenever legalities toggles, tell the UI to check rulings visibility too
+                OnPropertyChanged(nameof(ShowRulings));
+            }
+        }
     }
+
+    // Checks if the card actually has rulings (assumes your Card model has a Rulings collection)
+    public bool HasRulings => Card?.Rulings != null && Card.Rulings.Count > 0;
+
+    // The final true/false flag that the Rulings Border will listen to
+    public bool ShowRulings => ShowLegalities && HasRulings;
 
     public bool HasMultipleFaces => _faces.Length > 1 && Card.Layout.IsDoubleFaced();
 

@@ -160,7 +160,7 @@ public static class AppDataManager
             UpdateProgress("Connecting to GitHub...", 5);
 
             using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
-            using var response = await client.GetAsync(MtgjsonUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var response = await client.GetAsync(MTGConstants.DatabaseDownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? -1L;
@@ -233,7 +233,7 @@ public static class AppDataManager
         try
         {
             using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
-            using var request = new HttpRequestMessage(HttpMethod.Head, MtgjsonUrl);
+            using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
             using var response = await client.SendAsync(request, ct);
             return response.IsSuccessStatusCode;
         }
