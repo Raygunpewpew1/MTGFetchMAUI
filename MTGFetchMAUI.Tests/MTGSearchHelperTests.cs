@@ -98,4 +98,54 @@ public class MTGSearchHelperTests
         Assert.True(whereIndex < orderByIndex, "WHERE should be before ORDER BY");
         Assert.True(orderByIndex < limitIndex, "ORDER BY should be before LIMIT");
     }
+
+    [Fact]
+    public void WhereColors_MultipleColors_UsesOR()
+    {
+        // Arrange
+        var helper = new MTGSearchHelper();
+
+        // Act
+        helper.SearchCards()
+              .WhereColors("W, U");
+
+        var result = helper.Build();
+
+        // Assert
+        // We expect OR logic between colors: (c.colors LIKE @p1 OR c.colors LIKE @p2)
+        // Note: CondSidePrimary also contains "OR", so we must be specific.
+        Assert.Contains(" OR c.colors LIKE", result.sql);
+    }
+
+    [Fact]
+    public void WhereLegalIn_UsesLike()
+    {
+        // Arrange
+        var helper = new MTGSearchHelper();
+
+        // Act
+        helper.SearchCards()
+              .WhereLegalIn(DeckFormat.Standard);
+
+        var result = helper.Build();
+
+        // Assert
+        Assert.Contains("cl.standard LIKE", result.sql);
+    }
+
+    [Fact]
+    public void IncludeAllFaces_SkipsPrimarySideFilter()
+    {
+        // Arrange
+        var helper = new MTGSearchHelper();
+
+        // Act
+        helper.SearchCards()
+              .IncludeAllFaces();
+
+        var result = helper.Build();
+
+        // Assert
+        Assert.DoesNotContain("c.side", result.sql);
+    }
 }
