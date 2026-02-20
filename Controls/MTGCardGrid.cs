@@ -135,10 +135,15 @@ public class MTGCardGrid : ContentView, IDisposable
         Dispose();
     }
 
+    private bool _disposed;
+
     public void Dispose()
     {
-        _cts.Cancel();
-        _stateChannel.Writer.Complete();
+        if (_disposed) return;
+        _disposed = true;
+
+        try { _cts.Cancel(); } catch { }
+        _stateChannel.Writer.TryComplete();
         StopAnimationLoop();
         DisposePaints();
         GC.SuppressFinalize(this);
