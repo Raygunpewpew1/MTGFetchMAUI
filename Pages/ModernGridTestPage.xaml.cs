@@ -1,22 +1,23 @@
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
+using MTGFetchMAUI.Services;
 
 namespace MTGFetchMAUI.Pages;
 
 public partial class ModernGridTestPage : ContentPage
 {
-    private readonly ICardRepository _cardRepo;
+    private readonly CardManager _cardManager;
     private bool _loaded = false;
 
-    public ModernGridTestPage(ICardRepository cardRepo)
+    public ModernGridTestPage(CardManager cardManager)
     {
         InitializeComponent();
-        _cardRepo = cardRepo;
+        _cardManager = cardManager;
 
         CardGrid.CardClicked += (id) =>
         {
-            Dispatcher.Dispatch(async () => await DisplayAlertAsync("Clicked", $"Card UUID: {id}", "OK"));
+            Dispatcher.Dispatch(async () => await DisplayAlert("Clicked", $"Card UUID: {id}", "OK"));
         };
     }
 
@@ -25,10 +26,25 @@ public partial class ModernGridTestPage : ContentPage
         base.OnAppearing();
 
         if (_loaded) return;
-        _loaded = true;
 
         LoadingSpinner.IsVisible = true;
         LoadingSpinner.IsRunning = true;
+
+        // Ensure database connection
+        if (!_cardManager.DatabaseManager.IsConnected)
+        {
+            await _cardManager.InitializeAsync();
+        }
+
+        if (!_cardManager.DatabaseManager.IsConnected)
+        {
+            await DisplayAlert("Error", "MTG database not connected. Please ensure database is downloaded.", "OK");
+            LoadingSpinner.IsVisible = false;
+            LoadingSpinner.IsRunning = false;
+            return;
+        }
+
+        _loaded = true;
 
         // Offload data fetching
         await Task.Run(async () =>
@@ -38,7 +54,7 @@ public partial class ModernGridTestPage : ContentPage
                 // Fetch 500 cards
                 // Empty string might not be supported, try "type:creature" or similar if needed.
                 // Assuming "e" matches many cards.
-                var cards = await _cardRepo.SearchCardsAsync("e", 500);
+                var cards = await _cardManager.SearchCardsAsync("e", 500);
 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
@@ -51,7 +67,7 @@ public partial class ModernGridTestPage : ContentPage
             {
                 MainThread.BeginInvokeOnMainThread(async () =>
                 {
-                    await DisplayAlertAsync("Error", ex.Message, "OK");
+                    await DisplayAlert("Error", ex.Message, "OK");
                     LoadingSpinner.IsVisible = false;
                 });
             }
