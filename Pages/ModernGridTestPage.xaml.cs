@@ -16,7 +16,7 @@ public partial class ModernGridTestPage : ContentPage
 
         CardGrid.CardClicked += (id) =>
         {
-            Dispatcher.Dispatch(() => DisplayAlert("Clicked", $"Card UUID: {id}", "OK"));
+            Dispatcher.Dispatch(async () => await DisplayAlertAsync("Clicked", $"Card UUID: {id}", "OK"));
         };
     }
 
@@ -49,9 +49,9 @@ public partial class ModernGridTestPage : ContentPage
             }
             catch (Exception ex)
             {
-                MainThread.BeginInvokeOnMainThread(() =>
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
-                    DisplayAlert("Error", ex.Message, "OK");
+                    await DisplayAlertAsync("Error", ex.Message, "OK");
                     LoadingSpinner.IsVisible = false;
                 });
             }
