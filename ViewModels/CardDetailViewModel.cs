@@ -278,7 +278,7 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
 
     private async Task AddToCollectionAsync(int quantity)
     {
-        await _cardManager.AddCardToCollectionAsync(Card.UUID, quantity);
+        await _cardManager.UpdateCardQuantityAsync(Card.UUID, quantity);
         IsInCollection = true;
         AddedToCollection?.Invoke(Card.UUID);
     }
