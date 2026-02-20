@@ -18,6 +18,7 @@ public class ModernCardGrid : ContentView
     private readonly CancellationTokenSource _cts = new();
 
     private ImageCacheService? _imageCache;
+    private ImageDownloadService? _imageDownloadService;
 
     // State
     private GridState _lastState = GridState.Empty;
@@ -86,6 +87,7 @@ public class ModernCardGrid : ContentView
         if (Handler?.MauiContext != null)
         {
             _imageCache = Handler.MauiContext.Services.GetService<ImageCacheService>();
+            _imageDownloadService = Handler.MauiContext.Services.GetService<ImageDownloadService>();
         }
     }
 
@@ -269,11 +271,22 @@ public class ModernCardGrid : ContentView
                      Task.Run(async () => {
                          try
                          {
-                             var img = await _imageCache.GetImageAsync(card.ScryfallId);
+                             // Use DownloadService to get from file/DB/network
+                             SKImage? img = null;
+                             if (_imageDownloadService != null)
+                             {
+                                 img = await _imageDownloadService.DownloadImageDirectAsync(card.ScryfallId);
+                             }
+
                              if (img != null)
                              {
+                                 _imageCache.AddToMemoryCache(card.ScryfallId, img);
                                  MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
                              }
+                         }
+                         catch (Exception ex)
+                         {
+                             Console.WriteLine($"Image load failed: {ex.Message}");
                          }
                          finally
                          {
