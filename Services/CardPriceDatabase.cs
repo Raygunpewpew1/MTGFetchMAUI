@@ -45,7 +45,9 @@ public class CardPriceDatabase : IDisposable
 
         // Create schema
         await ExecuteAsync(SQLQueries.CreatePricesTable);
+        await ExecuteAsync(SQLQueries.CreatePriceHistoryTable);
         await ExecuteAsync(SQLQueries.CreatePricesIndex);
+        await ExecuteAsync(SQLQueries.CreatePriceHistoryIndex);
     }
 
     /// <summary>
@@ -59,15 +61,44 @@ public class CardPriceDatabase : IDisposable
             if (!IsConnected)
                 return (false, CardPriceData.Empty);
 
-            using var cmd = _connection!.CreateCommand();
-            cmd.CommandText = SQLQueries.PricesGetByUuid;
-            cmd.Parameters.AddWithValue("@uuid", uuid);
-            using var reader = await cmd.ExecuteReaderAsync();
+            // 1. Get current prices
+            CardPriceData? prices = null;
+            using (var cmd = _connection!.CreateCommand())
+            {
+                cmd.CommandText = SQLQueries.PricesGetByUuid;
+                cmd.Parameters.AddWithValue("@uuid", uuid);
+                using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    prices = PopulatePriceData(reader);
+                }
+            }
 
-            if (!await reader.ReadAsync())
+            if (prices == null)
                 return (false, CardPriceData.Empty);
 
-            var prices = PopulatePriceData(reader);
+            // 2. Get history
+            using (var historyCmd = _connection!.CreateCommand())
+            {
+                historyCmd.CommandText = SQLQueries.PricesGetHistoryByUuid;
+                historyCmd.Parameters.AddWithValue("@uuid", uuid);
+                using var reader = await historyCmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    var dateInt = reader.GetInt32(reader.GetOrdinal("price_date"));
+                    var vendor = reader.GetString(reader.GetOrdinal("vendor"));
+                    var type = reader.GetString(reader.GetOrdinal("price_type"));
+                    var val = reader.GetDouble(reader.GetOrdinal("price_value"));
+
+                    var dt = DateTime.ParseExact(dateInt.ToString(), "yyyyMMdd", null);
+                    var entry = new PriceEntry(dt, val);
+
+                    // Add to appropriate list
+                    AddToHistory(prices, vendor, type, entry);
+                }
+            }
+
             return (true, prices);
         }
         catch (Exception ex)
@@ -179,66 +210,54 @@ public class CardPriceDatabase : IDisposable
 
     private static CardPriceData PopulatePriceData(SqliteDataReader reader)
     {
-        var historyJson = SafeStr(reader, "history_json");
-        var historyDict = ParseHistory(historyJson);
-
         return new CardPriceData
         {
             UUID = SafeStr(reader, "card_uuid"),
             Paper = new PaperPlatform
             {
-                TCGPlayer = PopulateVendor(reader, "tcg", historyDict, "tcg"),
-                Cardmarket = PopulateVendor(reader, "cm", historyDict, "cm"),
-                CardKingdom = PopulateVendor(reader, "ck", historyDict, "ck"),
-                ManaPool = PopulateVendor(reader, "mp", historyDict, "mp")
+                TCGPlayer = PopulateVendor(reader, "tcg"),
+                Cardmarket = PopulateVendor(reader, "cm"),
+                CardKingdom = PopulateVendor(reader, "ck"),
+                ManaPool = PopulateVendor(reader, "mp")
             },
             LastUpdated = DateTime.Now
         };
     }
 
-    private static VendorPrices PopulateVendor(SqliteDataReader reader, string prefix, Dictionary<string, JsonElement> historyDict, string historyKey)
+    private static VendorPrices PopulateVendor(SqliteDataReader reader, string prefix)
     {
-        var vendorHistory = historyDict.TryGetValue(historyKey, out var el) ? el : (JsonElement?)null;
-
         return new VendorPrices
         {
             RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_retail_normal")),
             RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_retail_foil")),
             BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_buylist_normal")),
             Currency = ParseCurrency(SafeStr(reader, $"{prefix}_currency")),
-            RetailNormalHistory = ParsePriceEntries(vendorHistory, "rn"),
-            RetailFoilHistory = ParsePriceEntries(vendorHistory, "rf"),
-            BuylistNormalHistory = ParsePriceEntries(vendorHistory, "bn")
+            // History populated separately
+            RetailNormalHistory = [],
+            RetailFoilHistory = [],
+            BuylistNormalHistory = []
         };
     }
 
-    private static Dictionary<string, JsonElement> ParseHistory(string json)
+    private static void AddToHistory(CardPriceData data, string vendor, string type, PriceEntry entry)
     {
-        if (string.IsNullOrEmpty(json)) return [];
-        try
+        VendorPrices? v = vendor switch
         {
-            return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? [];
-        }
-        catch { return []; }
-    }
+            "tcg" => data.Paper.TCGPlayer,
+            "cm" => data.Paper.Cardmarket,
+            "ck" => data.Paper.CardKingdom,
+            "mp" => data.Paper.ManaPool,
+            _ => null
+        };
 
-    private static List<PriceEntry> ParsePriceEntries(JsonElement? vendorHistory, string key)
-    {
-        if (vendorHistory == null || !vendorHistory.Value.TryGetProperty(key, out var listEl))
-            return [];
+        if (v == null) return;
 
-        var list = new List<PriceEntry>();
-        foreach (var item in listEl.EnumerateArray())
+        switch (type)
         {
-            if (item.GetArrayLength() == 2)
-            {
-                var dateStr = item[0].GetString() ?? "";
-                var price = item[1].GetDouble();
-                var date = PriceDateParser.ParseCompactDate(dateStr);
-                list.Add(new PriceEntry(date, price));
-            }
+            case "rn": v.RetailNormalHistory.Add(entry); break;
+            case "rf": v.RetailFoilHistory.Add(entry); break;
+            case "bn": v.BuylistNormalHistory.Add(entry); break;
         }
-        return list;
     }
 
     private static string SafeStr(SqliteDataReader reader, string col)
