@@ -1,4 +1,5 @@
 using MTGFetchMAUI.Data;
+using MTGFetchMAUI.Core;
 
 namespace MTGFetchMAUI.Tests;
 
