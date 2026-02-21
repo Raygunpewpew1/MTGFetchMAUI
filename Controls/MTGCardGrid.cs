@@ -604,7 +604,7 @@ public class MTGCardGrid : Grid
             bool needsReload = false;
             foreach (var card in _cards)
             {
-                if (card.Image != null && card.Image.IsDisposed)
+                if (card.Image != null && card.Image.Handle == IntPtr.Zero)
                 {
                     card.Image = null;
                     card.Quality = ImageQuality.None;
