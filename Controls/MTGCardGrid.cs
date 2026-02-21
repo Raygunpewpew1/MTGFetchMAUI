@@ -26,6 +26,9 @@ public class MTGCardGrid : Grid
         new SKPoint(8, 8), new SKPoint(8, 8)
     ];
 
+    private SKPath? _borderPath;
+    private readonly float[] _dashArray = new float[2];
+
     // ── Controls ───────────────────────────────────────────────────────
     private readonly SKGLView _canvas;
     private readonly BoxView _scrollSpacer;
@@ -95,6 +98,7 @@ public class MTGCardGrid : Grid
     public float TotalContentHeight => _totalHeight;
     public int ColumnCount => _columnCount;
     public float CardCellHeight => _cardHeight + CardSpacing;
+
 
     // ── Constructor ────────────────────────────────────────────────────
     public MTGCardGrid()
@@ -243,6 +247,44 @@ public class MTGCardGrid : Grid
         }
         CalculateLayout();
         _canvas.InvalidateSurface();
+    }
+
+    public async Task AddCardsAsync(IEnumerable<Card> newCards, int chunkSize = 50)
+    {
+        // Convert to an array to avoid multiple enumerations
+        var cardArray = newCards.ToArray();
+        bool layoutNeedsUpdate = false;
+
+        for (int i = 0; i < cardArray.Length; i += chunkSize)
+        {
+            // 1. Process the expensive mapping outside the lock
+            var chunk = cardArray
+                .Skip(i)
+                .Take(chunkSize)
+                .Select(c => GridCardData.FromCard(c))
+                .ToList();
+
+            // 2. Briefly lock to append the chunk, then immediately release
+            lock (_cardsLock)
+            {
+                _cards.AddRange(chunk);
+                layoutNeedsUpdate = true;
+            }
+
+            // 3. Yield control. This is the magic line. 
+            // It tells the thread pool: "Let the UI thread do its 16ms draw loop right now."
+            await Task.Yield();
+        }
+
+        // 4. After everything is loaded, recalculate the layout on the main thread
+        if (layoutNeedsUpdate)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CalculateLayout();
+                _canvas.InvalidateSurface();
+            });
+        }
     }
 
     public void ClearCards()
@@ -516,6 +558,17 @@ public class MTGCardGrid : Grid
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
         _labelRoundRect ??= new SKRoundRect();
+
+        if (_shimmerGradientPaint!.Shader == null)
+        {
+            // Create a normalized shader (0 to 100 on the X axis) ONCE.
+            _shimmerGradientPaint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(0, 0),
+                new SKPoint(100, 0),
+                [SKColors.Transparent, new SKColor(255, 255, 255, 60), SKColors.Transparent],
+                [0f, 0.5f, 1f],
+                SKShaderTileMode.Clamp);
+        }
     }
 
     private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
@@ -614,8 +667,8 @@ public class MTGCardGrid : Grid
 
         // Set info
         _setPaint!.Color = new SKColor(160, 160, 160, alphaByte);
-        string setInfo = $"{card.SetCode} #{card.Number}";
-        canvas.DrawText(setInfo, rect.Left + 4f, labelY + 32f, _setFont!, _setPaint);
+        //  string setInfo = $"{card.SetCode} #{card.Number}";
+        canvas.DrawText(card.DisplaySetInfo, rect.Left + 4f, labelY + 32f, _setFont!, _setPaint);
 
         if (index == _hoveredIndex)
             canvas.DrawRoundRect(_cardRoundRect, _hoverPaint!);
@@ -656,7 +709,6 @@ public class MTGCardGrid : Grid
         {
             if (_longPressProgress > 0)
             {
-                // Draw a progress border or overlay
                 using var progressPaint = new SKPaint
                 {
                     IsAntialias = true,
@@ -665,14 +717,15 @@ public class MTGCardGrid : Grid
                     Color = new SKColor(255, 255, 255, (byte)(100 + _longPressProgress * 155))
                 };
 
-                // Draw only part of the border based on progress
-                using var path = new SKPath();
-                path.AddRoundRect(_imageRoundRect.Rect, 8f, 8f);
+                // Reuse the cached path instead of creating a new one
+                _borderPath ??= new SKPath();
+                _borderPath.Rewind();
+                _borderPath.AddRoundRect(_imageRoundRect);
 
                 canvas.Save();
-                canvas.ClipPath(path);
+                canvas.ClipPath(_borderPath);
 
-                // Overlay
+                // Overlay ripple
                 _ripplePaint!.Color = new SKColor(255, 255, 255, (byte)(30 + _longPressProgress * 40));
                 canvas.DrawRect(imageRect, _ripplePaint);
 
@@ -681,15 +734,23 @@ public class MTGCardGrid : Grid
                 // Animated border
                 if (_longPressProgress < 1f)
                 {
-                    using var measure = new SKPathMeasure(path);
-                    float length = measure.Length;
-                    using var dash = SKPathEffect.CreateDash([length * _longPressProgress, length], 0);
+                    // Mathematically calculate the perimeter of the rounded rectangle
+                    // Formula: 2*W + 2*H - 8*Radius + 2*PI*Radius
+                    float radius = 8f;
+                    float length = (2 * imageRect.Width) + (2 * imageRect.Height) - (8 * radius) + (float)(2 * Math.PI * radius);
+
+                    // Update the pre-allocated array (zero allocations)
+                    _dashArray[0] = length * _longPressProgress;
+                    _dashArray[1] = length;
+
+                    // Apply dash effect using the cached array
+                    using var dash = SKPathEffect.CreateDash(_dashArray, 0);
                     progressPaint.PathEffect = dash;
-                    canvas.DrawPath(path, progressPaint);
+                    canvas.DrawPath(_borderPath, progressPaint);
                 }
                 else
                 {
-                    canvas.DrawPath(path, progressPaint);
+                    canvas.DrawPath(_borderPath, progressPaint);
                 }
             }
             else
@@ -705,22 +766,20 @@ public class MTGCardGrid : Grid
         _imageRoundRect!.SetRect(rect, 8f, 8f);
         canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
+        // 1. Draw solid base background
         _shimmerBasePaint!.Color = new SKColor(40, 40, 40, alpha);
         canvas.DrawRect(rect, _shimmerBasePaint);
 
+        // 2. Calculate animation translation based on phase
         float shimmerWidth = rect.Width * 1.5f;
         float shimmerX = rect.Left - rect.Width + (rect.Width * 3f) * _shimmerPhase;
 
-        using var shader = SKShader.CreateLinearGradient(
-            new SKPoint(shimmerX, rect.Top),
-            new SKPoint(shimmerX + shimmerWidth, rect.Top),
-            [SKColors.Transparent, new SKColor(255, 255, 255, (byte)(alpha / 4)), SKColors.Transparent],
-            [0f, 0.5f, 1f],
-            SKShaderTileMode.Clamp);
+        // 3. Translate and scale the canvas so our 100px static shader fits the card
+        canvas.Translate(shimmerX, rect.Top);
+        canvas.Scale(shimmerWidth / 100f, 1f);
 
-        _shimmerGradientPaint!.Shader = shader;
-        canvas.DrawRect(rect, _shimmerGradientPaint);
-        _shimmerGradientPaint.Shader = null;
+        // 4. Draw a rect over the local normalized coordinates (0 to 100)
+        canvas.DrawRect(0, 0, 100, rect.Height, _shimmerGradientPaint);
 
         canvas.Restore();
     }
@@ -828,19 +887,39 @@ public class MTGCardGrid : Grid
 
     private int HitTestCard(float x, float y)
     {
+        // Adjust for the left/top padding
+        float adjustedX = x - 10f;
+        float adjustedY = y - CardSpacing;
+
+        if (adjustedX < 0 || adjustedY < 0) return -1;
+
+        // Calculate row and column using integer division
+        int col = (int)(adjustedX / (_cardWidth + CardSpacing));
+        int row = (int)(adjustedY / (_cardHeight + CardSpacing));
+
+        if (col < 0 || col >= _columnCount) return -1;
+
+        int index = (row * _columnCount) + col;
+
         lock (_cardsLock)
         {
-            for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
-            {
-                var rect = GetCardRect(i);
-                if (rect.Contains(x, y))
-                    return i;
-            }
+            if (index >= 0 && index < _cards.Count)
+                return index;
         }
+
         return -1;
     }
 
     // ── Cleanup ────────────────────────────────────────────────────────
+
+    public void Dispose()
+    {
+        StopTimers();
+        DisposeAllImages();
+        DisposeResources();
+        _canvas.PaintSurface -= OnPaintSurface;
+        _canvas.Touch -= OnTouch;
+    }
 
     private void CleanupOffScreenBitmaps()
     {

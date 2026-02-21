@@ -44,6 +44,8 @@ public class GridCardData
     public string TruncatedName { get; set; } = "";
     public float LastKnownCardWidth { get; set; }
 
+    public string DisplaySetInfo => $"{SetCode} #{Number}";
+
     // Price
     public CardPriceData? PriceData { get; set; }
     public string CachedDisplayPrice { get; set; } = "";

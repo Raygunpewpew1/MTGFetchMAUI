@@ -220,18 +220,25 @@ public class SearchViewModel : BaseViewModel
                   .Limit(PageSize)
                   .Offset((_currentPage - 1) * PageSize);
 
-            var results = await Task.Run(() => _cardManager.ExecuteSearchAsync(helper));
+            // 1. Await directly. No Task.Run needed for true async I/O.
+            var results = await _cardManager.ExecuteSearchAsync(helper);
 
             if (results.Length > 0)
-                _grid.AddCards(results);
+            {
+                // 2. Use the new chunked Add method so the UI doesn't stutter 
+                // while inflating these new GridCardData objects.
+                await _grid.AddCardsAsync(results, chunkSize: 50);
+            }
 
             if (results.Length < PageSize)
+            {
                 HasMorePages = false;
+            }
         }
         catch (Exception ex)
         {
             Logger.LogStuff($"Page load error: {ex.Message}", LogLevel.Error);
-            _currentPage--;
+            _currentPage--; // Rollback on failure so the user can try again
         }
         finally
         {

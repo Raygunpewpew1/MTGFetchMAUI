@@ -3,6 +3,8 @@ using MTGFetchMAUI.Pages;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 using SkiaSharp.Views.Maui.Controls.Hosting;
+using CommunityToolkit.Maui;
+
 #if ANDROID
 using Plugin.Maui.OCR;
 #endif
@@ -17,6 +19,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>()
+            .UseMauiCommunityToolkit()
             .UseSkiaSharp()
             .ConfigureFonts(fonts =>
             {
