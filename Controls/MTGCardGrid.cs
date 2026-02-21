@@ -86,7 +86,8 @@ public class MTGCardGrid : Grid
     private SKRoundRect? _cardRoundRect;
     private SKRoundRect? _imageRoundRect;
     private SKRoundRect? _labelRoundRect;
-    private readonly SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
+    // Use Linear filter but no mipmaps for better CPU performance on SKCanvasView
+    private readonly SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.None);
 
     // ── Events ─────────────────────────────────────────────────────────
     public event Action<string>? CardClicked;
@@ -140,7 +141,8 @@ public class MTGCardGrid : Grid
         _cleanupTimer.Start();
 
         _animationTimer = Dispatcher.CreateTimer();
-        _animationTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
+        // Reduced to ~30 FPS (33ms) to save CPU/Battery on software rendering
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(33);
         _animationTimer.Tick += (_, _) => UpdateAnimations();
         _animationTimer.Start();
     }
