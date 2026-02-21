@@ -26,6 +26,9 @@ public static class MauiProgram
 
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("CrimsonText-Regular.ttf", "SerifFont");
+                fonts.AddFont("CrimsonText-Bold.ttf", "SerifFontBold");
+                fonts.AddFont("CrimsonText-Italic.ttf", "SerifFontItalic");
                 // Fonts registered here must exist in Resources/Fonts/
                 // OpenSans ships with MAUI's default template but isn't included yet
             });

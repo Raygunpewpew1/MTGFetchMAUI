@@ -3,6 +3,7 @@ using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Text.RegularExpressions;
+using Microsoft.Maui.Storage;
 
 namespace MTGFetchMAUI.Controls;
 
@@ -28,6 +29,12 @@ public class CardTextView : SKCanvasView
         "Cycling", "Cascade", "Infect", "Toxic"
     ];
 
+    // ── Static Font Cache ──────────────────────────────────────────────
+    private static SKTypeface? _serifRegular;
+    private static SKTypeface? _serifBold;
+    private static bool _fontsLoaded;
+    private static bool _loadingStarted;
+
     // ── State ──────────────────────────────────────────────────────────
     private string _cardText = "";
     private float _textSize = 14f;
@@ -35,7 +42,7 @@ public class CardTextView : SKCanvasView
     private SKColor _keywordColor = new(255, 215, 0); // Gold
     private bool _keywordBold = true;
     private bool _enableKeywords = true;
-    private float _lineSpacing = 1.3f;
+    private float _lineSpacing = 1.15f; // Tighter spacing for card look
     private float _symbolSize = 16f;
     private float _shadowBlur = 2f;
     private SKColor _shadowColor = new(0, 0, 0, 128);
@@ -72,6 +79,47 @@ public class CardTextView : SKCanvasView
     private record struct LayoutGlyph(
         float X, float Y, float Width, float Height,
         RunType Type, string Text);
+
+    // ── Constructor ────────────────────────────────────────────────────
+
+    public CardTextView()
+    {
+        InitializeFonts();
+    }
+
+    private void InitializeFonts()
+    {
+        if (_fontsLoaded || _loadingStarted) return;
+        _loadingStarted = true;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                // Load fonts from Resources/Raw/Fonts/
+                // Ensure files are marked as MauiAsset
+                using var streamReg = await FileSystem.OpenAppPackageFileAsync("Fonts/CrimsonText-Regular.ttf");
+                _serifRegular = SKTypeface.FromStream(streamReg);
+
+                using var streamBold = await FileSystem.OpenAppPackageFileAsync("Fonts/CrimsonText-Bold.ttf");
+                _serifBold = SKTypeface.FromStream(streamBold);
+
+                _fontsLoaded = true;
+
+                // Dispatch UI update
+                Dispatcher.Dispatch(() =>
+                {
+                    InvalidatePaints();
+                    InvalidateLayout();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CardTextView] Font load failed: {ex}");
+                _fontsLoaded = true; // Avoid retrying
+            }
+        });
+    }
 
     // ── Properties ─────────────────────────────────────────────────────
 
@@ -182,7 +230,7 @@ public class CardTextView : SKCanvasView
         _keywordPaint?.Dispose(); _keywordPaint = null;
         _keywordFont?.Dispose(); _keywordFont = null;
 
-        if (_keywordTypeface != null && _keywordTypeface != SKTypeface.Default)
+        if (_keywordTypeface != null && _keywordTypeface != SKTypeface.Default && _keywordTypeface != _serifBold && _keywordTypeface != _serifRegular)
         {
              _keywordTypeface.Dispose();
         }
@@ -324,7 +372,9 @@ public class CardTextView : SKCanvasView
         _lastMeasureWidth = maxWidth;
         _needsLayout = false;
 
-        using var measureFont = new SKFont(SKTypeface.Default, _textSize);
+        // Use the Serif font for measurement if available, else Default
+        var measureTypeface = _serifRegular ?? SKTypeface.Default;
+        using var measureFont = new SKFont(measureTypeface, _textSize);
 
         float lineHeight = _textSize * _lineSpacing;
         float x = 0;
@@ -415,14 +465,22 @@ public class CardTextView : SKCanvasView
         if (_normalPaint == null)
         {
             _normalPaint = new SKPaint { Color = _textColor, IsAntialias = true };
-            _normalFont = new SKFont(SKTypeface.Default, _textSize);
+
+            // Use loaded Serif font or fallback
+            var normalTypeface = _serifRegular ?? SKTypeface.Default;
+            _normalFont = new SKFont(normalTypeface, _textSize);
 
             _keywordPaint = new SKPaint { Color = _keywordColor, IsAntialias = true };
 
             if (_keywordBold)
-                _keywordTypeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
+            {
+                // Use loaded Bold Serif font or fallback
+                _keywordTypeface = _serifBold ?? SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
+            }
             else
-                _keywordTypeface = SKTypeface.Default;
+            {
+                _keywordTypeface = _serifRegular ?? SKTypeface.Default;
+            }
 
             _keywordFont = new SKFont(_keywordTypeface, _textSize);
 
@@ -435,7 +493,7 @@ public class CardTextView : SKCanvasView
                     IsAntialias = true,
                     MaskFilter = _shadowMaskFilter
                  };
-                 _shadowFont = new SKFont(SKTypeface.Default, _textSize);
+                 _shadowFont = new SKFont(normalTypeface, _textSize);
             }
         }
     }
