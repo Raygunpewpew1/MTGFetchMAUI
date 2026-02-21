@@ -53,6 +53,7 @@ public partial class CollectionPage : ContentPage
         // Ensure scroll is synced after a tab switch
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            CollectionGrid.ForceRedraw();
             CollectionGrid.SetScrollOffset((float)CollectionScrollView.ScrollY);
             _viewModel.LoadVisibleImages();
         });
