@@ -60,7 +60,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<StatsPage>();
         builder.Services.AddTransient<CardDetailPage>();
         builder.Services.AddTransient<SearchFiltersPage>();
-        builder.Services.AddSingleton<ModernGridTestPage>();
 
         return builder.Build();
     }
