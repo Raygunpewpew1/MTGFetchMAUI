@@ -130,6 +130,17 @@ public class MTGCardGrid : Grid
         _canvas.InvalidateSurface();
     }
 
+    /// <summary>
+    /// Forces a redraw of the grid surface. Useful when returning from background/tab switch.
+    /// </summary>
+    public void ForceRedraw()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            _canvas.InvalidateSurface();
+        });
+    }
+
     public void StartTimers()
     {
         if (_cleanupTimer != null) return;
