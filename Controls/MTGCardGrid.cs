@@ -43,7 +43,7 @@ public class MTGCardGrid : Grid
     // ── State ──────────────────────────────────────────────────────────
     private int _glGeneration = 0;
     private bool _glResourcesLost = false;
-    private GRContext? _lastGLContext;
+    private GRRecordingContext? _lastGLContext;
     private readonly List<GridCardData> _cards = [];
     private readonly object _cardsLock = new();
     private readonly object _renderLock = new();
