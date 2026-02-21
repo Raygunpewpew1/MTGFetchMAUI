@@ -46,10 +46,22 @@ public class CardTextView : SKCanvasView
 
     // Cached layout
     private readonly List<TextRun> _runs = [];
-    private float _measuredHeight;
-    private float _lastLayoutWidth;
+    private readonly List<LayoutGlyph> _layoutGlyphs = [];
+    private Size _measuredSize;
+    private double _lastMeasureWidth = -1;
+    private bool _needsLayout = true;
+    private bool _needsRebuild = true;
     private int _updateCount;
-    private bool _needsRebuild;
+
+    // Cached Resources
+    private SKPaint? _normalPaint;
+    private SKFont? _normalFont;
+    private SKPaint? _keywordPaint;
+    private SKFont? _keywordFont;
+    private SKTypeface? _keywordTypeface;
+    private SKPaint? _shadowPaint;
+    private SKMaskFilter? _shadowMaskFilter;
+    private SKFont? _shadowFont;
 
     // ── Types ──────────────────────────────────────────────────────────
 
@@ -66,55 +78,61 @@ public class CardTextView : SKCanvasView
     public string CardText
     {
         get => _cardText;
-        set { _cardText = value; MarkDirty(); }
+        set { _cardText = value; InvalidateLayout(); }
     }
 
     public float TextSize
     {
         get => _textSize;
-        set { _textSize = Math.Clamp(value, 8f, 72f); MarkDirty(); }
+        set { _textSize = Math.Clamp(value, 8f, 72f); InvalidatePaints(); InvalidateLayout(); }
     }
 
     public SKColor TextColor
     {
         get => _textColor;
-        set { _textColor = value; InvalidateSurface(); }
+        set { _textColor = value; InvalidatePaints(); }
     }
 
     public SKColor KeywordColor
     {
         get => _keywordColor;
-        set { _keywordColor = value; InvalidateSurface(); }
+        set { _keywordColor = value; InvalidatePaints(); }
     }
 
     public bool KeywordBold
     {
         get => _keywordBold;
-        set { _keywordBold = value; InvalidateSurface(); }
+        set { _keywordBold = value; InvalidatePaints(); }
     }
 
     public bool EnableKeywordHighlighting
     {
         get => _enableKeywords;
-        set { _enableKeywords = value; MarkDirty(); }
+        set { _enableKeywords = value; InvalidateLayout(); }
     }
 
     public float LineSpacing
     {
         get => _lineSpacing;
-        set { _lineSpacing = Math.Clamp(value, 0.8f, 3f); MarkDirty(); }
+        set { _lineSpacing = Math.Clamp(value, 0.8f, 3f); InvalidateLayout(); }
     }
 
     public float SymbolSize
     {
         get => _symbolSize;
-        set { _symbolSize = Math.Clamp(value, 8f, 48f); MarkDirty(); }
+        set { _symbolSize = Math.Clamp(value, 8f, 48f); InvalidateLayout(); }
     }
 
     public float ShadowBlur
     {
         get => _shadowBlur;
-        set { _shadowBlur = value; InvalidateSurface(); }
+        set { _shadowBlur = value; InvalidatePaints(); }
+    }
+
+    public SKColor ShadowColor
+    {
+        get => _shadowColor;
+        set { _shadowColor = value; InvalidatePaints(); }
     }
 
     // ── Public API ─────────────────────────────────────────────────────
@@ -126,9 +144,7 @@ public class CardTextView : SKCanvasView
         _updateCount = Math.Max(0, _updateCount - 1);
         if (_updateCount == 0 && _needsRebuild)
         {
-            _needsRebuild = false;
-            RebuildRuns();
-            InvalidateSurface();
+            InvalidateLayout();
         }
     }
 
@@ -138,7 +154,7 @@ public class CardTextView : SKCanvasView
         {
             _keywords.Add(keyword);
             _regexDirty = true;
-            MarkDirty();
+            InvalidateLayout();
         }
     }
 
@@ -146,32 +162,51 @@ public class CardTextView : SKCanvasView
     {
         _keywords.Remove(keyword);
         _regexDirty = true;
-        MarkDirty();
+        InvalidateLayout();
     }
 
     public void ClearKeywords()
     {
         _keywords.Clear();
         _regexDirty = true;
-        MarkDirty();
+        InvalidateLayout();
     }
 
     // ── Internals ──────────────────────────────────────────────────────
 
-    private void MarkDirty()
+    private void InvalidatePaints()
+    {
+        _normalPaint?.Dispose(); _normalPaint = null;
+        _normalFont?.Dispose(); _normalFont = null;
+
+        _keywordPaint?.Dispose(); _keywordPaint = null;
+        _keywordFont?.Dispose(); _keywordFont = null;
+
+        if (_keywordTypeface != null && _keywordTypeface != SKTypeface.Default)
+        {
+             _keywordTypeface.Dispose();
+        }
+        _keywordTypeface = null;
+
+        _shadowPaint?.Dispose(); _shadowPaint = null;
+        _shadowMaskFilter?.Dispose(); _shadowMaskFilter = null;
+        _shadowFont?.Dispose(); _shadowFont = null;
+
+        InvalidateSurface();
+    }
+
+    private void InvalidateLayout()
     {
         if (_updateCount > 0)
         {
             _needsRebuild = true;
             return;
         }
-        RebuildRuns();
 
-        // Ensure we have some height to trigger a paint pass
-        if (HeightRequest < 0)
-            HeightRequest = 40;
-
-        InvalidateSurface();
+        _needsRebuild = true;
+        _needsLayout = true;
+        InvalidateMeasure(); // Triggers MeasureOverride
+        InvalidateSurface(); // Ensures repaint
     }
 
     private void EnsureRegex()
@@ -195,11 +230,12 @@ public class CardTextView : SKCanvasView
 
     /// <summary>
     /// Parse card text into a sequence of runs (normal text, keywords, symbols, newlines).
-    /// Symbol text is normalized using ManaSvgCache.NormalizeSymbol (replace / with _, uppercase).
     /// </summary>
     private void RebuildRuns()
     {
         _runs.Clear();
+        _needsRebuild = false;
+
         if (string.IsNullOrEmpty(_cardText)) return;
 
         EnsureRegex();
@@ -264,96 +300,29 @@ public class CardTextView : SKCanvasView
         }
     }
 
-    // ── Painting ───────────────────────────────────────────────────────
+    // ── Layout & Measurement ───────────────────────────────────────────
 
-    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    protected override Size MeasureOverride(double widthConstraint, double heightConstraint)
     {
-        var canvas = e.Surface.Canvas;
-        var info = e.Info;
-        canvas.Clear(SKColors.Transparent);
+        float width = float.IsPositiveInfinity((float)widthConstraint) ? 300f : (float)widthConstraint;
+        if (width <= 0) width = 300f; // Minimal width fallback
 
-        if (_runs.Count == 0 || info.Width == 0) return;
-
-        float viewWidth = (float)(Width > 0 ? Width : 300);
-        float scale = info.Width / viewWidth;
-
-        canvas.Save();
-        canvas.Scale(scale);
-
-        // Layout runs into positioned glyphs with word wrapping
-        var glyphs = LayoutGlyphs(viewWidth);
-
-        // Draw shadow layer first
-        if (_shadowBlur > 0)
+        if (_needsLayout || _needsRebuild || Math.Abs(width - _lastMeasureWidth) > 1f)
         {
-            using var shadowPaint = new SKPaint
-            {
-                Color = _shadowColor,
-                IsAntialias = true,
-                MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, _shadowBlur)
-            };
-            using var shadowFont = new SKFont(SKTypeface.Default, _textSize);
-            foreach (var g in glyphs)
-            {
-                if (g.Type is RunType.Normal or RunType.Keyword)
-                    canvas.DrawText(g.Text, g.X + 1f, g.Y + 1f, shadowFont, shadowPaint);
-            }
+            ComputeLayout(width);
         }
 
-        // Draw text and symbols
-        using var normalPaint = new SKPaint
-        {
-            Color = _textColor,
-            IsAntialias = true
-        };
-        using var normalFont = new SKFont(SKTypeface.Default, _textSize);
-
-        using var keywordPaint = new SKPaint
-        {
-            Color = _keywordColor,
-            IsAntialias = true
-        };
-
-        SKTypeface? customTypeface = _keywordBold ? SKTypeface.FromFamilyName(null, SKFontStyle.Bold) : null;
-        using var keywordFont = new SKFont(customTypeface ?? SKTypeface.Default, _textSize);
-
-        foreach (var g in glyphs)
-        {
-            switch (g.Type)
-            {
-                case RunType.Normal:
-                    canvas.DrawText(g.Text, g.X, g.Y, normalFont, normalPaint);
-                    break;
-
-                case RunType.Keyword:
-                    canvas.DrawText(g.Text, g.X, g.Y, keywordFont, keywordPaint);
-                    break;
-
-                case RunType.Symbol:
-                    // Draw SVG mana symbol at the placeholder position
-                    ManaSvgCache.DrawSymbol(canvas, g.Text, g.X, g.Y - _symbolSize * 0.8f, _symbolSize);
-                    break;
-            }
-        }
-
-        canvas.Restore();
-        customTypeface?.Dispose();
-
-        // Update height if measured height changed
-        if (glyphs.Count > 0)
-        {
-            float bottom = glyphs.Max(g => g.Y + g.Height * 0.3f);
-            if (Math.Abs(bottom - _measuredHeight) > 2f)
-            {
-                _measuredHeight = bottom;
-                MainThread.BeginInvokeOnMainThread(() => HeightRequest = _measuredHeight + 8);
-            }
-        }
+        return _measuredSize;
     }
 
-    private List<LayoutGlyph> LayoutGlyphs(float maxWidth)
+    private void ComputeLayout(float maxWidth)
     {
-        var result = new List<LayoutGlyph>();
+        if (_needsRebuild)
+            RebuildRuns();
+
+        _layoutGlyphs.Clear();
+        _lastMeasureWidth = maxWidth;
+        _needsLayout = false;
 
         using var measureFont = new SKFont(SKTypeface.Default, _textSize);
 
@@ -383,7 +352,7 @@ public class CardTextView : SKCanvasView
                     y += lineHeight;
                 }
 
-                result.Add(new LayoutGlyph(x, y, symW, _symbolSize, RunType.Symbol, run.Text));
+                _layoutGlyphs.Add(new LayoutGlyph(x, y, symW, _symbolSize, RunType.Symbol, run.Text));
 
                 bool nextIsSymbol = ri + 1 < _runs.Count && _runs[ri + 1].Type == RunType.Symbol;
                 x += symW + (nextIsSymbol ? 0 : spaceWidth);
@@ -402,7 +371,7 @@ public class CardTextView : SKCanvasView
                     y += lineHeight;
                 }
 
-                result.Add(new LayoutGlyph(x, y, wordWidth, _textSize, run.Type, word));
+                _layoutGlyphs.Add(new LayoutGlyph(x, y, wordWidth, _textSize, run.Type, word));
                 x += wordWidth;
 
                 if (run.Type == RunType.Keyword && !word.EndsWith(' '))
@@ -410,7 +379,15 @@ public class CardTextView : SKCanvasView
             }
         }
 
-        return result;
+        // Calculate final size
+        float finalHeight = y + (_textSize * 0.3f); // Padding
+        if (x > 0 && y == lineHeight && _layoutGlyphs.Count == 0) finalHeight = 0; // Empty
+
+        // If we have content, ensure minimum height
+        if (_layoutGlyphs.Count > 0)
+             finalHeight = Math.Max(finalHeight, lineHeight);
+
+        _measuredSize = new Size(maxWidth, finalHeight + 8); // Add some padding
     }
 
     private static List<string> SplitIntoWords(string text)
@@ -431,13 +408,88 @@ public class CardTextView : SKCanvasView
         return words;
     }
 
-    protected override void OnSizeAllocated(double width, double height)
+    // ── Painting ───────────────────────────────────────────────────────
+
+    private void EnsurePaints()
     {
-        base.OnSizeAllocated(width, height);
-        if (width > 0 && Math.Abs((float)width - _lastLayoutWidth) > 2f)
+        if (_normalPaint == null)
         {
-            _lastLayoutWidth = (float)width;
-            InvalidateSurface();
+            _normalPaint = new SKPaint { Color = _textColor, IsAntialias = true };
+            _normalFont = new SKFont(SKTypeface.Default, _textSize);
+
+            _keywordPaint = new SKPaint { Color = _keywordColor, IsAntialias = true };
+
+            if (_keywordBold)
+                _keywordTypeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
+            else
+                _keywordTypeface = SKTypeface.Default;
+
+            _keywordFont = new SKFont(_keywordTypeface, _textSize);
+
+            if (_shadowBlur > 0)
+            {
+                 _shadowMaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, _shadowBlur);
+                 _shadowPaint = new SKPaint
+                 {
+                    Color = _shadowColor,
+                    IsAntialias = true,
+                    MaskFilter = _shadowMaskFilter
+                 };
+                 _shadowFont = new SKFont(SKTypeface.Default, _textSize);
+            }
         }
+    }
+
+    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        var info = e.Info;
+        canvas.Clear(SKColors.Transparent);
+
+        if (_layoutGlyphs.Count == 0) return;
+
+        EnsurePaints();
+
+        float scale = info.Width / (float)(Width > 0 ? Width : 1);
+        if (scale <= 0) scale = 1;
+
+        canvas.Save();
+        canvas.Scale(scale);
+
+        // Draw shadow layer first
+        if (_shadowBlur > 0 && _shadowPaint != null && _shadowFont != null)
+        {
+            foreach (var g in _layoutGlyphs)
+            {
+                if (g.Type is RunType.Normal or RunType.Keyword)
+                    canvas.DrawText(g.Text, g.X + 1f, g.Y + 1f, _shadowFont, _shadowPaint);
+            }
+        }
+
+        // Draw text and symbols
+        // We assume _normalPaint, _normalFont, _keywordPaint, _keywordFont are not null after EnsurePaints
+
+        foreach (var g in _layoutGlyphs)
+        {
+            switch (g.Type)
+            {
+                case RunType.Normal:
+                    if (_normalFont != null && _normalPaint != null)
+                        canvas.DrawText(g.Text, g.X, g.Y, _normalFont, _normalPaint);
+                    break;
+
+                case RunType.Keyword:
+                    if (_keywordFont != null && _keywordPaint != null)
+                        canvas.DrawText(g.Text, g.X, g.Y, _keywordFont, _keywordPaint);
+                    break;
+
+                case RunType.Symbol:
+                    // Draw SVG mana symbol at the placeholder position
+                    ManaSvgCache.DrawSymbol(canvas, g.Text, g.X, g.Y - _symbolSize * 0.8f, _symbolSize);
+                    break;
+            }
+        }
+
+        canvas.Restore();
     }
 }
