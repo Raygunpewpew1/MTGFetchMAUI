@@ -62,8 +62,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<CollectionViewModel>();
         builder.Services.AddSingleton<StatsViewModel>();
         builder.Services.AddTransient<CardDetailViewModel>();
+        builder.Services.AddTransient<LoadingViewModel>();
 
         // ── Pages ───────────────────────────────────────────────────
+        builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddSingleton<SearchPage>();
         builder.Services.AddSingleton<CollectionPage>();
         builder.Services.AddSingleton<StatsPage>();

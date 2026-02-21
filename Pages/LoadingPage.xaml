@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MTGFetchMAUI.ViewModels"
+             x:Class="MTGFetchMAUI.Pages.LoadingPage"
+             BackgroundColor="{StaticResource Background}">
+
+    <VerticalStackLayout Spacing="30" VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
+
+        <Label Text="MTG Fetch"
+               FontSize="36"
+               FontAttributes="Bold"
+               TextColor="{StaticResource Primary}"
+               HorizontalOptions="Center" />
+
+        <Label Text="Organize your Magic: The Gathering collection"
+               FontSize="14"
+               TextColor="{StaticResource TextSecondary}"
+               HorizontalOptions="Center"
+               HorizontalTextAlignment="Center"/>
+
+        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                           Color="{StaticResource Accent}"
+                           HeightRequest="50"
+                           WidthRequest="50"
+                           IsVisible="{Binding IsBusy}" />
+
+        <ProgressBar Progress="{Binding Progress}"
+                     ProgressColor="{StaticResource Accent}"
+                     WidthRequest="200"
+                     IsVisible="{Binding IsBusy}" />
+
+        <Label Text="{Binding StatusMessage}"
+               FontSize="16"
+               TextColor="{StaticResource TextPrimary}"
+               HorizontalOptions="Center"
+               HorizontalTextAlignment="Center" />
+
+        <Button Text="Retry Download"
+                Command="{Binding RetryCommand}"
+                IsVisible="{Binding ShowRetry}"
+                HorizontalOptions="Center" />
+
+    </VerticalStackLayout>
+</ContentPage>

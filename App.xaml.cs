@@ -1,19 +1,19 @@
 namespace MTGFetchMAUI;
 
-using MTGFetchMAUI.Services;
+using MTGFetchMAUI.Pages;
 
 public partial class App : Application
 {
-    private readonly CardManager _cardManager;
+    private readonly LoadingPage _loadingPage;
 
-    public App(CardManager cardManager)
+    public App(LoadingPage loadingPage)
     {
         InitializeComponent();
-        _cardManager = cardManager;
+        _loadingPage = loadingPage;
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new AppShell(_cardManager));
+        return new Window(_loadingPage);
     }
 }
