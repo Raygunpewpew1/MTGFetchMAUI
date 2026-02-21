@@ -121,7 +121,6 @@ public class MTGCardGrid : Grid
         _animationStopwatch.Start();
 
         Loaded += (s, e) => SyncLayout();
-        Unloaded += (s, e) => DisposeResources();
     }
 
     private void SyncLayout()
