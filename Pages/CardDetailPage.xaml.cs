@@ -1,3 +1,4 @@
+using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
@@ -325,12 +326,14 @@ public partial class CardDetailPage : ContentPage
                     FontSize = 11,
                     TextColor = Color.FromArgb("#888888")
                 });
-                stack.Add(new Label
+                stack.Add(new CardTextView
                 {
-                    Text = ruling.Text,
-                    FontSize = 13,
-                    TextColor = Color.FromArgb("#E0E0E0"),
-                    LineBreakMode = LineBreakMode.WordWrap
+                    CardText = ruling.Text,
+                    TextSize = 13,
+                    TextColor = new SKColor(0xE0, 0xE0, 0xE0),
+                    SymbolSize = 14,
+                    BackgroundColor = Colors.Transparent,
+                    HorizontalOptions = LayoutOptions.Fill
                 });
                 RulingsStack.Add(stack);
             }
