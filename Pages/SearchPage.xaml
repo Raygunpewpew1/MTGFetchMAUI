@@ -30,8 +30,8 @@
                 <Entry.Behaviors>
                     <toolkit:UserStoppedTypingBehavior
                         Command="{Binding SearchCommand}"
-                        TimeThreshold="750"
-                        MinimumLength="3" />
+                        StoppedTypingTimeThreshold="750"
+                        MinimumLengthThreshold="3" />
                 </Entry.Behaviors>
             </Entry>
 
