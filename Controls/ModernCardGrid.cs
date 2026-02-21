@@ -298,15 +298,17 @@ public class ModernCardGrid : ContentView
         }
 
         // Text
-        using var textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true, TextSize = 12f };
+        using var textPaint = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        using var textFont = new SKFont { Size = 12f };
         float textY = rect.Top + rect.Width * 1.3968f + 16f;
-        canvas.DrawText(card.Name, rect.Left + 4f, textY, textPaint);
+        canvas.DrawText(card.Name, rect.Left + 4f, textY, SKTextAlign.Left, textFont, textPaint);
 
         // Price
         if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
         {
-            using var pricePaint = new SKPaint { Color = SKColors.LightGreen, IsAntialias = true, TextSize = 10f };
-            canvas.DrawText(card.CachedDisplayPrice, rect.Right - 40f, rect.Bottom - 6f, pricePaint);
+            using var pricePaint = new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
+            using var priceFont = new SKFont { Size = 10f };
+            canvas.DrawText(card.CachedDisplayPrice, rect.Right - 40f, rect.Bottom - 6f, SKTextAlign.Left, priceFont, pricePaint);
         }
     }
 }
