@@ -23,9 +23,10 @@ public partial class CollectionPage : ContentPage
 
         _viewModel.CollectionLoaded += () =>
         {
-            MainThread.BeginInvokeOnMainThread(() =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                CollectionGrid.SetScrollOffset(0);
+                if (CollectionScrollView.ScrollY > 0)
+                    await CollectionScrollView.ScrollToAsync(0, 0, false);
             });
         };
 
@@ -49,6 +50,13 @@ public partial class CollectionPage : ContentPage
         _toastService.OnShow += OnToastShow;
         CollectionGrid.StartTimers();
 
+        // Ensure scroll is synced after a tab switch
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            CollectionGrid.SetScrollOffset((float)CollectionScrollView.ScrollY);
+            _viewModel.LoadVisibleImages();
+        });
+
         if (!_loaded)
         {
             _loaded = true;
@@ -71,6 +79,11 @@ public partial class CollectionPage : ContentPage
     private async void OnRefreshClicked(object? sender, EventArgs e)
     {
         await _viewModel.LoadCollectionAsync();
+    }
+
+    private void OnCollectionScrolled(object? sender, ScrolledEventArgs e)
+    {
+        _viewModel.OnScrollChanged((float)e.ScrollY);
     }
 
     private async void OnCardClicked(string uuid)
