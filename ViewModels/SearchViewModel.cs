@@ -47,6 +47,7 @@ public class SearchViewModel : BaseViewModel
 
     public ICommand SearchCommand { get; }
     public ICommand ClearCommand { get; }
+    public ICommand GoToFiltersCommand { get; }
 
     public event Action? SearchCompleted;
 
@@ -55,6 +56,7 @@ public class SearchViewModel : BaseViewModel
         _cardManager = cardManager;
         SearchCommand = new Command(async () => await PerformSearchAsync());
         ClearCommand = new Command(ClearSearch);
+        GoToFiltersCommand = new Command(async () => await Shell.Current.GoToAsync("searchfilters"));
 
         // Subscribe to CardManager events for status updates
         _cardManager.OnProgress += (msg, pct) =>

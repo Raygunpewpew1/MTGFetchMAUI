@@ -28,19 +28,6 @@ public partial class SearchPage : ContentPage
                 await GridScrollView.ScrollToAsync(0, 0, false);
             });
         };
-
-        _viewModel.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(SearchViewModel.IsBusy))
-            {
-                LoadingIndicator.IsRunning = _viewModel.IsBusy;
-                LoadingIndicator.IsVisible = _viewModel.IsBusy;
-            }
-            else if (e.PropertyName == nameof(SearchViewModel.StatusMessage))
-            {
-                StatusLabel.Text = _viewModel.StatusMessage;
-            }
-        };
     }
 
     protected override void OnAppearing()
@@ -67,24 +54,6 @@ public partial class SearchPage : ContentPage
     private void OnToastShow(string message, int duration)
     {
         MainThread.BeginInvokeOnMainThread(() => _ = GridSnackbar.ShowAsync(message, duration));
-    }
-
-    private async void OnSearchClicked(object? sender, EventArgs e)
-    {
-        _viewModel.SearchText = SearchEntry.Text ?? "";
-        await _viewModel.PerformSearchAsync();
-    }
-
-    private async void OnSearchCompleted(object? sender, EventArgs e)
-    {
-        _viewModel.SearchText = SearchEntry.Text ?? "";
-        await _viewModel.PerformSearchAsync();
-    }
-
-    private async void OnFiltersClicked(object? sender, EventArgs e)
-    {
-        _viewModel.SearchText = SearchEntry.Text ?? "";
-        await Shell.Current.GoToAsync("searchfilters");
     }
 
     private void OnGridScrolled(object? sender, ScrolledEventArgs e)

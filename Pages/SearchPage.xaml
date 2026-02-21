@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
              x:Class="MTGFetchMAUI.Pages.SearchPage"
              Title="Search"
              BackgroundColor="{StaticResource Background}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,Auto,*">
 
@@ -13,22 +20,32 @@
               Padding="8,8,8,4" ColumnSpacing="8">
             <Entry x:Name="SearchEntry"
                    Placeholder="Search cards..."
+                   Text="{Binding SearchText, Mode=TwoWay}"
                    ReturnType="Search"
-                   Completed="OnSearchCompleted"
+                   ReturnCommand="{Binding SearchCommand}"
                    BackgroundColor="{StaticResource Surface}"
                    TextColor="{StaticResource TextPrimary}"
                    PlaceholderColor="{StaticResource TextSecondary}"
-                   HeightRequest="44" />
+                   HeightRequest="44">
+                <Entry.Behaviors>
+                    <toolkit:UserStoppedTypingBehavior
+                        Command="{Binding SearchCommand}"
+                        TimeThreshold="750"
+                        MinimumLength="3" />
+                </Entry.Behaviors>
+            </Entry>
 
             <Button Grid.Column="1"
                     Text="Search"
-                    Clicked="OnSearchClicked"
+                    Command="{Binding SearchCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     HeightRequest="44"
                     Padding="16,0" />
 
             <Button Grid.Column="2"
                     Text="Filters"
-                    Clicked="OnFiltersClicked"
+                    Command="{Binding GoToFiltersCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     BackgroundColor="{StaticResource CardBackground}"
                     HeightRequest="44"
                     Padding="12,0" />
@@ -37,11 +54,12 @@
         <!-- Status Bar -->
         <Grid Grid.Row="1" Padding="8,0,8,4">
             <Label x:Name="StatusLabel"
+                   Text="{Binding StatusMessage}"
                    TextColor="{StaticResource TextSecondary}"
                    FontSize="12" />
             <ActivityIndicator x:Name="LoadingIndicator"
-                               IsRunning="False"
-                               IsVisible="False"
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
                                HorizontalOptions="End"
                                HeightRequest="20"
                                WidthRequest="20"
