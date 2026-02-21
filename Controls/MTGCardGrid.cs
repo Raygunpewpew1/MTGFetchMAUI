@@ -653,8 +653,9 @@ public class MTGCardGrid : Grid
         lock (_cardsLock)
         {
             bool needsReload = false;
-            foreach (var card in _cards)
+            for (int i = _visibleStart; i <= _visibleEnd && i < _cards.Count; i++)
             {
+                var card = _cards[i];
                 if (card.Image != null && card.Image.Handle == IntPtr.Zero)
                 {
                     card.Image = null;
