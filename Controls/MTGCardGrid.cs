@@ -30,7 +30,7 @@ public class MTGCardGrid : Grid
     private readonly float[] _dashArray = new float[2];
 
     // ── Controls ───────────────────────────────────────────────────────
-    private readonly SKCanvasView _canvas;
+    private readonly SKGLView _canvas;
     private readonly BoxView _scrollSpacer;
 
     // ── State ──────────────────────────────────────────────────────────
@@ -86,8 +86,7 @@ public class MTGCardGrid : Grid
     private SKRoundRect? _cardRoundRect;
     private SKRoundRect? _imageRoundRect;
     private SKRoundRect? _labelRoundRect;
-    // Use Linear filter but no mipmaps for better CPU performance on SKCanvasView
-    private readonly SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.None);
+    private readonly SKSamplingOptions _sampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
 
     // ── Events ─────────────────────────────────────────────────────────
     public event Action<string>? CardClicked;
@@ -106,8 +105,8 @@ public class MTGCardGrid : Grid
     {
         _scrollSpacer = new BoxView { Color = Colors.Transparent, WidthRequest = 100 };
 
-        // Use SKCanvasView for more stable rendering on Android (avoids GL context loss on tab switch)
-        _canvas = new SKCanvasView
+        // Use SKGLView for hardware-accelerated rendering
+        _canvas = new SKGLView
         {
             EnableTouchEvents = true,
             HorizontalOptions = LayoutOptions.Fill,
@@ -131,6 +130,17 @@ public class MTGCardGrid : Grid
         _canvas.InvalidateSurface();
     }
 
+    /// <summary>
+    /// Forces a redraw of the grid surface. Useful when returning from background/tab switch.
+    /// </summary>
+    public void ForceRedraw()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            _canvas.InvalidateSurface();
+        });
+    }
+
     public void StartTimers()
     {
         if (_cleanupTimer != null) return;
@@ -141,8 +151,7 @@ public class MTGCardGrid : Grid
         _cleanupTimer.Start();
 
         _animationTimer = Dispatcher.CreateTimer();
-        // Reduced to ~30 FPS (33ms) to save CPU/Battery on software rendering
-        _animationTimer.Interval = TimeSpan.FromMilliseconds(33);
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
         _animationTimer.Tick += (_, _) => UpdateAnimations();
         _animationTimer.Start();
     }
@@ -572,7 +581,7 @@ public class MTGCardGrid : Grid
         }
     }
 
-    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
+    private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
         lock (_renderLock)
         {
