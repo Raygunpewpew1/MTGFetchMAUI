@@ -33,7 +33,7 @@
                         Command="{Binding BindingContext.SearchCommand, Source={x:Reference SearchPageRoot}}"
                         StoppedTypingTimeThreshold="750"
                         MinimumLengthThreshold="3"
-                        ShouldDismissKeyboard="False" />
+                        ShouldDismissKeyboardAutomatically="False" />
                 </Entry.Behaviors>
             </Entry>
 
