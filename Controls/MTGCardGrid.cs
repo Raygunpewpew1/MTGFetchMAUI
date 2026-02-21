@@ -26,8 +26,15 @@ public class MTGCardGrid : Grid
         new SKPoint(8, 8), new SKPoint(8, 8)
     ];
 
+    private static readonly SKColor CardBgColor = new SKColor(30, 30, 30);
+    private static readonly SKColor LabelBgColor = new SKColor(25, 25, 25);
+    private static readonly SKColor NameColor = new SKColor(240, 240, 240);
+    private static readonly SKColor SetColor = new SKColor(160, 160, 160);
+
     private SKPath? _borderPath;
     private readonly float[] _dashArray = new float[2];
+    private float _lastDash0 = -1;
+    private float _lastDash1 = -1;
 
     // ── Controls ───────────────────────────────────────────────────────
     private readonly SKCanvasView _canvas;
@@ -78,6 +85,8 @@ public class MTGCardGrid : Grid
     private SKPaint? _shimmerGradientPaint;
     private SKPaint? _ripplePaint;
     private SKPaint? _imgPaint;
+    private SKPaint? _progressPaint;
+    private SKPathEffect? _dashEffect;
     private SKFont? _nameFont;
     private SKFont? _setFont;
     private SKFont? _chipFont;
@@ -181,7 +190,7 @@ public class MTGCardGrid : Grid
 
         bool needsInvalidate = false;
 
-        if (_pressedIndex >= 0 && _longPressTimer != null)
+        if (_pressedIndex >= 0 && _longPressTimer != null && _longPressProgress < 1f)
         {
             _longPressProgress = Math.Min(1f, _longPressProgress + deltaTime * 2f);
             needsInvalidate = true;
@@ -557,6 +566,12 @@ public class MTGCardGrid : Grid
         _shimmerGradientPaint = new SKPaint { IsAntialias = true };
         _ripplePaint = new SKPaint { IsAntialias = true, Color = new SKColor(255, 255, 255, 30) };
         _imgPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+        _progressPaint = new SKPaint
+        {
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 4f
+        };
 
         _nameFont = new SKFont(SKTypeface.Default, 12f);
         _setFont = new SKFont(SKTypeface.Default, 10f);
@@ -630,7 +645,7 @@ public class MTGCardGrid : Grid
 
         // Card background
         // Optimization: Remove unnecessary object creation or property setting if value is same
-        _bgPaint!.Color = new SKColor(30, 30, 30, alphaByte);
+        _bgPaint!.Color = CardBgColor.WithAlpha(alphaByte);
 
         // Optimization: Reuse the SKRoundRect without reallocating (already doing this)
         // But we can optimize the rounded rect drawing by just drawing the rect if radius is small?
@@ -667,12 +682,12 @@ public class MTGCardGrid : Grid
         float labelY = rect.Top + imageHeight;
         var labelRect = new SKRect(rect.Left, labelY, rect.Right, rect.Bottom);
 
-        _labelBgPaint!.Color = new SKColor(25, 25, 25, alphaByte);
+        _labelBgPaint!.Color = LabelBgColor.WithAlpha(alphaByte);
         _labelRoundRect!.SetRectRadii(labelRect, LabelRadii);
         canvas.DrawRoundRect(_labelRoundRect, _labelBgPaint);
 
         // Card name
-        _namePaint!.Color = new SKColor(240, 240, 240, alphaByte);
+        _namePaint!.Color = NameColor.WithAlpha(alphaByte);
         if (card.TruncatedName == "" || card.LastKnownCardWidth != _cardWidth)
         {
             card.TruncatedName = TruncateText(card.Name, _nameFont!, _cardWidth - 8f);
@@ -681,7 +696,7 @@ public class MTGCardGrid : Grid
         canvas.DrawText(card.TruncatedName, rect.Left + 4f, labelY + 16f, _nameFont!, _namePaint);
 
         // Set info
-        _setPaint!.Color = new SKColor(160, 160, 160, alphaByte);
+        _setPaint!.Color = SetColor.WithAlpha(alphaByte);
         //  string setInfo = $"{card.SetCode} #{card.Number}";
         canvas.DrawText(card.DisplaySetInfo, rect.Left + 4f, labelY + 32f, _setFont!, _setPaint);
 
@@ -741,13 +756,7 @@ public class MTGCardGrid : Grid
         {
             if (_longPressProgress > 0)
             {
-                using var progressPaint = new SKPaint
-                {
-                    IsAntialias = true,
-                    Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 4f,
-                    Color = new SKColor(255, 255, 255, (byte)(100 + _longPressProgress * 155))
-                };
+                _progressPaint!.Color = new SKColor(255, 255, 255, (byte)(100 + _longPressProgress * 155));
 
                 // Reuse the cached path instead of creating a new one
                 _borderPath ??= new SKPath();
@@ -775,14 +784,22 @@ public class MTGCardGrid : Grid
                     _dashArray[0] = length * _longPressProgress;
                     _dashArray[1] = length;
 
-                    // Apply dash effect using the cached array
-                    using var dash = SKPathEffect.CreateDash(_dashArray, 0);
-                    progressPaint.PathEffect = dash;
-                    canvas.DrawPath(_borderPath, progressPaint);
+                    if (Math.Abs(_dashArray[0] - _lastDash0) > 0.01f || Math.Abs(_dashArray[1] - _lastDash1) > 0.01f)
+                    {
+                        _dashEffect?.Dispose();
+                        _dashEffect = SKPathEffect.CreateDash(_dashArray, 0);
+                        _lastDash0 = _dashArray[0];
+                        _lastDash1 = _dashArray[1];
+                    }
+
+                    // Apply dash effect using the cached effect
+                    _progressPaint.PathEffect = _dashEffect;
+                    canvas.DrawPath(_borderPath, _progressPaint);
                 }
                 else
                 {
-                    canvas.DrawPath(_borderPath, progressPaint);
+                    _progressPaint.PathEffect = null;
+                    canvas.DrawPath(_borderPath, _progressPaint);
                 }
             }
             else
@@ -1024,6 +1041,10 @@ public class MTGCardGrid : Grid
             _ripplePaint = null;
             _imgPaint?.Dispose();
             _imgPaint = null;
+            _progressPaint?.Dispose();
+            _progressPaint = null;
+            _dashEffect?.Dispose();
+            _dashEffect = null;
 
             _nameFont?.Dispose();
             _nameFont = null;
@@ -1050,13 +1071,33 @@ public class MTGCardGrid : Grid
     private static string TruncateText(string text, SKFont font, float maxWidth)
     {
         if (font.MeasureText(text) <= maxWidth) return text;
-        for (int len = text.Length - 1; len > 0; len--)
+
+        float ellipsisWidth = font.MeasureText("...");
+        float targetWidth = maxWidth - ellipsisWidth;
+
+        if (targetWidth <= 0) return "...";
+
+        int low = 0;
+        int high = text.Length - 1;
+        int bestLen = 0;
+
+        while (low <= high)
         {
-            string truncated = text[..len] + "...";
-            if (font.MeasureText(truncated) <= maxWidth)
-                return truncated;
+            int mid = low + (high - low) / 2;
+            string sub = text[..mid];
+
+            if (font.MeasureText(sub) <= targetWidth)
+            {
+                bestLen = mid;
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid - 1;
+            }
         }
-        return "...";
+
+        return text[..bestLen] + "...";
     }
 
     protected override void OnSizeAllocated(double width, double height)
