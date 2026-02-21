@@ -10,14 +10,17 @@
     <TabBar>
         <ShellContent
             Title="Search"
+            Icon="icon_search.png"
             ContentTemplate="{DataTemplate pages:SearchPage}" />
 
         <ShellContent
             Title="Collection"
+            Icon="icon_collection.png"
             ContentTemplate="{DataTemplate pages:CollectionPage}" />
 
         <ShellContent
             Title="Stats"
+            Icon="icon_stats.png"
             ContentTemplate="{DataTemplate pages:StatsPage}" />
     </TabBar>
 
