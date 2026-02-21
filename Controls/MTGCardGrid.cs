@@ -41,6 +41,8 @@ public class MTGCardGrid : Grid
     private readonly BoxView _scrollSpacer;
 
     // ── State ──────────────────────────────────────────────────────────
+    private int _glGeneration = 0;
+    private GRContext? _lastGLContext;
     private readonly List<GridCardData> _cards = [];
     private readonly object _cardsLock = new();
     private readonly object _renderLock = new();
@@ -599,6 +601,25 @@ public class MTGCardGrid : Grid
 
     private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
+        var currentContext = e.Surface.Context;
+        if (_lastGLContext != null && currentContext != _lastGLContext)
+        {
+            _glGeneration++;
+            lock (_cardsLock)
+            {
+                foreach (var card in _cards)
+                {
+                    card.Image?.Dispose();
+                    card.Image = null;
+                    card.Quality = ImageQuality.None;
+                    card.IsLoading = false;
+                    card.FirstVisible = false;
+                }
+            }
+            VisibleRangeChanged?.Invoke(_visibleStart, _visibleEnd);
+        }
+        _lastGLContext = currentContext;
+
         lock (_cardsLock)
         {
             bool needsReload = false;
