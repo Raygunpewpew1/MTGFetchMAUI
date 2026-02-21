@@ -1,19 +1,22 @@
 namespace MTGFetchMAUI;
 
 using MTGFetchMAUI.Pages;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 
 public partial class App : Application
 {
-    private readonly LoadingPage _loadingPage;
+    private readonly IServiceProvider _serviceProvider;
 
-    public App(LoadingPage loadingPage)
+    public App(IServiceProvider serviceProvider)
     {
         InitializeComponent();
-        _loadingPage = loadingPage;
+        _serviceProvider = serviceProvider;
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(_loadingPage);
+        var loadingPage = _serviceProvider.GetRequiredService<LoadingPage>();
+        return new Window(loadingPage);
     }
 }
