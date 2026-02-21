@@ -103,9 +103,9 @@ public class LoadingViewModel : BaseViewModel
         // though we should already be on it if called from UI events.
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (Application.Current != null)
+            if (Application.Current != null && Application.Current.Windows.Count > 0)
             {
-                Application.Current.MainPage = new AppShell(_cardManager);
+                Application.Current.Windows[0].Page = new AppShell(_cardManager);
             }
         });
     }
