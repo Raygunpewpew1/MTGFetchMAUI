@@ -33,6 +33,7 @@ public partial class SearchPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        CardGrid.OnResume();
         _toastService.OnShow += OnToastShow;
         CardGrid.StartTimers();
 
@@ -47,6 +48,7 @@ public partial class SearchPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        CardGrid.OnSleep();
         _toastService.OnShow -= OnToastShow;
         CardGrid.StopTimers();
     }

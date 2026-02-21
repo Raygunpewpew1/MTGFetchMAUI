@@ -47,6 +47,7 @@ public partial class CollectionPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        CollectionGrid.OnResume();
         _toastService.OnShow += OnToastShow;
         CollectionGrid.StartTimers();
 
@@ -68,6 +69,7 @@ public partial class CollectionPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        CollectionGrid.OnSleep();
         _toastService.OnShow -= OnToastShow;
         CollectionGrid.StopTimers();
     }

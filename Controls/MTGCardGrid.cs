@@ -42,6 +42,7 @@ public class MTGCardGrid : Grid
 
     // ── State ──────────────────────────────────────────────────────────
     private int _glGeneration = 0;
+    private bool _glResourcesLost = false;
     private GRContext? _lastGLContext;
     private readonly List<GridCardData> _cards = [];
     private readonly object _cardsLock = new();
@@ -229,6 +230,35 @@ public class MTGCardGrid : Grid
     }
 
     // ── Public API ─────────────────────────────────────────────────────
+
+    public void OnSleep()
+    {
+        _glResourcesLost = true;
+    }
+
+    public void OnResume()
+    {
+        if (_glResourcesLost)
+        {
+            _glResourcesLost = false;
+            lock (_cardsLock)
+            {
+                foreach (var card in _cards)
+                {
+                    card.Image?.Dispose();
+                    card.Image = null;
+                    card.Quality = ImageQuality.None;
+                    card.IsLoading = false;
+                    card.FirstVisible = false;
+                }
+            }
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                VisibleRangeChanged?.Invoke(_visibleStart, _visibleEnd);
+                _canvas.InvalidateSurface();
+            });
+        }
+    }
 
     public void SetCards(Card[] cards)
     {
