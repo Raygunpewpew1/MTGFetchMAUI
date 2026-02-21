@@ -4,6 +4,7 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
              x:Class="MTGFetchMAUI.Pages.SearchPage"
+             x:Name="SearchPageRoot"
              Title="Search"
              BackgroundColor="{StaticResource Background}">
 
@@ -29,9 +30,10 @@
                    HeightRequest="44">
                 <Entry.Behaviors>
                     <toolkit:UserStoppedTypingBehavior
-                        Command="{Binding SearchCommand}"
+                        Command="{Binding BindingContext.SearchCommand, Source={x:Reference SearchPageRoot}}"
                         StoppedTypingTimeThreshold="750"
-                        MinimumLengthThreshold="3" />
+                        MinimumLengthThreshold="3"
+                        ShouldDismissKeyboard="False" />
                 </Entry.Behaviors>
             </Entry>
 
