@@ -38,7 +38,11 @@
         </Grid>
 
         <!-- Card Grid -->
-        <controls:MTGCardGrid Grid.Row="1" x:Name="CollectionGrid" />
+        <ScrollView Grid.Row="1"
+                    x:Name="CollectionScrollView"
+                    Scrolled="OnCollectionScrolled">
+            <controls:MTGCardGrid x:Name="CollectionGrid" />
+        </ScrollView>
 
         <!-- Overlays -->
         <controls:CollectionAddSheet Grid.RowSpan="2" x:Name="AddSheet" ZIndex="1000" HorizontalOptions="Fill" VerticalOptions="Fill" />

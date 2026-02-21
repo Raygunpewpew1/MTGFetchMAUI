@@ -20,13 +20,12 @@ public partial class SearchPage : ContentPage
 
         CardGrid.CardClicked += OnCardClicked;
         CardGrid.CardLongPressed += OnCardLongPressed;
-        CardGrid.Scrolled += OnGridScrolled;
 
         _viewModel.SearchCompleted += () =>
         {
-            MainThread.BeginInvokeOnMainThread(() =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                CardGrid.SetScrollOffset(0);
+                await GridScrollView.ScrollToAsync(0, 0, false);
             });
         };
 
@@ -49,6 +48,13 @@ public partial class SearchPage : ContentPage
         base.OnAppearing();
         _toastService.OnShow += OnToastShow;
         CardGrid.StartTimers();
+
+        // Ensure scroll is synced after a tab switch
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            CardGrid.SetScrollOffset((float)GridScrollView.ScrollY);
+            _viewModel.LoadVisibleImages(ImageQuality.Small);
+        });
     }
 
     protected override void OnDisappearing()
@@ -81,8 +87,11 @@ public partial class SearchPage : ContentPage
         await Shell.Current.GoToAsync("searchfilters");
     }
 
-    private void OnGridScrolled(float scrollY, float viewportHeight, float contentHeight)
+    private void OnGridScrolled(object? sender, ScrolledEventArgs e)
     {
+        float scrollY = (float)e.ScrollY;
+        float viewportHeight = (float)GridScrollView.Height;
+        float contentHeight = (float)CardGrid.TotalContentHeight;
         _viewModel.OnScrollChanged(scrollY, viewportHeight, contentHeight);
     }
 

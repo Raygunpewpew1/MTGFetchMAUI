@@ -19,6 +19,10 @@
         <ShellContent
             Title="Stats"
             ContentTemplate="{DataTemplate pages:StatsPage}" />
+
+        <ShellContent
+            Title="Modern Grid"
+            ContentTemplate="{DataTemplate pages:ModernGridTestPage}" />
     </TabBar>
 
     <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>

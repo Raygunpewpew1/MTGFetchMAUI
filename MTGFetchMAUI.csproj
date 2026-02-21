@@ -34,6 +34,7 @@
 		<PackageReference Include="SkiaSharp" Version="3.119.2" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" />
 		<PackageReference Include="Svg.Skia" Version="3.4.1" />
+		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
