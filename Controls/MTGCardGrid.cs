@@ -37,7 +37,7 @@ public class MTGCardGrid : Grid
     private float _lastDash1 = -1;
 
     // ── Controls ───────────────────────────────────────────────────────
-    private readonly SKCanvasView _canvas;
+    private readonly SKGLView _canvas;
     private readonly BoxView _scrollSpacer;
 
     // ── State ──────────────────────────────────────────────────────────
@@ -115,11 +115,12 @@ public class MTGCardGrid : Grid
         _scrollSpacer = new BoxView { Color = Colors.Transparent, WidthRequest = 100 };
 
         // Use SKCanvasView for stability on Android (prevents GL context loss)
-        _canvas = new SKCanvasView
+        _canvas = new SKGLView
         {
             EnableTouchEvents = true,
             HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Start
+            VerticalOptions = LayoutOptions.Start,
+            HasRenderLoop = false
         };
         _canvas.PaintSurface += OnPaintSurface;
         _canvas.Touch += OnTouch;
@@ -596,8 +597,26 @@ public class MTGCardGrid : Grid
         }
     }
 
-    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
+    private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
+        lock (_cardsLock)
+        {
+            bool needsReload = false;
+            foreach (var card in _cards)
+            {
+                if (card.Image != null && card.Image.IsDisposed)
+                {
+                    card.Image = null;
+                    card.Quality = ImageQuality.None;
+                    card.IsLoading = false;
+                    card.FirstVisible = false;
+                    needsReload = true;
+                }
+            }
+            if (needsReload)
+                VisibleRangeChanged?.Invoke(_visibleStart, _visibleEnd);
+        }
+
         lock (_renderLock)
         {
             var canvas = e.Surface.Canvas;
