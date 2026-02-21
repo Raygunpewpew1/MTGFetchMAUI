@@ -30,7 +30,7 @@ public class MTGCardGrid : Grid
     private readonly float[] _dashArray = new float[2];
 
     // ── Controls ───────────────────────────────────────────────────────
-    private readonly SKGLView _canvas;
+    private readonly SKCanvasView _canvas;
     private readonly BoxView _scrollSpacer;
 
     // ── State ──────────────────────────────────────────────────────────
@@ -105,8 +105,8 @@ public class MTGCardGrid : Grid
     {
         _scrollSpacer = new BoxView { Color = Colors.Transparent, WidthRequest = 100 };
 
-        // Use SKGLView for hardware-accelerated rendering
-        _canvas = new SKGLView
+        // Use SKCanvasView for stability on Android (prevents GL context loss)
+        _canvas = new SKCanvasView
         {
             EnableTouchEvents = true,
             HorizontalOptions = LayoutOptions.Fill,
@@ -581,7 +581,7 @@ public class MTGCardGrid : Grid
         }
     }
 
-    private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
+    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
         lock (_renderLock)
         {
