@@ -101,7 +101,8 @@
                         x:Name="TextBorder"
                         IsVisible="False">
                     <controls:CardTextView x:Name="CardTextView"
-                                           HorizontalOptions="Fill" />
+                                           HorizontalOptions="Fill"
+                                           HeightRequest="60" />
                 </Border>
 
                 <Border StrokeShape="RoundRectangle 8"
