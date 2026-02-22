@@ -206,6 +206,8 @@ public class CardGrid : ContentView
         {
             _activeRipples.RemoveAll(r => (nowSec - r.StartTime) >= RippleDuration);
             hasRipples = _activeRipples.Count > 0;
+            if (hasRipples)
+                Console.WriteLine($"[Ripple] Active count: {_activeRipples.Count}, nowSec={nowSec:F2}");
         }
 
         bool hasLoading = false;
@@ -223,15 +225,13 @@ public class CardGrid : ContentView
     /// </summary>
     private void SpawnRipple(float spacerX, float spacerY)
     {
-        float absY = spacerY + _lastState.Viewport.ScrollY;
-
-        // Find the card that was hit
+        // GetPosition(_spacer) already returns content-relative coords (scroll included)
         DrawCardCommand? hitCmd = null;
         if (_currentRenderList != null)
         {
             foreach (var cmd in _currentRenderList.Commands)
             {
-                if (cmd is DrawCardCommand draw && draw.Rect.Contains(spacerX, absY))
+                if (cmd is DrawCardCommand draw && draw.Rect.Contains(spacerX, spacerY))
                 {
                     hitCmd = draw;
                     break;
@@ -241,18 +241,18 @@ public class CardGrid : ContentView
 
         if (hitCmd == null) return;
 
-        // Max radius covers the full card (half-diagonal * multiplier)
         var r = hitCmd.Rect;
         float halfDiag = MathF.Sqrt(r.Width * r.Width + r.Height * r.Height) / 2f;
         float maxRadius = halfDiag * RippleRadiusMult;
 
         var ripple = new Ripple(
             hitCmd.Card.Id.Value,
-            spacerX, absY,
+            spacerX, spacerY,
             maxRadius,
             _animationStopwatch.ElapsedMilliseconds / 1000f);
 
         lock (_rippleLock) { _activeRipples.Add(ripple); }
+        Console.WriteLine($"[Ripple] Spawned: x={ripple.X:F1}, y={ripple.Y:F1}, maxR={ripple.MaxRadius:F1}, cardId={ripple.CardId}");
         _canvas.InvalidateSurface();
     }
 
@@ -414,6 +414,9 @@ public class CardGrid : ContentView
         var point = e.GetPosition(_spacer);
         if (point == null) return;
 
+        // Spawn ripple at tap position — OnTapped fires reliably unlike PointerPressed
+        SpawnRipple((float)point.Value.X, (float)point.Value.Y);
+
         var id = HitTest((float)point.Value.X, (float)point.Value.Y);
         if (id != null) CardClicked?.Invoke(id);
     }
@@ -480,10 +483,9 @@ public class CardGrid : ContentView
     private string? HitTest(float spacerX, float spacerY)
     {
         if (_currentRenderList == null) return null;
-        float absY = spacerY + _lastState.Viewport.ScrollY;
         foreach (var cmd in _currentRenderList.Commands)
         {
-            if (cmd is DrawCardCommand draw && draw.Rect.Contains(spacerX, absY))
+            if (cmd is DrawCardCommand draw && draw.Rect.Contains(spacerX, spacerY))
                 return draw.Card.Id.Value;
         }
         return null;
@@ -497,7 +499,7 @@ public class CardGrid : ContentView
         _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true };
         _textFont ??= new SKFont { Size = 12f };
         _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
-        _priceFont ??= new SKFont { Size = 10f };
+        _priceFont ??= new SKFont { Size = 8.5f };
         _badgeBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
         _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
         _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
@@ -597,7 +599,10 @@ public class CardGrid : ContentView
                 canvas.Save();
                 canvas.ClipRoundRect(_cardRoundRect!, antialias: true);
                 _ripplePaint!.Color = new SKColor(255, 255, 255, (byte)Math.Clamp(alpha, 0, 255));
-                canvas.DrawCircle(ripple.X, ripple.Y, radius, _ripplePaint);
+                // ripple X/Y are spacer-relative; canvas is already translated by -ScrollY,
+                // so add ScrollY back to get the correct absolute canvas position
+                float rippleDrawY = ripple.Y + _lastState.Viewport.ScrollY;
+                canvas.DrawCircle(ripple.X, rippleDrawY, radius, _ripplePaint);
                 canvas.Restore();
             }
         }
@@ -667,11 +672,35 @@ public class CardGrid : ContentView
         float textY = imageRect.Bottom + 16f;
         DrawWrappedText(canvas, card.Name, rect.Left + 4f, textY, rect.Width - 8f, _textFont, _textPaint);
 
-        // 5. Price
+        // 5. Price chip — bottom-left corner of the image, overlaid
         if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
         {
-            canvas.DrawText(card.CachedDisplayPrice, rect.Right - 40f, rect.Bottom - 6f,
-                SKTextAlign.Left, _priceFont, _pricePaint);
+            const float chipPadX = 5f;
+            const float chipPadY = 3f;
+            const float chipRadius = 4f;
+            const float chipMargin = 6f; // nudged up from very bottom edge
+
+            float priceTextWidth = _priceFont!.MeasureText(card.CachedDisplayPrice);
+            float chipW = priceTextWidth + chipPadX * 2f;
+            float chipH = _priceFont.Size + chipPadY * 2f;
+
+            // Sit the chip so its bottom is ~15% up from the image bottom,
+            // landing roughly at the art/text-box boundary on most cards
+            float chipY = imageRect.Bottom - (imageRect.Height * 0.15f) - chipH;
+            float chipX = imageRect.Left + chipMargin;
+
+            var chipRect = new SKRect(chipX, chipY, chipX + chipW, chipY + chipH);
+
+            using var chipBgPaint = new SKPaint
+            {
+                IsAntialias = true,
+                Color = new SKColor(0, 0, 0, 185)
+            };
+            canvas.DrawRoundRect(chipRect, chipRadius, chipRadius, chipBgPaint);
+
+            float chipTextX = chipRect.Left + chipPadX;
+            float chipTextY = chipRect.Bottom - chipPadY - 1f;
+            canvas.DrawText(card.CachedDisplayPrice, chipTextX, chipTextY, SKTextAlign.Left, _priceFont, _pricePaint);
         }
 
         // 6. Quantity badge
