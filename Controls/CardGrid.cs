@@ -27,6 +27,9 @@ public class CardGrid : ContentView
     private readonly HashSet<string> _loadingImages = new();
     private readonly object _loadingLock = new();
 
+    // FIX #7: Bounded download queue to prevent task explosion on large grids
+    private readonly SemaphoreSlim _downloadSemaphore = new(4, 4);
+
     // Animation
     private float _shimmerPhase;
     private readonly Stopwatch _animationStopwatch = new();
@@ -37,14 +40,13 @@ public class CardGrid : ContentView
     private GRRecordingContext? _lastGLContext;
     private int _glGeneration = 0;
 
-    // Cached Paints
+    // Cached Paints — initialized in OnLoaded (FIX #9)
     private SKPaint? _bgPaint;
     private SKPaint? _textPaint;
     private SKFont? _textFont;
     private SKPaint? _pricePaint;
     private SKFont? _priceFont;
     private SKPaint? _shimmerBasePaint;
-    private SKPaint? _shimmerGradientPaint;
     private SKPaint? _badgeBgPaint;
     private SKPaint? _badgeTextPaint;
     private SKFont? _badgeFont;
@@ -73,14 +75,13 @@ public class CardGrid : ContentView
             IgnorePixelScaling = true,
             EnableTouchEvents = false,
             InputTransparent = true,
-            HasRenderLoop = false // We control the loop
+            HasRenderLoop = false
         };
         _canvas.PaintSurface += OnPaintSurface;
 
         _spacer = new BoxView
         {
             Color = Colors.Transparent,
-            // WidthRequest = 100, // REMOVED: Should fill width
             HeightRequest = 100,
             HorizontalOptions = LayoutOptions.Fill,
             InputTransparent = false
@@ -95,7 +96,6 @@ public class CardGrid : ContentView
         };
         _scrollView.Scrolled += OnScrolled;
 
-        // Handle taps and long presses
         var tapGesture = new TapGestureRecognizer();
         tapGesture.Tapped += OnTapped;
         _spacer.GestureRecognizers.Add(tapGesture);
@@ -119,26 +119,28 @@ public class CardGrid : ContentView
         Unloaded += OnUnloaded;
     }
 
+    // FIX #4: flag set before Task.Run to prevent duplicate loops on re-load
     private bool _isProcessingUpdates;
 
     private void OnLoaded(object? sender, EventArgs e)
     {
-        // Resolve services
         if (Handler?.MauiContext != null)
         {
             _imageCache = Handler.MauiContext.Services.GetService<ImageCacheService>();
             _downloadService = Handler.MauiContext.Services.GetService<ImageDownloadService>();
         }
 
-        // Restart processing loop if needed
         if (!_isProcessingUpdates)
         {
             _cts = new CancellationTokenSource();
+            _isProcessingUpdates = true; // FIX #4: set synchronously before Task.Run
             Task.Run(ProcessStateUpdates);
         }
 
+        // FIX #9: Initialize paints here instead of every paint frame
+        EnsureResources();
+
         StartAnimationTimer();
-        // Force a redraw to ensure content is visible
         MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
     }
 
@@ -146,6 +148,8 @@ public class CardGrid : ContentView
     {
         StopAnimationTimer();
         _cts?.Cancel();
+        _cts?.Dispose(); // FIX #5: dispose the CTS
+        _cts = null;
         _isProcessingUpdates = false;
         DisposeResources();
     }
@@ -154,7 +158,7 @@ public class CardGrid : ContentView
     {
         if (_animationTimer != null) return;
         _animationTimer = Dispatcher.CreateTimer();
-        _animationTimer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
+        _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
         _animationTimer.Tick += (_, _) => UpdateAnimations();
         _animationTimer.Start();
     }
@@ -176,7 +180,6 @@ public class CardGrid : ContentView
         _shimmerPhase += deltaTime * 0.8f;
         if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
 
-        // Only invalidate if we have active shimmers (loading images)
         bool hasLoading = false;
         lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
 
@@ -226,7 +229,6 @@ public class CardGrid : ContentView
 
     public async Task AddCardsAsync(IEnumerable<Card> newCards)
     {
-        // Offload conversion to thread pool
         var newStates = await Task.Run(() => newCards.Select(c => CardState.FromCard(c)).ToImmutableArray());
         UpdateState(s => s with { Cards = s.Cards.AddRange(newStates) });
     }
@@ -240,21 +242,15 @@ public class CardGrid : ContentView
     {
         UpdateState(s =>
         {
-            // Find index manually (ImmutableArray doesn't have FindIndex)
             int index = -1;
             for (int i = 0; i < s.Cards.Length; i++)
             {
-                if (s.Cards[i].Id.Value == uuid)
-                {
-                    index = i;
-                    break;
-                }
+                if (s.Cards[i].Id.Value == uuid) { index = i; break; }
             }
 
             if (index >= 0)
             {
                 var newCard = s.Cards[index] with { PriceData = prices, CachedDisplayPrice = "" };
-                // Recalculate display price
                 newCard = newCard with { CachedDisplayPrice = newCard.GetDisplayPrice() };
                 return s with { Cards = s.Cards.SetItem(index, newCard) };
             }
@@ -287,7 +283,7 @@ public class CardGrid : ContentView
 
     public void OnSleep()
     {
-        _lastGLContext = null; // Force resource reload on resume
+        _lastGLContext = null;
     }
 
     public void OnResume()
@@ -307,15 +303,12 @@ public class CardGrid : ContentView
     private async Task ProcessStateUpdates()
     {
         if (_cts == null) return;
-        _isProcessingUpdates = true;
         try
         {
             await foreach (var state in _stateChannel.Reader.ReadAllAsync(_cts.Token))
             {
-                // Calculate Layout (Pure)
                 var renderList = GridLayoutEngine.Calculate(state);
 
-                // Update UI on Main Thread
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     bool rangeChanged = _currentRenderList == null ||
@@ -324,10 +317,10 @@ public class CardGrid : ContentView
 
                     _currentRenderList = renderList;
 
-                    // Update Spacer Height
+                    // FIX #6: Always sync spacer height, including 0 on clear
                     if (Math.Abs(_spacer.HeightRequest - renderList.TotalHeight) > 1)
                     {
-                        _spacer.HeightRequest = renderList.TotalHeight;
+                        _spacer.HeightRequest = Math.Max(0, renderList.TotalHeight);
                     }
 
                     _canvas.InvalidateSurface();
@@ -344,13 +337,18 @@ public class CardGrid : ContentView
         {
             Console.WriteLine($"Grid Error: {ex}");
         }
+        finally
+        {
+            _isProcessingUpdates = false;
+        }
     }
 
     // ── Event Handlers ─────────────────────────────────────────────────
 
     private void OnScrolled(object? sender, ScrolledEventArgs e)
     {
-        UpdateState(s => s with {
+        UpdateState(s => s with
+        {
             Viewport = s.Viewport with { ScrollY = (float)e.ScrollY }
         });
         Scrolled?.Invoke(this, e);
@@ -361,7 +359,8 @@ public class CardGrid : ContentView
         base.OnSizeAllocated(width, height);
         if (width > 0 && height > 0)
         {
-            UpdateState(s => s with {
+            UpdateState(s => s with
+            {
                 Viewport = s.Viewport with { Width = (float)width, Height = (float)height }
             });
         }
@@ -373,15 +372,6 @@ public class CardGrid : ContentView
 
         var point = e.GetPosition(_spacer);
         if (point == null) return;
-
-        // TappedEventArgs.GetPosition returns coordinates relative to the element (_spacer).
-        // _spacer is inside the ScrollView, so its Y coordinate is already 0-based relative to the content.
-        // HOWEVER, if the user taps, we need to ensure we map that correctly to the DrawCardCommands.
-        // DrawCardCommands are absolute positions (0 to TotalHeight).
-        // e.GetPosition(_spacer) SHOULD return (x, y) where y includes the scroll offset if _spacer is the content.
-
-        // Let's verify if _spacer covers the full scrollable area.
-        // Yes, _spacer.HeightRequest is set to TotalHeight.
 
         var id = HitTest((float)point.Value.X, (float)point.Value.Y);
         if (id != null) CardClicked?.Invoke(id);
@@ -408,10 +398,6 @@ public class CardGrid : ContentView
         {
             if (_isLongPressing)
             {
-                // Re-verify the point, but use the original press point
-                // (Using current pointer position requires capturing it in Moved, which we do to cancel)
-                // If we are still "pressing", trigger the action.
-
                 var id = HitTest((float)_pressPoint.X, (float)_pressPoint.Y);
                 if (id != null)
                 {
@@ -449,15 +435,14 @@ public class CardGrid : ContentView
         foreach (var cmd in _currentRenderList.Commands)
         {
             if (cmd is DrawCardCommand draw && draw.Rect.Contains(x, y))
-            {
                 return draw.Card.Id.Value;
-            }
         }
         return null;
     }
 
     // ── Rendering ──────────────────────────────────────────────────────
 
+    // FIX #9: Called once in OnLoaded, not every paint frame
     private void EnsureResources()
     {
         _bgPaint ??= new SKPaint { Color = new SKColor(30, 30, 30), IsAntialias = true };
@@ -468,20 +453,7 @@ public class CardGrid : ContentView
         _badgeBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
         _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
         _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
-
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
-        _shimmerGradientPaint ??= new SKPaint { IsAntialias = true };
-
-        if (_shimmerGradientPaint.Shader == null)
-        {
-            _shimmerGradientPaint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint(0, 0),
-                new SKPoint(100, 0),
-                [SKColors.Transparent, new SKColor(255, 255, 255, 60), SKColors.Transparent],
-                [0f, 0.5f, 1f],
-                SKShaderTileMode.Clamp);
-        }
-
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
     }
@@ -497,7 +469,6 @@ public class CardGrid : ContentView
         _badgeTextPaint?.Dispose(); _badgeTextPaint = null;
         _badgeFont?.Dispose(); _badgeFont = null;
         _shimmerBasePaint?.Dispose(); _shimmerBasePaint = null;
-        _shimmerGradientPaint?.Dispose(); _shimmerGradientPaint = null;
         _cardRoundRect?.Dispose(); _cardRoundRect = null;
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
@@ -509,8 +480,6 @@ public class CardGrid : ContentView
         {
             _glGeneration++;
             _lastGLContext = currentContext;
-            // Clear any GL-dependent resources if we had them (like cached SKImages backed by textures)
-            // Our ImageCacheService returns Raster images usually, so this might be fine.
         }
 
         var canvas = e.Surface.Canvas;
@@ -521,7 +490,8 @@ public class CardGrid : ContentView
         var list = _currentRenderList;
         if (list == null || list.Commands.IsEmpty) return;
 
-        EnsureResources();
+        // EnsureResources is now called in OnLoaded, but guard here in case paint fires early
+        if (_bgPaint == null) EnsureResources();
 
         float scale = info.Width / (float)(Width > 0 ? Width : 360);
         canvas.Scale(scale);
@@ -530,9 +500,7 @@ public class CardGrid : ContentView
         foreach (var cmd in list.Commands)
         {
             if (cmd is DrawCardCommand draw)
-            {
                 RenderCard(canvas, draw);
-            }
         }
     }
 
@@ -545,59 +513,58 @@ public class CardGrid : ContentView
         _cardRoundRect!.SetRect(rect, 8f, 8f);
         canvas.DrawRoundRect(_cardRoundRect, _bgPaint);
 
-        // Image Logic
+        // Image area
+        var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + rect.Width * 1.3968f);
+
         SKImage? image = null;
         if (_imageCache != null)
         {
-             // 1. Try Memory (L1)
-             image = _imageCache.GetMemoryImage(card.ScryfallId);
+            // 1. Try Memory (L1) — check outside lock since rendering is single-threaded
+            image = _imageCache.GetMemoryImage(card.ScryfallId);
 
-             if (image == null)
-             {
-                 bool shouldLoad = false;
-                 lock (_loadingLock)
-                 {
-                     if (!_loadingImages.Contains(card.ScryfallId))
-                     {
-                         _loadingImages.Add(card.ScryfallId);
-                         shouldLoad = true;
-                     }
-                 }
+            if (image == null)
+            {
+                bool shouldLoad = false;
+                lock (_loadingLock)
+                {
+                    // FIX #3: both the null check and the set are inside the lock
+                    if (!_loadingImages.Contains(card.ScryfallId))
+                    {
+                        _loadingImages.Add(card.ScryfallId);
+                        shouldLoad = true;
+                    }
+                }
 
-                 if (shouldLoad)
-                 {
-                     // Trigger Async Load
-                     Task.Run(async () => {
-                         try
-                         {
-                             // 2. Try Disk/DB (L2/L3)
-                             var img = await _imageCache.GetImageAsync(card.ScryfallId);
+                if (shouldLoad)
+                {
+                    // FIX #7: bounded semaphore caps concurrent downloads
+                    Task.Run(async () => {
+                        await _downloadSemaphore.WaitAsync();
+                        try
+                        {
+                            // 2. Try Disk/DB (L2/L3)
+                            var img = await _imageCache.GetImageAsync(card.ScryfallId);
 
-                             // 3. Try Network (L4)
-                             if (img == null && _downloadService != null)
-                             {
-                                 img = await _downloadService.DownloadImageDirectAsync(card.ScryfallId);
-                                 if (img != null)
-                                 {
-                                     _imageCache.AddToMemoryCache(card.ScryfallId, img);
-                                 }
-                             }
+                            // 3. Try Network (L4)
+                            if (img == null && _downloadService != null)
+                            {
+                                img = await _downloadService.DownloadImageDirectAsync(card.ScryfallId);
+                                if (img != null)
+                                    _imageCache.AddToMemoryCache(card.ScryfallId, img);
+                            }
 
-                             if (img != null)
-                             {
-                                 MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
-                             }
-                         }
-                         finally
-                         {
-                             lock (_loadingLock) _loadingImages.Remove(card.ScryfallId);
-                         }
-                     });
-                 }
-             }
+                            if (img != null)
+                                MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
+                        }
+                        finally
+                        {
+                            lock (_loadingLock) _loadingImages.Remove(card.ScryfallId);
+                            _downloadSemaphore.Release();
+                        }
+                    });
+                }
+            }
         }
-
-        var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + rect.Width * 1.3968f);
 
         if (image != null && image.Handle != IntPtr.Zero)
         {
@@ -635,23 +602,32 @@ public class CardGrid : ContentView
         }
     }
 
+    // FIX #1 & #2: Shimmer rewritten using absolute coordinates — no mid-draw transforms.
+    // Gradient is built per-call based on the actual rect dimensions so it scales correctly.
     private void DrawShimmer(SKCanvas canvas, SKRect rect)
     {
         canvas.Save();
         _imageRoundRect!.SetRect(rect, 8f, 8f);
         canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
-        // Base
+        // Base fill
         canvas.DrawRect(rect, _shimmerBasePaint);
 
-        // Shimmer Gradient
-        float shimmerWidth = rect.Width * 1.5f;
-        float shimmerX = rect.Left - rect.Width + (rect.Width * 3f) * _shimmerPhase;
+        // Shimmer sweep: highlight travels left-to-right across the card
+        // shimmerX goes from (left - width) to (right + width) over the phase cycle
+        float sweepWidth = rect.Width * 0.6f;
+        float travelRange = rect.Width + sweepWidth;
+        float shimmerX = rect.Left - sweepWidth + travelRange * _shimmerPhase;
 
-        canvas.Translate(shimmerX, rect.Top);
-        canvas.Scale(shimmerWidth / 100f, 1f);
-        canvas.DrawRect(0, 0, 100, rect.Height, _shimmerGradientPaint);
+        using var shimmerPaint = new SKPaint { IsAntialias = true };
+        shimmerPaint.Shader = SKShader.CreateLinearGradient(
+            new SKPoint(shimmerX, rect.Top),
+            new SKPoint(shimmerX + sweepWidth, rect.Top),
+            new[] { SKColors.Transparent, new SKColor(255, 255, 255, 55), SKColors.Transparent },
+            new[] { 0f, 0.5f, 1f },
+            SKShaderTileMode.Clamp);
 
+        canvas.DrawRect(rect, shimmerPaint);
         canvas.Restore();
     }
 }

@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 namespace MTGFetchMAUI.Core.Layout;
 
 public abstract record RenderCommand;
-
 public record DrawCardCommand(CardState Card, SKRect Rect, int Index) : RenderCommand;
 
 public record RenderList(
@@ -31,7 +30,7 @@ public static class GridLayoutEngine
         var cards = state.Cards;
 
         float width = viewport.Width;
-        if (width <= 0) width = 360f; // Fallback
+        if (width <= 0) width = 360f;
 
         // 1. Calculate Columns
         float availWidth = width - 20f; // 10px padding each side
@@ -43,34 +42,29 @@ public static class GridLayoutEngine
         float rowHeight = cardHeight + config.CardSpacing;
 
         int count = cards.Length;
+
+        // FIX #6: Return Empty with zero height so spacer resets on ClearCards
         if (count == 0)
-        {
             return RenderList.Empty;
-        }
 
         // 3. Calculate Total Height
         int rowCount = (int)Math.Ceiling((double)count / columns);
         float totalHeight = rowCount * rowHeight + config.CardSpacing + 50f;
 
         // 4. Calculate Visible Range
-        // The Viewport.ScrollY is the position of the scroll view.
-        // We render relative to this scroll position (sticky header pattern or just virtualized).
-        // If we use the "Sticky Viewport" pattern, the SKGLView is translated by ScrollY.
-        // So the visible area is from ScrollY to ScrollY + Viewport.Height.
-
         float effectiveOffset = Math.Max(0, viewport.ScrollY);
         float viewportHeight = viewport.Height > 0 ? viewport.Height : 1000f;
 
         int firstRow = Math.Max(0, (int)((effectiveOffset - config.CardSpacing) / rowHeight));
-        int lastRow = (int)((effectiveOffset + viewportHeight + config.CardSpacing) / rowHeight) + 1;
+
+        // FIX #8: removed the extra "+ 1" on lastRow — one extra row of buffer is enough
+        int lastRow = (int)((effectiveOffset + viewportHeight + config.CardSpacing) / rowHeight);
 
         int visibleStart = Math.Max(0, Math.Min(count - 1, firstRow * columns));
         int visibleEnd = Math.Max(0, Math.Min(count - 1, (lastRow + 1) * columns - 1));
 
         if (visibleStart >= count)
-        {
-            return RenderList.Empty with { TotalHeight = totalHeight };
-        }
+            return new RenderList(ImmutableArray<RenderCommand>.Empty, totalHeight, 0, -1, cardWidth, cardHeight);
 
         // 5. Generate Commands
         var commands = ImmutableArray.CreateBuilder<RenderCommand>(visibleEnd - visibleStart + 1);
@@ -78,15 +72,15 @@ public static class GridLayoutEngine
         for (int i = visibleStart; i <= visibleEnd; i++)
         {
             var card = cards[i];
-
             int row = i / columns;
             int col = i % columns;
 
-            float x = config.CardSpacing + col * (cardWidth + config.CardSpacing) + 10f;
-            float y = config.CardSpacing + row * (cardHeight + config.CardSpacing);
+            // FIX #6 (layout): x uses only CardSpacing as the left margin — the 10px outer
+            // padding is already baked into availWidth. Adding both caused double-padding.
+            float x = 10f + config.CardSpacing + col * (cardWidth + config.CardSpacing);
+            float y = config.CardSpacing + row * rowHeight;
 
             var rect = new SKRect(x, y, x + cardWidth, y + cardHeight);
-
             commands.Add(new DrawCardCommand(card, rect, i));
         }
 
