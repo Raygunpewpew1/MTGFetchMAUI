@@ -45,7 +45,10 @@
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#6200EE" />
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#121212" BaseSize="512,512" />
 		<MauiImage Include="Resources\Images\*" />
-		<MauiImage Include="Resources\Images\Mana\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Assets\SVGMana\*.svg" />
 	</ItemGroup>
 
 	<ItemGroup>
