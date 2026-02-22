@@ -73,7 +73,8 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
     private static void MapCardText(CardTextViewHandler handler, CardTextView view)
     {
         var context = handler.Context;
-        if (context == null) return;
+        if (context?.Resources == null) return;
+        var resources = context.Resources;
 
         if (string.IsNullOrEmpty(view.CardText))
         {
@@ -100,7 +101,7 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
             int resId = 0;
             try
             {
-                resId = context.Resources.GetIdentifier(resourceName, "drawable", context.PackageName);
+                resId = resources.GetIdentifier(resourceName, "drawable", context.PackageName);
             }
             catch {}
 
@@ -112,7 +113,7 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
                 {
                     // Convert SymbolSize (DIP) to pixels
                     float sizeDip = (float)view.SymbolSize;
-                    float scale = context.Resources.DisplayMetrics.Density;
+                    float scale = resources.DisplayMetrics?.Density ?? 1.0f;
                     int sizePx = (int)(sizeDip * scale + 0.5f);
 
                     drawable.SetBounds(0, 0, sizePx, sizePx);
