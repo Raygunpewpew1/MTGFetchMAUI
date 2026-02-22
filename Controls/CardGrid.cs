@@ -33,7 +33,7 @@ public class CardGrid : ContentView
     // Animation
     private float _shimmerPhase;
     private readonly Stopwatch _animationStopwatch = new();
-    private IDispatcherTimer? _animationTimer;
+    private bool _isLoaded;
     private long _lastFrameTime;
 
     // Cached Paints
@@ -117,6 +117,8 @@ public class CardGrid : ContentView
 
     private void OnLoaded(object? sender, EventArgs e)
     {
+        _isLoaded = true;
+
         if (Handler?.MauiContext != null)
         {
             _imageCache = Handler.MauiContext.Services.GetService<ImageCacheService>();
@@ -131,51 +133,19 @@ public class CardGrid : ContentView
         }
 
         EnsureResources();
-        StartAnimationTimer();
+        // Reset timing for smooth start
+        _lastFrameTime = _animationStopwatch.ElapsedMilliseconds;
         MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
     }
 
     private void OnUnloaded(object? sender, EventArgs e)
     {
-        StopAnimationTimer();
+        _isLoaded = false;
         _cts?.Cancel();
         _cts?.Dispose();
         _cts = null;
         _isProcessingUpdates = false;
         DisposeResources();
-    }
-
-    private void StartAnimationTimer()
-    {
-        if (_animationTimer != null) return;
-        _animationTimer = Dispatcher.CreateTimer();
-        _animationTimer.Interval = TimeSpan.FromMilliseconds(16);
-        _animationTimer.Tick += (_, _) => UpdateAnimations();
-        _animationTimer.Start();
-    }
-
-    private void StopAnimationTimer()
-    {
-        _animationTimer?.Stop();
-        _animationTimer = null;
-    }
-
-    private void UpdateAnimations()
-    {
-        long currentTime = _animationStopwatch.ElapsedMilliseconds;
-        float deltaTime = (currentTime - _lastFrameTime) / 1000f;
-        _lastFrameTime = currentTime;
-
-        if (deltaTime > 0.1f) deltaTime = 0.016f;
-
-        _shimmerPhase += deltaTime * 0.8f;
-        if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
-
-        bool hasLoading = false;
-        lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
-
-        if (hasLoading)
-            _canvas.InvalidateSurface();
     }
 
     // ── Public API ─────────────────────────────────────────────────────
@@ -462,6 +432,16 @@ public class CardGrid : ContentView
 
     private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
+        // Calculate animation frame
+        long currentTime = _animationStopwatch.ElapsedMilliseconds;
+        float deltaTime = (currentTime - _lastFrameTime) / 1000f;
+        _lastFrameTime = currentTime;
+
+        if (deltaTime > 0.1f) deltaTime = 0.016f;
+
+        _shimmerPhase += deltaTime * 0.8f;
+        if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
+
         var canvas = e.Surface.Canvas;
         var info = e.Info;
 
@@ -480,6 +460,14 @@ public class CardGrid : ContentView
         {
             if (cmd is DrawCardCommand draw)
                 RenderCard(canvas, draw);
+        }
+
+        bool hasLoading = false;
+        lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
+
+        if (hasLoading && _isLoaded)
+        {
+            _canvas.InvalidateSurface();
         }
     }
 
