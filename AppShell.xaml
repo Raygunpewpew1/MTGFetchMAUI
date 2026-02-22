@@ -9,19 +9,19 @@
 
     <TabBar>
         <ShellContent
+            x:Name="SearchTab"
             Title="Search"
-            Icon="icon_search.png"
-            ContentTemplate="{DataTemplate pages:SearchPage}" />
+            Icon="icon_search.png" />
 
         <ShellContent
+            x:Name="CollectionTab"
             Title="Collection"
-            Icon="icon_collection.png"
-            ContentTemplate="{DataTemplate pages:CollectionPage}" />
+            Icon="icon_collection.png" />
 
         <ShellContent
+            x:Name="StatsTab"
             Title="Stats"
-            Icon="icon_stats.png"
-            ContentTemplate="{DataTemplate pages:StatsPage}" />
+            Icon="icon_stats.png" />
     </TabBar>
 
     <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>

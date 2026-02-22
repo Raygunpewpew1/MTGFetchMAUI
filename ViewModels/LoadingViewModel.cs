@@ -6,6 +6,7 @@ namespace MTGFetchMAUI.ViewModels;
 public class LoadingViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
+    private readonly IServiceProvider _serviceProvider;
     private double _progress;
     private bool _showRetry;
 
@@ -23,9 +24,10 @@ public class LoadingViewModel : BaseViewModel
 
     public ICommand RetryCommand { get; }
 
-    public LoadingViewModel(CardManager cardManager)
+    public LoadingViewModel(CardManager cardManager, IServiceProvider serviceProvider)
     {
         _cardManager = cardManager;
+        _serviceProvider = serviceProvider;
         RetryCommand = new Command(async () => await StartDownloadAsync());
     }
 
@@ -105,7 +107,8 @@ public class LoadingViewModel : BaseViewModel
         {
             if (Application.Current != null && Application.Current.Windows.Count > 0)
             {
-                Application.Current.Windows[0].Page = new AppShell(_cardManager);
+                var appShell = _serviceProvider.GetRequiredService<AppShell>();
+                Application.Current.Windows[0].Page = appShell;
             }
         });
     }

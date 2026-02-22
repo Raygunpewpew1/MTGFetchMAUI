@@ -65,6 +65,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LoadingViewModel>();
 
         // ── Pages ───────────────────────────────────────────────────
+        builder.Services.AddSingleton<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddSingleton<SearchPage>();
         builder.Services.AddSingleton<CollectionPage>();
