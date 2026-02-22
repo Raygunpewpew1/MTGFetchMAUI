@@ -58,7 +58,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Controls\ModernCardGrid.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
