@@ -317,11 +317,48 @@ public class CardGrid : ContentView
         base.OnSizeAllocated(width, height);
         if (width > 0 && height > 0)
         {
-            UpdateState(s => s with
+            float w = (float)width;
+            float h = (float)height;
+
+            // Simple responsive breakpoint for tablets/desktop
+            // Standard phone is typically < 600 width in device-independent units
+            bool isLargeScreen = w >= 600;
+
+            UpdateState(s =>
             {
-                Viewport = s.Viewport with { Width = (float)width, Height = (float)height }
+                var newConfig = s.Config with
+                {
+                    MinCardWidth = isLargeScreen ? 160f : 100f,
+                    LabelHeight = isLargeScreen ? 52f : 42f
+                };
+
+                return s with
+                {
+                    Config = newConfig,
+                    Viewport = s.Viewport with { Width = w, Height = h }
+                };
             });
+
+            // Trigger resource update to match new sizing
+            MainThread.BeginInvokeOnMainThread(() => UpdateResources(isLargeScreen));
         }
+    }
+
+    private void UpdateResources(bool isLargeScreen)
+    {
+        _textFont?.Dispose();
+        _priceFont?.Dispose();
+        _badgeFont?.Dispose();
+
+        float baseTextSize = isLargeScreen ? 15f : 12f;
+        float priceTextSize = isLargeScreen ? 11f : 8.5f;
+        float badgeTextSize = isLargeScreen ? 13f : 11f;
+
+        _textFont = new SKFont { Size = baseTextSize };
+        _priceFont = new SKFont { Size = priceTextSize };
+        _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), badgeTextSize);
+
+        _canvas.InvalidateSurface();
     }
 
     private void OnTapped(object? sender, TappedEventArgs e)
@@ -413,6 +450,9 @@ public class CardGrid : ContentView
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
+
+        // Initial sizing check if we already have width
+        if (Width >= 600) UpdateResources(true);
     }
 
     private void DisposeResources()
