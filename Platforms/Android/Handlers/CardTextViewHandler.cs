@@ -118,7 +118,7 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
 
                     drawable.SetBounds(0, 0, sizePx, sizePx);
 
-                    var imageSpan = new ImageSpan(drawable, SpanAlign.Bottom);
+                    var imageSpan = new ImageSpan(drawable, SpanAlign.Baseline);
                     int start = ssb.Length();
                     ssb.Append(" ");
                     ssb.SetSpan(imageSpan, start, start + 1, SpanTypes.ExclusiveExclusive);
