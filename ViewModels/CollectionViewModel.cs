@@ -1,4 +1,6 @@
 using MTGFetchMAUI.Controls;
+using MTGFetchMAUI.Core;
+using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using System.Windows.Input;
@@ -12,7 +14,7 @@ namespace MTGFetchMAUI.ViewModels;
 public class CollectionViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
-    private MTGCardGrid? _grid;
+    private CardGrid? _grid;
     private int _totalCards;
     private int _uniqueCards;
 
@@ -38,7 +40,7 @@ public class CollectionViewModel : BaseViewModel
         RefreshCommand = new Command(async () => await LoadCollectionAsync());
     }
 
-    public void AttachGrid(MTGCardGrid grid)
+    public void AttachGrid(CardGrid grid)
     {
         _grid = grid;
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
@@ -103,15 +105,16 @@ public class CollectionViewModel : BaseViewModel
         try
         {
             var items = await _cardManager.GetCollectionAsync();
+
+            // Filter duplicates/aggregate if needed?
+            // The items from GetCollectionAsync are presumably distinct by card+printing?
+            // Assuming so.
+
             TotalCards = items.Sum(i => i.Quantity);
             UniqueCards = items.Length;
 
             _grid?.SetCollection(items);
             CollectionLoaded?.Invoke();
-
-            // Load images for visible cards
-            await Task.Delay(50);
-            LoadVisibleImages();
 
             StatusMessage = $"{TotalCards} cards ({UniqueCards} unique)";
         }
@@ -140,12 +143,11 @@ public class CollectionViewModel : BaseViewModel
 
     public void OnScrollChanged(float scrollY)
     {
-        _grid?.SetScrollOffset(scrollY);
+        // No-op for now unless we need to trigger infinite scroll
     }
 
     private void OnVisibleRangeChanged(int start, int end)
     {
-        LoadVisibleImages();
         LoadVisiblePrices(start, end);
     }
 
@@ -157,13 +159,13 @@ public class CollectionViewModel : BaseViewModel
         {
             for (int i = start; i <= end; i++)
             {
-                var card = _grid.GetCardAt(i);
+                var card = _grid.GetCardStateAt(i);
                 if (card == null || card.PriceData != null) continue;
 
-                var (found, prices) = await _cardManager.GetCardPricesAsync(card.UUID);
+                var (found, prices) = await _cardManager.GetCardPricesAsync(card.Id.Value);
                 if (found)
                 {
-                    string uuid = card.UUID;
+                    string uuid = card.Id.Value;
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
                         _grid?.UpdateCardPrices(uuid, prices);
@@ -171,33 +173,5 @@ public class CollectionViewModel : BaseViewModel
                 }
             }
         });
-    }
-
-    public void LoadVisibleImages()
-    {
-        if (_grid == null) return;
-
-        var needed = _grid.GetCardsNeedingImages();
-        foreach (var (_, card) in needed)
-        {
-            if (string.IsNullOrEmpty(card.ScryfallId)) continue;
-
-            _grid.MarkLoading(card.UUID);
-            string uuid = card.UUID;
-
-            _cardManager.DownloadCardImageAsync(card.ScryfallId, (image, success) =>
-            {
-                if (success && image != null)
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        if (_grid != null)
-                            _grid.UpdateCardImage(uuid, image, ImageQuality.Small);
-                        else
-                            image.Dispose();
-                    });
-                }
-            }, MTGConstants.ImageSizeSmall);
-        }
     }
 }

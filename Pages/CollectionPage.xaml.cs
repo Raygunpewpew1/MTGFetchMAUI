@@ -1,3 +1,5 @@
+using MTGFetchMAUI.Controls;
+using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 
@@ -25,8 +27,7 @@ public partial class CollectionPage : ContentPage
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                if (CollectionScrollView.ScrollY > 0)
-                    await CollectionScrollView.ScrollToAsync(0, 0, false);
+                await CollectionGrid.ScrollToAsync(0, false);
             });
         };
 
@@ -49,14 +50,11 @@ public partial class CollectionPage : ContentPage
         base.OnAppearing();
         CollectionGrid.OnResume();
         _toastService.OnShow += OnToastShow;
-        CollectionGrid.StartTimers();
 
         // Ensure scroll is synced after a tab switch
         MainThread.BeginInvokeOnMainThread(() =>
         {
             CollectionGrid.ForceRedraw();
-            CollectionGrid.SetScrollOffset((float)CollectionScrollView.ScrollY);
-            _viewModel.LoadVisibleImages();
         });
 
         if (!_loaded)
@@ -71,7 +69,6 @@ public partial class CollectionPage : ContentPage
         base.OnDisappearing();
         CollectionGrid.OnSleep();
         _toastService.OnShow -= OnToastShow;
-        CollectionGrid.StopTimers();
     }
 
     private void OnToastShow(string message, int duration)
