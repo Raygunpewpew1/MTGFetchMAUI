@@ -165,12 +165,14 @@ public static class AppDataManager
 
             var totalBytes = response.Content.Headers.ContentLength ?? -1L;
 
+            // Use consistent buffer size for both stream and loop to optimize async I/O
+            const int BufferSize = 81920; // 80KB
+
             // 3. FIXED: Using 'await using' ensures the stream is CLOSED before we try to unzip
             await using (var contentStream = await response.Content.ReadAsStreamAsync(ct))
-            await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+            await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, FileOptions.Asynchronous))
             {
-                // Increased buffer size to 256KB for faster throughput
-                var buffer = new byte[262144];
+                var buffer = new byte[BufferSize];
                 int read;
                 long bytesRead = 0;
                 int lastPercent = 0;
