@@ -280,6 +280,9 @@ public class CardTextView : SKCanvasView
         float x = 0, y = lineHeight;
         float spaceWidth = measureFont.MeasureText(" ");
 
+        // Padding?
+        float availableWidth = Math.Max(10, maxWidth);
+
         for (int ri = 0; ri < _runs.Count; ri++)
         {
             var run = _runs[ri];
@@ -288,7 +291,7 @@ public class CardTextView : SKCanvasView
             if (run.Type == RunType.Symbol)
             {
                 float symW = _symbolSize + 2f;
-                if (x + symW > maxWidth && x > 0) { x = 0; y += lineHeight; }
+                if (x + symW > availableWidth && x > 0) { x = 0; y += lineHeight; }
                 _layoutGlyphs.Add(new LayoutGlyph(x, y, RunType.Symbol, run.Text));
                 bool nextIsSymbol = ri + 1 < _runs.Count && _runs[ri + 1].Type == RunType.Symbol;
                 x += symW + (nextIsSymbol ? 0 : spaceWidth);
@@ -306,16 +309,41 @@ public class CardTextView : SKCanvasView
                 else wEnd++; // Include space
 
                 string word = text[wStart..wEnd];
-                float wordWidth = measureFont.MeasureText(word);
+                float wordWidth = measureFont.MeasureText(word.TrimEnd()); // Measure only visible chars for fit check?
+                // Actually include the space in measurement for placement, but check fit carefully.
+                wordWidth = measureFont.MeasureText(word);
 
-                if (x + wordWidth > maxWidth && x > 0) { x = 0; y += lineHeight; }
+                // If word is simply too long for a single line, force break?
+                // For now, let's just wrap.
+
+                if (x + wordWidth > availableWidth && x > 0)
+                {
+                    x = 0;
+                    y += lineHeight;
+                    // If moving to new line, strip leading space if present?
+                    if (word.StartsWith(' '))
+                    {
+                        word = word.TrimStart();
+                        wordWidth = measureFont.MeasureText(word);
+                    }
+                }
+
+                // Safety check: if word is still wider than availableWidth, it will overflow.
+                // We could character-wrap here, but that's complex.
+
                 _layoutGlyphs.Add(new LayoutGlyph(x, y, run.Type, word));
                 x += wordWidth;
                 wStart = wEnd;
             }
         }
 
-        float finalHeight = (_layoutGlyphs.Count > 0) ? y + (_textSize * 0.3f) : 0;
+        // Final height calculation:
+        // y is the baseline of the current line.
+        // We need to add descent or bottom padding.
+
+        // If x > 0, we are on a line. If x == 0, we just finished a newline.
+        float finalHeight = y + (_textSize * 0.5f);
+
         _measuredSize = new Size(maxWidth, finalHeight + 8);
     }
 

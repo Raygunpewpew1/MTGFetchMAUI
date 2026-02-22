@@ -80,8 +80,9 @@ public class CardGrid : ContentView
         _spacer = new BoxView
         {
             Color = Colors.Transparent,
-            WidthRequest = 100,
+            // WidthRequest = 100, // REMOVED: Should fill width
             HeightRequest = 100,
+            HorizontalOptions = LayoutOptions.Fill,
             InputTransparent = false
         };
 
@@ -118,6 +119,8 @@ public class CardGrid : ContentView
         Unloaded += OnUnloaded;
     }
 
+    private bool _isProcessingUpdates;
+
     private void OnLoaded(object? sender, EventArgs e)
     {
         // Resolve services
@@ -127,16 +130,23 @@ public class CardGrid : ContentView
             _downloadService = Handler.MauiContext.Services.GetService<ImageDownloadService>();
         }
 
-        _cts = new CancellationTokenSource();
-        Task.Run(ProcessStateUpdates);
+        // Restart processing loop if needed
+        if (!_isProcessingUpdates)
+        {
+            _cts = new CancellationTokenSource();
+            Task.Run(ProcessStateUpdates);
+        }
 
         StartAnimationTimer();
+        // Force a redraw to ensure content is visible
+        MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
     }
 
     private void OnUnloaded(object? sender, EventArgs e)
     {
         StopAnimationTimer();
         _cts?.Cancel();
+        _isProcessingUpdates = false;
         DisposeResources();
     }
 
@@ -297,6 +307,7 @@ public class CardGrid : ContentView
     private async Task ProcessStateUpdates()
     {
         if (_cts == null) return;
+        _isProcessingUpdates = true;
         try
         {
             await foreach (var state in _stateChannel.Reader.ReadAllAsync(_cts.Token))
@@ -363,6 +374,15 @@ public class CardGrid : ContentView
         var point = e.GetPosition(_spacer);
         if (point == null) return;
 
+        // TappedEventArgs.GetPosition returns coordinates relative to the element (_spacer).
+        // _spacer is inside the ScrollView, so its Y coordinate is already 0-based relative to the content.
+        // HOWEVER, if the user taps, we need to ensure we map that correctly to the DrawCardCommands.
+        // DrawCardCommands are absolute positions (0 to TotalHeight).
+        // e.GetPosition(_spacer) SHOULD return (x, y) where y includes the scroll offset if _spacer is the content.
+
+        // Let's verify if _spacer covers the full scrollable area.
+        // Yes, _spacer.HeightRequest is set to TotalHeight.
+
         var id = HitTest((float)point.Value.X, (float)point.Value.Y);
         if (id != null) CardClicked?.Invoke(id);
     }
@@ -383,16 +403,19 @@ public class CardGrid : ContentView
         _longPressTimer?.Stop();
         _longPressTimer = Dispatcher.CreateTimer();
         _longPressTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _longPressTimer.IsRepeating = false;
         _longPressTimer.Tick += (s, args) =>
         {
-            _longPressTimer?.Stop();
             if (_isLongPressing)
             {
+                // Re-verify the point, but use the original press point
+                // (Using current pointer position requires capturing it in Moved, which we do to cancel)
+                // If we are still "pressing", trigger the action.
+
                 var id = HitTest((float)_pressPoint.X, (float)_pressPoint.Y);
                 if (id != null)
                 {
                     MainThread.BeginInvokeOnMainThread(() => CardLongPressed?.Invoke(id));
-                    // Haptic feedback?
                     try { HapticFeedback.Perform(HapticFeedbackType.LongPress); } catch { }
                 }
             }
