@@ -2,7 +2,7 @@ using SkiaSharp;
 using Svg.Skia;
 using System.Reflection;
 
-namespace MTGFetchMAUI.Services;
+namespace MTGFetchMAUI.Controls.Legacy.Services;
 
 /// <summary>
 /// Loads and caches SVG mana symbols from embedded resources.

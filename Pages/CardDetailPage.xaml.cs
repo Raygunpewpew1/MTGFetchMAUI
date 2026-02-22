@@ -68,7 +68,7 @@ public partial class CardDetailPage : ContentPage
         CardNameLabel.Text = card.Name;
         ManaCost.ManaText = card.ManaCost ?? "";
         TypeLineLabel.Text = card.CardType;
-        SetInfoLabel.Text = card.GetSetAndNumber();
+        SetInfoLabel.Text = card.GetSetAndNumber() + " " + card.SetName;
 
         // Rarity with color
         RarityLabel.Text = card.Rarity.ToString();
