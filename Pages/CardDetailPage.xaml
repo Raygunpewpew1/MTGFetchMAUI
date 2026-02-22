@@ -102,7 +102,7 @@
                         IsVisible="False">
                     <controls:CardTextView x:Name="CardTextView"
                                            HorizontalOptions="Fill"
-                                           HeightRequest="60" />
+                                           TextColor="{StaticResource TextPrimary}" />
                 </Border>
 
                 <Border StrokeShape="RoundRectangle 8"
