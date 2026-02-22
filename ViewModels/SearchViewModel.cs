@@ -20,7 +20,7 @@ public class SearchViewModel : BaseViewModel
     private int _currentPage;
     private bool _isLoadingPage;
     private bool _hasMorePages;
-    private MTGCardGrid? _grid;
+    private CardGrid? _grid;
 
     public SearchOptions CurrentOptions { get; private set; } = new();
 
@@ -72,7 +72,7 @@ public class SearchViewModel : BaseViewModel
             // If we have cards, refresh the grid to show prices
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                if (_grid != null && _grid.CardCount > 0)
+                if (_grid != null)
                 {
                     var range = _grid.GetVisibleRange();
                     LoadVisiblePrices(range.start, range.end);
@@ -81,7 +81,7 @@ public class SearchViewModel : BaseViewModel
         };
     }
 
-    public void AttachGrid(MTGCardGrid grid)
+    public void AttachGrid(CardGrid grid)
     {
         _grid = grid;
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
@@ -151,10 +151,6 @@ public class SearchViewModel : BaseViewModel
 
             _grid?.SetCards(results);
             _cardManager.ImageService.CancelPendingDownloads();
-
-            // Load images for initial visible cards
-            await Task.Delay(50);
-            LoadVisibleImages(ImageQuality.Small);
 
             StatusMessage = $"Found {TotalResults} cards";
             SearchCompleted?.Invoke();
@@ -228,8 +224,7 @@ public class SearchViewModel : BaseViewModel
             if (results.Length > 0)
             {
                 // 2. Use the new chunked Add method so the UI doesn't stutter 
-                // while inflating these new GridCardData objects.
-                await _grid.AddCardsAsync(results, chunkSize: 50);
+                await _grid.AddCardsAsync(results);
             }
 
             if (results.Length < PageSize)
@@ -250,8 +245,6 @@ public class SearchViewModel : BaseViewModel
 
     public void OnScrollChanged(float scrollY, float viewportHeight, float contentHeight)
     {
-        _grid?.SetScrollOffset(scrollY);
-
         // Infinite scroll: load next page when near bottom
         if (HasMorePages && !_isLoadingPage)
         {
@@ -262,15 +255,7 @@ public class SearchViewModel : BaseViewModel
 
     private void OnVisibleRangeChanged(int start, int end)
     {
-        LoadVisibleImages(ImageQuality.Small);
         LoadVisiblePrices(start, end);
-
-        // Delayed quality upgrade for center cards
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(300);
-            LoadVisibleImages(ImageQuality.Normal);
-        });
     }
 
     private void LoadVisiblePrices(int start, int end)
@@ -282,9 +267,9 @@ public class SearchViewModel : BaseViewModel
             var uuids = new HashSet<string>();
             for (int i = start; i <= end; i++)
             {
-                var card = _grid.GetCardAt(i);
+                var card = _grid.GetCardStateAt(i);
                 if (card == null || card.PriceData != null) continue;
-                uuids.Add(card.UUID);
+                uuids.Add(card.Id.Value);
             }
 
             if (uuids.Count == 0) return;
@@ -298,45 +283,6 @@ public class SearchViewModel : BaseViewModel
                 });
             }
         });
-    }
-
-    public void LoadVisibleImages(ImageQuality quality)
-    {
-        if (_grid == null) return;
-
-        var needed = _grid.GetCardsNeedingImages(quality);
-        foreach (var (index, card) in needed)
-        {
-            if (string.IsNullOrEmpty(card.ScryfallId)) continue;
-
-            string imageSize = quality switch
-            {
-                ImageQuality.Small => MTGConstants.ImageSizeSmall,
-                ImageQuality.Normal => MTGConstants.ImageSizeNormal,
-                ImageQuality.Large => MTGConstants.ImageSizeLarge,
-                _ => MTGConstants.ImageSizeSmall
-            };
-
-            if (quality <= ImageQuality.Small)
-                _grid.MarkLoading(card.UUID);
-            else
-                _grid.MarkUpgrading(card.UUID);
-
-            string uuid = card.UUID;
-            _cardManager.DownloadCardImageAsync(card.ScryfallId, (image, success) =>
-            {
-                if (success && image != null)
-                {
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        if (_grid != null)
-                            _grid.UpdateCardImage(uuid, image, quality);
-                        else
-                            image.Dispose();
-                    });
-                }
-            }, imageSize);
-        }
     }
 
     private void ClearSearch()

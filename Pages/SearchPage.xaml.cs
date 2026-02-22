@@ -1,4 +1,5 @@
 using MTGFetchMAUI.Controls;
+using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 
@@ -25,7 +26,7 @@ public partial class SearchPage : ContentPage
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await GridScrollView.ScrollToAsync(0, 0, false);
+                await CardGrid.ScrollToAsync(0, false);
             });
         };
     }
@@ -35,14 +36,6 @@ public partial class SearchPage : ContentPage
         base.OnAppearing();
         CardGrid.OnResume();
         _toastService.OnShow += OnToastShow;
-        CardGrid.StartTimers();
-
-        // Ensure scroll is synced after a tab switch
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            CardGrid.SetScrollOffset((float)GridScrollView.ScrollY);
-            _viewModel.LoadVisibleImages(ImageQuality.Small);
-        });
     }
 
     protected override void OnDisappearing()
@@ -50,7 +43,6 @@ public partial class SearchPage : ContentPage
         base.OnDisappearing();
         CardGrid.OnSleep();
         _toastService.OnShow -= OnToastShow;
-        CardGrid.StopTimers();
     }
 
     private void OnToastShow(string message, int duration)
@@ -61,8 +53,8 @@ public partial class SearchPage : ContentPage
     private void OnGridScrolled(object? sender, ScrolledEventArgs e)
     {
         float scrollY = (float)e.ScrollY;
-        float viewportHeight = (float)GridScrollView.Height;
-        float contentHeight = (float)CardGrid.TotalContentHeight;
+        float viewportHeight = (float)CardGrid.Height;
+        float contentHeight = CardGrid.ContentHeight;
         _viewModel.OnScrollChanged(scrollY, viewportHeight, contentHeight);
     }
 
