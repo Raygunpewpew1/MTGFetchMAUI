@@ -50,4 +50,66 @@ public class GridLayoutEngineTests
         Assert.NotNull(cmd);
         Assert.Equal("1", cmd.Card.Id.Value);
     }
+
+    [Fact]
+    public void Calculate_CorrectColumnXPosition()
+    {
+        // Viewport: 360 (default mobile width)
+        var viewport = new Viewport(360f, 800f, 0f);
+        var config = new GridConfig
+        {
+            MinCardWidth = 100f,
+            CardSpacing = 8f,
+            LabelHeight = 42f
+        };
+
+        // Setup state
+        var card = new CardState(new CardId("1"), "Test Card", "TST", "1", "scry1", 0, false);
+        var state = new GridState(
+            ImmutableArray.Create(card),
+            config,
+            viewport
+        );
+
+        var result = GridLayoutEngine.Calculate(state);
+
+        var cmd = result.Commands[0] as DrawCardCommand;
+        Assert.NotNull(cmd);
+
+        // Col 0 X should just be CardSpacing (8)
+        Assert.Equal(8f, cmd.Rect.Left, 0.1f);
+    }
+
+    [Fact]
+    public void Calculate_CorrectLastRow()
+    {
+         // Viewport: 360w, 800h
+        var viewport = new Viewport(360f, 800f, 0f);
+        var config = new GridConfig
+        {
+            MinCardWidth = 100f,
+            CardSpacing = 8f,
+            LabelHeight = 42f
+        };
+
+        // 30 cards
+        var cards = new CardState[30];
+        for(int i=0; i<30; i++) cards[i] = new CardState(new CardId(i.ToString()), "Card "+i, "TST", i.ToString(), "scry"+i, 0, false);
+
+        var state = new GridState(
+            cards.ToImmutableArray(),
+            config,
+            viewport
+        );
+
+        var result = GridLayoutEngine.Calculate(state);
+
+        // With previous logic (+1 row), visibleEnd would be larger.
+        // Current logic: ~5 rows visible (indices 0..4) -> 15 cards (0..14).
+        // 800 / 193.4 = 4.13 -> 5 rows fully/partially visible.
+        // lastRow index 4 (0-based) = 5th row.
+        // VisibleEnd = (4 + 1) * 3 - 1 = 14.
+
+        Assert.Equal(14, result.VisibleEnd);
+    }
 }

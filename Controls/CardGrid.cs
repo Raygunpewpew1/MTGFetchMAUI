@@ -16,6 +16,7 @@ public class CardGrid : ContentView
     private readonly ScrollView _scrollView;
     private readonly BoxView _spacer;
     private readonly Channel<GridState> _stateChannel;
+    private readonly Channel<string> _imageLoadChannel;
     private CancellationTokenSource? _cts;
 
     private ImageCacheService? _imageCache;
@@ -41,7 +42,8 @@ public class CardGrid : ContentView
     private SKPaint? _bgPaint;
     private SKPaint? _textPaint;
     private SKFont? _textFont;
-    private SKPaint? _pricePaint;
+    private SKPaint? _priceTextPaint;
+    private SKPaint? _priceBgPaint;
     private SKFont? _priceFont;
     private SKPaint? _shimmerBasePaint;
     private SKPaint? _shimmerGradientPaint;
@@ -62,6 +64,11 @@ public class CardGrid : ContentView
     public CardGrid()
     {
         _stateChannel = Channel.CreateBounded<GridState>(new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest
+        });
+
+        _imageLoadChannel = Channel.CreateBounded<string>(new BoundedChannelOptions(200)
         {
             FullMode = BoundedChannelFullMode.DropOldest
         });
@@ -130,11 +137,15 @@ public class CardGrid : ContentView
             _downloadService = Handler.MauiContext.Services.GetService<ImageDownloadService>();
         }
 
+        EnsureResources();
+
         // Restart processing loop if needed
         if (!_isProcessingUpdates)
         {
             _cts = new CancellationTokenSource();
+            _isProcessingUpdates = true;
             Task.Run(ProcessStateUpdates);
+            Task.Run(ProcessImageLoads);
         }
 
         StartAnimationTimer();
@@ -146,6 +157,8 @@ public class CardGrid : ContentView
     {
         StopAnimationTimer();
         _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
         _isProcessingUpdates = false;
         DisposeResources();
     }
@@ -307,7 +320,6 @@ public class CardGrid : ContentView
     private async Task ProcessStateUpdates()
     {
         if (_cts == null) return;
-        _isProcessingUpdates = true;
         try
         {
             await foreach (var state in _stateChannel.Reader.ReadAllAsync(_cts.Token))
@@ -325,7 +337,11 @@ public class CardGrid : ContentView
                     _currentRenderList = renderList;
 
                     // Update Spacer Height
-                    if (Math.Abs(_spacer.HeightRequest - renderList.TotalHeight) > 1)
+                    if (renderList.Commands.IsEmpty)
+                    {
+                        _spacer.HeightRequest = 0;
+                    }
+                    else if (Math.Abs(_spacer.HeightRequest - renderList.TotalHeight) > 1)
                     {
                         _spacer.HeightRequest = renderList.TotalHeight;
                     }
@@ -343,6 +359,64 @@ public class CardGrid : ContentView
         catch (Exception ex)
         {
             Console.WriteLine($"Grid Error: {ex}");
+        }
+    }
+
+    private async Task ProcessImageLoads()
+    {
+        if (_cts == null) return;
+
+        // Use SemaphoreSlim to limit concurrency
+        using var semaphore = new SemaphoreSlim(6);
+
+        try
+        {
+            await foreach (var scryfallId in _imageLoadChannel.Reader.ReadAllAsync(_cts.Token))
+            {
+                if (_imageCache == null || _downloadService == null) continue;
+
+                await semaphore.WaitAsync(_cts.Token);
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (_cts == null || _cts.IsCancellationRequested) return;
+
+                        // 2. Try Disk/DB (L2/L3)
+                        var img = await _imageCache.GetImageAsync(scryfallId);
+
+                        // 3. Try Network (L4)
+                        if (img == null)
+                        {
+                            img = await _downloadService.DownloadImageDirectAsync(scryfallId);
+                            if (img != null)
+                            {
+                                _imageCache.AddToMemoryCache(scryfallId, img);
+                            }
+                        }
+
+                        if (img != null)
+                        {
+                            MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                         Console.WriteLine($"Image Load Error: {ex.Message}");
+                    }
+                    finally
+                    {
+                        lock (_loadingLock) _loadingImages.Remove(scryfallId);
+                        semaphore.Release();
+                    }
+                }, _cts.Token);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+             Console.WriteLine($"Image Processor Error: {ex}");
         }
     }
 
@@ -463,8 +537,9 @@ public class CardGrid : ContentView
         _bgPaint ??= new SKPaint { Color = new SKColor(30, 30, 30), IsAntialias = true };
         _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true };
         _textFont ??= new SKFont { Size = 12f };
-        _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
-        _priceFont ??= new SKFont { Size = 10f };
+        _priceTextPaint ??= new SKPaint { Color = SKColors.Black, IsAntialias = true };
+        _priceBgPaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
+        _priceFont ??= new SKFont { Size = 11f,  Typeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold) };
         _badgeBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
         _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
         _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
@@ -472,15 +547,7 @@ public class CardGrid : ContentView
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
         _shimmerGradientPaint ??= new SKPaint { IsAntialias = true };
 
-        if (_shimmerGradientPaint.Shader == null)
-        {
-            _shimmerGradientPaint.Shader = SKShader.CreateLinearGradient(
-                new SKPoint(0, 0),
-                new SKPoint(100, 0),
-                [SKColors.Transparent, new SKColor(255, 255, 255, 60), SKColors.Transparent],
-                [0f, 0.5f, 1f],
-                SKShaderTileMode.Clamp);
-        }
+        // Note: Shader created per-card in DrawShimmer to handle varying coordinates
 
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
@@ -491,7 +558,8 @@ public class CardGrid : ContentView
         _bgPaint?.Dispose(); _bgPaint = null;
         _textPaint?.Dispose(); _textPaint = null;
         _textFont?.Dispose(); _textFont = null;
-        _pricePaint?.Dispose(); _pricePaint = null;
+        _priceTextPaint?.Dispose(); _priceTextPaint = null;
+        _priceBgPaint?.Dispose(); _priceBgPaint = null;
         _priceFont?.Dispose(); _priceFont = null;
         _badgeBgPaint?.Dispose(); _badgeBgPaint = null;
         _badgeTextPaint?.Dispose(); _badgeTextPaint = null;
@@ -521,7 +589,7 @@ public class CardGrid : ContentView
         var list = _currentRenderList;
         if (list == null || list.Commands.IsEmpty) return;
 
-        EnsureResources();
+        // Removed: EnsureResources is called in OnLoaded
 
         float scale = info.Width / (float)(Width > 0 ? Width : 360);
         canvas.Scale(scale);
@@ -566,33 +634,8 @@ public class CardGrid : ContentView
 
                  if (shouldLoad)
                  {
-                     // Trigger Async Load
-                     Task.Run(async () => {
-                         try
-                         {
-                             // 2. Try Disk/DB (L2/L3)
-                             var img = await _imageCache.GetImageAsync(card.ScryfallId);
-
-                             // 3. Try Network (L4)
-                             if (img == null && _downloadService != null)
-                             {
-                                 img = await _downloadService.DownloadImageDirectAsync(card.ScryfallId);
-                                 if (img != null)
-                                 {
-                                     _imageCache.AddToMemoryCache(card.ScryfallId, img);
-                                 }
-                             }
-
-                             if (img != null)
-                             {
-                                 MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
-                             }
-                         }
-                         finally
-                         {
-                             lock (_loadingLock) _loadingImages.Remove(card.ScryfallId);
-                         }
-                     });
+                    // Send to channel instead of immediate Task.Run
+                    _imageLoadChannel.Writer.TryWrite(card.ScryfallId);
                  }
              }
         }
@@ -614,12 +657,35 @@ public class CardGrid : ContentView
 
         // Text
         float textY = imageRect.Bottom + 16f;
-        canvas.DrawText(card.Name, rect.Left + 4f, textY, SKTextAlign.Left, _textFont, _textPaint);
+        float textWidth = rect.Width - 8f; // 4px padding each side
+        DrawWrappedText(canvas, card.Name, rect.Left + 4f, textY, textWidth, _textFont, _textPaint);
 
-        // Price
+        // Price Chip
         if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
         {
-            canvas.DrawText(card.CachedDisplayPrice, rect.Right - 40f, rect.Bottom - 6f, SKTextAlign.Left, _priceFont, _pricePaint);
+             string price = card.CachedDisplayPrice;
+             var bounds = new SKRect();
+             _priceFont!.MeasureText(price, ref bounds);
+
+             float paddingH = 6f;
+             float paddingV = 2f;
+             float chipW = bounds.Width + paddingH * 2;
+             float chipH = bounds.Height + paddingV * 2;
+
+             float chipX = rect.Right - chipW - 4f;
+             float chipY = rect.Bottom - chipH - 4f;
+
+             // Draw Chip Background
+             canvas.DrawRoundRect(chipX, chipY, chipW, chipH, 4f, 4f, _priceBgPaint);
+
+             // Draw Chip Text
+             // Note: DrawText x,y is the baseline.
+             // We center the text in the chip.
+             // Cap height approximation or center vertically.
+             float textX = chipX + paddingH;
+             float textBaseline = chipY + paddingV + bounds.Height;
+
+             canvas.DrawText(price, textX, textBaseline, _priceFont, _priceTextPaint);
         }
 
         // Quantity Badge
@@ -635,6 +701,48 @@ public class CardGrid : ContentView
         }
     }
 
+    private void DrawWrappedText(SKCanvas canvas, string text, float x, float y, float maxWidth, SKFont? font, SKPaint? paint)
+    {
+        if (string.IsNullOrEmpty(text) || font == null || paint == null) return;
+
+        // Simple word wrap
+        var words = text.Split(' ');
+        var currentLine = "";
+        float lineHeight = font.Spacing;
+        float currentY = y;
+
+        foreach (var word in words)
+        {
+            string testLine = string.IsNullOrEmpty(currentLine) ? word : currentLine + " " + word;
+            float width = font.MeasureText(testLine);
+
+            if (width > maxWidth)
+            {
+                if (!string.IsNullOrEmpty(currentLine))
+                {
+                    canvas.DrawText(currentLine, x, currentY, font, paint);
+                    currentLine = word;
+                    currentY += lineHeight;
+                }
+                else
+                {
+                    // Word itself is too long, just draw it (or clip, but draw for now)
+                    canvas.DrawText(word, x, currentY, font, paint);
+                    currentLine = "";
+                    currentY += lineHeight;
+                }
+            }
+            else
+            {
+                currentLine = testLine;
+            }
+        }
+        if (!string.IsNullOrEmpty(currentLine))
+        {
+            canvas.DrawText(currentLine, x, currentY, font, paint);
+        }
+    }
+
     private void DrawShimmer(SKCanvas canvas, SKRect rect)
     {
         canvas.Save();
@@ -644,13 +752,26 @@ public class CardGrid : ContentView
         // Base
         canvas.DrawRect(rect, _shimmerBasePaint);
 
-        // Shimmer Gradient
-        float shimmerWidth = rect.Width * 1.5f;
-        float shimmerX = rect.Left - rect.Width + (rect.Width * 3f) * _shimmerPhase;
+        // Shimmer Gradient (Absolute Coordinates)
+        // Create shader per call to handle absolute coordinates
+        // Phase goes 0..1. Map to X range: left - width to right + width
 
-        canvas.Translate(shimmerX, rect.Top);
-        canvas.Scale(shimmerWidth / 100f, 1f);
-        canvas.DrawRect(0, 0, 100, rect.Height, _shimmerGradientPaint);
+        float gradientWidth = rect.Width * 0.5f;
+        float travelDistance = rect.Width + gradientWidth;
+        float startX = rect.Left - gradientWidth + (travelDistance * _shimmerPhase);
+        float endX = startX + gradientWidth;
+
+        using var shader = SKShader.CreateLinearGradient(
+            new SKPoint(startX, rect.Top),
+            new SKPoint(endX, rect.Top),
+            [SKColors.Transparent, new SKColor(255, 255, 255, 60), SKColors.Transparent],
+            [0f, 0.5f, 1f],
+            SKShaderTileMode.Clamp);
+
+        _shimmerGradientPaint!.Shader = shader;
+
+        canvas.DrawRect(rect, _shimmerGradientPaint);
+        _shimmerGradientPaint.Shader = null; // Detach shader
 
         canvas.Restore();
     }

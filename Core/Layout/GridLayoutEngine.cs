@@ -62,7 +62,7 @@ public static class GridLayoutEngine
         float viewportHeight = viewport.Height > 0 ? viewport.Height : 1000f;
 
         int firstRow = Math.Max(0, (int)((effectiveOffset - config.CardSpacing) / rowHeight));
-        int lastRow = (int)((effectiveOffset + viewportHeight + config.CardSpacing) / rowHeight) + 1;
+        int lastRow = (int)((effectiveOffset + viewportHeight + config.CardSpacing) / rowHeight);
 
         int visibleStart = Math.Max(0, Math.Min(count - 1, firstRow * columns));
         int visibleEnd = Math.Max(0, Math.Min(count - 1, (lastRow + 1) * columns - 1));
@@ -82,7 +82,7 @@ public static class GridLayoutEngine
             int row = i / columns;
             int col = i % columns;
 
-            float x = config.CardSpacing + col * (cardWidth + config.CardSpacing) + 10f;
+            float x = config.CardSpacing + col * (cardWidth + config.CardSpacing);
             float y = config.CardSpacing + row * (cardHeight + config.CardSpacing);
 
             var rect = new SKRect(x, y, x + cardWidth, y + cardHeight);
