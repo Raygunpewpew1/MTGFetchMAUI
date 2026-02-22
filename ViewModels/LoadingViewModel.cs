@@ -40,7 +40,7 @@ public class LoadingViewModel : BaseViewModel
         // Ensure disconnected before checking/downloading to avoid locks
         // unlikely to be connected at startup, but safe practice
         if (_cardManager.DatabaseManager.IsConnected)
-             _cardManager.Disconnect();
+            _cardManager.Disconnect();
 
         if (AppDataManager.MTGDatabaseExists())
         {
@@ -62,8 +62,8 @@ public class LoadingViewModel : BaseViewModel
         // Subscribe to progress
         AppDataManager.OnProgress = (msg, pct) =>
         {
-             StatusMessage = msg;
-             Progress = pct / 100.0;
+            StatusMessage = msg;
+            Progress = pct / 100.0;
         };
 
         // Use AppDataManager directly for the download task

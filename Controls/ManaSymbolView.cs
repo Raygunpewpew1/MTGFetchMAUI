@@ -1,7 +1,7 @@
+using MTGFetchMAUI.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
-using MTGFetchMAUI.Services;
 
 namespace MTGFetchMAUI.Controls;
 

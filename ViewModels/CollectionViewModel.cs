@@ -1,6 +1,4 @@
 using MTGFetchMAUI.Controls;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using System.Windows.Input;

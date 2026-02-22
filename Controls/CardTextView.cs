@@ -3,7 +3,6 @@ using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Text.RegularExpressions;
-using Microsoft.Maui.Storage;
 
 namespace MTGFetchMAUI.Controls;
 
@@ -168,9 +167,9 @@ public class CardTextView : SKCanvasView
 
         if (_shadowPaint != null)
         {
-             _shadowPaint.Color = _shadowColor;
-             _shadowMaskFilter?.Dispose(); _shadowMaskFilter = null;
-             _shadowFont?.Dispose(); _shadowFont = null;
+            _shadowPaint.Color = _shadowColor;
+            _shadowMaskFilter?.Dispose(); _shadowMaskFilter = null;
+            _shadowFont?.Dispose(); _shadowFont = null;
         }
 
         // If paints are null, they will be recreated in EnsurePaints

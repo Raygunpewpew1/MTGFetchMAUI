@@ -1,6 +1,5 @@
 namespace MTGFetchMAUI;
 
-using MTGFetchMAUI.Services;
 using MTGFetchMAUI.Pages;
 
 public partial class AppShell : Shell

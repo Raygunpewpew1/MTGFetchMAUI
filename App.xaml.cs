@@ -1,7 +1,7 @@
 namespace MTGFetchMAUI;
 
-using MTGFetchMAUI.Pages;
 using Microsoft.Extensions.DependencyInjection;
+using MTGFetchMAUI.Pages;
 using System;
 
 public partial class App : Application

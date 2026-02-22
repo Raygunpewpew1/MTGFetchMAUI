@@ -1,6 +1,6 @@
-using System.Collections.Immutable;
-using MTGFetchMAUI.Services;
 using MTGFetchMAUI.Models;
+using MTGFetchMAUI.Services;
+using System.Collections.Immutable;
 
 namespace MTGFetchMAUI.Core.Layout;
 

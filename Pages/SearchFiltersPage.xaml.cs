@@ -1,6 +1,6 @@
+using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.ViewModels;
-using MTGFetchMAUI.Controls;
 
 namespace MTGFetchMAUI.Pages;
 

@@ -1,12 +1,12 @@
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Threading.Channels;
 using MTGFetchMAUI.Core.Layout;
-using MTGFetchMAUI.Services;
 using MTGFetchMAUI.Models;
+using MTGFetchMAUI.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Threading.Channels;
 
 namespace MTGFetchMAUI.Controls;
 
@@ -514,7 +514,8 @@ public class CardGrid : ContentView
 
                 if (shouldLoad)
                 {
-                    Task.Run(async () => {
+                    Task.Run(async () =>
+                    {
                         await _downloadSemaphore.WaitAsync();
                         try
                         {

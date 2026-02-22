@@ -1,5 +1,3 @@
-using MTGFetchMAUI.Controls;
-using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 
