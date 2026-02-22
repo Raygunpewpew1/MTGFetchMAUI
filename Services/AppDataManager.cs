@@ -167,11 +167,13 @@ public static class AppDataManager
 
             // 3. FIXED: Using 'await using' ensures the stream is CLOSED before we try to unzip
             await using (var contentStream = await response.Content.ReadAsStreamAsync(ct))
-            await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
             {
-                var buffer = new byte[81920];
+                // Increased buffer size to 256KB for faster throughput
+                var buffer = new byte[262144];
                 int read;
                 long bytesRead = 0;
+                int lastPercent = 0;
 
                 while ((read = await contentStream.ReadAsync(buffer, ct)) > 0)
                 {
@@ -181,9 +183,10 @@ public static class AppDataManager
                     if (totalBytes > 0)
                     {
                         var percent = (int)(bytesRead * 100 / totalBytes);
-                        // Only update UI every 1% to avoid spamming the main thread
-                        if (percent % 1 == 0)
+                        // Update UI only when percentage changes to avoid spamming the main thread
+                        if (percent > lastPercent)
                         {
+                            lastPercent = percent;
                             var mbRead = bytesRead / (1024.0 * 1024.0);
                             var mbTotal = totalBytes / (1024.0 * 1024.0);
                             UpdateProgress($"Downloading... {mbRead:F1}/{mbTotal:F1} MB", percent);
