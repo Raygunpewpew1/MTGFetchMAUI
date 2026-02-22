@@ -5,7 +5,7 @@ using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Diagnostics;
 
-namespace MTGFetchMAUI.Controls;
+namespace MTGFetchMAUI.Controls.Legacy;
 
 /// <summary>
 /// GPU-accelerated card grid using SkiaSharp.
