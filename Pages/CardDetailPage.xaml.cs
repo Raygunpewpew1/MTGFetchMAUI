@@ -330,7 +330,7 @@ public partial class CardDetailPage : ContentPage
                 {
                     CardText = ruling.Text,
                     TextSize = 13,
-                    TextColor = new SKColor(0xE0, 0xE0, 0xE0),
+                    TextColor = Color.FromRgb(224, 224, 224),
                     SymbolSize = 14,
                     BackgroundColor = Colors.Transparent,
                     HorizontalOptions = LayoutOptions.Fill

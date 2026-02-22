@@ -1,101 +1,94 @@
-using MTGFetchMAUI.Services;
-using SkiaSharp;
-using SkiaSharp.Views.Maui;
-using SkiaSharp.Views.Maui.Controls;
+using Microsoft.Maui.Controls;
 
-namespace MTGFetchMAUI.Controls.Legacy;
+namespace MTGFetchMAUI.Controls;
 
-/// <summary>
-/// SkiaSharp-based mana cost display using SVG mana symbols.
-/// Port of TMTGManaCostView from MTGManaCostView.pas.
-/// Loads SVG files via ManaSvgCache and renders them as proper vector graphics.
-/// </summary>
-public class ManaCostView : SKCanvasView
+public class ManaCostView : HorizontalStackLayout
 {
-    private string _manaText = "";
-    private float _symbolSize = 20f;
-    private float _spacing = 2f;
+    public static readonly BindableProperty ManaTextProperty = BindableProperty.Create(
+        nameof(ManaText), typeof(string), typeof(ManaCostView), string.Empty, propertyChanged: OnManaTextChanged);
+
+    public static readonly BindableProperty SymbolSizeProperty = BindableProperty.Create(
+        nameof(SymbolSize), typeof(double), typeof(ManaCostView), 18.0, propertyChanged: OnSymbolSizeChanged);
 
     public string ManaText
     {
-        get => _manaText;
-        set
+        get => (string)GetValue(ManaTextProperty);
+        set => SetValue(ManaTextProperty, value);
+    }
+
+    public double SymbolSize
+    {
+        get => (double)GetValue(SymbolSizeProperty);
+        set => SetValue(SymbolSizeProperty, value);
+    }
+
+    public ManaCostView()
+    {
+        Spacing = 2;
+    }
+
+    private static void OnManaTextChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        if (bindable is ManaCostView view)
         {
-            if (_manaText == value) return;
-            _manaText = value;
-            UpdateSize();
-            InvalidateSurface();
+            view.UpdateSymbols((string)newValue);
         }
     }
 
-    public float SymbolSize
+    private static void OnSymbolSizeChanged(BindableObject bindable, object oldValue, object newValue)
     {
-        get => _symbolSize;
-        set { _symbolSize = value; UpdateSize(); InvalidateSurface(); }
+        if (bindable is ManaCostView view)
+        {
+            double size = (double)newValue;
+            foreach (var child in view.Children)
+            {
+                if (child is Image img)
+                {
+                    img.HeightRequest = size;
+                    img.WidthRequest = size;
+                }
+            }
+        }
     }
 
-    public float Spacing
+    private void UpdateSymbols(string manaText)
     {
-        get => _spacing;
-        set { _spacing = value; UpdateSize(); InvalidateSurface(); }
-    }
-
-    private List<string> ParseSymbols()
-    {
-        var symbols = new List<string>();
-        if (string.IsNullOrEmpty(_manaText)) return symbols;
+        Children.Clear();
+        if (string.IsNullOrEmpty(manaText)) return;
 
         int i = 0;
-        while (i < _manaText.Length)
+        while (i < manaText.Length)
         {
-            if (_manaText[i] == '{')
+            if (manaText[i] == '{')
             {
-                int end = _manaText.IndexOf('}', i);
+                int end = manaText.IndexOf('}', i);
                 if (end > i)
                 {
-                    symbols.Add(_manaText[(i + 1)..end]);
+                    string symbol = manaText.Substring(i + 1, end - i - 1);
+                    AddSymbol(symbol);
                     i = end + 1;
                     continue;
                 }
             }
             i++;
         }
-        return symbols;
     }
 
-    private void UpdateSize()
+    private void AddSymbol(string symbol)
     {
-        var symbols = ParseSymbols();
-        if (symbols.Count == 0)
+        // Normalize symbol name for resource lookup
+        // Example: {2/U} -> 2/U -> 2_u -> mana_2_u.png
+        string normalized = symbol.Replace("/", "_").ToLowerInvariant();
+        string source = $"mana_{normalized}.png";
+
+        var img = new Image
         {
-            WidthRequest = 0;
-            HeightRequest = 0;
-            return;
-        }
-        WidthRequest = symbols.Count * (_symbolSize + _spacing) - _spacing;
-        HeightRequest = _symbolSize;
-    }
-
-    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
-    {
-        var canvas = e.Surface.Canvas;
-        canvas.Clear(SKColors.Transparent);
-
-        var symbols = ParseSymbols();
-        if (symbols.Count == 0) return;
-
-        float scale = e.Info.Width / (float)(Width > 0 ? Width : 100);
-        canvas.Scale(scale);
-
-        // Right-align like the original Delphi version
-        float totalWidth = symbols.Count * _symbolSize + (symbols.Count - 1) * _spacing;
-        float currentX = (float)(Width > 0 ? Width : totalWidth) - totalWidth;
-        float currentY = ((float)(Height > 0 ? Height : _symbolSize) - _symbolSize) / 2f;
-
-        foreach (var sym in symbols)
-        {
-            ManaSvgCache.DrawSymbol(canvas, sym, currentX, currentY, _symbolSize);
-            currentX += _symbolSize + _spacing;
-        }
+            Source = source,
+            HeightRequest = SymbolSize,
+            WidthRequest = SymbolSize,
+            Aspect = Aspect.AspectFit,
+            VerticalOptions = LayoutOptions.Center
+        };
+        Children.Add(img);
     }
 }

@@ -8,10 +8,11 @@ using Microsoft.Maui.Handlers;
 using System.Text.RegularExpressions;
 using Android.Util;
 using Microsoft.Maui.Platform;
+using MTGFetchMAUI.Controls;
 
 namespace MTGFetchMAUI.Platforms.Android.Handlers;
 
-public class CardTextViewHandler : ViewHandler<MTGFetchMAUI.Controls.CardTextView, TextView>
+public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
 {
     private static readonly Regex SymbolPattern = new(@"\{([^}]+)\}", RegexOptions.Compiled);
 
@@ -29,14 +30,14 @@ public class CardTextViewHandler : ViewHandler<MTGFetchMAUI.Controls.CardTextVie
     private static Regex? _keywordRegex;
     private static readonly HashSet<string> _keywords = new(DefaultKeywords, StringComparer.OrdinalIgnoreCase);
 
-    public static IPropertyMapper<MTGFetchMAUI.Controls.CardTextView, CardTextViewHandler> Mapper =
-        new PropertyMapper<MTGFetchMAUI.Controls.CardTextView, CardTextViewHandler>(ViewHandler.ViewMapper)
+    public static IPropertyMapper<CardTextView, CardTextViewHandler> Mapper =
+        new PropertyMapper<CardTextView, CardTextViewHandler>(ViewHandler.ViewMapper)
     {
-        [nameof(MTGFetchMAUI.Controls.CardTextView.CardText)] = MapCardText,
-        [nameof(MTGFetchMAUI.Controls.CardTextView.TextColor)] = MapTextColor,
-        [nameof(MTGFetchMAUI.Controls.CardTextView.TextSize)] = MapTextSize,
-        [nameof(MTGFetchMAUI.Controls.CardTextView.KeywordColor)] = MapCardText,
-        [nameof(MTGFetchMAUI.Controls.CardTextView.SymbolSize)] = MapCardText
+        [nameof(CardTextView.CardText)] = MapCardText,
+        [nameof(CardTextView.TextColor)] = MapTextColor,
+        [nameof(CardTextView.TextSize)] = MapTextSize,
+        [nameof(CardTextView.KeywordColor)] = MapCardText,
+        [nameof(CardTextView.SymbolSize)] = MapCardText
     };
 
     public CardTextViewHandler() : base(Mapper)
@@ -59,17 +60,17 @@ public class CardTextViewHandler : ViewHandler<MTGFetchMAUI.Controls.CardTextVie
         return textView;
     }
 
-    private static void MapTextColor(CardTextViewHandler handler, MTGFetchMAUI.Controls.CardTextView view)
+    private static void MapTextColor(CardTextViewHandler handler, CardTextView view)
     {
         handler.PlatformView.SetTextColor(view.TextColor.ToPlatform());
     }
 
-    private static void MapTextSize(CardTextViewHandler handler, MTGFetchMAUI.Controls.CardTextView view)
+    private static void MapTextSize(CardTextViewHandler handler, CardTextView view)
     {
         handler.PlatformView.TextSize = (float)view.TextSize;
     }
 
-    private static void MapCardText(CardTextViewHandler handler, MTGFetchMAUI.Controls.CardTextView view)
+    private static void MapCardText(CardTextViewHandler handler, CardTextView view)
     {
         if (string.IsNullOrEmpty(view.CardText))
         {
@@ -158,8 +159,7 @@ public class CardTextViewHandler : ViewHandler<MTGFetchMAUI.Controls.CardTextVie
             int end = ssb.Length();
 
             ssb.SetSpan(new StyleSpan(TypefaceStyle.Bold), start, end, SpanTypes.ExclusiveExclusive);
-            // Optionally color keywords:
-            // ssb.SetSpan(new ForegroundColorSpan(keywordColor.ToPlatform()), start, end, SpanTypes.ExclusiveExclusive);
+            ssb.SetSpan(new ForegroundColorSpan(keywordColor.ToPlatform()), start, end, SpanTypes.ExclusiveExclusive);
 
             lastIndex = match.Index + match.Length;
         }
