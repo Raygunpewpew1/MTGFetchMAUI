@@ -67,7 +67,7 @@ public partial class CollectionPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        CollectionGrid.OnSleep();
+  //      CollectionGrid.OnSleep();
         _toastService.OnShow -= OnToastShow;
     }
 

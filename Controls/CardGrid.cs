@@ -36,28 +36,6 @@ public class CardGrid : ContentView
     private IDispatcherTimer? _animationTimer;
     private long _lastFrameTime;
 
-    // ── Ripple ────────────────────────────────────────────────────────
-    // Each ripple lives for RippleDuration seconds.
-    // Phase 0→0.15:         alpha ramps in
-    // Phase 0.15→1:         alpha fades out
-    // Phase 0→RippleExpandEnd: radius grows (ease-out quad)
-    private const float RippleDuration = 0.45f;  // total seconds
-    private const float RippleExpandEnd = 0.4f;   // fraction at which expand stops
-    private const float RippleMaxAlpha = 60f;    // 0–255, kept subtle
-    private const float RippleRadiusMult = 1.4f;   // max radius = card half-diagonal * this
-
-    private record Ripple(
-        string CardId,
-        float X,          // absolute canvas coords (matching render command rects)
-        float Y,
-        float MaxRadius,
-        float StartTime   // elapsed seconds at spawn
-    );
-
-    private readonly List<Ripple> _activeRipples = new();
-    private readonly object _rippleLock = new();
-    // ─────────────────────────────────────────────────────────────────
-
     // GL State
     private GRRecordingContext? _lastGLContext;
     private int _glGeneration = 0;
@@ -69,7 +47,6 @@ public class CardGrid : ContentView
     private SKPaint? _pricePaint;
     private SKFont? _priceFont;
     private SKPaint? _shimmerBasePaint;
-    private SKPaint? _ripplePaint;
     private SKPaint? _badgeBgPaint;
     private SKPaint? _badgeTextPaint;
     private SKFont? _badgeFont;
@@ -199,61 +176,11 @@ public class CardGrid : ContentView
         _shimmerPhase += deltaTime * 0.8f;
         if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
 
-        // Expire finished ripples
-        float nowSec = currentTime / 1000f;
-        bool hasRipples = false;
-        lock (_rippleLock)
-        {
-            _activeRipples.RemoveAll(r => (nowSec - r.StartTime) >= RippleDuration);
-            hasRipples = _activeRipples.Count > 0;
-            if (hasRipples)
-                Console.WriteLine($"[Ripple] Active count: {_activeRipples.Count}, nowSec={nowSec:F2}");
-        }
-
         bool hasLoading = false;
         lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
 
-        if (hasLoading || hasRipples)
+        if (hasLoading)
             _canvas.InvalidateSurface();
-    }
-
-    // ── Ripple Spawning ────────────────────────────────────────────────
-
-    /// <summary>
-    /// Spawns a ripple at spacer-relative coordinates.
-    /// Converts to absolute canvas Y (spacer Y + scrollY) to match render command rects.
-    /// </summary>
-    private void SpawnRipple(float spacerX, float spacerY)
-    {
-        // GetPosition(_spacer) already returns content-relative coords (scroll included)
-        DrawCardCommand? hitCmd = null;
-        if (_currentRenderList != null)
-        {
-            foreach (var cmd in _currentRenderList.Commands)
-            {
-                if (cmd is DrawCardCommand draw && draw.Rect.Contains(spacerX, spacerY))
-                {
-                    hitCmd = draw;
-                    break;
-                }
-            }
-        }
-
-        if (hitCmd == null) return;
-
-        var r = hitCmd.Rect;
-        float halfDiag = MathF.Sqrt(r.Width * r.Width + r.Height * r.Height) / 2f;
-        float maxRadius = halfDiag * RippleRadiusMult;
-
-        var ripple = new Ripple(
-            hitCmd.Card.Id.Value,
-            spacerX, spacerY,
-            maxRadius,
-            _animationStopwatch.ElapsedMilliseconds / 1000f);
-
-        lock (_rippleLock) { _activeRipples.Add(ripple); }
-        Console.WriteLine($"[Ripple] Spawned: x={ripple.X:F1}, y={ripple.Y:F1}, maxR={ripple.MaxRadius:F1}, cardId={ripple.CardId}");
-        _canvas.InvalidateSurface();
     }
 
     // ── Public API ─────────────────────────────────────────────────────
@@ -342,7 +269,28 @@ public class CardGrid : ContentView
 
     public void ForceRedraw() => _canvas.InvalidateSurface();
     public void OnSleep() => _lastGLContext = null;
-    public void OnResume() => _canvas.InvalidateSurface();
+    public void OnResume()
+    {
+        Task.Run(async () =>
+        {
+            if (_imageCache == null) return;
+
+            var visible = _currentRenderList?.Commands
+                .OfType<DrawCardCommand>()
+                .Select(c => c.Card.ScryfallId)
+                .ToList();
+
+            if (visible == null || visible.Count == 0) return;
+
+            foreach (var id in visible)
+            {
+                if (_imageCache.GetMemoryImage(id) == null)
+                    await _imageCache.GetImageAsync(id);
+            }
+
+            MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
+        });
+    }
 
     // ── State Management ───────────────────────────────────────────────
 
@@ -414,14 +362,11 @@ public class CardGrid : ContentView
         var point = e.GetPosition(_spacer);
         if (point == null) return;
 
-        // Spawn ripple at tap position — OnTapped fires reliably unlike PointerPressed
-        SpawnRipple((float)point.Value.X, (float)point.Value.Y);
-
         var id = HitTest((float)point.Value.X, (float)point.Value.Y);
         if (id != null) CardClicked?.Invoke(id);
     }
 
-    // Long Press + Ripple
+    // Long Press
     private IDispatcherTimer? _longPressTimer;
     private Point _pressPoint;
     private bool _isLongPressing;
@@ -433,9 +378,6 @@ public class CardGrid : ContentView
 
         _pressPoint = point.Value;
         _isLongPressing = true;
-
-        // Spawn ripple immediately on finger/cursor down
-        SpawnRipple((float)point.Value.X, (float)point.Value.Y);
 
         _longPressTimer?.Stop();
         _longPressTimer = Dispatcher.CreateTimer();
@@ -477,9 +419,6 @@ public class CardGrid : ContentView
         _longPressTimer?.Stop();
     }
 
-    /// <summary>
-    /// Hit-tests against absolute canvas Y (spacerY + scrollY).
-    /// </summary>
     private string? HitTest(float spacerX, float spacerY)
     {
         if (_currentRenderList == null) return null;
@@ -504,7 +443,6 @@ public class CardGrid : ContentView
         _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
         _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
-        _ripplePaint ??= new SKPaint { IsAntialias = true };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
     }
@@ -520,7 +458,6 @@ public class CardGrid : ContentView
         _badgeTextPaint?.Dispose(); _badgeTextPaint = null;
         _badgeFont?.Dispose(); _badgeFont = null;
         _shimmerBasePaint?.Dispose(); _shimmerBasePaint = null;
-        _ripplePaint?.Dispose(); _ripplePaint = null;
         _cardRoundRect?.Dispose(); _cardRoundRect = null;
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
@@ -548,25 +485,14 @@ public class CardGrid : ContentView
         canvas.Scale(scale);
         canvas.Translate(0, -_lastState.Viewport.ScrollY);
 
-        // Snapshot ripples once per frame — avoids holding the lock during draw
-        List<Ripple>? rippleSnapshot = null;
-        lock (_rippleLock)
-        {
-            if (_activeRipples.Count > 0)
-                rippleSnapshot = new List<Ripple>(_activeRipples);
-        }
-
-        float nowSec = _animationStopwatch.ElapsedMilliseconds / 1000f;
-
         foreach (var cmd in list.Commands)
         {
             if (cmd is DrawCardCommand draw)
-                RenderCard(canvas, draw, rippleSnapshot, nowSec);
+                RenderCard(canvas, draw);
         }
     }
 
-    private void RenderCard(SKCanvas canvas, DrawCardCommand cmd,
-                            List<Ripple>? ripples, float nowSec)
+    private void RenderCard(SKCanvas canvas, DrawCardCommand cmd)
     {
         var rect = cmd.Rect;
         var card = cmd.Card;
@@ -575,39 +501,7 @@ public class CardGrid : ContentView
         _cardRoundRect!.SetRect(rect, 8f, 8f);
         canvas.DrawRoundRect(_cardRoundRect, _bgPaint);
 
-        // 2. Ripple — above background, below image, clipped to card shape
-        if (ripples != null)
-        {
-            foreach (var ripple in ripples)
-            {
-                if (ripple.CardId != card.Id.Value) continue;
-
-                float t = Math.Clamp((nowSec - ripple.StartTime) / RippleDuration, 0f, 1f);
-
-                // Radius: ease-out quad expand over the first RippleExpandEnd fraction
-                float expandT = Math.Clamp(t / RippleExpandEnd, 0f, 1f);
-                float easedExp = 1f - (1f - expandT) * (1f - expandT);
-                float radius = ripple.MaxRadius * easedExp;
-
-                // Alpha: quick ramp-in, slow fade-out
-                float alpha = t < 0.15f
-                    ? RippleMaxAlpha * (t / 0.15f)
-                    : RippleMaxAlpha * (1f - (t - 0.15f) / 0.85f);
-
-                if (alpha <= 0f || radius <= 0f) continue;
-
-                canvas.Save();
-                canvas.ClipRoundRect(_cardRoundRect!, antialias: true);
-                _ripplePaint!.Color = new SKColor(255, 255, 255, (byte)Math.Clamp(alpha, 0, 255));
-                // ripple X/Y are spacer-relative; canvas is already translated by -ScrollY,
-                // so add ScrollY back to get the correct absolute canvas position
-                float rippleDrawY = ripple.Y + _lastState.Viewport.ScrollY;
-                canvas.DrawCircle(ripple.X, rippleDrawY, radius, _ripplePaint);
-                canvas.Restore();
-            }
-        }
-
-        // 3. Card image
+        // 2. Card image
         var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + rect.Width * 1.3968f);
 
         SKImage? image = null;
@@ -668,24 +562,22 @@ public class CardGrid : ContentView
             DrawShimmer(canvas, imageRect);
         }
 
-        // 4. Name text
+        // 3. Name text
         float textY = imageRect.Bottom + 16f;
         DrawWrappedText(canvas, card.Name, rect.Left + 4f, textY, rect.Width - 8f, _textFont, _textPaint);
 
-        // 5. Price chip — bottom-left corner of the image, overlaid
+        // 4. Price chip — bottom-left corner of the image, overlaid
         if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
         {
             const float chipPadX = 5f;
             const float chipPadY = 3f;
             const float chipRadius = 4f;
-            const float chipMargin = 6f; // nudged up from very bottom edge
+            const float chipMargin = 6f;
 
             float priceTextWidth = _priceFont!.MeasureText(card.CachedDisplayPrice);
             float chipW = priceTextWidth + chipPadX * 2f;
             float chipH = _priceFont.Size + chipPadY * 2f;
 
-            // Sit the chip so its bottom is ~15% up from the image bottom,
-            // landing roughly at the art/text-box boundary on most cards
             float chipY = imageRect.Bottom - (imageRect.Height * 0.15f) - chipH;
             float chipX = imageRect.Left + chipMargin;
 
@@ -703,7 +595,7 @@ public class CardGrid : ContentView
             canvas.DrawText(card.CachedDisplayPrice, chipTextX, chipTextY, SKTextAlign.Left, _priceFont, _pricePaint);
         }
 
-        // 6. Quantity badge
+        // 5. Quantity badge
         if (card.Quantity > 0)
         {
             string qtyStr = card.Quantity.ToString();
@@ -749,7 +641,6 @@ public class CardGrid : ContentView
                 }
                 else
                 {
-                    // Single word too long — truncate it
                     canvas.DrawText(TruncateWithEllipsis(word, maxWidth, font), x, currentY, SKTextAlign.Left, font, paint);
                     lineCount++;
                     currentY += lineHeight;
