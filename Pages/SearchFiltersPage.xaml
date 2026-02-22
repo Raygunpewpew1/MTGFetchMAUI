@@ -6,6 +6,14 @@
              BackgroundColor="{StaticResource Background}"
              Shell.PresentationMode="ModalAnimated">
 
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <OnIdiom x:Key="HeaderFontSize" x:TypeArguments="x:Double" Phone="16" Tablet="20" Desktop="20" />
+            <OnIdiom x:Key="BodyFontSize" x:TypeArguments="x:Double" Phone="14" Tablet="18" Desktop="18" />
+            <OnIdiom x:Key="SmallFontSize" x:TypeArguments="x:Double" Phone="12" Tablet="16" Desktop="16" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
     <Grid RowDefinitions="*,Auto">
 
         <ScrollView Grid.Row="0" Padding="16">
@@ -13,13 +21,13 @@
 
                 <!-- Colors -->
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="Colors" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Colors" FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold" />
                     <FlexLayout x:Name="ColorButtons" Wrap="Wrap" JustifyContent="Start" />
                 </VerticalStackLayout>
 
                 <!-- Card Text / Keywords -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Card Text" FontSize="14" />
+                    <Label Text="Card Text" FontSize="{StaticResource BodyFontSize}" />
                     <Entry x:Name="KeywordsEntry"
                            Placeholder="Search card text..."
                            BackgroundColor="{StaticResource Surface}" />
@@ -27,7 +35,7 @@
 
                 <!-- Card Type -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Card Type" FontSize="14" />
+                    <Label Text="Card Type" FontSize="{StaticResource BodyFontSize}" />
                     <Picker x:Name="TypePicker"
                             Title="Any Type"
                             TextColor="{StaticResource TextPrimary}"
@@ -51,7 +59,7 @@
 
                 <!-- Subtype -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Subtype" FontSize="14" />
+                    <Label Text="Subtype" FontSize="{StaticResource BodyFontSize}" />
                     <Entry x:Name="SubtypeEntry"
                            Placeholder="e.g. Elf, Dragon..."
                            BackgroundColor="{StaticResource Surface}" />
@@ -59,7 +67,7 @@
 
                 <!-- Supertype -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Supertype" FontSize="14" />
+                    <Label Text="Supertype" FontSize="{StaticResource BodyFontSize}" />
                     <Entry x:Name="SupertypeEntry"
                            Placeholder="e.g. Legendary..."
                            BackgroundColor="{StaticResource Surface}" />
@@ -67,42 +75,42 @@
 
                 <!-- Rarity -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Rarity" FontSize="14" />
+                    <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" />
                     <FlexLayout Wrap="Wrap" JustifyContent="Start">
                         <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
                             <CheckBox x:Name="ChkCommon" Color="{StaticResource Primary}" />
-                            <Label Text="Common" VerticalOptions="Center" />
+                            <Label Text="Common" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
                         </HorizontalStackLayout>
                         <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
                             <CheckBox x:Name="ChkUncommon" Color="{StaticResource Primary}" />
-                            <Label Text="Uncommon" VerticalOptions="Center" />
+                            <Label Text="Uncommon" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
                         </HorizontalStackLayout>
                         <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
                             <CheckBox x:Name="ChkRare" Color="{StaticResource Primary}" />
-                            <Label Text="Rare" VerticalOptions="Center" />
+                            <Label Text="Rare" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
                         </HorizontalStackLayout>
                         <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
                             <CheckBox x:Name="ChkMythic" Color="{StaticResource Primary}" />
-                            <Label Text="Mythic" VerticalOptions="Center" />
+                            <Label Text="Mythic" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
                         </HorizontalStackLayout>
                     </FlexLayout>
                 </VerticalStackLayout>
 
                 <!-- CMC Range -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Mana Value (CMC)" FontSize="14" />
+                    <Label Text="Mana Value (CMC)" FontSize="{StaticResource BodyFontSize}" />
                     <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
                         <VerticalStackLayout>
-                            <Label x:Name="CMCMinLabel" Text="Min: 0" FontSize="12"
+                            <Label x:Name="CMCMinLabel" Text="Min: 0" FontSize="{StaticResource SmallFontSize}"
                                    TextColor="{StaticResource TextSecondary}" />
                             <Slider x:Name="CMCMinSlider" Minimum="0" Maximum="16"
                                     ValueChanged="OnCMCChanged"
                                     ThumbColor="{StaticResource Primary}"
                                     MinimumTrackColor="{StaticResource Primary}" />
                         </VerticalStackLayout>
-                        <Label Grid.Column="1" Text="to" VerticalOptions="End" Margin="0,0,0,8" />
+                        <Label Grid.Column="1" Text="to" VerticalOptions="End" Margin="0,0,0,8" FontSize="{StaticResource BodyFontSize}" />
                         <VerticalStackLayout Grid.Column="2">
-                            <Label x:Name="CMCMaxLabel" Text="Max: 16+" FontSize="12"
+                            <Label x:Name="CMCMaxLabel" Text="Max: 16+" FontSize="{StaticResource SmallFontSize}"
                                    TextColor="{StaticResource TextSecondary}" />
                             <Slider x:Name="CMCMaxSlider" Minimum="0" Maximum="16" Value="16"
                                     ValueChanged="OnCMCChanged"
@@ -115,12 +123,12 @@
                 <!-- Power / Toughness -->
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="Power" FontSize="14" />
+                        <Label Text="Power" FontSize="{StaticResource BodyFontSize}" />
                         <Entry x:Name="PowerEntry" Placeholder="e.g. 3"
                                BackgroundColor="{StaticResource Surface}" Keyboard="Numeric" />
                     </VerticalStackLayout>
                     <VerticalStackLayout Grid.Column="1" Spacing="4">
-                        <Label Text="Toughness" FontSize="14" />
+                        <Label Text="Toughness" FontSize="{StaticResource BodyFontSize}" />
                         <Entry x:Name="ToughnessEntry" Placeholder="e.g. 4"
                                BackgroundColor="{StaticResource Surface}" Keyboard="Numeric" />
                     </VerticalStackLayout>
@@ -128,7 +136,7 @@
 
                 <!-- Format Legality -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Format" FontSize="14" />
+                    <Label Text="Format" FontSize="{StaticResource BodyFontSize}" />
                     <Picker x:Name="FormatPicker"
                             Title="Any Format"
                             TextColor="{StaticResource TextPrimary}"
@@ -137,14 +145,14 @@
 
                 <!-- Set Code -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Set Code" FontSize="14" />
+                    <Label Text="Set Code" FontSize="{StaticResource BodyFontSize}" />
                     <Entry x:Name="SetEntry" Placeholder="e.g. MH2, ZEN..."
                            BackgroundColor="{StaticResource Surface}" />
                 </VerticalStackLayout>
 
                 <!-- Artist -->
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Artist" FontSize="14" />
+                    <Label Text="Artist" FontSize="{StaticResource BodyFontSize}" />
                     <Entry x:Name="ArtistEntry" Placeholder="Artist name..."
                            BackgroundColor="{StaticResource Surface}" />
                 </VerticalStackLayout>
@@ -153,11 +161,11 @@
                 <VerticalStackLayout Spacing="4">
                     <HorizontalStackLayout Spacing="8">
                         <CheckBox x:Name="ChkPrimarySide" IsChecked="True" Color="{StaticResource Primary}" />
-                        <Label Text="Primary side only" VerticalOptions="Center" />
+                        <Label Text="Primary side only" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
                     </HorizontalStackLayout>
                     <HorizontalStackLayout Spacing="8">
                         <CheckBox x:Name="ChkNoVariations" Color="{StaticResource Primary}" />
-                        <Label Text="Exclude variations" VerticalOptions="Center" />
+                        <Label Text="Exclude variations" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
 

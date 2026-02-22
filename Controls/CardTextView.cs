@@ -68,6 +68,11 @@ public class CardTextView : SKCanvasView
 
     public CardTextView()
     {
+        if (DeviceInfo.Idiom == DeviceIdiom.Tablet || DeviceInfo.Idiom == DeviceIdiom.Desktop)
+        {
+            _textSize = 18f;
+        }
+
         InitializeFonts();
     }
 

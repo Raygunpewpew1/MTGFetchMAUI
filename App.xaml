@@ -34,18 +34,45 @@
 
             <Style TargetType="Label">
                 <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+                <Setter Property="FontSize">
+                    <Setter.Value>
+                        <OnIdiom x:TypeArguments="x:Double">
+                            <OnIdiom.Phone>14</OnIdiom.Phone>
+                            <OnIdiom.Tablet>18</OnIdiom.Tablet>
+                            <OnIdiom.Desktop>18</OnIdiom.Desktop>
+                        </OnIdiom>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style TargetType="Entry">
                 <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
                 <Setter Property="PlaceholderColor" Value="{StaticResource TextSecondary}" />
                 <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+                <Setter Property="FontSize">
+                    <Setter.Value>
+                        <OnIdiom x:TypeArguments="x:Double">
+                            <OnIdiom.Phone>14</OnIdiom.Phone>
+                            <OnIdiom.Tablet>18</OnIdiom.Tablet>
+                            <OnIdiom.Desktop>18</OnIdiom.Desktop>
+                        </OnIdiom>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style TargetType="Button">
                 <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
                 <Setter Property="TextColor" Value="White" />
                 <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="FontSize">
+                    <Setter.Value>
+                        <OnIdiom x:TypeArguments="x:Double">
+                            <OnIdiom.Phone>14</OnIdiom.Phone>
+                            <OnIdiom.Tablet>18</OnIdiom.Tablet>
+                            <OnIdiom.Desktop>18</OnIdiom.Desktop>
+                        </OnIdiom>
+                    </Setter.Value>
+                </Setter>
             </Style>
 
             <Style x:Key="CardStyle" TargetType="Border">
