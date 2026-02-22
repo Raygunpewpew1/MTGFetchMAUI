@@ -12,7 +12,7 @@ namespace MTGFetchMAUI.Controls;
 
 public class CardGrid : ContentView
 {
-    private readonly SKGLView _canvas;
+    private readonly SKCanvasView _canvas;
     private readonly ScrollView _scrollView;
     private readonly BoxView _spacer;
     private readonly Channel<GridState> _stateChannel;
@@ -35,10 +35,6 @@ public class CardGrid : ContentView
     private readonly Stopwatch _animationStopwatch = new();
     private IDispatcherTimer? _animationTimer;
     private long _lastFrameTime;
-
-    // GL State
-    private GRRecordingContext? _lastGLContext;
-    private int _glGeneration = 0;
 
     // Cached Paints
     private SKPaint? _bgPaint;
@@ -68,14 +64,13 @@ public class CardGrid : ContentView
             FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        _canvas = new SKGLView
+        _canvas = new SKCanvasView
         {
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
             IgnorePixelScaling = true,
             EnableTouchEvents = false,
-            InputTransparent = true,
-            HasRenderLoop = false
+            InputTransparent = true
         };
         _canvas.PaintSurface += OnPaintSurface;
 
@@ -268,7 +263,10 @@ public class CardGrid : ContentView
     }
 
     public void ForceRedraw() => _canvas.InvalidateSurface();
-    public void OnSleep() => _lastGLContext = null;
+    public void OnSleep()
+    {
+        // No GL context to clear for SKCanvasView
+    }
     public void OnResume()
     {
         Task.Run(async () =>
@@ -462,15 +460,8 @@ public class CardGrid : ContentView
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
 
-    private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
+    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
-        var currentContext = e.Surface.Context;
-        if (_lastGLContext != currentContext)
-        {
-            _glGeneration++;
-            _lastGLContext = currentContext;
-        }
-
         var canvas = e.Surface.Canvas;
         var info = e.Info;
 
