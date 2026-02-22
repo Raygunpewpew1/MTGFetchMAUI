@@ -4,7 +4,7 @@ using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Text.RegularExpressions;
 
-namespace MTGFetchMAUI.Controls;
+namespace MTGFetchMAUI.Controls.Legacy;
 
 public class CardTextView : SKCanvasView
 {

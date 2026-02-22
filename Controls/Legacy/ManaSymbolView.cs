@@ -3,7 +3,7 @@ using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 
-namespace MTGFetchMAUI.Controls;
+namespace MTGFetchMAUI.Controls.Legacy;
 
 public class ManaSymbolView : SKCanvasView
 {
