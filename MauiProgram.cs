@@ -21,6 +21,12 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseSkiaSharp()
+            .ConfigureMauiHandlers(handlers =>
+            {
+#if ANDROID
+                handlers.AddHandler(typeof(MTGFetchMAUI.Controls.CardTextView), typeof(MTGFetchMAUI.Platforms.Android.Handlers.CardTextViewHandler));
+#endif
+            })
             .ConfigureFonts(fonts =>
             {
 
