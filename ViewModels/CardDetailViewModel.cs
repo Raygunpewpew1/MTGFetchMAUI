@@ -21,8 +21,6 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
     private bool _isInCollection;
     private string _priceDisplay = "";
     private CardPriceData _priceData = CardPriceData.Empty;
-    private bool _showLegalities;
-
     public Card Card
     {
         get => _card;
@@ -31,7 +29,6 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
             SetProperty(ref _card, value);
             OnPropertyChanged(nameof(HasMultipleFaces));
             OnPropertyChanged(nameof(HasRulings));
-            OnPropertyChanged(nameof(ShowRulings));
         }
     }
 
@@ -76,24 +73,7 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
                                    (_priceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
                                     _priceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
 
-    public bool ShowLegalities
-    {
-        get => _showLegalities;
-        set
-        {
-            if (SetProperty(ref _showLegalities, value))
-            {
-                // Whenever legalities toggles, tell the UI to check rulings visibility too
-                OnPropertyChanged(nameof(ShowRulings));
-            }
-        }
-    }
-
-    // Checks if the card actually has rulings (assumes your Card model has a Rulings collection)
     public bool HasRulings => Card?.Rulings != null && Card.Rulings.Count > 0;
-
-    // The final true/false flag that the Rulings Border will listen to
-    public bool ShowRulings => ShowLegalities && HasRulings;
 
     public bool HasMultipleFaces => _faces.Length > 1 && Card.Layout.IsDoubleFaced();
 
@@ -102,7 +82,6 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
     public ICommand FlipFaceCommand { get; }
     public ICommand AddToCollectionCommand { get; }
     public ICommand RemoveFromCollectionCommand { get; }
-    public ICommand ToggleLegalitiesCommand { get; }
 
     public event Action<string>? AddedToCollection;
 
@@ -112,7 +91,6 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
         FlipFaceCommand = new Command(FlipFace);
         AddToCollectionCommand = new Command<int>(async qty => await AddToCollectionAsync(qty));
         RemoveFromCollectionCommand = new Command(async () => await RemoveFromCollectionAsync());
-        ToggleLegalitiesCommand = new Command(() => ShowLegalities = !ShowLegalities);
 
         _cardManager.OnPricesUpdated += HandlePricesUpdated;
     }
