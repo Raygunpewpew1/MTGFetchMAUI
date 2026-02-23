@@ -27,59 +27,50 @@
                 </VerticalStackLayout>
 
                 <!-- Card Text / Keywords -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Card Text" FontSize="{StaticResource BodyFontSize}" />
-                    <material:TextField x:Name="KeywordsEntry"
-                           Title="Search card text..."
-                           BackgroundColor="{StaticResource Surface}"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                </VerticalStackLayout>
+                <material:TextField x:Name="KeywordsEntry"
+                       Title="Card Text"
+                       Placeholder="Search card text..."
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Card Type -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Card Type" FontSize="{StaticResource BodyFontSize}" />
-                    <material:PickerField x:Name="TypePicker"
-                            Title="Any Type"
-                            TextColor="{StaticResource TextPrimary}"
-                            TitleColor="{StaticResource TextSecondary}"
-                            AccentColor="{StaticResource Primary}">
-                        <material:PickerField.ItemsSource>
-                            <x:Array Type="{x:Type x:String}">
-                                <x:String>Any</x:String>
-                                <x:String>Artifact</x:String>
-                                <x:String>Battle</x:String>
-                                <x:String>Creature</x:String>
-                                <x:String>Enchantment</x:String>
-                                <x:String>Instant</x:String>
-                                <x:String>Land</x:String>
-                                <x:String>Planeswalker</x:String>
-                                <x:String>Sorcery</x:String>
-                                <x:String>Kindred</x:String>
-                            </x:Array>
-                        </material:PickerField.ItemsSource>
-                    </material:PickerField>
-                </VerticalStackLayout>
+                <material:PickerField x:Name="TypePicker"
+                        Title="Card Type"
+                        TextColor="{StaticResource TextPrimary}"
+                        TitleColor="{StaticResource TextSecondary}"
+                        AccentColor="{StaticResource Primary}">
+                    <material:PickerField.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
+                            <x:String>Any</x:String>
+                            <x:String>Artifact</x:String>
+                            <x:String>Battle</x:String>
+                            <x:String>Creature</x:String>
+                            <x:String>Enchantment</x:String>
+                            <x:String>Instant</x:String>
+                            <x:String>Land</x:String>
+                            <x:String>Planeswalker</x:String>
+                            <x:String>Sorcery</x:String>
+                            <x:String>Kindred</x:String>
+                        </x:Array>
+                    </material:PickerField.ItemsSource>
+                </material:PickerField>
 
                 <!-- Subtype -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Subtype" FontSize="{StaticResource BodyFontSize}" />
-                    <material:TextField x:Name="SubtypeEntry"
-                           Title="e.g. Elf, Dragon..."
-                           BackgroundColor="{StaticResource Surface}"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                </VerticalStackLayout>
+                <material:TextField x:Name="SubtypeEntry"
+                       Title="Subtype"
+                       Placeholder="e.g. Elf, Dragon..."
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Supertype -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Supertype" FontSize="{StaticResource BodyFontSize}" />
-                    <material:TextField x:Name="SupertypeEntry"
-                           Title="e.g. Legendary..."
-                           BackgroundColor="{StaticResource Surface}"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                </VerticalStackLayout>
+                <material:TextField x:Name="SupertypeEntry"
+                       Title="Supertype"
+                       Placeholder="e.g. Legendary..."
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Rarity -->
                 <VerticalStackLayout Spacing="4">
@@ -118,49 +109,34 @@
 
                 <!-- Power / Toughness -->
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Power" FontSize="{StaticResource BodyFontSize}" />
-                        <material:TextField x:Name="PowerEntry" Title="e.g. 3"
-                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
-                               TitleColor="{StaticResource TextSecondary}"
-                               AccentColor="{StaticResource Primary}" />
-                    </VerticalStackLayout>
-                    <VerticalStackLayout Grid.Column="1" Spacing="4">
-                        <Label Text="Toughness" FontSize="{StaticResource BodyFontSize}" />
-                        <material:TextField x:Name="ToughnessEntry" Title="e.g. 4"
-                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
-                               TitleColor="{StaticResource TextSecondary}"
-                               AccentColor="{StaticResource Primary}" />
-                    </VerticalStackLayout>
+                    <material:TextField x:Name="PowerEntry" Title="Power" Placeholder="e.g. 3"
+                           BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
+                    <material:TextField Grid.Column="1" x:Name="ToughnessEntry" Title="Toughness" Placeholder="e.g. 4"
+                           BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </Grid>
 
                 <!-- Format Legality -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Format" FontSize="{StaticResource BodyFontSize}" />
-                    <material:PickerField x:Name="FormatPicker"
-                            Title="Any Format"
-                            TextColor="{StaticResource TextPrimary}"
-                            TitleColor="{StaticResource TextSecondary}"
-                            AccentColor="{StaticResource Primary}" />
-                </VerticalStackLayout>
+                <material:PickerField x:Name="FormatPicker"
+                        Title="Format"
+                        TextColor="{StaticResource TextPrimary}"
+                        TitleColor="{StaticResource TextSecondary}"
+                        AccentColor="{StaticResource Primary}" />
 
                 <!-- Set Code -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Set Code" FontSize="{StaticResource BodyFontSize}" />
-                    <material:TextField x:Name="SetEntry" Title="e.g. MH2, ZEN..."
-                           BackgroundColor="{StaticResource Surface}"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                </VerticalStackLayout>
+                <material:TextField x:Name="SetEntry" Title="Set Code" Placeholder="e.g. MH2, ZEN..."
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Artist -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Artist" FontSize="{StaticResource BodyFontSize}" />
-                    <material:TextField x:Name="ArtistEntry" Title="Artist name..."
-                           BackgroundColor="{StaticResource Surface}"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                </VerticalStackLayout>
+                <material:TextField x:Name="ArtistEntry" Title="Artist" Placeholder="Artist name..."
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Special Options -->
                 <VerticalStackLayout Spacing="4">
