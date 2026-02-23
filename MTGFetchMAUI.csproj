@@ -49,7 +49,6 @@
 
 	<ItemGroup>
 		<EmbeddedResource Include="Assets\SVGMana\*.svg" />
-		<EmbeddedResource Include="Assets\SVGSets\*.svg" />
 	</ItemGroup>
 
 	<ItemGroup>
