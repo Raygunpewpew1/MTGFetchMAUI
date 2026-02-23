@@ -42,6 +42,41 @@ public class LoadingViewModel : BaseViewModel
         if (_cardManager.DatabaseManager.IsConnected)
             _cardManager.Disconnect();
 
+        // Check for updates
+        bool updateAvailable = false;
+        string remoteVersion = "";
+
+        try
+        {
+            var updateInfo = await AppDataManager.CheckForDatabaseUpdateAsync();
+            updateAvailable = updateInfo.updateAvailable;
+            remoteVersion = updateInfo.remoteVersion;
+        }
+        catch (Exception ex)
+        {
+            // Silently fail update check
+            System.Diagnostics.Debug.WriteLine($"Update check failed: {ex.Message}");
+        }
+
+        if (updateAvailable)
+        {
+            // Use Windows[0].Page since MainPage might be null in some contexts
+            var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+            if (page != null)
+            {
+                bool shouldUpdate = await page.DisplayAlertAsync("Update Available",
+                    $"A new database version ({remoteVersion}) is available. Would you like to download it?",
+                    "Yes",
+                    "No");
+
+                if (shouldUpdate)
+                {
+                    await StartDownloadAsync();
+                    return;
+                }
+            }
+        }
+
         if (AppDataManager.MTGDatabaseExists())
         {
             await FinalizeStartupAsync();
@@ -75,6 +110,25 @@ public class LoadingViewModel : BaseViewModel
         }
         else
         {
+            // If download failed but we have a database (e.g. update failed), offer to continue
+            if (AppDataManager.MTGDatabaseExists())
+            {
+                var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+                if (page != null)
+                {
+                    bool useExisting = await page.DisplayAlertAsync("Download Failed",
+                        "Could not download the update. Continue with existing database?",
+                        "Yes",
+                        "Retry");
+
+                    if (useExisting)
+                    {
+                        await FinalizeStartupAsync();
+                        return;
+                    }
+                }
+            }
+
             IsBusy = false;
             ShowRetry = true;
             StatusMessage = "Download failed. Please check your internet connection.";
