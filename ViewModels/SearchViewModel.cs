@@ -16,6 +16,7 @@ public class SearchViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
     private string _searchText = "";
+    private CancellationTokenSource? _searchDebounceCts;
     private int _totalResults;
     private int _currentPage;
     private bool _isLoadingPage;
@@ -30,7 +31,29 @@ public class SearchViewModel : BaseViewModel
     public string SearchText
     {
         get => _searchText;
-        set => SetProperty(ref _searchText, value);
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+            {
+                OnSearchTextChanged();
+            }
+        }
+    }
+
+    private void OnSearchTextChanged()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+
+        if (string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3)
+            return;
+
+        Task.Delay(750, token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            MainThread.BeginInvokeOnMainThread(() => SearchCommand.Execute(null));
+        });
     }
 
     public int TotalResults

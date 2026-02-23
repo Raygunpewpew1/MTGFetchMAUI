@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="MTGFetchMAUI.Pages.SearchFiltersPage"
              Title="Search Filters"
              BackgroundColor="{StaticResource Background}"
@@ -28,19 +29,22 @@
                 <!-- Card Text / Keywords -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Card Text" FontSize="{StaticResource BodyFontSize}" />
-                    <Entry x:Name="KeywordsEntry"
-                           Placeholder="Search card text..."
-                           BackgroundColor="{StaticResource Surface}" />
+                    <material:TextField x:Name="KeywordsEntry"
+                           Title="Search card text..."
+                           BackgroundColor="{StaticResource Surface}"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </VerticalStackLayout>
 
                 <!-- Card Type -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Card Type" FontSize="{StaticResource BodyFontSize}" />
-                    <Picker x:Name="TypePicker"
+                    <material:PickerField x:Name="TypePicker"
                             Title="Any Type"
                             TextColor="{StaticResource TextPrimary}"
-                            TitleColor="{StaticResource TextSecondary}">
-                        <Picker.ItemsSource>
+                            TitleColor="{StaticResource TextSecondary}"
+                            AccentColor="{StaticResource Primary}">
+                        <material:PickerField.ItemsSource>
                             <x:Array Type="{x:Type x:String}">
                                 <x:String>Any</x:String>
                                 <x:String>Artifact</x:String>
@@ -53,46 +57,38 @@
                                 <x:String>Sorcery</x:String>
                                 <x:String>Kindred</x:String>
                             </x:Array>
-                        </Picker.ItemsSource>
-                    </Picker>
+                        </material:PickerField.ItemsSource>
+                    </material:PickerField>
                 </VerticalStackLayout>
 
                 <!-- Subtype -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Subtype" FontSize="{StaticResource BodyFontSize}" />
-                    <Entry x:Name="SubtypeEntry"
-                           Placeholder="e.g. Elf, Dragon..."
-                           BackgroundColor="{StaticResource Surface}" />
+                    <material:TextField x:Name="SubtypeEntry"
+                           Title="e.g. Elf, Dragon..."
+                           BackgroundColor="{StaticResource Surface}"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </VerticalStackLayout>
 
                 <!-- Supertype -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Supertype" FontSize="{StaticResource BodyFontSize}" />
-                    <Entry x:Name="SupertypeEntry"
-                           Placeholder="e.g. Legendary..."
-                           BackgroundColor="{StaticResource Surface}" />
+                    <material:TextField x:Name="SupertypeEntry"
+                           Title="e.g. Legendary..."
+                           BackgroundColor="{StaticResource Surface}"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </VerticalStackLayout>
 
                 <!-- Rarity -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" />
                     <FlexLayout Wrap="Wrap" JustifyContent="Start">
-                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
-                            <CheckBox x:Name="ChkCommon" Color="{StaticResource Primary}" />
-                            <Label Text="Common" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
-                            <CheckBox x:Name="ChkUncommon" Color="{StaticResource Primary}" />
-                            <Label Text="Uncommon" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
-                            <CheckBox x:Name="ChkRare" Color="{StaticResource Primary}" />
-                            <Label Text="Rare" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout Spacing="4" Margin="0,0,12,4">
-                            <CheckBox x:Name="ChkMythic" Color="{StaticResource Primary}" />
-                            <Label Text="Mythic" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
-                        </HorizontalStackLayout>
+                        <material:CheckBox x:Name="ChkCommon" Text="Common" Color="{StaticResource Primary}" Margin="0,0,12,4" />
+                        <material:CheckBox x:Name="ChkUncommon" Text="Uncommon" Color="{StaticResource Primary}" Margin="0,0,12,4" />
+                        <material:CheckBox x:Name="ChkRare" Text="Rare" Color="{StaticResource Primary}" Margin="0,0,12,4" />
+                        <material:CheckBox x:Name="ChkMythic" Text="Mythic" Color="{StaticResource Primary}" Margin="0,0,12,4" />
                     </FlexLayout>
                 </VerticalStackLayout>
 
@@ -124,49 +120,52 @@
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Power" FontSize="{StaticResource BodyFontSize}" />
-                        <Entry x:Name="PowerEntry" Placeholder="e.g. 3"
-                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric" />
+                        <material:TextField x:Name="PowerEntry" Title="e.g. 3"
+                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
+                               TitleColor="{StaticResource TextSecondary}"
+                               AccentColor="{StaticResource Primary}" />
                     </VerticalStackLayout>
                     <VerticalStackLayout Grid.Column="1" Spacing="4">
                         <Label Text="Toughness" FontSize="{StaticResource BodyFontSize}" />
-                        <Entry x:Name="ToughnessEntry" Placeholder="e.g. 4"
-                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric" />
+                        <material:TextField x:Name="ToughnessEntry" Title="e.g. 4"
+                               BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
+                               TitleColor="{StaticResource TextSecondary}"
+                               AccentColor="{StaticResource Primary}" />
                     </VerticalStackLayout>
                 </Grid>
 
                 <!-- Format Legality -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Format" FontSize="{StaticResource BodyFontSize}" />
-                    <Picker x:Name="FormatPicker"
+                    <material:PickerField x:Name="FormatPicker"
                             Title="Any Format"
                             TextColor="{StaticResource TextPrimary}"
-                            TitleColor="{StaticResource TextSecondary}" />
+                            TitleColor="{StaticResource TextSecondary}"
+                            AccentColor="{StaticResource Primary}" />
                 </VerticalStackLayout>
 
                 <!-- Set Code -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Set Code" FontSize="{StaticResource BodyFontSize}" />
-                    <Entry x:Name="SetEntry" Placeholder="e.g. MH2, ZEN..."
-                           BackgroundColor="{StaticResource Surface}" />
+                    <material:TextField x:Name="SetEntry" Title="e.g. MH2, ZEN..."
+                           BackgroundColor="{StaticResource Surface}"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </VerticalStackLayout>
 
                 <!-- Artist -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Artist" FontSize="{StaticResource BodyFontSize}" />
-                    <Entry x:Name="ArtistEntry" Placeholder="Artist name..."
-                           BackgroundColor="{StaticResource Surface}" />
+                    <material:TextField x:Name="ArtistEntry" Title="Artist name..."
+                           BackgroundColor="{StaticResource Surface}"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </VerticalStackLayout>
 
                 <!-- Special Options -->
                 <VerticalStackLayout Spacing="4">
-                    <HorizontalStackLayout Spacing="8">
-                        <CheckBox x:Name="ChkPrimarySide" IsChecked="True" Color="{StaticResource Primary}" />
-                        <Label Text="Primary side only" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
-                    </HorizontalStackLayout>
-                    <HorizontalStackLayout Spacing="8">
-                        <CheckBox x:Name="ChkNoVariations" Color="{StaticResource Primary}" />
-                        <Label Text="Exclude variations" VerticalOptions="Center" FontSize="{StaticResource BodyFontSize}" />
-                    </HorizontalStackLayout>
+                    <material:CheckBox x:Name="ChkPrimarySide" Text="Primary side only" IsChecked="True" Color="{StaticResource Primary}" Margin="0,0,0,8" />
+                    <material:CheckBox x:Name="ChkNoVariations" Text="Exclude variations" Color="{StaticResource Primary}" Margin="0,0,0,8" />
                 </VerticalStackLayout>
 
             </VerticalStackLayout>

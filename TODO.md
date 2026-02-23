@@ -1,11 +1,11 @@
 # Future Tasks
 
 ## UI Improvements
-- [ ] **Evaluate UI Libraries**
+- [x] **Evaluate UI Libraries**
     - **Context**: Investigated UraniumUI vs Syncfusion for "Better Visuals" (Material Design inputs, charts, etc.).
     - **Decision**: Syncfusion is rejected due to licensing/paywall.
     - **Goal**: Improve "eye candy" (better inputs, floating labels, styled checkboxes).
-    - **Recommendation**: Use **UraniumUI** for inputs/styling (MIT License).
+    - **Result**: Implemented **UraniumUI** for inputs/styling (MIT License) in Search and Filters pages.
     - **Note**: UraniumUI lacks charts, so a separate library (e.g., Microcharts, LiveCharts2) would be needed for the Stats page.
 
 ## Features
