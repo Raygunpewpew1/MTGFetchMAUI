@@ -4,6 +4,7 @@
              xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              x:Class="MTGFetchMAUI.Pages.CardDetailPage"
              x:Name="DetailScreen"
              Title="Card Details"
@@ -134,31 +135,30 @@
                 <Border StrokeShape="RoundRectangle 8"
                         BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
-                        Padding="12"
-                        x:Name="LegalitiesBorder"
-                        IsVisible="{Binding ShowLegalities}">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Format Legality"
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               Margin="0,0,0,8" />
-                        <VerticalStackLayout x:Name="LegalitiesStack" Spacing="2" />
-                    </VerticalStackLayout>
+                        Padding="12">
+                    <uranium:ExpanderView>
+                        <uranium:ExpanderView.Header>
+                            <Label Text="Format Legality"
+                                   FontSize="16"
+                                   FontAttributes="Bold" />
+                        </uranium:ExpanderView.Header>
+                        <VerticalStackLayout x:Name="LegalitiesStack" Spacing="2" Padding="0,8,0,0" />
+                    </uranium:ExpanderView>
                 </Border>
 
                 <Border StrokeShape="RoundRectangle 8"
                         BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
                         Padding="12"
-                        x:Name="RulingsBorder"
-                        IsVisible="{Binding ShowRulings}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Rulings"
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               Margin="0,0,0,4" />
-                        <VerticalStackLayout x:Name="RulingsStack" Spacing="8" />
-                    </VerticalStackLayout>
+                        IsVisible="{Binding HasRulings}">
+                    <uranium:ExpanderView>
+                        <uranium:ExpanderView.Header>
+                            <Label Text="Rulings"
+                                   FontSize="16"
+                                   FontAttributes="Bold" />
+                        </uranium:ExpanderView.Header>
+                        <VerticalStackLayout x:Name="RulingsStack" Spacing="8" Padding="0,8,0,0" />
+                    </uranium:ExpanderView>
                 </Border>
 
             </VerticalStackLayout>
@@ -167,7 +167,7 @@
         <Grid Grid.Row="1"
               BackgroundColor="{StaticResource Surface}"
               Padding="12,8"
-              ColumnDefinitions="*,Auto,Auto,Auto"
+              ColumnDefinitions="*,Auto,Auto"
               ColumnSpacing="8">
 
             <Button Text="Add to Collection"
@@ -188,15 +188,6 @@
                     IsVisible="False" />
 
             <Button Grid.Column="2"
-                  Text="Legalities"
-                  Command="{Binding ToggleLegalitiesCommand}"
-                  BackgroundColor="{StaticResource CardBackground}"
-                  HeightRequest="40"
-                  FontSize="13"
-                  Padding="12,0"
-                  StyleClass="ElevatedButton" />
-
-            <Button Grid.Column="3"
                     x:Name="FlipBtn"
                     Text="Flip"
                     Clicked="OnFlipClicked"

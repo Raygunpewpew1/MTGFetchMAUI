@@ -239,13 +239,6 @@ public partial class CardDetailPage : ContentPage
             _viewModel.RemoveFromCollectionCommand.Execute(null);
     }
 
-    //private void OnLegalitiesClicked(object? sender, EventArgs e)
-    //{
-    //    LegalitiesBorder.IsVisible = !LegalitiesBorder.IsVisible;
-    //    if (LegalitiesBorder.IsVisible)
-    //        PopulateLegalities();
-    //}
-
     private void OnFlipClicked(object? sender, EventArgs e)
     {
         _viewModel.FlipFaceCommand.Execute(null);
