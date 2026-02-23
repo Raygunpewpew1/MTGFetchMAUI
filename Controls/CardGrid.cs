@@ -604,7 +604,7 @@ public class CardGrid : ContentView
                 float symbolY = textY - (textSize * 0.6f) - (symbolSize / 2f);
                 float symbolX = rect.Right - 4f - symbolSize;
 
-                SetSvgCache.DrawSymbol(canvas, card.SetCode, symbolX, symbolY, symbolSize);
+                SetSvgCache.DrawSymbol(canvas, card.SetCode, symbolX, symbolY, symbolSize, SKColors.White);
 
                 // Reduce text width to avoid overlap
                 textWidth -= (symbolSize + symbolPadding);
