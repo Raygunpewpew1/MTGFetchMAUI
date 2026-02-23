@@ -39,7 +39,8 @@
         <Button Text="Retry Download"
                 Command="{Binding RetryCommand}"
                 IsVisible="{Binding ShowRetry}"
-                HorizontalOptions="Center" />
+                HorizontalOptions="Center"
+                StyleClass="FilledButton" />
 
     </VerticalStackLayout>
 </ContentPage>

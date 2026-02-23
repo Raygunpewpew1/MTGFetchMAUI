@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="MTGFetchMAUI.Pages.CardDetailPage"
              x:Name="DetailScreen"
              Title="Card Details"
@@ -173,7 +174,8 @@
                     Clicked="OnAddClicked"
                     HeightRequest="40"
                     FontSize="13"
-                    Padding="16,0" />
+                    Padding="16,0"
+                    StyleClass="FilledButton" />
 
             <Button Grid.Column="1"
                     x:Name="RemoveBtn"
@@ -191,7 +193,8 @@
                   BackgroundColor="{StaticResource CardBackground}"
                   HeightRequest="40"
                   FontSize="13"
-                  Padding="12,0" />
+                  Padding="12,0"
+                  StyleClass="ElevatedButton" />
 
             <Button Grid.Column="3"
                     x:Name="FlipBtn"
@@ -201,7 +204,8 @@
                     HeightRequest="40"
                     FontSize="13"
                     Padding="12,0"
-                    IsVisible="False" />
+                    IsVisible="False"
+                    StyleClass="ElevatedButton" />
         </Grid>
 
         <!-- Overlays -->

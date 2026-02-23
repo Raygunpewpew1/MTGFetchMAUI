@@ -33,7 +33,8 @@
                         BackgroundColor="{StaticResource CardBackground}"
                         HeightRequest="36"
                         Padding="12,0"
-                        FontSize="12" />
+                        FontSize="12"
+                        StyleClass="ElevatedButton" />
             </HorizontalStackLayout>
         </Grid>
 
