@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="MTGFetchMAUI.Pages.SearchPage"
              x:Name="SearchPageRoot"
              Title="Search"
@@ -19,23 +20,17 @@
         <!-- Search Bar -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto"
               Padding="8,8,8,4" ColumnSpacing="8">
-            <Entry x:Name="SearchEntry"
-                   Placeholder="Search cards..."
+            <material:TextField x:Name="SearchEntry"
+                   Title="Search cards..."
                    Text="{Binding SearchText, Mode=TwoWay}"
-                   ReturnType="Search"
                    ReturnCommand="{Binding SearchCommand}"
                    BackgroundColor="{StaticResource Surface}"
                    TextColor="{StaticResource TextPrimary}"
-                   PlaceholderColor="{StaticResource TextSecondary}"
-                   HeightRequest="44">
-                <Entry.Behaviors>
-                    <toolkit:UserStoppedTypingBehavior
-                        Command="{Binding BindingContext.SearchCommand, Source={x:Reference SearchPageRoot}}"
-                        StoppedTypingTimeThreshold="750"
-                        MinimumLengthThreshold="3"
-                        ShouldDismissKeyboardAutomatically="False" />
-                </Entry.Behaviors>
-            </Entry>
+                   TitleColor="{StaticResource TextSecondary}"
+                   AccentColor="{StaticResource Primary}"
+                   HeightRequest="52"
+                   AllowClear="True">
+            </material:TextField>
 
             <Button Grid.Column="1"
                     Text="Search"

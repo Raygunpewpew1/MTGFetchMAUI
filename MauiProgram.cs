@@ -4,6 +4,7 @@ using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using CommunityToolkit.Maui;
+using UraniumUI;
 
 #if ANDROID
 using Plugin.Maui.OCR;
@@ -21,6 +22,8 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseSkiaSharp()
+            .UseUraniumUI()
+            .UseUraniumUIMaterial()
             .ConfigureMauiHandlers(handlers =>
             {
 #if ANDROID
