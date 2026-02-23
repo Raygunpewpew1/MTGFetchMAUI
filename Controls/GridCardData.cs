@@ -30,6 +30,7 @@ public class GridCardData
     public int Quantity { get; set; }
     public bool IsOnlineOnly { get; set; }
 
+
     // Image state
     public SKImage? Image { get; set; }
     public ImageQuality Quality { get; set; } = ImageQuality.None;
