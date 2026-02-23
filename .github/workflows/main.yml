@@ -14,10 +14,10 @@ jobs:
         run: echo "tag=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Download MTGJSON SQLite Zip
-        run: curl -L -o AllPrintings.sql.zip "https://mtgjson.com/api/v5/AllPrintings.sql.zip"
+        run: curl -L -o AllPrintings.sqlite.zip "https://mtgjson.com/api/v5/AllPrintings.sqlite.zip"
 
       - name: Extract Database
-        run: unzip AllPrintings.sql.zip
+        run: unzip AllPrintings.sqlite.zip
 
       - name: Drop Heavy Tables & Vacuum
         run: |
