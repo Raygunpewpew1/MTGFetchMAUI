@@ -23,7 +23,7 @@
                 <!-- Colors -->
                 <VerticalStackLayout Spacing="8">
                     <Label Text="Colors" FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold" />
-                    <FlexLayout x:Name="ColorButtons" Wrap="Wrap" JustifyContent="Start" />
+                    <FlexLayout x:Name="ColorButtons" Wrap="NoWrap" JustifyContent="Start" />
                 </VerticalStackLayout>
 
                 <!-- Card Text / Keywords -->

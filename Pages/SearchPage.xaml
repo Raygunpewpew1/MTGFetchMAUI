@@ -28,12 +28,13 @@
                    TextColor="{StaticResource TextPrimary}"
                    TitleColor="{StaticResource TextSecondary}"
                    AccentColor="{StaticResource Primary}"
-                   HeightRequest="52"
+                   HeightRequest="50"
                    AllowClear="True">
             </material:TextField>
 
             <Button Grid.Column="1"
                     Text="Search"
+                    IsVisible="False"
                     Command="{Binding SearchCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     HeightRequest="44"
