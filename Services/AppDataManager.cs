@@ -96,43 +96,82 @@ public static class AppDataManager
     }
 
     /// <summary>
-    /// Fetches the version tag from the GitHub release redirect URL.
+    /// Fetches the version tag and Last-Modified header from GitHub release assets.
+    /// Returns a composite string: "TAG|LastModified".
     /// </summary>
     public static async Task<string> GetRemoteDatabaseVersionAsync()
     {
         try
         {
-            // We need a client that DOES NOT follow redirects to capture the location header
-            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler);
+            // 1. Get the TAG from the redirect (GitHub releases/latest -> download/TAG)
+            string tag = string.Empty;
+            string lastModified = string.Empty;
 
-            using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
-            using var response = await client.SendAsync(request);
-
-            // GitHub "latest" redirects to "download/<TAG>/..."
-            // Expected 302 Found or 307/308
-            if (response.StatusCode == System.Net.HttpStatusCode.Redirect ||
-                response.StatusCode == System.Net.HttpStatusCode.MovedPermanently ||
-                response.StatusCode == System.Net.HttpStatusCode.Found ||
-                response.StatusCode == System.Net.HttpStatusCode.TemporaryRedirect)
+            // We need a client that DOES NOT follow redirects to capture the initial location header
+            using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
+            using (var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler))
             {
-                var location = response.Headers.Location;
-                if (location != null)
+                using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
+                using var response = await client.SendAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Redirect ||
+                    response.StatusCode == System.Net.HttpStatusCode.MovedPermanently ||
+                    response.StatusCode == System.Net.HttpStatusCode.Found ||
+                    response.StatusCode == System.Net.HttpStatusCode.TemporaryRedirect)
                 {
-                    // URL format: .../releases/download/<TAG>/MTG_App_DB.zip
-                    // segments: ... "download/", "<TAG>/", "MTG_App_DB.zip"
-                    var segments = location.Segments;
-                    // Find the segment after "download/"
-                    for (int i = 0; i < segments.Length - 1; i++)
+                    var location = response.Headers.Location;
+                    if (location != null)
                     {
-                        if (segments[i].TrimEnd('/').Equals("download", StringComparison.OrdinalIgnoreCase))
+                        // URL format: .../releases/download/<TAG>/MTG_App_DB.zip
+                        var segments = location.Segments;
+                        for (int i = 0; i < segments.Length - 1; i++)
                         {
-                            return segments[i + 1].TrimEnd('/');
+                            if (segments[i].TrimEnd('/').Equals("download", StringComparison.OrdinalIgnoreCase))
+                            {
+                                tag = segments[i + 1].TrimEnd('/');
+                                break;
+                            }
                         }
                     }
                 }
             }
-            return string.Empty;
+
+            if (string.IsNullOrEmpty(tag))
+                return string.Empty;
+
+            // 2. Get the Last-Modified header from the ACTUAL file location (following redirects)
+            // GitHub releases/download/TAG/file.zip -> redirects to Amazon S3 / Azure Blob
+            // We use a normal client that follows redirects here.
+            using (var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15)))
+            {
+                // The URL we found above is likely .../releases/download/TAG/MTG_App_DB.zip
+                // But we can just hit the original URL again with a normal client to follow the chain.
+                // Or construct the specific tag URL if needed. Let's stick to the original URL
+                // because it redirects to the specific tag, then to the blob storage.
+
+                // However, to be precise, let's construct the tag-specific URL so we are checking the *exact* version we found.
+                // But the original URL is "latest", which is what we want.
+
+                using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
+                using var response = await client.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if (response.Content.Headers.LastModified.HasValue)
+                    {
+                        lastModified = response.Content.Headers.LastModified.Value.UtcDateTime.ToString("O");
+                    }
+                }
+            }
+
+            // Return composite key: TAG + LastModified
+            // If LastModified is missing (unlikely), fallback to just TAG
+            if (!string.IsNullOrEmpty(lastModified))
+            {
+                return $"{tag}|{lastModified}";
+            }
+
+            return tag;
         }
         catch (Exception ex)
         {

@@ -60,12 +60,15 @@ public class LoadingViewModel : BaseViewModel
 
         if (updateAvailable)
         {
+            // Display only the TAG part to the user, not the timestamp
+            var displayVersion = remoteVersion.Split('|')[0];
+
             // Use Windows[0].Page since MainPage might be null in some contexts
             var page = Application.Current?.Windows.FirstOrDefault()?.Page;
             if (page != null)
             {
                 bool shouldUpdate = await page.DisplayAlertAsync("Update Available",
-                    $"A new database version ({remoteVersion}) is available. Would you like to download it?",
+                    $"A new database version ({displayVersion}) is available. Would you like to download it?",
                     "Yes",
                     "No");
 
