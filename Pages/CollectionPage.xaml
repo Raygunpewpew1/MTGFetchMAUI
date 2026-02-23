@@ -28,6 +28,14 @@
                                    HeightRequest="20"
                                    WidthRequest="20"
                                    Color="{StaticResource Primary}" />
+                <Button Text="{Binding ViewModeButtonText}"
+                        Command="{Binding ToggleViewModeCommand}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        HeightRequest="36"
+                        WidthRequest="36"
+                        Padding="0"
+                        FontSize="18"
+                        StyleClass="ElevatedButton" />
                 <Button Text="Refresh"
                         Clicked="OnRefreshClicked"
                         BackgroundColor="{StaticResource CardBackground}"

@@ -1,4 +1,5 @@
 using MTGFetchMAUI.Controls;
+using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using System.Windows.Input;
@@ -28,7 +29,24 @@ public class CollectionViewModel : BaseViewModel
         set => SetProperty(ref _uniqueCards, value);
     }
 
+    private ViewMode _viewMode = ViewMode.Grid;
+    public ViewMode ViewMode
+    {
+        get => _viewMode;
+        set
+        {
+            if (SetProperty(ref _viewMode, value))
+            {
+                OnPropertyChanged(nameof(ViewModeButtonText));
+                if (_grid != null) _grid.ViewMode = value;
+            }
+        }
+    }
+
+    public string ViewModeButtonText => _viewMode == ViewMode.Grid ? "☰" : "⊞";
+
     public ICommand RefreshCommand { get; }
+    public ICommand ToggleViewModeCommand { get; }
 
     public event Action? CollectionLoaded;
 
@@ -36,6 +54,7 @@ public class CollectionViewModel : BaseViewModel
     {
         _cardManager = cardManager;
         RefreshCommand = new Command(async () => await LoadCollectionAsync());
+        ToggleViewModeCommand = new Command(() => ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid);
     }
 
     public void AttachGrid(CardGrid grid)

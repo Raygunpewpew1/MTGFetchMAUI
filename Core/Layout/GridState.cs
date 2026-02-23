@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 
 namespace MTGFetchMAUI.Core.Layout;
 
+public enum ViewMode { Grid, List }
+
 public readonly record struct CardId(string Value);
 
 /// <summary>
@@ -17,6 +19,7 @@ public record CardState(
     string ScryfallId,
     int Quantity,
     bool IsOnlineOnly,
+    string TypeLine = "",
     CardPriceData? PriceData = null,
     string CachedDisplayPrice = ""
 )
@@ -32,6 +35,7 @@ public record CardState(
             card.ScryfallId,
             quantity,
             card.IsOnlineOnly,
+            card.CardType,
             prices
         );
         return state with { CachedDisplayPrice = state.GetDisplayPrice() };
@@ -60,7 +64,8 @@ public record GridConfig(
     float CardSpacing = 8f,
     float LabelHeight = 42f,
     float CardImageRatio = 1.3968f,
-    int OffscreenBuffer = 40
+    int OffscreenBuffer = 40,
+    ViewMode ViewMode = ViewMode.Grid
 );
 
 public record Viewport(

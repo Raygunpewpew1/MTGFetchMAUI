@@ -33,6 +33,13 @@ internal sealed class CardGridRenderer : IDisposable
     private SKFont? _badgeFont;
     private SKRoundRect? _cardRoundRect;
     private SKRoundRect? _imageRoundRect;
+    private SKPaint? _secondaryTextPaint;
+    private SKFont? _secondaryTextFont;
+    private SKPaint? _separatorPaint;
+
+    // List view thumbnail dimensions
+    private const float ListImgWidth = 55f;
+    private const float ListImgHeight = ListImgWidth * 1.3968f; // ≈ 76.8px
 
     /// <param name="canvas">Canvas to invalidate after sizing changes.</param>
     /// <param name="getImage">Returns a cached SKImage for the given cache key, or null.</param>
@@ -54,6 +61,9 @@ internal sealed class CardGridRenderer : IDisposable
         _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
         _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
+        _secondaryTextPaint ??= new SKPaint { Color = new SKColor(160, 160, 160), IsAntialias = true };
+        _secondaryTextFont ??= new SKFont { Size = 11f };
+        _separatorPaint ??= new SKPaint { Color = new SKColor(50, 50, 50) };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
     }
@@ -64,10 +74,12 @@ internal sealed class CardGridRenderer : IDisposable
         _textFont?.Dispose();
         _priceFont?.Dispose();
         _badgeFont?.Dispose();
+        _secondaryTextFont?.Dispose();
 
         _textFont = new SKFont { Size = isLargeScreen ? 15f : 12f };
         _priceFont = new SKFont { Size = isLargeScreen ? 11f : 8.5f };
         _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), isLargeScreen ? 13f : 11f);
+        _secondaryTextFont = new SKFont { Size = isLargeScreen ? 13f : 11f };
 
         _canvas.InvalidateSurface();
     }
@@ -83,6 +95,9 @@ internal sealed class CardGridRenderer : IDisposable
         _badgeTextPaint?.Dispose(); _badgeTextPaint = null;
         _badgeFont?.Dispose(); _badgeFont = null;
         _shimmerBasePaint?.Dispose(); _shimmerBasePaint = null;
+        _secondaryTextPaint?.Dispose(); _secondaryTextPaint = null;
+        _secondaryTextFont?.Dispose(); _secondaryTextFont = null;
+        _separatorPaint?.Dispose(); _separatorPaint = null;
         _cardRoundRect?.Dispose(); _cardRoundRect = null;
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
@@ -107,10 +122,16 @@ internal sealed class CardGridRenderer : IDisposable
         canvas.Scale(scale);
         canvas.Translate(0, -scrollY);
 
+        bool isList = list.ViewMode == MTGFetchMAUI.Core.Layout.ViewMode.List;
         foreach (var cmd in list.Commands)
         {
             if (cmd is DrawCardCommand draw)
-                RenderCard(canvas, draw);
+            {
+                if (isList)
+                    RenderListCard(canvas, draw);
+                else
+                    RenderCard(canvas, draw);
+            }
         }
     }
 
@@ -192,6 +213,90 @@ internal sealed class CardGridRenderer : IDisposable
             float by = imageRect.Top + 4f;
             canvas.DrawRoundRect(bx, by, bw, 20f, 10f, 10f, _badgeBgPaint!);
             canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 15f, _badgeFont, _badgeTextPaint!);
+        }
+    }
+
+    private void RenderListCard(SKCanvas canvas, DrawCardCommand cmd)
+    {
+        var row = cmd.Rect;
+        var card = cmd.Card;
+
+        const float pad = 10f;
+        const float gap = 10f;
+
+        // 1. Row separator at bottom
+        canvas.DrawRect(new SKRect(0f, row.Bottom - 1f, row.Right, row.Bottom), _separatorPaint);
+
+        // 2. Thumbnail rect — vertically centered in row
+        float imgTop = row.Top + (row.Height - ListImgHeight) / 2f;
+        var imgRect = new SKRect(pad, imgTop, pad + ListImgWidth, imgTop + ListImgHeight);
+
+        var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
+        var image = _getImage(cacheKey);
+
+        if (image != null && image.Handle != IntPtr.Zero)
+        {
+            canvas.Save();
+            _imageRoundRect!.SetRect(imgRect, 4f, 4f);
+            canvas.ClipRoundRect(_imageRoundRect, antialias: true);
+            canvas.DrawImage(image, imgRect);
+            canvas.Restore();
+        }
+        else
+        {
+            DrawShimmer(canvas, imgRect);
+        }
+
+        // 3. Quantity badge overlaid on thumbnail (top-right corner)
+        if (card.Quantity > 0)
+        {
+            string qtyStr = card.Quantity.ToString();
+            float tw = _badgeFont!.MeasureText(qtyStr);
+            float bw = Math.Max(18f, tw + 8f);
+            float bx = imgRect.Right - bw - 2f;
+            float by = imgRect.Top + 2f;
+            canvas.DrawRoundRect(bx, by, bw, 18f, 9f, 9f, _badgeBgPaint!);
+            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 13f, _badgeFont, _badgeTextPaint!);
+        }
+
+        // 4. Text area — to the right of the thumbnail
+        float textLeft = pad + ListImgWidth + gap;
+        float textRight = row.Right - pad;
+        float textWidth = textRight - textLeft;
+
+        float nameSize = _textFont!.Size;
+        float secSize = _secondaryTextFont!.Size;
+        float lineHeight = nameSize * 1.3f;
+        float secLineHeight = secSize * 1.3f;
+
+        // Vertically distribute: name + type + set+price block, centered
+        float blockHeight = lineHeight + secLineHeight + secLineHeight;
+        float textTop = row.Top + (row.Height - blockHeight) / 2f + nameSize;
+
+        // Card name
+        string nameTrunc = TruncateWithEllipsis(card.Name, textWidth, _textFont);
+        canvas.DrawText(nameTrunc, textLeft, textTop, SKTextAlign.Left, _textFont, _textPaint!);
+
+        // Type line
+        float typeY = textTop + lineHeight;
+        if (!string.IsNullOrEmpty(card.TypeLine))
+        {
+            string typeTrunc = TruncateWithEllipsis(card.TypeLine, textWidth, _secondaryTextFont);
+            canvas.DrawText(typeTrunc, textLeft, typeY, SKTextAlign.Left, _secondaryTextFont, _secondaryTextPaint!);
+        }
+
+        // Set code (left) + Price (right)
+        float metaY = typeY + secLineHeight;
+        if (!string.IsNullOrEmpty(card.SetCode))
+        {
+            SetSvgCache.DrawSymbol(canvas, card.SetCode, textLeft, metaY - secSize * 0.8f, secSize, new SKColor(160, 160, 160));
+            float symbolSpace = secSize + 4f;
+            canvas.DrawText(card.SetCode.ToUpper(), textLeft + symbolSpace, metaY, SKTextAlign.Left, _secondaryTextFont, _secondaryTextPaint!);
+        }
+
+        if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
+        {
+            canvas.DrawText(card.CachedDisplayPrice, textRight, metaY, SKTextAlign.Right, _priceFont!, _pricePaint!);
         }
     }
 
