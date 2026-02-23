@@ -37,7 +37,7 @@
                     Command="{Binding SearchCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     HeightRequest="44"
-                    Padding="16,0" />
+                    Padding="16,0" StyleClass="ElevatedButton" />
 
             <Button Grid.Column="2"
                     Text="Filters"
@@ -45,7 +45,7 @@
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     BackgroundColor="{StaticResource CardBackground}"
                     HeightRequest="44"
-                    Padding="12,0" />
+                    Padding="12,0" StyleClass="ElevatedButton" />
         </Grid>
 
         <!-- Status Bar -->
