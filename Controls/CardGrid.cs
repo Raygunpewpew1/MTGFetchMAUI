@@ -365,6 +365,7 @@ public class CardGrid : ContentView
     private void OnTapped(object? sender, TappedEventArgs e)
     {
         if (_currentRenderList == null) return;
+        if (_longPressHandled) return;
         var point = e.GetPosition(_spacer);
         if (point == null) return;
 
@@ -376,6 +377,7 @@ public class CardGrid : ContentView
     private IDispatcherTimer? _longPressTimer;
     private Point _pressPoint;
     private bool _isLongPressing;
+    private bool _longPressHandled;
 
     private void OnPointerPressed(object? sender, PointerEventArgs e)
     {
@@ -384,6 +386,7 @@ public class CardGrid : ContentView
 
         _pressPoint = point.Value;
         _isLongPressing = true;
+        _longPressHandled = false;
 
         _longPressTimer?.Stop();
         _longPressTimer = Dispatcher.CreateTimer();
@@ -396,6 +399,7 @@ public class CardGrid : ContentView
                 var id = HitTest((float)_pressPoint.X, (float)_pressPoint.Y);
                 if (id != null)
                 {
+                    _longPressHandled = true;
                     MainThread.BeginInvokeOnMainThread(() => CardLongPressed?.Invoke(id));
                     try { HapticFeedback.Perform(HapticFeedbackType.LongPress); } catch { }
                 }
