@@ -77,7 +77,7 @@ public class ManaCostView : HorizontalStackLayout
         // Normalize symbol name for resource lookup
         // Example: {2/U} -> 2/U -> 2_u -> mana_2_u.png
         string normalized = symbol.Replace("/", "_").ToLowerInvariant();
-        string source = $"mana_{normalized}.png";
+        string source = $"mana_{normalized}";
 
         var img = new Image
         {
