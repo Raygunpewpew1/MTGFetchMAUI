@@ -70,6 +70,11 @@ public partial class CardDetailPage : ContentPage
         TypeLineLabel.Text = card.CardType;
         SetInfoLabel.Text = card.GetSetAndNumber() + " " + card.SetName;
 
+        // Set Symbol
+        SetSymbolView.IsVisible = !string.IsNullOrEmpty(card.SetCode) && SetSvgCache.GetSymbol(card.SetCode) != null;
+        if (SetSymbolView.IsVisible)
+            SetSymbolView.InvalidateSurface();
+
         // Rarity with color
         RarityLabel.Text = card.Rarity.ToString();
         RarityLabel.TextColor = card.Rarity switch
@@ -188,6 +193,17 @@ public partial class CardDetailPage : ContentPage
         using var paint = new SKPaint { IsAntialias = true };
         var sampling = new SKSamplingOptions(SKCubicResampler.Mitchell);
         canvas.DrawImage(image, destRect, sampling, paint);
+    }
+
+    private void OnSetSymbolPaint(object? sender, SKPaintSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        canvas.Clear(); // Transparent
+
+        var setCode = _viewModel.CurrentFace?.SetCode;
+        if (string.IsNullOrEmpty(setCode)) return;
+
+        SetSvgCache.DrawSymbol(canvas, setCode, e.Info.Rect);
     }
 
     private async void OnAddClicked(object? sender, EventArgs e)

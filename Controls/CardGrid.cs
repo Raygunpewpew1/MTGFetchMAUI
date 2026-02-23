@@ -582,9 +582,34 @@ public class CardGrid : ContentView
             DrawShimmer(canvas, imageRect);
         }
 
-        // 3. Name text
+        // 3. Name text & Set Symbol
         float textY = imageRect.Bottom + 16f;
-        DrawWrappedText(canvas, card.Name, rect.Left + 4f, textY, rect.Width - 8f, _textFont, _textPaint);
+        float textX = rect.Left + 4f;
+        float textWidth = rect.Width - 8f;
+
+        // Check for set symbol
+        if (!string.IsNullOrEmpty(card.SetCode))
+        {
+            var setSymbol = SetSvgCache.GetSymbol(card.SetCode);
+            if (setSymbol != null)
+            {
+                float symbolSize = 14f;
+                float symbolPadding = 4f;
+                float textSize = _textFont!.Size;
+
+                // Center symbol vertically relative to the first line of text
+                // Text is drawn at baseline 'textY'. Visual center is approx textY - textSize/2.
+                float symbolY = textY - (textSize * 0.6f) - (symbolSize / 2f);
+                float symbolX = rect.Right - 4f - symbolSize;
+
+                SetSvgCache.DrawSymbol(canvas, card.SetCode, symbolX, symbolY, symbolSize);
+
+                // Reduce text width to avoid overlap
+                textWidth -= (symbolSize + symbolPadding);
+            }
+        }
+
+        DrawWrappedText(canvas, card.Name, textX, textY, textWidth, _textFont, _textPaint);
 
         // 4. Price chip — bottom-left corner of the image, overlaid
         if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
