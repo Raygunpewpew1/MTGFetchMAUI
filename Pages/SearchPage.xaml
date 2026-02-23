@@ -18,7 +18,7 @@
     <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Search Bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto"
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto"
               Padding="8,8,8,4" ColumnSpacing="8">
             <material:TextField x:Name="SearchEntry"
                    Title="Search cards..."
@@ -46,6 +46,16 @@
                     BackgroundColor="{StaticResource CardBackground}"
                     HeightRequest="44"
                     Padding="12,0" StyleClass="ElevatedButton" />
+
+            <Button Grid.Column="3"
+                    Text="{Binding ViewModeButtonText}"
+                    Command="{Binding ToggleViewModeCommand}"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    Padding="0"
+                    FontSize="18"
+                    StyleClass="ElevatedButton" />
         </Grid>
 
         <!-- Status Bar -->

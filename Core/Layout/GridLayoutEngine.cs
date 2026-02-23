@@ -12,7 +12,8 @@ public record RenderList(
     int VisibleStart,
     int VisibleEnd,
     float CardWidth,
-    float CardHeight
+    float CardHeight,
+    ViewMode ViewMode = ViewMode.Grid
 )
 {
     public static RenderList Empty => new(
@@ -23,7 +24,19 @@ public record RenderList(
 
 public static class GridLayoutEngine
 {
+    // Constants for list view row sizing
+    private const float ListRowHeight = 96f;
+    private const float ListImgWidth = 55f;
+
     public static RenderList Calculate(GridState state)
+    {
+        if (state.Config.ViewMode == ViewMode.List)
+            return CalculateList(state);
+
+        return CalculateGrid(state);
+    }
+
+    private static RenderList CalculateGrid(GridState state)
     {
         var config = state.Config;
         var viewport = state.Viewport;
@@ -91,6 +104,47 @@ public static class GridLayoutEngine
             visibleEnd,
             cardWidth,
             cardHeight
+        );
+    }
+
+    private static RenderList CalculateList(GridState state)
+    {
+        var viewport = state.Viewport;
+        var cards = state.Cards;
+        int count = cards.Length;
+
+        if (count == 0)
+            return RenderList.Empty;
+
+        float width = viewport.Width > 0 ? viewport.Width : 360f;
+        float totalHeight = count * ListRowHeight + 50f;
+
+        float effectiveOffset = Math.Max(0, viewport.ScrollY);
+        float viewportHeight = viewport.Height > 0 ? viewport.Height : 1000f;
+
+        int visibleStart = Math.Max(0, (int)(effectiveOffset / ListRowHeight));
+        int visibleEnd = Math.Min(count - 1, (int)((effectiveOffset + viewportHeight) / ListRowHeight) + 1);
+
+        if (visibleStart >= count)
+            return new RenderList(ImmutableArray<RenderCommand>.Empty, totalHeight, 0, -1, width, ListRowHeight, ViewMode.List);
+
+        var commands = ImmutableArray.CreateBuilder<RenderCommand>(visibleEnd - visibleStart + 1);
+
+        for (int i = visibleStart; i <= visibleEnd; i++)
+        {
+            float y = i * ListRowHeight;
+            var rect = new SKRect(0f, y, width, y + ListRowHeight);
+            commands.Add(new DrawCardCommand(cards[i], rect, i));
+        }
+
+        return new RenderList(
+            commands.ToImmutable(),
+            totalHeight,
+            visibleStart,
+            visibleEnd,
+            width,
+            ListRowHeight,
+            ViewMode.List
         );
     }
 }

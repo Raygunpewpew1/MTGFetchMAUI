@@ -42,6 +42,12 @@ public class CardGrid : ContentView
 
     public float ContentHeight => _currentRenderList?.TotalHeight ?? 0;
 
+    public ViewMode ViewMode
+    {
+        get => _lastState.Config.ViewMode;
+        set => UpdateState(s => s with { Config = s.Config with { ViewMode = value } });
+    }
+
     public CardGrid()
     {
         _stateChannel = Channel.CreateBounded<GridState>(new BoundedChannelOptions(1)

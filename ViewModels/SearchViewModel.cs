@@ -1,5 +1,6 @@
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
+using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
@@ -68,9 +69,26 @@ public class SearchViewModel : BaseViewModel
         set => SetProperty(ref _hasMorePages, value);
     }
 
+    private ViewMode _viewMode = ViewMode.Grid;
+    public ViewMode ViewMode
+    {
+        get => _viewMode;
+        set
+        {
+            if (SetProperty(ref _viewMode, value))
+            {
+                OnPropertyChanged(nameof(ViewModeButtonText));
+                if (_grid != null) _grid.ViewMode = value;
+            }
+        }
+    }
+
+    public string ViewModeButtonText => _viewMode == ViewMode.Grid ? "☰" : "⊞";
+
     public ICommand SearchCommand { get; }
     public ICommand ClearCommand { get; }
     public ICommand GoToFiltersCommand { get; }
+    public ICommand ToggleViewModeCommand { get; }
 
     public event Action? SearchCompleted;
 
@@ -80,6 +98,7 @@ public class SearchViewModel : BaseViewModel
         SearchCommand = new Command(async () => await PerformSearchAsync());
         ClearCommand = new Command(ClearSearch);
         GoToFiltersCommand = new Command(async () => await Shell.Current.GoToAsync("searchfilters"));
+        ToggleViewModeCommand = new Command(() => ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid);
 
         // Subscribe to CardManager events for status updates
         _cardManager.OnProgress += (msg, pct) =>
