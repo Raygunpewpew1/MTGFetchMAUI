@@ -82,9 +82,9 @@
 
                 <!-- Quick Presets -->
                 <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
-                    <Button Text="+1" Clicked="OnQuickAdd1" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" />
-                    <Button Text="+4" Clicked="OnQuickAdd4" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" />
-                    <Button Text="Set to 4" Clicked="OnSetTo4" WidthRequest="84" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" />
+                    <Button Text="+1" Clicked="OnQuickAdd1" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
+                    <Button Text="+4" Clicked="OnQuickAdd4" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
+                    <Button Text="Set to 4" Clicked="OnSetTo4" WidthRequest="84" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
                 </HorizontalStackLayout>
 
                 <Label x:Name="CollectionInfoLabel"
@@ -97,11 +97,8 @@
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
                     <Button Text="Cancel"
                             Clicked="OnCancelClicked"
-                            BackgroundColor="Transparent"
-                            BorderColor="{StaticResource TextSecondary}"
-                            BorderWidth="1"
-                            TextColor="{StaticResource TextSecondary}"
-                            HeightRequest="52" />
+                            HeightRequest="52"
+                            StyleClass="OutlinedButton" />
 
                     <Button Grid.Column="1"
                             x:Name="ConfirmBtn"
@@ -109,8 +106,7 @@
                             Clicked="OnConfirmClicked"
                             HeightRequest="52"
                             FontAttributes="Bold"
-                            BackgroundColor="{StaticResource Primary}"
-                            TextColor="White" />
+                            StyleClass="FilledButton" />
                 </Grid>
             </VerticalStackLayout>
         </Border>

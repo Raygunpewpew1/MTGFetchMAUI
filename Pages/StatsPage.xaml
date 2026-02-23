@@ -19,7 +19,8 @@
                     <Button x:Name="DownloadDbBtn"
                             Text="Download Database"
                             Clicked="OnDownloadDbClicked"
-                            IsVisible="False" />
+                            IsVisible="False"
+                            StyleClass="FilledButton" />
                     <ProgressBar x:Name="DownloadProgress"
                                  IsVisible="False"
                                  ProgressColor="{StaticResource Primary}" />
