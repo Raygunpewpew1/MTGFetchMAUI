@@ -29,7 +29,6 @@
                 <!-- Card Text / Keywords -->
                 <material:TextField x:Name="KeywordsEntry"
                        Title="Card Text"
-                       Placeholder="Search card text..."
                        BackgroundColor="{StaticResource Surface}"
                        TitleColor="{StaticResource TextSecondary}"
                        AccentColor="{StaticResource Primary}" />
@@ -59,7 +58,6 @@
                 <!-- Subtype -->
                 <material:TextField x:Name="SubtypeEntry"
                        Title="Subtype"
-                       Placeholder="e.g. Elf, Dragon..."
                        BackgroundColor="{StaticResource Surface}"
                        TitleColor="{StaticResource TextSecondary}"
                        AccentColor="{StaticResource Primary}" />
@@ -67,7 +65,6 @@
                 <!-- Supertype -->
                 <material:TextField x:Name="SupertypeEntry"
                        Title="Supertype"
-                       Placeholder="e.g. Legendary..."
                        BackgroundColor="{StaticResource Surface}"
                        TitleColor="{StaticResource TextSecondary}"
                        AccentColor="{StaticResource Primary}" />
@@ -109,11 +106,11 @@
 
                 <!-- Power / Toughness -->
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <material:TextField x:Name="PowerEntry" Title="Power" Placeholder="e.g. 3"
+                    <material:TextField x:Name="PowerEntry" Title="Power"
                            BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
                            TitleColor="{StaticResource TextSecondary}"
                            AccentColor="{StaticResource Primary}" />
-                    <material:TextField Grid.Column="1" x:Name="ToughnessEntry" Title="Toughness" Placeholder="e.g. 4"
+                    <material:TextField Grid.Column="1" x:Name="ToughnessEntry" Title="Toughness"
                            BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
                            TitleColor="{StaticResource TextSecondary}"
                            AccentColor="{StaticResource Primary}" />
@@ -127,13 +124,13 @@
                         AccentColor="{StaticResource Primary}" />
 
                 <!-- Set Code -->
-                <material:TextField x:Name="SetEntry" Title="Set Code" Placeholder="e.g. MH2, ZEN..."
+                <material:TextField x:Name="SetEntry" Title="Set Code"
                        BackgroundColor="{StaticResource Surface}"
                        TitleColor="{StaticResource TextSecondary}"
                        AccentColor="{StaticResource Primary}" />
 
                 <!-- Artist -->
-                <material:TextField x:Name="ArtistEntry" Title="Artist" Placeholder="Artist name..."
+                <material:TextField x:Name="ArtistEntry" Title="Artist"
                        BackgroundColor="{StaticResource Surface}"
                        TitleColor="{StaticResource TextSecondary}"
                        AccentColor="{StaticResource Primary}" />
