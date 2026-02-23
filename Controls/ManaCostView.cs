@@ -1,5 +1,3 @@
-using Microsoft.Maui.Controls;
-
 namespace MTGFetchMAUI.Controls;
 
 public class ManaCostView : HorizontalStackLayout

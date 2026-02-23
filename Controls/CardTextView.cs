@@ -1,6 +1,3 @@
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
-
 namespace MTGFetchMAUI.Controls;
 
 public class CardTextView : View

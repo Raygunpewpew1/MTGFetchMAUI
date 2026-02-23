@@ -1,14 +1,11 @@
-using Android.Content;
 using Android.Graphics;
 using Android.Text;
 using Android.Text.Style;
 using Android.Widget;
-using Android.Graphics.Drawables;
 using Microsoft.Maui.Handlers;
-using System.Text.RegularExpressions;
-using Android.Util;
 using Microsoft.Maui.Platform;
 using MTGFetchMAUI.Controls;
+using System.Text.RegularExpressions;
 
 namespace MTGFetchMAUI.Platforms.Android.Handlers;
 
@@ -32,13 +29,13 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
 
     public static IPropertyMapper<CardTextView, CardTextViewHandler> Mapper =
         new PropertyMapper<CardTextView, CardTextViewHandler>(ViewHandler.ViewMapper)
-    {
-        [nameof(CardTextView.CardText)] = MapCardText,
-        [nameof(CardTextView.TextColor)] = MapTextColor,
-        [nameof(CardTextView.TextSize)] = MapTextSize,
-        [nameof(CardTextView.KeywordColor)] = MapCardText,
-        [nameof(CardTextView.SymbolSize)] = MapCardText
-    };
+        {
+            [nameof(CardTextView.CardText)] = MapCardText,
+            [nameof(CardTextView.TextColor)] = MapTextColor,
+            [nameof(CardTextView.TextSize)] = MapTextSize,
+            [nameof(CardTextView.KeywordColor)] = MapCardText,
+            [nameof(CardTextView.SymbolSize)] = MapCardText
+        };
 
     public CardTextViewHandler() : base(Mapper)
     {
@@ -103,7 +100,7 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
             {
                 resId = resources.GetIdentifier(resourceName, "drawable", context.PackageName);
             }
-            catch {}
+            catch { }
 
             bool added = false;
             if (resId != 0)
