@@ -310,7 +310,7 @@ public class ImageDownloadService : IDisposable
 
     // ── Helpers ──────────────────────────────────────────────────────
 
-    private static string GetCacheKey(string scryfallId, string imageSize, string face)
+    public static string GetCacheKey(string scryfallId, string imageSize, string face)
     {
         var raw = string.IsNullOrEmpty(face) ? $"{scryfallId}_{imageSize}" : $"{scryfallId}_{imageSize}_{face}";
         return FileImageCache.GenerateKey(raw);
