@@ -113,7 +113,9 @@ public static class ManaSvgCache
             _resourcePrefix ??= FindResourcePrefix();
             if (_resourcePrefix == null) return null;
 
-            var resourceName = $"{_resourcePrefix}.{normalizedName}.svg";
+            // Symbols are now stored in Resources/Images as mana_{lowercase_symbol}.svg
+            // e.g. "2_W" -> "mana_2_w.svg"
+            var resourceName = $"{_resourcePrefix}.mana_{normalizedName.ToLowerInvariant()}.svg";
             using var stream = _assembly.GetManifestResourceStream(resourceName);
             if (stream == null) return null;
 
@@ -133,14 +135,15 @@ public static class ManaSvgCache
 
     private static string? FindResourcePrefix()
     {
-        // Find the resource prefix by looking for any SVG resource
+        // Find the resource prefix by looking for a mana symbol SVG resource
         var names = _assembly.GetManifestResourceNames();
         foreach (var name in names)
         {
-            if (name.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+            // Look for resources like "...mana_w.svg" to ensure we get the right folder
+            if (name.Contains(".mana_", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
             {
-                // Resource names are like "MTGFetchMAUI.Assets.SVGMana.W.svg"
-                // We want "MTGFetchMAUI.Assets.SVGMana"
+                // Resource names are like "MTGFetchMAUI.Resources.Images.mana_w.svg"
+                // We want "MTGFetchMAUI.Resources.Images"
                 var lastDotSvg = name.LastIndexOf(".svg", StringComparison.OrdinalIgnoreCase);
                 var nameWithoutExt = name[..lastDotSvg];
                 var lastDot = nameWithoutExt.LastIndexOf('.');
