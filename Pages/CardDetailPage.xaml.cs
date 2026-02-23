@@ -1,9 +1,11 @@
+using Android.Views;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
+using TextAlignment = Microsoft.Maui.TextAlignment;
 
 namespace MTGFetchMAUI.Pages;
 
@@ -201,9 +203,21 @@ public partial class CardDetailPage : ContentPage
         canvas.Clear(); // Transparent
 
         var setCode = _viewModel.CurrentFace?.SetCode;
+        var Rarity = _viewModel.CurrentFace?.Rarity;
+
         if (string.IsNullOrEmpty(setCode)) return;
 
-        SetSvgCache.DrawSymbol(canvas, setCode, e.Info.Rect);
+
+        var rarityColor = Rarity switch
+        {
+            CardRarity.Common => SKColors.White,
+            CardRarity.Uncommon => new SKColor(180, 192, 203), // silver
+            CardRarity.Rare => new SKColor(200, 170, 80),      // gold
+            CardRarity.Mythic => new SKColor(230, 100, 30),    // orange
+            _ => SKColors.White
+        };
+
+        SetSvgCache.DrawSymbol(canvas, setCode, e.Info.Rect, rarityColor);
     }
 
     private async void OnAddClicked(object? sender, EventArgs e)

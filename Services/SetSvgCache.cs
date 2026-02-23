@@ -73,7 +73,7 @@ public static class SetSvgCache
     /// <summary>
     /// Draws a set symbol SVG onto the canvas at the specified position and size.
     /// </summary>
-    public static void DrawSymbol(SKCanvas canvas, string setCode, float x, float y, float size)
+    public static void DrawSymbol(SKCanvas canvas, string setCode, float x, float y, float size, SKColor? tint = null)
     {
         var picture = GetSymbol(setCode);
         if (picture == null) return;
@@ -81,16 +81,10 @@ public static class SetSvgCache
         canvas.Save();
         canvas.Translate(x, y);
 
-        // SVGs have a viewBox, scale to target size based on cull rect
         float scaleX = size / picture.CullRect.Width;
         float scaleY = size / picture.CullRect.Height;
-
-        // Maintain aspect ratio if needed, or fill square
-        // Usually set symbols fit in a square or near-square area
-        // We'll scale to fit within 'size' while preserving aspect ratio
         float scale = Math.Min(scaleX, scaleY);
 
-        // Center within the box if aspect ratio differs
         float offsetX = (size - (picture.CullRect.Width * scale)) / 2f;
         float offsetY = (size - (picture.CullRect.Height * scale)) / 2f;
 
@@ -99,7 +93,10 @@ public static class SetSvgCache
 
         using var paint = new SKPaint
         {
-            IsAntialias = true
+            IsAntialias = true,
+            ColorFilter = tint.HasValue
+                ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn)
+                : null
         };
 
         canvas.DrawPicture(picture, paint);
@@ -109,7 +106,7 @@ public static class SetSvgCache
     /// <summary>
     /// Draws a set symbol SVG using separate width/height constraints, preserving aspect ratio.
     /// </summary>
-    public static void DrawSymbol(SKCanvas canvas, string setCode, SKRect destRect)
+    public static void DrawSymbol(SKCanvas canvas, string setCode, SKRect destRect, SKColor? tint = null)
     {
         var picture = GetSymbol(setCode);
         if (picture == null) return;
@@ -129,7 +126,10 @@ public static class SetSvgCache
 
         using var paint = new SKPaint
         {
-            IsAntialias = true
+            IsAntialias = true,
+            ColorFilter = tint.HasValue
+            ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn)
+            : null
         };
 
         canvas.DrawPicture(picture, paint);
@@ -202,7 +202,7 @@ public static class SetSvgCache
 
                 if (lastDot > 0)
                 {
-                   return nameWithoutExt[..lastDot];
+                    return nameWithoutExt[..lastDot];
                 }
             }
         }
