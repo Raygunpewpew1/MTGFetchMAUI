@@ -59,11 +59,18 @@
                        FontSize="14"
                        TextColor="{StaticResource TextSecondary}" />
 
-                <HorizontalStackLayout Spacing="8">
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <skia:SKCanvasView x:Name="SetSymbolView"
+                                       HeightRequest="24"
+                                       WidthRequest="24"
+                                       PaintSurface="OnSetSymbolPaint"
+                                       IsVisible="False" />
                     <Label x:Name="SetInfoLabel"
+                           VerticalOptions="Center"
                            FontSize="12"
                            TextColor="{StaticResource TextSecondary}" />
                     <Label x:Name="RarityLabel"
+                           VerticalOptions="Center"
                            FontSize="12"
                            FontAttributes="Bold" />
                 </HorizontalStackLayout>
