@@ -1,24 +1,23 @@
 name: Update Trimmed MTG Database
-
 on:
   schedule:
-    # Runs automatically every Tuesday at 12:00 UTC
-    - cron: '0 12 * * 2' 
-  workflow_dispatch: # Allows you to click a button in GitHub to run it manually
-
+    - cron: '0 12 * * 2'
+  workflow_dispatch:
 jobs:
   trim-and-host:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required so the bot can upload the zip file to Releases
-
+      contents: write
     steps:
       - name: Generate Release Tag
         id: date
         run: echo "tag=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-      - name: Download Raw MTGJSON SQLite File
-        run: curl -L -o AllPrintings.sqlite "https://mtgjson.com/api/v5/AllPrintings.sqlite"
+      - name: Download MTGJSON SQLite Zip
+        run: curl -L -o AllPrintings.sql.zip "https://mtgjson.com/api/v5/AllPrintings.sql.zip"
+
+      - name: Extract Database
+        run: unzip AllPrintings.sql.zip
 
       - name: Drop Heavy Tables & Vacuum
         run: |
@@ -28,7 +27,7 @@ jobs:
           EOF
 
       - name: Zip the Final Database
-        run: zip MTG_App_DB.zip AllPrintings.sqlite
+        run: zip -9 MTG_App_DB.zip AllPrintings.sqlite
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
@@ -37,3 +36,11 @@ jobs:
           name: MTG Database Update (${{ steps.date.outputs.tag }})
           files: MTG_App_DB.zip
           make_latest: true
+
+      - name: Delete Old Releases
+        uses: dev-drprasad/delete-older-releases@v0.3.4
+        with:
+          keep_latest: 3
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
