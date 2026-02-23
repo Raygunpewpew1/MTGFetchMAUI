@@ -24,10 +24,13 @@ public class ImageCacheService : IDisposable
 
     public SKImage? GetMemoryImage(string key)
     {
-        if (_cache.TryGetValue(key, out var entry))
+        lock (_lruLock)
         {
-            TouchLru(entry.Node);
-            return entry.Image;
+            if (_cache.TryGetValue(key, out var entry))
+            {
+                TouchLru(entry.Node);
+                return entry.Image;
+            }
         }
         return null;
     }

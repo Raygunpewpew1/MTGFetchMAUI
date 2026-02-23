@@ -252,8 +252,9 @@ public class CardGrid : ContentView
 
             foreach (var id in visible)
             {
-                if (_imageCache.GetMemoryImage(id) == null)
-                    await _imageCache.GetImageAsync(id);
+                var cacheKey = ImageDownloadService.GetCacheKey(id, "normal", "");
+                if (_imageCache.GetMemoryImage(cacheKey) == null)
+                    await _imageCache.GetImageAsync(cacheKey);
             }
 
             MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
@@ -526,16 +527,17 @@ public class CardGrid : ContentView
         SKImage? image = null;
         if (_imageCache != null)
         {
-            image = _imageCache.GetMemoryImage(card.ScryfallId);
+            var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
+            image = _imageCache.GetMemoryImage(cacheKey);
 
             if (image == null)
             {
                 bool shouldLoad = false;
                 lock (_loadingLock)
                 {
-                    if (!_loadingImages.Contains(card.ScryfallId))
+                    if (!_loadingImages.Contains(cacheKey))
                     {
-                        _loadingImages.Add(card.ScryfallId);
+                        _loadingImages.Add(cacheKey);
                         shouldLoad = true;
                     }
                 }
@@ -547,13 +549,13 @@ public class CardGrid : ContentView
                         await _downloadSemaphore.WaitAsync();
                         try
                         {
-                            var img = await _imageCache.GetImageAsync(card.ScryfallId);
+                            var img = await _imageCache.GetImageAsync(cacheKey);
 
                             if (img == null && _downloadService != null)
                             {
                                 img = await _downloadService.DownloadImageDirectAsync(card.ScryfallId);
                                 if (img != null)
-                                    _imageCache.AddToMemoryCache(card.ScryfallId, img);
+                                    _imageCache.AddToMemoryCache(cacheKey, img);
                             }
 
                             if (img != null)
@@ -561,7 +563,7 @@ public class CardGrid : ContentView
                         }
                         finally
                         {
-                            lock (_loadingLock) _loadingImages.Remove(card.ScryfallId);
+                            lock (_loadingLock) _loadingImages.Remove(cacheKey);
                             _downloadSemaphore.Release();
                         }
                     });
