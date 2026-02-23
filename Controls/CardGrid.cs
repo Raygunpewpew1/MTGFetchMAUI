@@ -70,6 +70,7 @@ public class CardGrid : ContentView
             Color = Colors.Transparent,
             HeightRequest = 100,
             HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Start,
             InputTransparent = false
         };
 
