@@ -1,11 +1,8 @@
 using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
-using SkiaSharp;
-using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Threading.Channels;
 
 namespace MTGFetchMAUI.Controls;
@@ -24,30 +21,18 @@ public class CardGrid : ContentView
     // State
     private GridState _lastState = GridState.Empty;
     private RenderList _currentRenderList = RenderList.Empty;
+
+    // Image loading
     private readonly HashSet<string> _loadingImages = new();
     private readonly object _loadingLock = new();
-
-    // Bounded download queue
     private readonly SemaphoreSlim _downloadSemaphore = new(4, 4);
 
-    // Animation
-    private float _shimmerPhase;
-    private readonly Stopwatch _animationStopwatch = new();
-    private bool _isLoaded;
-    private long _lastFrameTime;
+    // Subsystems
+    private readonly CardGridRenderer _renderer;
+    private readonly CardGridGestureHandler _gestures;
 
-    // Cached Paints
-    private SKPaint? _bgPaint;
-    private SKPaint? _textPaint;
-    private SKFont? _textFont;
-    private SKPaint? _pricePaint;
-    private SKFont? _priceFont;
-    private SKPaint? _shimmerBasePaint;
-    private SKPaint? _badgeBgPaint;
-    private SKPaint? _badgeTextPaint;
-    private SKFont? _badgeFont;
-    private SKRoundRect? _cardRoundRect;
-    private SKRoundRect? _imageRoundRect;
+    private bool _isLoaded;
+    private bool _isProcessingUpdates;
 
     // Events
     public event Action<string>? CardClicked;
@@ -91,29 +76,19 @@ public class CardGrid : ContentView
         };
         _scrollView.Scrolled += OnScrolled;
 
-        var tapGesture = new TapGestureRecognizer();
-        tapGesture.Tapped += OnTapped;
-        _spacer.GestureRecognizers.Add(tapGesture);
-
-        var pointerGesture = new PointerGestureRecognizer();
-        pointerGesture.PointerPressed += OnPointerPressed;
-        pointerGesture.PointerReleased += OnPointerReleased;
-        pointerGesture.PointerMoved += OnPointerMoved;
-        pointerGesture.PointerExited += OnPointerReleased;
-        _spacer.GestureRecognizers.Add(pointerGesture);
-
         var grid = new Grid();
         grid.Add(_canvas);
         grid.Add(_scrollView);
         Content = grid;
 
-        _animationStopwatch.Start();
+        _renderer = new CardGridRenderer(_canvas, cacheKey => _imageCache?.GetMemoryImage(cacheKey));
+        _gestures = new CardGridGestureHandler(_spacer, Dispatcher, HitTest);
+        _gestures.Tapped += id => CardClicked?.Invoke(id);
+        _gestures.LongPressed += id => CardLongPressed?.Invoke(id);
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
-
-    private bool _isProcessingUpdates;
 
     private void OnLoaded(object? sender, EventArgs e)
     {
@@ -132,9 +107,7 @@ public class CardGrid : ContentView
             Task.Run(ProcessStateUpdates);
         }
 
-        EnsureResources();
-        // Reset timing for smooth start
-        _lastFrameTime = _animationStopwatch.ElapsedMilliseconds;
+        _renderer.EnsureResources();
         MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
     }
 
@@ -145,7 +118,7 @@ public class CardGrid : ContentView
         _cts?.Dispose();
         _cts = null;
         _isProcessingUpdates = false;
-        DisposeResources();
+        _renderer.Dispose();
     }
 
     // ── Public API ─────────────────────────────────────────────────────
@@ -233,10 +206,9 @@ public class CardGrid : ContentView
     }
 
     public void ForceRedraw() => _canvas.InvalidateSurface();
-    public void OnSleep()
-    {
-        // No GL context to clear for SKCanvasView
-    }
+
+    public void OnSleep() { }
+
     public void OnResume()
     {
         Task.Run(async () =>
@@ -279,6 +251,10 @@ public class CardGrid : ContentView
             {
                 var renderList = GridLayoutEngine.Calculate(state);
 
+                // Trigger image loads for newly visible cards (outside the render path)
+                foreach (var cmd in renderList.Commands.OfType<DrawCardCommand>())
+                    EnqueueImageLoad(cmd.Card.ScryfallId);
+
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     bool rangeChanged = _currentRenderList == null ||
@@ -302,6 +278,51 @@ public class CardGrid : ContentView
         finally { _isProcessingUpdates = false; }
     }
 
+    // ── Image Loading ──────────────────────────────────────────────────
+
+    private void EnqueueImageLoad(string scryfallId)
+    {
+        if (_imageCache == null) return;
+
+        var cacheKey = ImageDownloadService.GetCacheKey(scryfallId, "normal", "");
+
+        bool shouldLoad = false;
+        lock (_loadingLock)
+        {
+            if (_imageCache.GetMemoryImage(cacheKey) == null && !_loadingImages.Contains(cacheKey))
+            {
+                _loadingImages.Add(cacheKey);
+                shouldLoad = true;
+            }
+        }
+
+        if (!shouldLoad) return;
+
+        Task.Run(async () =>
+        {
+            await _downloadSemaphore.WaitAsync();
+            try
+            {
+                var img = await _imageCache.GetImageAsync(cacheKey);
+
+                if (img == null && _downloadService != null)
+                {
+                    img = await _downloadService.DownloadImageDirectAsync(scryfallId);
+                    if (img != null)
+                        _imageCache.AddToMemoryCache(cacheKey, img);
+                }
+
+                if (img != null)
+                    MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
+            }
+            finally
+            {
+                lock (_loadingLock) _loadingImages.Remove(cacheKey);
+                _downloadSemaphore.Release();
+            }
+        });
+    }
+
     // ── Event Handlers ─────────────────────────────────────────────────
 
     private void OnScrolled(object? sender, ScrolledEventArgs e)
@@ -320,9 +341,6 @@ public class CardGrid : ContentView
         {
             float w = (float)width;
             float h = (float)height;
-
-            // Simple responsive breakpoint for tablets/desktop
-            // Standard phone is typically < 600 width in device-independent units
             bool isLargeScreen = w >= 600;
 
             UpdateState(s =>
@@ -332,7 +350,6 @@ public class CardGrid : ContentView
                     MinCardWidth = isLargeScreen ? 160f : 100f,
                     LabelHeight = isLargeScreen ? 52f : 42f
                 };
-
                 return s with
                 {
                     Config = newConfig,
@@ -340,94 +357,21 @@ public class CardGrid : ContentView
                 };
             });
 
-            // Trigger resource update to match new sizing
-            MainThread.BeginInvokeOnMainThread(() => UpdateResources(isLargeScreen));
+            MainThread.BeginInvokeOnMainThread(() => _renderer.UpdateSizing(isLargeScreen));
         }
     }
 
-    private void UpdateResources(bool isLargeScreen)
+    private void OnPaintSurface(object? sender, SkiaSharp.Views.Maui.SKPaintSurfaceEventArgs e)
     {
-        _textFont?.Dispose();
-        _priceFont?.Dispose();
-        _badgeFont?.Dispose();
+        _renderer.Paint(e, _currentRenderList, _lastState.Viewport.ScrollY, (float)(Width > 0 ? Width : 360));
 
-        float baseTextSize = isLargeScreen ? 15f : 12f;
-        float priceTextSize = isLargeScreen ? 11f : 8.5f;
-        float badgeTextSize = isLargeScreen ? 13f : 11f;
-
-        _textFont = new SKFont { Size = baseTextSize };
-        _priceFont = new SKFont { Size = priceTextSize };
-        _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), badgeTextSize);
-
-        _canvas.InvalidateSurface();
+        bool hasLoading;
+        lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
+        if (hasLoading && _isLoaded)
+            _canvas.InvalidateSurface();
     }
 
-    private void OnTapped(object? sender, TappedEventArgs e)
-    {
-        if (_currentRenderList == null) return;
-        if (_longPressHandled) return;
-        var point = e.GetPosition(_spacer);
-        if (point == null) return;
-
-        var id = HitTest((float)point.Value.X, (float)point.Value.Y);
-        if (id != null) CardClicked?.Invoke(id);
-    }
-
-    // Long Press
-    private IDispatcherTimer? _longPressTimer;
-    private Point _pressPoint;
-    private bool _isLongPressing;
-    private bool _longPressHandled;
-
-    private void OnPointerPressed(object? sender, PointerEventArgs e)
-    {
-        var point = e.GetPosition(_spacer);
-        if (point == null) return;
-
-        _pressPoint = point.Value;
-        _isLongPressing = true;
-        _longPressHandled = false;
-
-        _longPressTimer?.Stop();
-        _longPressTimer = Dispatcher.CreateTimer();
-        _longPressTimer.Interval = TimeSpan.FromMilliseconds(500);
-        _longPressTimer.IsRepeating = false;
-        _longPressTimer.Tick += (s, args) =>
-        {
-            if (_isLongPressing)
-            {
-                var id = HitTest((float)_pressPoint.X, (float)_pressPoint.Y);
-                if (id != null)
-                {
-                    _longPressHandled = true;
-                    MainThread.BeginInvokeOnMainThread(() => CardLongPressed?.Invoke(id));
-                    try { HapticFeedback.Perform(HapticFeedbackType.LongPress); } catch { }
-                }
-            }
-            _isLongPressing = false;
-        };
-        _longPressTimer.Start();
-    }
-
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (!_isLongPressing) return;
-        var point = e.GetPosition(_spacer);
-        if (point == null) return;
-
-        if (Math.Abs(point.Value.X - _pressPoint.X) > 10 ||
-            Math.Abs(point.Value.Y - _pressPoint.Y) > 10)
-        {
-            _isLongPressing = false;
-            _longPressTimer?.Stop();
-        }
-    }
-
-    private void OnPointerReleased(object? sender, PointerEventArgs e)
-    {
-        _isLongPressing = false;
-        _longPressTimer?.Stop();
-    }
+    // ── Hit Testing ────────────────────────────────────────────────────
 
     private string? HitTest(float spacerX, float spacerY)
     {
@@ -438,310 +382,5 @@ public class CardGrid : ContentView
                 return draw.Card.Id.Value;
         }
         return null;
-    }
-
-    // ── Rendering ──────────────────────────────────────────────────────
-
-    private void EnsureResources()
-    {
-        _bgPaint ??= new SKPaint { Color = new SKColor(30, 30, 30), IsAntialias = true };
-        _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true };
-        _textFont ??= new SKFont { Size = 12f };
-        _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
-        _priceFont ??= new SKFont { Size = 8.5f };
-        _badgeBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
-        _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
-        _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
-        _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
-        _cardRoundRect ??= new SKRoundRect();
-        _imageRoundRect ??= new SKRoundRect();
-
-        // Initial sizing check if we already have width
-        if (Width >= 600) UpdateResources(true);
-    }
-
-    private void DisposeResources()
-    {
-        _bgPaint?.Dispose(); _bgPaint = null;
-        _textPaint?.Dispose(); _textPaint = null;
-        _textFont?.Dispose(); _textFont = null;
-        _pricePaint?.Dispose(); _pricePaint = null;
-        _priceFont?.Dispose(); _priceFont = null;
-        _badgeBgPaint?.Dispose(); _badgeBgPaint = null;
-        _badgeTextPaint?.Dispose(); _badgeTextPaint = null;
-        _badgeFont?.Dispose(); _badgeFont = null;
-        _shimmerBasePaint?.Dispose(); _shimmerBasePaint = null;
-        _cardRoundRect?.Dispose(); _cardRoundRect = null;
-        _imageRoundRect?.Dispose(); _imageRoundRect = null;
-    }
-
-    private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
-    {
-        // Calculate animation frame
-        long currentTime = _animationStopwatch.ElapsedMilliseconds;
-        float deltaTime = (currentTime - _lastFrameTime) / 1000f;
-        _lastFrameTime = currentTime;
-
-        if (deltaTime > 0.1f) deltaTime = 0.016f;
-
-        _shimmerPhase += deltaTime * 0.8f;
-        if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
-
-        var canvas = e.Surface.Canvas;
-        var info = e.Info;
-
-        canvas.Clear(new SKColor(18, 18, 18));
-
-        var list = _currentRenderList;
-        if (list == null || list.Commands.IsEmpty) return;
-
-        if (_bgPaint == null) EnsureResources();
-
-        float scale = info.Width / (float)(Width > 0 ? Width : 360);
-        canvas.Scale(scale);
-        canvas.Translate(0, -_lastState.Viewport.ScrollY);
-
-        foreach (var cmd in list.Commands)
-        {
-            if (cmd is DrawCardCommand draw)
-                RenderCard(canvas, draw);
-        }
-
-        bool hasLoading = false;
-        lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
-
-        if (hasLoading && _isLoaded)
-        {
-            _canvas.InvalidateSurface();
-        }
-    }
-
-    private void RenderCard(SKCanvas canvas, DrawCardCommand cmd)
-    {
-        var rect = cmd.Rect;
-        var card = cmd.Card;
-
-        // 1. Card background
-        _cardRoundRect!.SetRect(rect, 8f, 8f);
-        canvas.DrawRoundRect(_cardRoundRect, _bgPaint);
-
-        // 2. Card image
-        var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + rect.Width * 1.3968f);
-
-        SKImage? image = null;
-        if (_imageCache != null)
-        {
-            var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
-            image = _imageCache.GetMemoryImage(cacheKey);
-
-            if (image == null)
-            {
-                bool shouldLoad = false;
-                lock (_loadingLock)
-                {
-                    if (!_loadingImages.Contains(cacheKey))
-                    {
-                        _loadingImages.Add(cacheKey);
-                        shouldLoad = true;
-                    }
-                }
-
-                if (shouldLoad)
-                {
-                    Task.Run(async () =>
-                    {
-                        await _downloadSemaphore.WaitAsync();
-                        try
-                        {
-                            var img = await _imageCache.GetImageAsync(cacheKey);
-
-                            if (img == null && _downloadService != null)
-                            {
-                                img = await _downloadService.DownloadImageDirectAsync(card.ScryfallId);
-                                if (img != null)
-                                    _imageCache.AddToMemoryCache(cacheKey, img);
-                            }
-
-                            if (img != null)
-                                MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
-                        }
-                        finally
-                        {
-                            lock (_loadingLock) _loadingImages.Remove(cacheKey);
-                            _downloadSemaphore.Release();
-                        }
-                    });
-                }
-            }
-        }
-
-        if (image != null && image.Handle != IntPtr.Zero)
-        {
-            canvas.Save();
-            _imageRoundRect!.SetRect(imageRect, 8f, 8f);
-            canvas.ClipRoundRect(_imageRoundRect, antialias: true);
-            canvas.DrawImage(image, imageRect);
-            canvas.Restore();
-        }
-        else
-        {
-            DrawShimmer(canvas, imageRect);
-        }
-
-        // 3. Name text & Set Symbol
-        float textY = imageRect.Bottom + 16f;
-        float textX = rect.Left + 4f;
-        float textWidth = rect.Width - 8f;
-
-        // Check for set symbol
-        if (!string.IsNullOrEmpty(card.SetCode))
-        {
-            var setSymbol = SetSvgCache.GetSymbol(card.SetCode);
-            if (setSymbol != null)
-            {
-                float symbolSize = 14f;
-                float symbolPadding = 4f;
-                float textSize = _textFont!.Size;
-
-                // Center symbol vertically relative to the first line of text
-                // Text is drawn at baseline 'textY'. Visual center is approx textY - textSize/2.
-                float symbolY = textY - (textSize * 0.6f) - (symbolSize / 2f);
-                float symbolX = rect.Right - 4f - symbolSize;
-
-                SetSvgCache.DrawSymbol(canvas, card.SetCode, symbolX, symbolY, symbolSize, SKColors.White);
-
-                // Reduce text width to avoid overlap
-                textWidth -= (symbolSize + symbolPadding);
-            }
-        }
-
-        DrawWrappedText(canvas, card.Name, textX, textY, textWidth, _textFont, _textPaint);
-
-        // 4. Price chip — bottom-left corner of the image, overlaid
-        if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
-        {
-            const float chipPadX = 5f;
-            const float chipPadY = 3f;
-            const float chipRadius = 4f;
-            const float chipMargin = 6f;
-
-            float priceTextWidth = _priceFont!.MeasureText(card.CachedDisplayPrice);
-            float chipW = priceTextWidth + chipPadX * 2f;
-            float chipH = _priceFont.Size + chipPadY * 2f;
-
-            float chipY = imageRect.Bottom - (imageRect.Height * 0.15f) - chipH;
-            float chipX = imageRect.Left + chipMargin;
-
-            var chipRect = new SKRect(chipX, chipY, chipX + chipW, chipY + chipH);
-
-            using var chipBgPaint = new SKPaint
-            {
-                IsAntialias = true,
-                Color = new SKColor(0, 0, 0, 185)
-            };
-            canvas.DrawRoundRect(chipRect, chipRadius, chipRadius, chipBgPaint);
-
-            float chipTextX = chipRect.Left + chipPadX;
-            float chipTextY = chipRect.Bottom - chipPadY - 1f;
-            canvas.DrawText(card.CachedDisplayPrice, chipTextX, chipTextY, SKTextAlign.Left, _priceFont, _pricePaint);
-        }
-
-        // 5. Quantity badge
-        if (card.Quantity > 0)
-        {
-            string qtyStr = card.Quantity.ToString();
-            float tw = _badgeFont!.MeasureText(qtyStr);
-            float bw = Math.Max(20f, tw + 10f);
-            float bx = imageRect.Right - bw - 4f;
-            float by = imageRect.Top + 4f;
-            canvas.DrawRoundRect(bx, by, bw, 20f, 10f, 10f, _badgeBgPaint!);
-            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 15f, _badgeFont, _badgeTextPaint!);
-        }
-    }
-
-    private void DrawWrappedText(SKCanvas canvas, string text, float x, float y,
-        float maxWidth, SKFont? font, SKPaint? paint, int maxLines = 2)
-    {
-        if (string.IsNullOrEmpty(text) || font == null || paint == null) return;
-
-        var words = text.Split(' ');
-        var currentLine = "";
-        float lineHeight = font.Size * 1.2f;
-        float currentY = y;
-        int lineCount = 0;
-
-        foreach (var word in words)
-        {
-            if (lineCount >= maxLines) break;
-
-            string testLine = string.IsNullOrEmpty(currentLine) ? word : currentLine + " " + word;
-            float width = font.MeasureText(testLine);
-
-            if (width > maxWidth)
-            {
-                if (!string.IsNullOrEmpty(currentLine))
-                {
-                    string toDraw = (lineCount == maxLines - 1)
-                        ? TruncateWithEllipsis(currentLine, maxWidth, font)
-                        : currentLine;
-
-                    canvas.DrawText(toDraw, x, currentY, SKTextAlign.Left, font, paint);
-                    lineCount++;
-                    currentY += lineHeight;
-                    currentLine = word;
-                }
-                else
-                {
-                    canvas.DrawText(TruncateWithEllipsis(word, maxWidth, font), x, currentY, SKTextAlign.Left, font, paint);
-                    lineCount++;
-                    currentY += lineHeight;
-                    currentLine = "";
-                }
-            }
-            else
-            {
-                currentLine = testLine;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(currentLine) && lineCount < maxLines)
-        {
-            string toDraw = (lineCount == maxLines - 1)
-                ? TruncateWithEllipsis(currentLine, maxWidth, font)
-                : currentLine;
-            canvas.DrawText(toDraw, x, currentY, SKTextAlign.Left, font, paint);
-        }
-    }
-
-    private string TruncateWithEllipsis(string text, float maxWidth, SKFont font)
-    {
-        if (font.MeasureText(text) <= maxWidth) return text;
-        while (text.Length > 0 && font.MeasureText(text + "…") > maxWidth)
-            text = text[..^1];
-        return text + "…";
-    }
-
-    private void DrawShimmer(SKCanvas canvas, SKRect rect)
-    {
-        canvas.Save();
-        _imageRoundRect!.SetRect(rect, 8f, 8f);
-        canvas.ClipRoundRect(_imageRoundRect, antialias: true);
-
-        canvas.DrawRect(rect, _shimmerBasePaint);
-
-        float sweepWidth = rect.Width * 0.6f;
-        float travelRange = rect.Width + sweepWidth;
-        float shimmerX = rect.Left - sweepWidth + travelRange * _shimmerPhase;
-
-        using var shimmerPaint = new SKPaint { IsAntialias = true };
-        shimmerPaint.Shader = SKShader.CreateLinearGradient(
-            new SKPoint(shimmerX, rect.Top),
-            new SKPoint(shimmerX + sweepWidth, rect.Top),
-            new[] { SKColors.Transparent, new SKColor(255, 255, 255, 55), SKColors.Transparent },
-            new[] { 0f, 0.5f, 1f },
-            SKShaderTileMode.Clamp);
-
-        canvas.DrawRect(rect, shimmerPaint);
-        canvas.Restore();
     }
 }
