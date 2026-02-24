@@ -18,10 +18,11 @@
     <Grid RowDefinitions="*,Auto">
 
         <ScrollView Grid.Row="0">
-            <ScrollView.GestureRecognizers>
-                <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
-                <SwipeGestureRecognizer Direction="Right" Swiped="OnSwipedRight" />
-            </ScrollView.GestureRecognizers>
+            <!-- Inner Grid allows SwipeOverlayView to layer on top of the card
+                 image area while leaving the expanders below it untouched.
+                 SwipeOverlayView must be inside the ScrollView so WIllLock
+                 controls the ScrollView (its parent) when releasing to scroll. -->
+            <Grid HorizontalOptions="Fill">
             <VerticalStackLayout Padding="16" Spacing="8">
 
                 <Border StrokeShape="RoundRectangle 12"
@@ -172,6 +173,17 @@
                 </Border>
 
             </VerticalStackLayout>
+
+            <!-- Swipe overlay covers only the card image area (top 420 DIPs).
+                 HeightRequest matches card image (380) + VerticalStackLayout
+                 top padding (16) plus margin. Expanders below this height
+                 receive touches directly via the VerticalStackLayout.
+                 WIllLock = Unlocked releases the ScrollView (parent) to scroll
+                 when vertical movement is detected. -->
+            <controls:SwipeOverlayView x:Name="SwipeOverlay"
+                                       VerticalOptions="Start"
+                                       HeightRequest="420" />
+            </Grid>
         </ScrollView>
 
         <Grid Grid.Row="1"
