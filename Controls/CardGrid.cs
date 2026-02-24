@@ -115,6 +115,10 @@ public class CardGrid : ContentView
             _downloadService = Handler.MauiContext.Services.GetService<ImageDownloadService>();
         }
 
+#if ANDROID
+        AttachAndroidTouchHandler();
+#endif
+
         if (!_isProcessingUpdates)
         {
             _cts = new CancellationTokenSource();
@@ -489,4 +493,78 @@ public class CardGrid : ContentView
         _lastState = _lastState with { Cards = builder.ToImmutable() };
         _stateChannel.Writer.TryWrite(_lastState);
     }
+
+#if ANDROID
+    // ── Android native touch handling ─────────────────────────────────────────
+    // PointerGestureRecognizer is unreliable inside a ScrollView on Android:
+    // the ScrollView dispatches ACTION_CANCEL to child views when it detects a
+    // scroll gesture, which fires PointerExited and kills the long-press timer.
+    // Additionally, PointerMoved may not fire for touch-drag inside a scroll
+    // container on some Android versions.
+    //
+    // Solution: attach a raw View.OnTouchListener to the spacer platform view.
+    // On ACTION_DOWN we allow the ScrollView to still intercept (so normal scroll
+    // works).  When the long-press timer arms the drag we call
+    // RequestDisallowInterceptTouchEvent(true) so the ScrollView can no longer
+    // steal the touch stream, and subsequent ACTION_MOVE events reach us reliably.
+
+    private void AttachAndroidTouchHandler()
+    {
+        if (_spacer.Handler?.PlatformView is not Android.Views.View spacerView) return;
+
+        _gestures.DisallowScrollIntercept = () =>
+            (spacerView.Parent as Android.Views.ViewGroup)?.RequestDisallowInterceptTouchEvent(true);
+        _gestures.AllowScrollIntercept = () =>
+            (spacerView.Parent as Android.Views.ViewGroup)?.RequestDisallowInterceptTouchEvent(false);
+
+        spacerView.SetOnTouchListener(new SpacerTouchListener(_gestures, spacerView));
+    }
+
+    private sealed class SpacerTouchListener : Java.Lang.Object, Android.Views.View.IOnTouchListener
+    {
+        private readonly CardGridGestureHandler _gestures;
+        private readonly Android.Views.View _spacerView;
+
+        public SpacerTouchListener(CardGridGestureHandler gestures, Android.Views.View spacerView)
+        {
+            _gestures = gestures;
+            _spacerView = spacerView;
+        }
+
+        public bool OnTouch(Android.Views.View? v, Android.Views.MotionEvent? e)
+        {
+            if (e == null) return false;
+
+            float x = e.GetX();
+            float y = e.GetY();
+
+            switch (e.Action)
+            {
+                case Android.Views.MotionEventActions.Down:
+                    _gestures.HandleDown(x, y);
+                    // Allow the ScrollView to intercept during the initial press so
+                    // normal scrolling still works.  RequestDisallowInterceptTouchEvent
+                    // will be called in the opposite direction when the drag arms.
+                    (_spacerView.Parent as Android.Views.ViewGroup)
+                        ?.RequestDisallowInterceptTouchEvent(false);
+                    return true; // Must return true to keep receiving subsequent events
+
+                case Android.Views.MotionEventActions.Move:
+                    _gestures.HandleMove(x, y);
+                    return true;
+
+                case Android.Views.MotionEventActions.Up:
+                    _gestures.HandleUp();
+                    return true;
+
+                case Android.Views.MotionEventActions.Cancel:
+                    _gestures.HandleCancel();
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+    }
+#endif
 }
