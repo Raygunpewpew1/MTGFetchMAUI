@@ -22,7 +22,9 @@ internal sealed class CardGridGestureHandler
     private IDispatcherTimer? _longPressTimer;
     private Point _pressPoint;
     private GestureState _gestureState = GestureState.Idle;
+#if !ANDROID
     private bool _longPressHandled;
+#endif
     private string? _armedUuid;
     private int _armedIndex;
 
@@ -74,7 +76,9 @@ internal sealed class CardGridGestureHandler
     {
         _pressPoint = new Point(x, y);
         _gestureState = GestureState.PressTracking;
+#if !ANDROID
         _longPressHandled = false;
+#endif
         _armedUuid = null;
         _armedIndex = -1;
 
@@ -91,7 +95,9 @@ internal sealed class CardGridGestureHandler
                 {
                     _armedUuid = uuid;
                     _armedIndex = index;
+#if !ANDROID
                     _longPressHandled = true;
+#endif
                     _gestureState = GestureState.DragArmed;
                     // Tell the ScrollView not to intercept subsequent moves so the
                     // drag gesture can proceed without the scroll view stealing events.
