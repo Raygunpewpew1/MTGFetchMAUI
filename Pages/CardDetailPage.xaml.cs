@@ -262,12 +262,6 @@ public partial class CardDetailPage : ContentPage
     private void OnSwipedRight(object? sender, SwipedEventArgs e)
         => _viewModel.NavigatePreviousCardCommand.Execute(null);
 
-    private void OnPrevCardClicked(object? sender, EventArgs e)
-        => _viewModel.NavigatePreviousCardCommand.Execute(null);
-
-    private void OnNextCardClicked(object? sender, EventArgs e)
-        => _viewModel.NavigateNextCardCommand.Execute(null);
-
     private void PopulateHistory()
     {
         HistoryStack.Children.Clear();
