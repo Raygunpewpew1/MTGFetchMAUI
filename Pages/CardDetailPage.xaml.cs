@@ -63,8 +63,19 @@ public partial class CardDetailPage : ContentPage
         UpdateUI();
     }
 
+    private void ResetCardContent()
+    {
+        PTLabel.IsVisible = false;
+        PriceLabel.IsVisible = false;
+        TextBorder.IsVisible = false;
+        FlavorBorder.IsVisible = false;
+        ArtistLabel.IsVisible = false;
+        PriceHistoryBorder.IsVisible = false;
+    }
+
     private void UpdateUI()
     {
+        ResetCardContent();
         var card = _viewModel.CurrentFace;
 
         CardNameLabel.Text = card.Name;
@@ -159,8 +170,9 @@ public partial class CardDetailPage : ContentPage
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                ImageLoading.IsVisible = false;
-                ImageLoading.IsRunning = false;
+                bool hasImage = _viewModel.CardImage != null;
+                ImageLoading.IsVisible = !hasImage;
+                ImageLoading.IsRunning = !hasImage;
                 CardImageView.InvalidateSurface();
             });
         }
@@ -243,6 +255,18 @@ public partial class CardDetailPage : ContentPage
     {
         _viewModel.FlipFaceCommand.Execute(null);
     }
+
+    private void OnSwipedLeft(object? sender, SwipedEventArgs e)
+        => _viewModel.NavigateNextCardCommand.Execute(null);
+
+    private void OnSwipedRight(object? sender, SwipedEventArgs e)
+        => _viewModel.NavigatePreviousCardCommand.Execute(null);
+
+    private void OnPrevCardClicked(object? sender, EventArgs e)
+        => _viewModel.NavigatePreviousCardCommand.Execute(null);
+
+    private void OnNextCardClicked(object? sender, EventArgs e)
+        => _viewModel.NavigateNextCardCommand.Execute(null);
 
     private void PopulateHistory()
     {

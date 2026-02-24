@@ -16,6 +16,7 @@ namespace MTGFetchMAUI.ViewModels;
 public partial class CardDetailViewModel : BaseViewModel, IDisposable
 {
     private readonly CardManager _cardManager;
+    private readonly CardGalleryContext _galleryContext;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]
@@ -44,6 +45,15 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     [NotifyPropertyChangedFor(nameof(HasPriceHistory))]
     private CardPriceData _priceData = CardPriceData.Empty;
 
+    [ObservableProperty]
+    private bool _hasPreviousCard;
+
+    [ObservableProperty]
+    private bool _hasNextCard;
+
+    [ObservableProperty]
+    private string _cardPosition = "";
+
     public bool HasPriceHistory => PriceData != CardPriceData.Empty &&
                                    (PriceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
                                     PriceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
@@ -52,15 +62,18 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     public bool HasMultipleFaces => Faces.Length > 1 && Card.Layout.IsDoubleFaced();
 
+    public bool ShowGalleryNavigation => _galleryContext.HasContext;
+
     public Card CurrentFace => Faces.Length > 0 && CurrentFaceIndex >= 0 && CurrentFaceIndex < Faces.Length
         ? Faces[CurrentFaceIndex]
         : Card;
 
     public event Action<string>? AddedToCollection;
 
-    public CardDetailViewModel(CardManager cardManager)
+    public CardDetailViewModel(CardManager cardManager, CardGalleryContext galleryContext)
     {
         _cardManager = cardManager;
+        _galleryContext = galleryContext;
         _cardManager.OnPricesUpdated += HandlePricesUpdated;
     }
 
@@ -108,6 +121,8 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
         try
         {
+            CardImage = null;
+
             // Load full card with rulings
             var mainCard = await _cardManager.GetCardWithRulingsAsync(uuid);
             Card = mainCard;
@@ -154,6 +169,8 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
             // Load price
             await LoadPriceAsync();
+
+            UpdateGalleryState();
         }
         catch (Exception ex)
         {
@@ -163,6 +180,14 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         {
             IsBusy = false;
         }
+    }
+
+    private void UpdateGalleryState()
+    {
+        HasPreviousCard = _galleryContext.GetPreviousUuid() != null;
+        HasNextCard = _galleryContext.GetNextUuid() != null;
+        CardPosition = _galleryContext.GetPositionText();
+        OnPropertyChanged(nameof(ShowGalleryNavigation));
     }
 
     private async Task LoadCardImageAsync()
@@ -216,6 +241,24 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     partial void OnCardImageChanging(SKImage? value)
     {
         CardImage?.Dispose();
+    }
+
+    [RelayCommand]
+    private async Task NavigatePreviousCard()
+    {
+        var uuid = _galleryContext.GetPreviousUuid();
+        if (uuid == null) return;
+        _galleryContext.MovePrevious();
+        await LoadCardAsync(uuid);
+    }
+
+    [RelayCommand]
+    private async Task NavigateNextCard()
+    {
+        var uuid = _galleryContext.GetNextUuid();
+        if (uuid == null) return;
+        _galleryContext.MoveNext();
+        await LoadCardAsync(uuid);
     }
 
     [RelayCommand]

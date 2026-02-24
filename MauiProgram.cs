@@ -66,6 +66,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ImageCacheService>();
         builder.Services.AddSingleton<ImageDownloadService>();
         builder.Services.AddSingleton<CardManager>();
+        builder.Services.AddSingleton<CardGalleryContext>();
 
         // ── ViewModels ──────────────────────────────────────────────
         builder.Services.AddSingleton<SearchViewModel>();
