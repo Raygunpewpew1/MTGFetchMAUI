@@ -561,7 +561,7 @@ public class CardGrid : ContentView
 // ScrollView).  Direction is disambiguated after 12 DIPs of movement:
 //   - Horizontal → WIllLock = Locked  (capture swipe, fire SwipedLeft/Right)
 //   - Vertical   → WIllLock = Unlocked (release to ScrollView)
-internal sealed class SwipeOverlayView : BoxView, IGestureListener
+public sealed class SwipeOverlayView : BoxView, IGestureListener
 {
     public event Action? SwipedLeft;
     public event Action? SwipedRight;

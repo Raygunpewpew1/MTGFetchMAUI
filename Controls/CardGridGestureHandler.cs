@@ -77,7 +77,7 @@ internal sealed class CardGridGestureHandler
         {
             case GestureState.PressTracking:
                 // Cancel long-press if pointer drifts (lets the ScrollView scroll)
-                if (Math.Abs(x - _pressPoint.X) > 10 || Math.Abs(y - _pressPoint.Y) > 10)
+                if (Math.Abs(x - _pressPoint.X) > 4 || Math.Abs(y - _pressPoint.Y) > 4)
                 {
                     _gestureState = GestureState.Idle;
                     _longPressTimer?.Stop();
