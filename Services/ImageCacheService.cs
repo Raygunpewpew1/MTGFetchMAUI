@@ -5,7 +5,6 @@ namespace MTGFetchMAUI.Services;
 
 public class ImageCacheService : IDisposable
 {
-    private readonly DBImageCache _dbCache;
     private readonly FileImageCache _fileCache;
 
     // L1 Cache: Map key -> (Image, Node)
@@ -16,9 +15,8 @@ public class ImageCacheService : IDisposable
     // Keep enough images for ~3-4 screens of content to ensure smooth scrolling
     private const int MaxMemoryImages = 100;
 
-    public ImageCacheService(DBImageCache dbCache, FileImageCache fileCache)
+    public ImageCacheService(FileImageCache fileCache)
     {
-        _dbCache = dbCache;
         _fileCache = fileCache;
     }
 
@@ -44,18 +42,10 @@ public class ImageCacheService : IDisposable
             return entry.Image;
         }
 
-        // 2. L2 DB Cache (Thumbnails)
-        var img = await _dbCache.GetImageAsync(key);
-        if (img != null)
-        {
-            AddToMemoryCache(key, img);
-            return img;
-        }
-
-        // 3. L3 File Cache (Larger images)
+        // 2. L2 File Cache
         if (useFileCache)
         {
-            img = await _fileCache.GetImageAsync(key);
+            var img = await _fileCache.GetImageAsync(key);
             if (img != null)
             {
                 AddToMemoryCache(key, img);
