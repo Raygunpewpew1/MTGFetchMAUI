@@ -21,34 +21,32 @@ public static class SQLQueries
         )
         """;
 
-    public const string CreateCommanderDecksTable =
+    public const string CreateDecksTable =
         """
-        CREATE TABLE IF NOT EXISTS Commander_decks (
-            deck_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            deck_name TEXT NOT NULL,
-            commander_uuid TEXT NOT NULL,
-            partner_uuid TEXT,
-            format TEXT DEFAULT 'Commander',
-            color_identity TEXT,
-            archetype TEXT,
-            power_level INTEGER DEFAULT 5,
-            total_price REAL DEFAULT 0,
-            date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-            date_modified DATETIME DEFAULT CURRENT_TIMESTAMP,
-            notes TEXT
+        CREATE TABLE IF NOT EXISTS Decks (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Name TEXT NOT NULL,
+            Format TEXT NOT NULL,
+            Description TEXT,
+            CoverCardId TEXT,
+            DateCreated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            DateModified DATETIME DEFAULT CURRENT_TIMESTAMP,
+            CommanderId TEXT,
+            PartnerId TEXT,
+            ColorIdentity TEXT
         )
         """;
 
-    public const string CreateCommanderDeckCardsTable =
+    public const string CreateDeckCardsTable =
         """
-        CREATE TABLE IF NOT EXISTS Commander_deck_cards (
-            deck_id INTEGER,
-            card_uuid TEXT,
-            quantity INTEGER DEFAULT 1,
-            category TEXT,
-            is_commander BOOLEAN DEFAULT 0,
-            FOREIGN KEY (deck_id) REFERENCES Commander_decks(deck_id),
-            PRIMARY KEY (deck_id, card_uuid)
+        CREATE TABLE IF NOT EXISTS DeckCards (
+            DeckId INTEGER,
+            CardId TEXT,
+            Quantity INTEGER DEFAULT 1,
+            Section TEXT DEFAULT 'Main',
+            DateAdded DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (DeckId, CardId, Section),
+            FOREIGN KEY (DeckId) REFERENCES Decks(Id) ON DELETE CASCADE
         )
         """;
 
@@ -245,57 +243,39 @@ public static class SQLQueries
         "SELECT 1 FROM my_collection WHERE card_uuid = @uuid";
 
     // ============================================================================
-    // COMMANDER DECK QUERIES
+    // DECK QUERIES
     // ============================================================================
 
     public const string DeckInsert =
-        "INSERT INTO Commander_decks (deck_name, commander_uuid, color_identity) VALUES (@name, @commander, @colors)";
+        "INSERT INTO Decks (Name, Format, Description, CoverCardId, CommanderId, PartnerId, ColorIdentity) VALUES (@Name, @Format, @Description, @CoverCardId, @CommanderId, @PartnerId, @ColorIdentity)";
 
-    public const string DeckGetLastId =
-        "SELECT last_insert_rowid() AS deck_id";
+    public const string DeckUpdate =
+        "UPDATE Decks SET Name = @Name, Description = @Description, CoverCardId = @CoverCardId, DateModified = CURRENT_TIMESTAMP, CommanderId = @CommanderId, PartnerId = @PartnerId, ColorIdentity = @ColorIdentity WHERE Id = @Id";
 
-    public const string DeckInsertCommander =
-        "INSERT INTO Commander_deck_cards (deck_id, card_uuid, quantity, is_commander) VALUES (@deck_id, @card_uuid, 1, 1)";
+    public const string DeckGetLastId = "SELECT last_insert_rowid() AS Id";
 
-    public const string DeckSelectWithNames =
-        """
-        SELECT d.*, c.name AS commander_name, p.name AS partner_name
-        FROM Commander_decks d
-        LEFT JOIN cards c ON d.commander_uuid = c.uuid
-        LEFT JOIN cards p ON d.partner_uuid = p.uuid
-        WHERE d.deck_id = @deck_id
-        """;
+    public const string DeckGet = "SELECT * FROM Decks WHERE Id = @Id";
 
-    public const string DeckSelectCards =
-        """
-        SELECT dc.card_uuid, dc.quantity, dc.category, c.name
-        FROM Commander_deck_cards dc
-        JOIN cards c ON dc.card_uuid = c.uuid
-        WHERE dc.deck_id = @deck_id AND dc.is_commander = 0
-        ORDER BY c.name
-        """;
+    public const string DeckGetAll = "SELECT * FROM Decks ORDER BY DateModified DESC";
 
-    public const string DeckGetAllIds =
-        "SELECT deck_id FROM Commander_decks ORDER BY date_modified DESC";
+    public const string DeckDelete = "DELETE FROM Decks WHERE Id = @Id";
 
-    public const string DeckDelete =
-        "DELETE FROM Commander_decks WHERE deck_id = @deck_id";
-
-    public const string DeckDeleteCards =
-        "DELETE FROM Commander_deck_cards WHERE deck_id = @deck_id";
+    public const string DeckDeleteCards = "DELETE FROM DeckCards WHERE DeckId = @Id";
 
     public const string DeckAddCard =
         """
-        INSERT OR REPLACE INTO Commander_deck_cards
-        (deck_id, card_uuid, quantity, category)
-        VALUES (@deck_id, @card_uuid, @quantity, @category)
+        INSERT OR REPLACE INTO DeckCards (DeckId, CardId, Quantity, Section, DateAdded)
+        VALUES (@DeckId, @CardId, @Quantity, @Section, @DateAdded)
         """;
 
     public const string DeckRemoveCard =
-        "DELETE FROM Commander_deck_cards WHERE deck_id = @deck_id AND card_uuid = @card_uuid AND is_commander = 0";
+        "DELETE FROM DeckCards WHERE DeckId = @DeckId AND CardId = @CardId AND Section = @Section";
 
-    public const string DeckCountCards =
-        "SELECT SUM(quantity) AS total FROM Commander_deck_cards WHERE deck_id = @deck_id";
+    public const string DeckUpdateCardQuantity =
+        "UPDATE DeckCards SET Quantity = @Quantity WHERE DeckId = @DeckId AND CardId = @CardId AND Section = @Section";
+
+    public const string DeckGetCards =
+        "SELECT * FROM DeckCards WHERE DeckId = @DeckId";
 
     // ============================================================================
     // SEARCH HELPER FRAGMENTS
