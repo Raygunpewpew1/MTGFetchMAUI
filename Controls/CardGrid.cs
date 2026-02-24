@@ -1,3 +1,4 @@
+using AppoMobi.Maui.Gestures;
 using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
@@ -11,7 +12,7 @@ public class CardGrid : ContentView
 {
     private readonly SKCanvasView _canvas;
     private readonly ScrollView _scrollView;
-    private readonly BoxView _spacer;
+    private readonly GestureSpacerView _spacer;
     private readonly Channel<GridState> _stateChannel;
     private CancellationTokenSource? _cts;
 
@@ -69,14 +70,10 @@ public class CardGrid : ContentView
         };
         _canvas.PaintSurface += OnPaintSurface;
 
-        _spacer = new BoxView
-        {
-            Color = Colors.Transparent,
-            HeightRequest = 100,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Start,
-            InputTransparent = false
-        };
+        // _gestures must be created before _spacer because GestureSpacerView
+        // takes the handler as a constructor argument and wires scroll callbacks.
+        _gestures = new CardGridGestureHandler(Dispatcher, HitTest);
+        _spacer = new GestureSpacerView(_gestures);
 
         _scrollView = new ScrollView
         {
@@ -93,7 +90,6 @@ public class CardGrid : ContentView
         Content = grid;
 
         _renderer = new CardGridRenderer(_canvas, cacheKey => _imageCache?.GetMemoryImage(cacheKey));
-        _gestures = new CardGridGestureHandler(_spacer, Dispatcher, HitTest);
         _gestures.Tapped += id => CardClicked?.Invoke(id);
         _gestures.LongPressed += id => CardLongPressed?.Invoke(id);
         _gestures.DragStarted += OnDragStarted;
@@ -114,10 +110,6 @@ public class CardGrid : ContentView
             _imageCache = Handler.MauiContext.Services.GetService<ImageCacheService>();
             _downloadService = Handler.MauiContext.Services.GetService<ImageDownloadService>();
         }
-
-#if ANDROID
-        AttachAndroidTouchHandler();
-#endif
 
         if (!_isProcessingUpdates)
         {
@@ -490,81 +482,168 @@ public class CardGrid : ContentView
         _stateChannel.Writer.TryWrite(_lastState);
     }
 
-#if ANDROID
-    // ── Android native touch handling ─────────────────────────────────────────
-    // PointerGestureRecognizer is unreliable inside a ScrollView on Android:
-    // the ScrollView dispatches ACTION_CANCEL to child views when it detects a
-    // scroll gesture, which fires PointerExited and kills the long-press timer.
-    // Additionally, PointerMoved may not fire for touch-drag inside a scroll
-    // container on some Android versions.
+    // ── Cross-platform touch via AppoMobi.Maui.Gestures ──────────────────────
+    // GestureSpacerView replaces both the Android SpacerTouchListener and the
+    // non-Android PointerGestureRecognizer path.  It receives unified events on
+    // all platforms from the AppoMobi library.
     //
-    // Solution: attach a raw View.OnTouchListener to the spacer platform view.
-    // On ACTION_DOWN we allow the ScrollView to still intercept (so normal scroll
-    // works).  When the long-press timer arms the drag we call
-    // RequestDisallowInterceptTouchEvent(true) so the ScrollView can no longer
-    // steal the touch stream, and subsequent ACTION_MOVE events reach us reliably.
-
-    private void AttachAndroidTouchHandler()
+    // Coordinate note: args.Location is in physical pixels (library docs).
+    // Divide by TouchEffect.Density to get DIPs, matching GridLayoutEngine rects.
+    private sealed class GestureSpacerView : BoxView, IGestureListener
     {
-        if (_spacer.Handler?.PlatformView is not Android.Views.View spacerView) return;
+        private readonly CardGridGestureHandler _handler;
 
-        _gestures.DisallowScrollIntercept = () =>
-            (spacerView.Parent as Android.Views.ViewGroup)?.RequestDisallowInterceptTouchEvent(true);
-        _gestures.AllowScrollIntercept = () =>
-            (spacerView.Parent as Android.Views.ViewGroup)?.RequestDisallowInterceptTouchEvent(false);
-
-        spacerView.SetOnTouchListener(new SpacerTouchListener(_gestures, spacerView));
-    }
-
-    private sealed class SpacerTouchListener : Java.Lang.Object, Android.Views.View.IOnTouchListener
-    {
-        private readonly CardGridGestureHandler _gestures;
-        private readonly Android.Views.View _spacerView;
-
-        public SpacerTouchListener(CardGridGestureHandler gestures, Android.Views.View spacerView)
+        public GestureSpacerView(CardGridGestureHandler handler)
         {
-            _gestures = gestures;
-            _spacerView = spacerView;
+            _handler = handler;
+            Color = Colors.Transparent;
+            HeightRequest = 100;
+            HorizontalOptions = LayoutOptions.Fill;
+            VerticalOptions = LayoutOptions.Start;
+            InputTransparent = false;
+
+            // Force-attach the gesture effect and use Manual mode so WIllLock
+            // can dynamically block/release the parent ScrollView during drag.
+            TouchEffect.SetForceAttach(this, true);
+            TouchEffect.SetShareTouch(this, TouchHandlingStyle.Manual);
+
+            // Wire scroll-interception callbacks. These are called by the state
+            // machine when the drag arms (Locked) and when it ends (Unlocked).
+            _handler.DisallowScrollIntercept = () =>
+            {
+                var effect = TouchEffect.GetFrom(this);
+                if (effect != null) effect.WIllLock = ShareLockState.Locked;
+            };
+            _handler.AllowScrollIntercept = () =>
+            {
+                var effect = TouchEffect.GetFrom(this);
+                if (effect != null) effect.WIllLock = ShareLockState.Unlocked;
+            };
         }
 
-        public bool OnTouch(Android.Views.View? v, Android.Views.MotionEvent? e)
+        // Explicit implementation avoids ambiguity with BoxView.InputTransparent.
+        bool IGestureListener.InputTransparent => false;
+
+        public void OnGestureEvent(
+            TouchActionType type,
+            TouchActionEventArgs args,
+            TouchActionResult action)
         {
-            if (e == null) return false;
+            float density = TouchEffect.Density > 0 ? TouchEffect.Density : 1f;
+            float x = args.Location.X / density;
+            float y = args.Location.Y / density;
 
-            // MotionEvent coordinates are in physical pixels; the grid layout engine
-            // uses MAUI device-independent units (dp).  Divide by screen density so
-            // hit-testing and drag positioning match the card rects in the render list.
-            float density = _spacerView.Context?.Resources?.DisplayMetrics?.Density ?? 1f;
-            float x = e.GetX() / density;
-            float y = e.GetY() / density;
-
-            switch (e.Action)
+            switch (action)
             {
-                case Android.Views.MotionEventActions.Down:
-                    _gestures.HandleDown(x, y);
-                    // Allow the ScrollView to intercept during the initial press so
-                    // normal scrolling still works.  RequestDisallowInterceptTouchEvent
-                    // will be called in the opposite direction when the drag arms.
-                    (_spacerView.Parent as Android.Views.ViewGroup)
-                        ?.RequestDisallowInterceptTouchEvent(false);
-                    return true; // Must return true to keep receiving subsequent events
-
-                case Android.Views.MotionEventActions.Move:
-                    _gestures.HandleMove(x, y);
-                    return true;
-
-                case Android.Views.MotionEventActions.Up:
-                    _gestures.HandleUp();
-                    return true;
-
-                case Android.Views.MotionEventActions.Cancel:
-                    _gestures.HandleCancel();
-                    return true;
-
-                default:
-                    return false;
+                case TouchActionResult.Down:
+                    _handler.HandleDown(x, y);
+                    break;
+                case TouchActionResult.Panning:
+                    _handler.HandleMove(x, y);
+                    break;
+                case TouchActionResult.Up:
+                    _handler.HandleUp();
+                    break;
+                // Tapped: not used — PressTracking→HandleUp() fires Tapped to
+                //   avoid double-fire with the library's own Tapped result.
+                // LongPressing: not used — the handler's 500ms timer manages
+                //   DragArmed state and integrates with the drag-and-drop flow.
             }
         }
     }
-#endif
+}
+
+// ── SwipeOverlayView ──────────────────────────────────────────────────────────
+// Transparent overlay used by CardDetailPage to detect horizontal swipes over
+// a ScrollView without conflicting with vertical scrolling.
+//
+// Placed inside the ScrollView content (so WIllLock controls the parent
+// ScrollView).  Direction is disambiguated after 12 DIPs of movement:
+//   - Horizontal → WIllLock = Locked  (capture swipe, fire SwipedLeft/Right)
+//   - Vertical   → WIllLock = Unlocked (release to ScrollView)
+internal sealed class SwipeOverlayView : BoxView, IGestureListener
+{
+    public event Action? SwipedLeft;
+    public event Action? SwipedRight;
+
+    // Minimum horizontal travel (DIPs) required to register a swipe
+    private const float MinSwipeDistance = 45f;
+    // Movement before direction is committed (DIPs)
+    private const float DirectionLockThreshold = 12f;
+
+    private enum Direction { Undecided, Horizontal, Vertical }
+
+    private float _startX, _startY, _currentX;
+    private Direction _direction = Direction.Undecided;
+
+    public SwipeOverlayView()
+    {
+        Color = Colors.Transparent;
+        HorizontalOptions = LayoutOptions.Fill;
+        VerticalOptions = LayoutOptions.Fill;
+        InputTransparent = false;
+        TouchEffect.SetForceAttach(this, true);
+        TouchEffect.SetShareTouch(this, TouchHandlingStyle.Manual);
+    }
+
+    // Explicit implementation avoids ambiguity with BoxView.InputTransparent.
+    bool IGestureListener.InputTransparent => false;
+
+    public void OnGestureEvent(
+        TouchActionType type,
+        TouchActionEventArgs args,
+        TouchActionResult action)
+    {
+        float density = TouchEffect.Density > 0 ? TouchEffect.Density : 1f;
+        float x = args.Location.X / density;
+        float y = args.Location.Y / density;
+
+        switch (action)
+        {
+            case TouchActionResult.Down:
+                _startX = _currentX = x;
+                _startY = y;
+                _direction = Direction.Undecided;
+                // Reset lock; ScrollView can scroll by default.
+                if (TouchEffect.GetFrom(this) is { } e0)
+                    e0.WIllLock = ShareLockState.Initial;
+                break;
+
+            case TouchActionResult.Panning:
+                _currentX = x;
+                if (_direction == Direction.Undecided)
+                {
+                    float dx = Math.Abs(x - _startX);
+                    float dy = Math.Abs(y - _startY);
+                    if (dx > DirectionLockThreshold || dy > DirectionLockThreshold)
+                    {
+                        _direction = dx >= dy ? Direction.Horizontal : Direction.Vertical;
+                        var effect = TouchEffect.GetFrom(this);
+                        if (effect != null)
+                            effect.WIllLock = _direction == Direction.Horizontal
+                                ? ShareLockState.Locked    // capture swipe
+                                : ShareLockState.Unlocked; // release to ScrollView
+                    }
+                }
+                break;
+
+            case TouchActionResult.Up:
+                if (_direction == Direction.Horizontal)
+                {
+                    float totalDx = _currentX - _startX;
+                    if (Math.Abs(totalDx) >= MinSwipeDistance)
+                    {
+                        if (totalDx < 0)
+                            SwipedLeft?.Invoke();
+                        else
+                            SwipedRight?.Invoke();
+                    }
+                    // Release scroll lock for the next gesture.
+                    if (TouchEffect.GetFrom(this) is { } e1)
+                        e1.WIllLock = ShareLockState.Unlocked;
+                }
+                _direction = Direction.Undecided;
+                break;
+        }
+    }
 }
