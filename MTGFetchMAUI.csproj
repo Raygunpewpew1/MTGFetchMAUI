@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<TargetFrameworks>net10.0-android</TargetFrameworks>
 		<OutputType>Exe</OutputType>
@@ -18,13 +17,13 @@
 		<ApplicationId>com.mtgfetch.mobile</ApplicationId>
 
 		<ApplicationDisplayVersion>2</ApplicationDisplayVersion>
-		<ApplicationVersion>2</ApplicationVersion>
+		<ApplicationVersion>$([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds())</ApplicationVersion>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net10.0-android|AnyCPU'">
-	  <EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
+		<EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -65,8 +64,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="BENCHMARK_RESULTS.md" />
-	  <None Remove="Resources\Splash\_splash.svg" />
+		<None Remove="BENCHMARK_RESULTS.md" />
+		<None Remove="Resources\Splash\_splash.svg" />
 	</ItemGroup>
 
 </Project>
