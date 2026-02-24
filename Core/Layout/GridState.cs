@@ -86,3 +86,15 @@ public record GridState(
         new Viewport(0, 0, 0)
     );
 }
+
+/// <summary>
+/// Tracks the current drag-and-drop state for the card grid.
+/// Coordinates are in world (scroll-space) units matching the canvas coordinate system.
+/// </summary>
+public record DragState(
+    int SourceIndex,
+    int TargetIndex,
+    float CanvasX,
+    float CanvasY,
+    CardState? DraggedCard = null
+);

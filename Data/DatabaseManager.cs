@@ -63,6 +63,7 @@ public sealed class DatabaseManager : IDisposable
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateCollectionTable);
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
+                    await MigrateCollectionSchemaAsync(_collectionConnection);
 
                     _isConnected = true;
                     return true;
@@ -177,6 +178,34 @@ public sealed class DatabaseManager : IDisposable
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateCollectionTable);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
+        await MigrateCollectionSchemaAsync(_collectionConnection);
+    }
+
+    private static async Task MigrateCollectionSchemaAsync(SqliteConnection conn)
+    {
+        // Add sort_order column if it doesn't exist (upgrade from older schema)
+        bool hasSortOrder = false;
+        using (var pragma = conn.CreateCommand())
+        {
+            pragma.CommandText = "PRAGMA table_info(my_collection)";
+            using var reader = await pragma.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if (reader.GetString(1) == "sort_order") { hasSortOrder = true; break; }
+            }
+        }
+
+        if (!hasSortOrder)
+        {
+            using var alter = conn.CreateCommand();
+            alter.CommandText = "ALTER TABLE my_collection ADD COLUMN sort_order INTEGER DEFAULT 0";
+            await alter.ExecuteNonQueryAsync();
+
+            // Seed existing rows so relative order is preserved
+            using var seed = conn.CreateCommand();
+            seed.CommandText = "UPDATE my_collection SET sort_order = rowid WHERE sort_order = 0";
+            await seed.ExecuteNonQueryAsync();
+        }
     }
 
     private static async Task ExecuteNonQueryAsync(SqliteConnection connection, string sql)

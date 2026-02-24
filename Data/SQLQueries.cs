@@ -16,7 +16,8 @@ public static class SQLQueries
             card_uuid TEXT PRIMARY KEY,
             quantity INTEGER DEFAULT 1,
             date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
-            card_data BLOB
+            card_data BLOB,
+            sort_order INTEGER DEFAULT 0
         )
         """;
 
@@ -228,13 +229,16 @@ public static class SQLQueries
         "UPDATE my_collection SET quantity = @qty WHERE card_uuid = @uuid";
 
     public const string CollectionInsertCard =
-        "INSERT INTO my_collection (card_uuid, quantity) VALUES (@uuid, @qty)";
+        "INSERT INTO my_collection (card_uuid, quantity, sort_order) VALUES (@uuid, @qty, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM my_collection))";
 
     public const string CollectionDeleteCard =
         "DELETE FROM my_collection WHERE card_uuid = @uuid";
 
     public const string CollectionGetAll =
-        "SELECT card_uuid, quantity, date_added FROM my_collection ORDER BY date_added DESC";
+        "SELECT card_uuid, quantity, date_added, sort_order FROM my_collection ORDER BY sort_order ASC, date_added DESC";
+
+    public const string CollectionReorderItem =
+        "UPDATE my_collection SET sort_order = @sortOrder WHERE card_uuid = @uuid";
 
     public const string CollectionCheckExists =
         "SELECT 1 FROM my_collection WHERE card_uuid = @uuid";

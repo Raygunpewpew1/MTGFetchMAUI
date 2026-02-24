@@ -302,6 +302,11 @@ public class CardManager : IDisposable
         return await _collectionRepository.GetCollectionStatsAsync();
     }
 
+    public async Task ReorderCollectionAsync(IList<string> orderedUuids)
+    {
+        await _collectionRepository.ReorderAsync(orderedUuids);
+    }
+
     // ── Image Methods ────────────────────────────────────────────────
 
     public void DownloadCardImageAsync(

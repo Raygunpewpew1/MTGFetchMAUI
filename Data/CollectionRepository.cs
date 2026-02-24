@@ -70,7 +70,7 @@ public class CollectionRepository : ICollectionRepository
     {
         var items = new List<CollectionItem>();
         var uuids = new List<string>();
-        var entries = new List<(string uuid, int qty, DateTime dateAdded)>();
+        var entries = new List<(string uuid, int qty, DateTime dateAdded, int sortOrder)>();
 
         await _lock.WaitAsync();
         try
@@ -84,8 +84,9 @@ public class CollectionRepository : ICollectionRepository
                 var uuid = reader.GetString(0);
                 var qty = reader.GetInt32(1);
                 var dateAdded = DateTime.TryParse(reader.GetString(2), out var d) ? d : DateTime.Now;
+                var sortOrder = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
                 uuids.Add(uuid);
-                entries.Add((uuid, qty, dateAdded));
+                entries.Add((uuid, qty, dateAdded, sortOrder));
             }
         }
         finally
@@ -98,7 +99,7 @@ public class CollectionRepository : ICollectionRepository
         {
             var cardCache = await _cardRepo.GetCardsByUUIDsAsync(uuids.ToArray());
 
-            foreach (var (uuid, qty, dateAdded) in entries)
+            foreach (var (uuid, qty, dateAdded, sortOrder) in entries)
             {
                 if (cardCache.TryGetValue(uuid, out var card))
                 {
@@ -107,6 +108,7 @@ public class CollectionRepository : ICollectionRepository
                         CardUUID = uuid,
                         Quantity = qty,
                         DateAdded = dateAdded,
+                        SortOrder = sortOrder,
                         Card = card
                     });
                 }
@@ -165,6 +167,21 @@ public class CollectionRepository : ICollectionRepository
     public async Task<int> GetQuantityAsync(string cardUUID)
     {
         return await GetQuantityInternalAsync(_db.CollectionConnection, cardUUID);
+    }
+
+    public async Task ReorderAsync(IList<string> orderedUuids)
+    {
+        await WithCollectionTransactionAsync(async conn =>
+        {
+            for (int i = 0; i < orderedUuids.Count; i++)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = SQLQueries.CollectionReorderItem;
+                cmd.Parameters.AddWithValue("@sortOrder", i);
+                cmd.Parameters.AddWithValue("@uuid", orderedUuids[i]);
+                await cmd.ExecuteNonQueryAsync();
+            }
+        });
     }
 
     // ── Private helpers ─────────────────────────────────────────────
