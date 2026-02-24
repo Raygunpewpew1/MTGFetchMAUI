@@ -54,54 +54,54 @@ public static class SQLQueries
     // THUMBNAIL CACHE SCHEMA
     // ============================================================================
 
-    public const string CreateThumbnailCacheTable =
-        """
-        CREATE TABLE IF NOT EXISTS thumbnail_cache (
-            cache_key TEXT PRIMARY KEY,
-            scryfall_id TEXT NOT NULL,
-            image_size TEXT NOT NULL,
-            image_data BLOB NOT NULL,
-            file_size INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """;
+    //public const string CreateThumbnailCacheTable =
+    //    """
+    //    CREATE TABLE IF NOT EXISTS thumbnail_cache (
+    //        cache_key TEXT PRIMARY KEY,
+    //        scryfall_id TEXT NOT NULL,
+    //        image_size TEXT NOT NULL,
+    //        image_data BLOB NOT NULL,
+    //        file_size INTEGER NOT NULL,
+    //        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    //        last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP
+    //    )
+    //    """;
 
-    public const string CreateThumbnailIndexAccessed =
-        "CREATE INDEX IF NOT EXISTS idx_thumb_accessed ON thumbnail_cache(last_accessed)";
+    //public const string CreateThumbnailIndexAccessed =
+    //    "CREATE INDEX IF NOT EXISTS idx_thumb_accessed ON thumbnail_cache(last_accessed)";
 
-    public const string ThumbnailInsert =
-        "INSERT OR REPLACE INTO thumbnail_cache " +
-        "(cache_key, scryfall_id, image_size, image_data, file_size, " +
-        "created_at, last_accessed) " +
-        "VALUES (@cache_key, @scryfall_id, @image_size, @image_data, @file_size, " +
-        "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+    //public const string ThumbnailInsert =
+    //    "INSERT OR REPLACE INTO thumbnail_cache " +
+    //    "(cache_key, scryfall_id, image_size, image_data, file_size, " +
+    //    "created_at, last_accessed) " +
+    //    "VALUES (@cache_key, @scryfall_id, @image_size, @image_data, @file_size, " +
+    //    "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
-    public const string ThumbnailGet =
-        "SELECT image_data FROM thumbnail_cache WHERE cache_key = @cache_key";
+    //public const string ThumbnailGet =
+    //    "SELECT image_data FROM thumbnail_cache WHERE cache_key = @cache_key";
 
-    public const string ThumbnailExists =
-        "SELECT 1 FROM thumbnail_cache WHERE cache_key = @cache_key";
+    //public const string ThumbnailExists =
+    //    "SELECT 1 FROM thumbnail_cache WHERE cache_key = @cache_key";
 
-    public const string ThumbnailUpdateAccess =
-        "UPDATE thumbnail_cache SET last_accessed = CURRENT_TIMESTAMP " +
-        "WHERE cache_key = @cache_key";
+    //public const string ThumbnailUpdateAccess =
+    //    "UPDATE thumbnail_cache SET last_accessed = CURRENT_TIMESTAMP " +
+    //    "WHERE cache_key = @cache_key";
 
-    public const string ThumbnailDeleteByKey =
-        "DELETE FROM thumbnail_cache WHERE cache_key = @cache_key";
+    //public const string ThumbnailDeleteByKey =
+    //    "DELETE FROM thumbnail_cache WHERE cache_key = @cache_key";
 
-    public const string ThumbnailClear =
-        "DELETE FROM thumbnail_cache";
+    //public const string ThumbnailClear =
+    //    "DELETE FROM thumbnail_cache";
 
-    public const string ThumbnailStats =
-        "SELECT COUNT(*) AS cnt, COALESCE(SUM(file_size), 0) AS total_size " +
-        "FROM thumbnail_cache";
+    //public const string ThumbnailStats =
+    //    "SELECT COUNT(*) AS cnt, COALESCE(SUM(file_size), 0) AS total_size " +
+    //    "FROM thumbnail_cache";
 
-    public const string ThumbnailEvictLru =
-        "DELETE FROM thumbnail_cache WHERE cache_key IN (" +
-        "  SELECT cache_key FROM thumbnail_cache " +
-        "  ORDER BY last_accessed ASC LIMIT @evict_count" +
-        ")";
+    //public const string ThumbnailEvictLru =
+    //    "DELETE FROM thumbnail_cache WHERE cache_key IN (" +
+    //    "  SELECT cache_key FROM thumbnail_cache " +
+    //    "  ORDER BY last_accessed ASC LIMIT @evict_count" +
+    //    ")";
 
     // ============================================================================
     // PRICE DATABASE SCHEMA & QUERIES
