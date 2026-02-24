@@ -102,7 +102,7 @@ internal sealed class CardGridRenderer : IDisposable
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
 
-    public void Paint(SKPaintSurfaceEventArgs e, RenderList list, float scrollY, float viewWidth)
+    public void Paint(SKPaintSurfaceEventArgs e, RenderList list, float scrollY, float viewWidth, DragState? dragState = null)
     {
         // Advance shimmer phase
         long now = _animationStopwatch.ElapsedMilliseconds;
@@ -127,12 +127,62 @@ internal sealed class CardGridRenderer : IDisposable
         {
             if (cmd is DrawCardCommand draw)
             {
+                bool isSource = dragState != null && draw.Index == dragState.SourceIndex;
+                bool isTarget = dragState != null && !isSource && draw.Index == dragState.TargetIndex;
+
                 if (isList)
                     RenderListCard(canvas, draw);
                 else
                     RenderCard(canvas, draw);
+
+                // Dim the source card slot so the floating drag card stands out
+                if (isSource)
+                {
+                    using var dimPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 160) };
+                    _cardRoundRect!.SetRect(draw.Rect, 8f, 8f);
+                    canvas.DrawRoundRect(_cardRoundRect, dimPaint);
+                }
+
+                // Highlight the drop target slot with an accent border
+                if (isTarget)
+                    DrawTargetHighlight(canvas, draw.Rect);
             }
         }
+
+        // Draw the floating drag card at the pointer position
+        if (dragState?.DraggedCard != null && (dragState.CanvasX != 0 || dragState.CanvasY != 0))
+        {
+            float cw = list.CardWidth;
+            float ch = list.CardHeight;
+            float dx = dragState.CanvasX - cw / 2f;
+            float dy = dragState.CanvasY - ch / 2f;
+            var dragRect = new SKRect(dx, dy, dx + cw, dy + ch);
+
+            // Drop shadow
+            using var shadowPaint = new SKPaint
+            {
+                IsAntialias = true,
+                Color = new SKColor(0, 0, 0, 140),
+                MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10f)
+            };
+            canvas.DrawRoundRect(dragRect, 8f, 8f, shadowPaint);
+
+            // Render card at drag position
+            var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
+            RenderCard(canvas, dragCmd);
+        }
+    }
+
+    private void DrawTargetHighlight(SKCanvas canvas, SKRect rect)
+    {
+        using var borderPaint = new SKPaint
+        {
+            IsAntialias = true,
+            Color = new SKColor(100, 200, 255, 220),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 3f
+        };
+        canvas.DrawRoundRect(rect, 8f, 8f, borderPaint);
     }
 
     private void RenderCard(SKCanvas canvas, DrawCardCommand cmd)

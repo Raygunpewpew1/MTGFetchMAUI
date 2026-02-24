@@ -22,6 +22,7 @@ public partial class CollectionPage : ContentPage
 
         CollectionGrid.CardClicked += OnCardClicked;
         CollectionGrid.CardLongPressed += OnCardLongPressed;
+        CollectionGrid.CardReorderRequested += OnCardReorderRequested;
 
         _viewModel.CollectionLoaded += () =>
         {
@@ -109,6 +110,11 @@ public partial class CollectionPage : ContentPage
             // Refresh collection to show updated quantity
             await _viewModel.LoadCollectionAsync();
         }
+    }
+
+    private async void OnCardReorderRequested(int fromIndex, int toIndex)
+    {
+        await _viewModel.ReorderCollectionAsync(fromIndex, toIndex);
     }
 
     protected override bool OnBackButtonPressed()

@@ -34,9 +34,13 @@ public class CardGrid : ContentView
     private bool _isLoaded;
     private bool _isProcessingUpdates;
 
+    // Drag state (managed separately from GridState to avoid pipeline overhead)
+    private DragState? _dragState;
+
     // Events
     public event Action<string>? CardClicked;
     public event Action<string>? CardLongPressed;
+    public event Action<int, int>? CardReorderRequested;  // (fromIndex, toIndex)
     public event EventHandler<ScrolledEventArgs>? Scrolled;
     public event Action<int, int>? VisibleRangeChanged;
 
@@ -92,6 +96,10 @@ public class CardGrid : ContentView
         _gestures = new CardGridGestureHandler(_spacer, Dispatcher, HitTest);
         _gestures.Tapped += id => CardClicked?.Invoke(id);
         _gestures.LongPressed += id => CardLongPressed?.Invoke(id);
+        _gestures.DragStarted += OnDragStarted;
+        _gestures.DragMoved += OnDragMoved;
+        _gestures.DragEnded += OnDragEnded;
+        _gestures.DragCancelled += OnDragCancelled;
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -376,24 +384,109 @@ public class CardGrid : ContentView
 
     private void OnPaintSurface(object? sender, SkiaSharp.Views.Maui.SKPaintSurfaceEventArgs e)
     {
-        _renderer.Paint(e, _currentRenderList, _lastState.Viewport.ScrollY, (float)(Width > 0 ? Width : 360));
+        _renderer.Paint(e, _currentRenderList, _lastState.Viewport.ScrollY, (float)(Width > 0 ? Width : 360), _dragState);
 
         bool hasLoading;
         lock (_loadingLock) { hasLoading = _loadingImages.Count > 0; }
-        if (hasLoading && _isLoaded)
+        if ((hasLoading || _dragState != null) && _isLoaded)
             _canvas.InvalidateSurface();
     }
 
     // ── Hit Testing ────────────────────────────────────────────────────
 
-    private string? HitTest(float spacerX, float spacerY)
+    private (string? uuid, int index) HitTest(float spacerX, float spacerY)
     {
-        if (_currentRenderList == null) return null;
+        if (_currentRenderList == null) return (null, -1);
         foreach (var cmd in _currentRenderList.Commands)
         {
             if (cmd is DrawCardCommand draw && draw.Rect.Contains(spacerX, spacerY))
-                return draw.Card.Id.Value;
+                return (draw.Card.Id.Value, draw.Index);
         }
-        return null;
+        return (null, -1);
+    }
+
+    // ── Drag and Drop ──────────────────────────────────────────────────
+
+    private void OnDragStarted(string uuid, int sourceIndex)
+    {
+        if (_lastState.Cards.IsDefaultOrEmpty || sourceIndex < 0 || sourceIndex >= _lastState.Cards.Length)
+            return;
+
+        var draggedCard = _lastState.Cards[sourceIndex];
+        _dragState = new DragState(sourceIndex, sourceIndex, 0, 0, draggedCard);
+        _canvas.InvalidateSurface();
+    }
+
+    private void OnDragMoved(float canvasX, float canvasY)
+    {
+        if (_dragState == null) return;
+
+        int targetIndex = CalculateDragTargetIndex(canvasX, canvasY);
+        _dragState = _dragState with { CanvasX = canvasX, CanvasY = canvasY, TargetIndex = targetIndex };
+        _canvas.InvalidateSurface();
+    }
+
+    private void OnDragEnded()
+    {
+        if (_dragState == null) return;
+
+        int from = _dragState.SourceIndex;
+        int to = _dragState.TargetIndex;
+        _dragState = null;
+
+        if (from != to)
+        {
+            ApplyInMemoryReorder(from, to);
+            CardReorderRequested?.Invoke(from, to);
+        }
+
+        _canvas.InvalidateSurface();
+    }
+
+    private void OnDragCancelled()
+    {
+        _dragState = null;
+        _canvas.InvalidateSurface();
+    }
+
+    private int CalculateDragTargetIndex(float canvasX, float canvasY)
+    {
+        int count = _lastState.Cards.Length;
+        if (count == 0) return 0;
+
+        if (_currentRenderList.ViewMode == ViewMode.List)
+        {
+            int row = Math.Max(0, (int)(canvasY / 96f));
+            return Math.Min(count - 1, row);
+        }
+
+        // Grid mode: reverse the layout formula
+        var config = _lastState.Config;
+        float width = _lastState.Viewport.Width > 0 ? _lastState.Viewport.Width : 360f;
+        float availWidth = width - 20f;
+        int columns = Math.Max(1, (int)((availWidth - config.CardSpacing) / (config.MinCardWidth + config.CardSpacing)));
+        float cardWidth = (availWidth - config.CardSpacing * (columns + 1)) / columns;
+        float cardHeight = cardWidth * config.CardImageRatio + config.LabelHeight;
+        float rowHeight = cardHeight + config.CardSpacing;
+
+        int row = Math.Max(0, (int)((canvasY - config.CardSpacing) / rowHeight));
+        int col = Math.Max(0, (int)((canvasX - 10f - config.CardSpacing) / (cardWidth + config.CardSpacing)));
+        col = Math.Min(col, columns - 1);
+
+        return Math.Min(count - 1, row * columns + col);
+    }
+
+    private void ApplyInMemoryReorder(int fromIndex, int toIndex)
+    {
+        if (_lastState.Cards.IsDefaultOrEmpty) return;
+        if (fromIndex < 0 || fromIndex >= _lastState.Cards.Length) return;
+        if (toIndex < 0 || toIndex >= _lastState.Cards.Length) return;
+
+        var builder = _lastState.Cards.ToBuilder();
+        var card = builder[fromIndex];
+        builder.RemoveAt(fromIndex);
+        builder.Insert(toIndex, card);
+        _lastState = _lastState with { Cards = builder.ToImmutable() };
+        _stateChannel.Writer.TryWrite(_lastState);
     }
 }

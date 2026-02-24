@@ -94,6 +94,23 @@ public partial class CollectionViewModel : BaseViewModel
         }
     }
 
+    public async Task ReorderCollectionAsync(int fromIndex, int toIndex)
+    {
+        if (_grid == null || fromIndex == toIndex) return;
+
+        try
+        {
+            // The grid's in-memory state is already updated by ApplyInMemoryReorder;
+            // read the current order and persist it directly.
+            var uuids = _grid.GetAllUuids().ToList();
+            await _cardManager.ReorderCollectionAsync(uuids);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to reorder collection: {ex.Message}", LogLevel.Error);
+        }
+    }
+
     public async Task LoadCollectionAsync()
     {
         if (IsBusy) return;

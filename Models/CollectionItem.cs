@@ -9,6 +9,7 @@ public class CollectionItem
     public string CardUUID { get; set; } = "";
     public int Quantity { get; set; }
     public DateTime DateAdded { get; set; }
+    public int SortOrder { get; set; }
     public Card Card { get; set; } = new();
 
     public string GetDisplayInfo() => $"{Quantity}x {Card.Name} ({Card.SetCode})";
