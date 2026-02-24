@@ -7,13 +7,15 @@ public partial class CollectionPage : ContentPage
 {
     private readonly CollectionViewModel _viewModel;
     private readonly IToastService _toastService;
+    private readonly CardGalleryContext _galleryContext;
     private bool _loaded;
 
-    public CollectionPage(CollectionViewModel viewModel, IToastService toastService)
+    public CollectionPage(CollectionViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _toastService = toastService;
+        _galleryContext = galleryContext;
         BindingContext = _viewModel;
 
         _viewModel.AttachGrid(CollectionGrid);
@@ -86,6 +88,7 @@ public partial class CollectionPage : ContentPage
 
     private async void OnCardClicked(string uuid)
     {
+        _galleryContext.SetContext(CollectionGrid.GetAllUuids(), uuid);
         await Shell.Current.GoToAsync($"carddetail?uuid={uuid}");
     }
 

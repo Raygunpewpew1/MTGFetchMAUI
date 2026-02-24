@@ -8,12 +8,14 @@ public partial class SearchPage : ContentPage
 {
     private readonly SearchViewModel _viewModel;
     private readonly IToastService _toastService;
+    private readonly CardGalleryContext _galleryContext;
 
-    public SearchPage(SearchViewModel viewModel, IToastService toastService)
+    public SearchPage(SearchViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _toastService = toastService;
+        _galleryContext = galleryContext;
         BindingContext = _viewModel;
 
         _viewModel.AttachGrid(CardGrid);
@@ -59,6 +61,7 @@ public partial class SearchPage : ContentPage
 
     private async void OnCardClicked(string uuid)
     {
+        _galleryContext.SetContext(CardGrid.GetAllUuids(), uuid);
         await Shell.Current.GoToAsync($"carddetail?uuid={uuid}");
     }
 

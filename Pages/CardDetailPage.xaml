@@ -26,6 +26,11 @@
                         HorizontalOptions="Center"
                         WidthRequest="272">
                     <Grid>
+                        <Grid.GestureRecognizers>
+                            <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
+                            <SwipeGestureRecognizer Direction="Right" Swiped="OnSwipedRight" />
+                        </Grid.GestureRecognizers>
+
                         <skia:SKCanvasView x:Name="CardImageView"
                                            PaintSurface="OnCardImagePaint"
                                            HeightRequest="380"
@@ -36,8 +41,39 @@
                                            VerticalOptions="Center"
                                            HorizontalOptions="Center"
                                            Color="{StaticResource Primary}" />
+
+                        <Button Text="&#x2039;"
+                                Clicked="OnPrevCardClicked"
+                                IsVisible="{Binding HasPreviousCard}"
+                                BackgroundColor="#80000000"
+                                TextColor="White"
+                                FontSize="24"
+                                HeightRequest="50"
+                                WidthRequest="40"
+                                CornerRadius="4"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Center"
+                                Margin="6,0" />
+                        <Button Text="&#x203A;"
+                                Clicked="OnNextCardClicked"
+                                IsVisible="{Binding HasNextCard}"
+                                BackgroundColor="#80000000"
+                                TextColor="White"
+                                FontSize="24"
+                                HeightRequest="50"
+                                WidthRequest="40"
+                                CornerRadius="4"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center"
+                                Margin="6,0" />
                     </Grid>
                 </Border>
+
+                <Label Text="{Binding CardPosition}"
+                       IsVisible="{Binding ShowGalleryNavigation}"
+                       HorizontalOptions="Center"
+                       FontSize="11"
+                       TextColor="{StaticResource TextSecondary}" />
 
                 <Label x:Name="FlipHint"
                        Text="Tap image to flip"

@@ -146,6 +146,12 @@ public class CardGrid : ContentView
         return _lastState.Cards[index];
     }
 
+    public IReadOnlyList<string> GetAllUuids()
+    {
+        if (_lastState.Cards.IsDefaultOrEmpty) return [];
+        return _lastState.Cards.Select(c => c.Id.Value).ToList();
+    }
+
     public void SetCards(Card[] cards)
     {
         var cardStates = cards.Select(c => CardState.FromCard(c)).ToImmutableArray();
