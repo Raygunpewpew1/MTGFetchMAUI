@@ -531,8 +531,12 @@ public class CardGrid : ContentView
         {
             if (e == null) return false;
 
-            float x = e.GetX();
-            float y = e.GetY();
+            // MotionEvent coordinates are in physical pixels; the grid layout engine
+            // uses MAUI device-independent units (dp).  Divide by screen density so
+            // hit-testing and drag positioning match the card rects in the render list.
+            float density = _spacerView.Context?.Resources?.DisplayMetrics?.Density ?? 1f;
+            float x = e.GetX() / density;
+            float y = e.GetY() / density;
 
             switch (e.Action)
             {
