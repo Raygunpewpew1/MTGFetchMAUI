@@ -62,7 +62,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICardRepository, CardRepository>();
         builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
         builder.Services.AddSingleton<FileImageCache>();
-        builder.Services.AddSingleton<DBImageCache>();
         builder.Services.AddSingleton<ImageCacheService>();
         builder.Services.AddSingleton<ImageDownloadService>();
         builder.Services.AddSingleton<CardManager>();

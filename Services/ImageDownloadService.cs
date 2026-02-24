@@ -16,7 +16,6 @@ public class ImageDownloadService : IDisposable
     private readonly SemaphoreSlim _pendingLock = new(1, 1);
     private readonly SemaphoreSlim _downloadSemaphore;
     private int _generation;
-    private DBImageCache? _thumbnailCache;
 
     private static readonly HttpClient SharedHttpClient = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15));
 
@@ -30,15 +29,6 @@ public class ImageDownloadService : IDisposable
     /// The file-based image cache.
     /// </summary>
     public FileImageCache Cache => _fileCache;
-
-    /// <summary>
-    /// Optional SQLite-based thumbnail cache for small images.
-    /// </summary>
-    public DBImageCache? ThumbnailCache
-    {
-        get => _thumbnailCache;
-        set => _thumbnailCache = value;
-    }
 
     /// <summary>
     /// Current generation counter. Downloads queued with an older generation are discarded.
@@ -105,14 +95,6 @@ public class ImageDownloadService : IDisposable
         string face = "")
     {
         var cacheKey = GetCacheKey(scryfallId, imageSize, face);
-
-        // Check thumbnail cache first for small images
-        if (imageSize == "small" && _thumbnailCache != null)
-        {
-            var thumbImage = await _thumbnailCache.GetImageAsync(cacheKey);
-            if (thumbImage != null) return thumbImage;
-        }
-
         return await _fileCache.GetImageAsync(cacheKey);
     }
 
@@ -134,8 +116,7 @@ public class ImageDownloadService : IDisposable
     public async Task ClearCacheAsync()
     {
         _fileCache.Clear();
-        if (_thumbnailCache != null)
-            await _thumbnailCache.ClearAsync();
+        await Task.CompletedTask; // To keep signature async if needed, or just let it return task
     }
 
     /// <summary>
@@ -143,13 +124,7 @@ public class ImageDownloadService : IDisposable
     /// </summary>
     public async Task<string> GetCacheStatsAsync()
     {
-        var fileStats = _fileCache.GetCacheStats();
-        if (_thumbnailCache != null)
-        {
-            var thumbStats = await _thumbnailCache.GetCacheStatsAsync();
-            return $"{fileStats} | {thumbStats}";
-        }
-        return fileStats;
+        return await Task.FromResult(_fileCache.GetCacheStats());
     }
 
     public void Dispose()
@@ -157,7 +132,6 @@ public class ImageDownloadService : IDisposable
         _pendingLock.Dispose();
         _downloadSemaphore.Dispose();
         _fileCache.Dispose();
-        _thumbnailCache?.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -177,14 +151,7 @@ public class ImageDownloadService : IDisposable
             if (cached != null) return cached;
         }
 
-        // 2. Check thumbnail DB cache for small images
-        if (imageSize == "small" && _thumbnailCache != null)
-        {
-            var thumbImage = await _thumbnailCache.GetImageAsync(cacheKey);
-            if (thumbImage != null) return thumbImage;
-        }
-
-        // 3. Check if already being downloaded (wait for it)
+        // 2. Check if already being downloaded (wait for it)
         if (await IsDownloadPending(cacheKey))
         {
             for (int i = 0; i < MaxWaitAttempts; i++)
@@ -201,10 +168,10 @@ public class ImageDownloadService : IDisposable
             }
         }
 
-        // 4. Generation check
+        // 3. Generation check
         if (generation != Generation) return null;
 
-        // 5. Mark as pending and download
+        // 4. Mark as pending and download
         await MarkDownloadPending(cacheKey);
         try
         {
@@ -260,13 +227,6 @@ public class ImageDownloadService : IDisposable
                 // Save to file cache
                 using var saveStream = new MemoryStream(data);
                 await _fileCache.SaveRawStreamAsync(cacheKey, saveStream);
-
-                // Also save to thumbnail DB cache for small images
-                if (imageSize == "small" && _thumbnailCache != null)
-                {
-                    using var thumbStream = new MemoryStream(data);
-                    await _thumbnailCache.SaveRawStreamAsync(cacheKey, thumbStream, scryfallId, imageSize);
-                }
 
                 // Decode and return
                 return SKImage.FromEncodedData(data);

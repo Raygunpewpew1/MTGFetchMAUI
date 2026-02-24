@@ -40,9 +40,8 @@ MTGFetchMAUI/
 ├── Services/
 │   ├── CardManager.cs               # Facade coordinating repos, image service, and pricing
 │   ├── ImageDownloadService.cs      # Async Scryfall CDN fetcher with rate limiting (120ms min)
-│   ├── ImageCacheService.cs         # Orchestrates file + DB image caches
+│   ├── ImageCacheService.cs         # Orchestrates file image cache
 │   ├── FileImageCache.cs            # File-based cache (500 MB limit, 90-day retention)
-│   ├── DBImageCache.cs              # SQLite thumbnail cache
 │   ├── CardPriceManager.cs          # Card pricing information
 │   ├── CardPriceImporter.cs         # Imports price data
 │   ├── SetSvgCache.cs               # SVG caching for set symbols
@@ -201,11 +200,10 @@ Always use these enums instead of magic strings.
 ```
 Request card image
   └─► FileImageCache.TryGet()   → return cached bytes if hit
-  └─► DBImageCache.TryGet()     → return cached thumbnail if hit
   └─► ImageDownloadService.FetchAsync()
         ├─► Rate limited (120ms minimum interval between requests)
         ├─► Cancellable via CancellationToken (generation-based)
-        └─► On success: store in FileImageCache + DBImageCache
+        └─► On success: store in FileImageCache
 ```
 
 - File cache: up to **500 MB**, **90-day** retention.
@@ -330,4 +328,4 @@ The app downloads this artifact from `MTGConstants.MTGDatabaseUrl` on first laun
 - `CardPriceManager` and `CardPriceImporter` are present but may not be fully wired up — verify before relying on pricing data.
 - `Plugin.Maui.OCR` is Android-only; any OCR code path must be guarded with `#if ANDROID` or runtime platform checks.
 - The `Card` model (`Card.cs`) is very large (~10,330 lines). Use `CardMapper.cs` to map new database columns rather than modifying raw read logic scattered across the class.
-- Image caching uses two layers (file + DB). If cache behavior seems wrong, check both `FileImageCache` and `DBImageCache`.
+- Image caching relies on `FileImageCache`. If cache behavior seems wrong, check there.
