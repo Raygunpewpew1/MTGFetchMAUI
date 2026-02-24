@@ -1,3 +1,5 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
@@ -11,63 +13,36 @@ namespace MTGFetchMAUI.ViewModels;
 /// Loads card data, images, faces, legalities, and prices.
 /// Port of TCardDetailFrame logic from CardDetailFrame.pas.
 /// </summary>
-public class CardDetailViewModel : BaseViewModel, IDisposable
+public partial class CardDetailViewModel : BaseViewModel, IDisposable
 {
     private readonly CardManager _cardManager;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]
+    [NotifyPropertyChangedFor(nameof(HasRulings))]
     private Card _card = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentFace))]
+    [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]
     private Card[] _faces = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentFace))]
     private int _currentFaceIndex;
+
+    [ObservableProperty]
     private SKImage? _cardImage;
+
+    [ObservableProperty]
     private bool _isInCollection;
+
+    [ObservableProperty]
     private string _priceDisplay = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPriceHistory))]
     private CardPriceData _priceData = CardPriceData.Empty;
-    public Card Card
-    {
-        get => _card;
-        set
-        {
-            SetProperty(ref _card, value);
-            OnPropertyChanged(nameof(HasMultipleFaces));
-            OnPropertyChanged(nameof(HasRulings));
-        }
-    }
-
-    public Card[] Faces
-    {
-        get => _faces;
-        set => SetProperty(ref _faces, value);
-    }
-
-    public SKImage? CardImage
-    {
-        get => _cardImage;
-        set
-        {
-            if (_cardImage != value)
-            {
-                _cardImage?.Dispose();
-                SetProperty(ref _cardImage, value);
-            }
-        }
-    }
-
-    public bool IsInCollection
-    {
-        get => _isInCollection;
-        set => SetProperty(ref _isInCollection, value);
-    }
-
-    public string PriceDisplay
-    {
-        get => _priceDisplay;
-        set => SetProperty(ref _priceDisplay, value);
-    }
-
-    public CardPriceData PriceData
-    {
-        get => _priceData;
-        set { SetProperty(ref _priceData, value); OnPropertyChanged(nameof(HasPriceHistory)); }
-    }
 
     public bool HasPriceHistory => _priceData != CardPriceData.Empty &&
                                    (_priceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
@@ -77,21 +52,15 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
 
     public bool HasMultipleFaces => _faces.Length > 1 && Card.Layout.IsDoubleFaced();
 
-    public Card CurrentFace => _faces.Length > 0 ? _faces[_currentFaceIndex] : _card;
-
-    public ICommand FlipFaceCommand { get; }
-    public ICommand AddToCollectionCommand { get; }
-    public ICommand RemoveFromCollectionCommand { get; }
+    public Card CurrentFace => _faces.Length > 0 && CurrentFaceIndex >= 0 && CurrentFaceIndex < _faces.Length
+        ? _faces[CurrentFaceIndex]
+        : _card;
 
     public event Action<string>? AddedToCollection;
 
     public CardDetailViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
-        FlipFaceCommand = new Command(FlipFace);
-        AddToCollectionCommand = new Command<int>(async qty => await AddToCollectionAsync(qty));
-        RemoveFromCollectionCommand = new Command(async () => await RemoveFromCollectionAsync());
-
         _cardManager.OnPricesUpdated += HandlePricesUpdated;
     }
 
@@ -102,7 +71,6 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
             await LoadPriceAsync();
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                OnPropertyChanged(nameof(PriceDisplay));
                 OnPropertyChanged(nameof(CurrentFace)); // Triggers UI update
             });
         }
@@ -165,19 +133,18 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
 
                 // Filter: show primary face first, then others
                 Faces = package;
-                _currentFaceIndex = 0;
+                CurrentFaceIndex = 0;
                 for (int i = 0; i < package.Length; i++)
                 {
-                    if (package[i].UUID == uuid) { _currentFaceIndex = i; break; }
+                    if (package[i].UUID == uuid) { CurrentFaceIndex = i; break; }
                 }
             }
             else
             {
                 Faces = [Card];
-                _currentFaceIndex = 0;
+                CurrentFaceIndex = 0;
             }
-            OnPropertyChanged(nameof(CurrentFace));
-            OnPropertyChanged(nameof(HasMultipleFaces));
+            // Faces setter already notifies CurrentFace via NotifyPropertyChangedFor
 
             // Check collection status
             IsInCollection = await _cardManager.IsInCollectionAsync(uuid);
@@ -246,22 +213,29 @@ public class CardDetailViewModel : BaseViewModel, IDisposable
         PriceDisplay = "";
     }
 
+    partial void OnCardImageChanging(SKImage? value)
+    {
+        _cardImage?.Dispose();
+    }
+
+    [RelayCommand]
     private void FlipFace()
     {
         if (_faces.Length <= 1) return;
-        _currentFaceIndex = (_currentFaceIndex + 1) % _faces.Length;
-        OnPropertyChanged(nameof(CurrentFace));
+        CurrentFaceIndex = (CurrentFaceIndex + 1) % _faces.Length;
         _ = LoadCardImageAsync();
     }
 
-    private async Task AddToCollectionAsync(int quantity)
+    [RelayCommand]
+    private async Task AddToCollection(int quantity)
     {
         await _cardManager.AddCardToCollectionAsync(Card.UUID, quantity);
         IsInCollection = true;
         AddedToCollection?.Invoke(Card.UUID);
     }
 
-    private async Task RemoveFromCollectionAsync()
+    [RelayCommand]
+    private async Task RemoveFromCollection()
     {
         await _cardManager.RemoveCardFromCollectionAsync(Card.UUID);
         IsInCollection = false;

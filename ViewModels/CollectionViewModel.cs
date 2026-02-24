@@ -1,8 +1,9 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
-using System.Windows.Input;
 
 namespace MTGFetchMAUI.ViewModels;
 
@@ -10,57 +11,51 @@ namespace MTGFetchMAUI.ViewModels;
 /// ViewModel for the collection page.
 /// Loads and displays user's card collection in the grid.
 /// </summary>
-public class CollectionViewModel : BaseViewModel
+public partial class CollectionViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
     private CardGrid? _grid;
+
+    [ObservableProperty]
     private int _totalCards;
+
+    [ObservableProperty]
     private int _uniqueCards;
 
-    public int TotalCards
-    {
-        get => _totalCards;
-        set => SetProperty(ref _totalCards, value);
-    }
-
-    public int UniqueCards
-    {
-        get => _uniqueCards;
-        set => SetProperty(ref _uniqueCards, value);
-    }
-
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
     private ViewMode _viewMode = ViewMode.Grid;
-    public ViewMode ViewMode
-    {
-        get => _viewMode;
-        set
-        {
-            if (SetProperty(ref _viewMode, value))
-            {
-                OnPropertyChanged(nameof(ViewModeButtonText));
-                if (_grid != null) _grid.ViewMode = value;
-            }
-        }
-    }
 
-    public string ViewModeButtonText => _viewMode == ViewMode.Grid ? "☰" : "⊞";
-
-    public ICommand RefreshCommand { get; }
-    public ICommand ToggleViewModeCommand { get; }
+    public string ViewModeButtonText => ViewMode == ViewMode.Grid ? "☰" : "⊞";
 
     public event Action? CollectionLoaded;
 
     public CollectionViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
-        RefreshCommand = new Command(async () => await LoadCollectionAsync());
-        ToggleViewModeCommand = new Command(() => ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid);
     }
 
     public void AttachGrid(CardGrid grid)
     {
         _grid = grid;
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
+    }
+
+    partial void OnViewModeChanged(ViewMode value)
+    {
+        if (_grid != null) _grid.ViewMode = value;
+    }
+
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        await LoadCollectionAsync();
+    }
+
+    [RelayCommand]
+    private void ToggleViewMode()
+    {
+        ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid;
     }
 
     public async Task<Card?> GetCardDetailsAsync(string uuid)
@@ -122,10 +117,6 @@ public class CollectionViewModel : BaseViewModel
         try
         {
             var items = await _cardManager.GetCollectionAsync();
-
-            // Filter duplicates/aggregate if needed?
-            // The items from GetCollectionAsync are presumably distinct by card+printing?
-            // Assuming so.
 
             TotalCards = items.Sum(i => i.Quantity);
             UniqueCards = items.Length;
