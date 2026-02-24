@@ -44,17 +44,17 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     [NotifyPropertyChangedFor(nameof(HasPriceHistory))]
     private CardPriceData _priceData = CardPriceData.Empty;
 
-    public bool HasPriceHistory => _priceData != CardPriceData.Empty &&
-                                   (_priceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
-                                    _priceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
+    public bool HasPriceHistory => PriceData != CardPriceData.Empty &&
+                                   (PriceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
+                                    PriceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
 
     public bool HasRulings => Card?.Rulings != null && Card.Rulings.Count > 0;
 
-    public bool HasMultipleFaces => _faces.Length > 1 && Card.Layout.IsDoubleFaced();
+    public bool HasMultipleFaces => Faces.Length > 1 && Card.Layout.IsDoubleFaced();
 
-    public Card CurrentFace => _faces.Length > 0 && CurrentFaceIndex >= 0 && CurrentFaceIndex < _faces.Length
-        ? _faces[CurrentFaceIndex]
-        : _card;
+    public Card CurrentFace => Faces.Length > 0 && CurrentFaceIndex >= 0 && CurrentFaceIndex < Faces.Length
+        ? Faces[CurrentFaceIndex]
+        : Card;
 
     public event Action<string>? AddedToCollection;
 
@@ -177,7 +177,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             // If the current face has a different Scryfall ID than the main face,
             // it's a separate card record (e.g. Meld result), so we want its 'front'.
             // Otherwise it's the back of a standard Transform/MDFC.
-            if (_faces.Length > 0 && currentFace.ScryfallId == _faces[0].ScryfallId)
+            if (Faces.Length > 0 && currentFace.ScryfallId == Faces[0].ScryfallId)
                 faceParam = "back";
         }
 
@@ -215,14 +215,14 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     partial void OnCardImageChanging(SKImage? value)
     {
-        _cardImage?.Dispose();
+        CardImage?.Dispose();
     }
 
     [RelayCommand]
     private void FlipFace()
     {
-        if (_faces.Length <= 1) return;
-        CurrentFaceIndex = (CurrentFaceIndex + 1) % _faces.Length;
+        if (Faces.Length <= 1) return;
+        CurrentFaceIndex = (CurrentFaceIndex + 1) % Faces.Length;
         _ = LoadCardImageAsync();
     }
 
@@ -254,11 +254,11 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     public string GetCombinedText()
     {
-        if (_faces.Length <= 1)
+        if (Faces.Length <= 1)
             return Card.Text;
 
         var parts = new List<string>();
-        foreach (var face in _faces)
+        foreach (var face in Faces)
         {
             string header = face.Name;
             if (!string.IsNullOrEmpty(face.ManaCost))

@@ -23,7 +23,7 @@ public partial class StatsViewModel : BaseViewModel
     [ObservableProperty]
     private string _databaseStatus = "";
 
-    public string StatsDisplay => _stats.ToString();
+    public string StatsDisplay => Stats.ToString();
 
     public StatsViewModel(CardManager cardManager)
     {
