@@ -544,10 +544,10 @@ public class CardGrid : ContentView
                 case TouchActionResult.Up:
                     _handler.HandleUp();
                     break;
-                // Tapped: not used — PressTracking→HandleUp() fires Tapped to
-                //   avoid double-fire with the library's own Tapped result.
-                // LongPressing: not used — the handler's 500ms timer manages
-                //   DragArmed state and integrates with the drag-and-drop flow.
+                    // Tapped: not used — PressTracking→HandleUp() fires Tapped to
+                    //   avoid double-fire with the library's own Tapped result.
+                    // LongPressing: not used — the handler's 500ms timer manages
+                    //   DragArmed state and integrates with the drag-and-drop flow.
             }
         }
     }

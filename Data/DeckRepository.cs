@@ -1,5 +1,5 @@
-using MTGFetchMAUI.Models;
 using Microsoft.Data.Sqlite;
+using MTGFetchMAUI.Models;
 
 namespace MTGFetchMAUI.Data;
 
@@ -15,7 +15,7 @@ public class DeckRepository : IDeckRepository
     public async Task<int> CreateDeckAsync(DeckEntity deck)
     {
         if (!_databaseManager.IsConnected)
-             throw new InvalidOperationException("Database not connected.");
+            throw new InvalidOperationException("Database not connected.");
 
         await _databaseManager.ConnectionLock.WaitAsync();
         try

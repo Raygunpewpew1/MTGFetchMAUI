@@ -6,7 +6,6 @@ using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
-using System.Windows.Input;
 
 namespace MTGFetchMAUI.ViewModels;
 
