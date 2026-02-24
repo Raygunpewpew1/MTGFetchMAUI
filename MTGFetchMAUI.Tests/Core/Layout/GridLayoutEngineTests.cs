@@ -1,7 +1,5 @@
-using Xunit;
 using MTGFetchMAUI.Core.Layout;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace MTGFetchMAUI.Tests.Core.Layout;
 

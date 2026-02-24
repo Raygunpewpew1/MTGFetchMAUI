@@ -1,6 +1,6 @@
 using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Data;
+using MTGFetchMAUI.Models;
 
 namespace MTGFetchMAUI.Services.DeckBuilder;
 
@@ -114,15 +114,15 @@ public class DeckValidator
 
         if (!isLegendaryCreature && !canBeCommander)
         {
-             // Brawl allows any Planeswalker?
-             if ((format == DeckFormat.Brawl || format == DeckFormat.StandardBrawl) && card.IsPlaneswalker)
-             {
-                 // Brawl commanders can be Planeswalkers
-             }
-             else
-             {
-                 return ValidationResult.Error($"'{card.Name}' cannot be a commander (must be Legendary Creature).");
-             }
+            // Brawl allows any Planeswalker?
+            if ((format == DeckFormat.Brawl || format == DeckFormat.StandardBrawl) && card.IsPlaneswalker)
+            {
+                // Brawl commanders can be Planeswalkers
+            }
+            else
+            {
+                return ValidationResult.Error($"'{card.Name}' cannot be a commander (must be Legendary Creature).");
+            }
         }
 
         // Check Ban list as Commander specifically? (Some cards are banned as commander only)
@@ -148,6 +148,6 @@ public class DeckValidator
 
     private bool IsCommanderFormat(DeckFormat format)
     {
-         return format is DeckFormat.Commander or DeckFormat.Brawl or DeckFormat.Oathbreaker or DeckFormat.StandardBrawl or DeckFormat.PauperCommander or DeckFormat.Duel;
+        return format is DeckFormat.Commander or DeckFormat.Brawl or DeckFormat.Oathbreaker or DeckFormat.StandardBrawl or DeckFormat.PauperCommander or DeckFormat.Duel;
     }
 }

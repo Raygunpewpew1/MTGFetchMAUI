@@ -1,6 +1,6 @@
+using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Core;
 
 namespace MTGFetchMAUI.Services.DeckBuilder;
 
@@ -54,18 +54,18 @@ public class DeckBuilderService
         // Perform Add/Update
         if (existingCard != null)
         {
-             await _repository.UpdateCardQuantityAsync(deckId, cardUuid, section, newTotalQty);
+            await _repository.UpdateCardQuantityAsync(deckId, cardUuid, section, newTotalQty);
         }
         else
         {
-             await _repository.AddCardToDeckAsync(new DeckCardEntity
-             {
-                 DeckId = deckId,
-                 CardId = cardUuid,
-                 Quantity = newTotalQty,
-                 Section = section,
-                 DateAdded = DateTime.Now
-             });
+            await _repository.AddCardToDeckAsync(new DeckCardEntity
+            {
+                DeckId = deckId,
+                CardId = cardUuid,
+                Quantity = newTotalQty,
+                Section = section,
+                DateAdded = DateTime.Now
+            });
         }
 
         // Update deck modified date
@@ -95,7 +95,7 @@ public class DeckBuilderService
         // Remove old commander from "Commander" section if exists
         if (!string.IsNullOrEmpty(deck.CommanderId))
         {
-             await _repository.RemoveCardFromDeckAsync(deckId, deck.CommanderId, "Commander");
+            await _repository.RemoveCardFromDeckAsync(deckId, deck.CommanderId, "Commander");
         }
 
         // Update deck commander
