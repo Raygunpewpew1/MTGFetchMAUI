@@ -51,7 +51,7 @@ MTGFetchMAUI/
 │   └── Logger.cs                    # Logging utility
 │
 ├── ViewModels/
-│   ├── BaseViewModel.cs             # INotifyPropertyChanged base class
+│   ├── BaseViewModel.cs             # ObservableObject base class
 │   ├── SearchViewModel.cs           # Search logic: debounce (750ms), pagination (50/page), preload (6 items)
 │   ├── CardDetailViewModel.cs       # Full card detail, legalities, rulings
 │   ├── CollectionViewModel.cs       # Collection management UI logic
@@ -122,7 +122,13 @@ MTGFetchMAUI/
 ## Architecture and Key Patterns
 
 ### MVVM
-Pages bind to ViewModels via MAUI data binding. ViewModels expose `ObservableProperty` / `INotifyPropertyChanged` members and commands. Pages have minimal code-behind.
+Pages bind to ViewModels via MAUI data binding. ViewModels expose `ObservableProperty` and `RelayCommand` members. Pages have minimal code-behind.
+**Use CommunityToolkit.Mvvm source generators.**
+- Inherit from `ObservableObject`.
+- Use `[ObservableProperty]` for backing fields to generate properties.
+- Use `[RelayCommand]` on methods to generate `ICommand` properties.
+- Use `[NotifyPropertyChangedFor]` to notify dependent properties.
+- Mark ViewModel classes as `partial`.
 
 ### Repository Pattern
 - `CardRepository` — read-only queries against the MTG master database.
@@ -223,6 +229,7 @@ Request card image
 |---|---|---|
 | `Microsoft.Maui.Controls` | 10.0.41 | MAUI framework |
 | `CommunityToolkit.Maui` | 14.0.0 | MAUI community extensions |
+| `CommunityToolkit.Mvvm` | 8.3.2 | MVVM Source Generators |
 | `Microsoft.Data.Sqlite` | 10.0.3 | SQLite provider |
 | `Dapper` | 2.1.66 | Micro-ORM for data mapping |
 | `SkiaSharp` | 3.119.2 | 2D vector graphics |
@@ -289,7 +296,7 @@ The app downloads this artifact from `MTGConstants.MTGDatabaseUrl` on first laun
 1. Define any new data in `Models/`.
 2. Add data access in `CardRepository` or `CollectionRepository` (and SQL in `SQLQueries.cs`).
 3. Expose functionality through `CardManager` if it spans multiple services.
-4. Create a ViewModel in `ViewModels/` extending `BaseViewModel`.
+4. Create a ViewModel in `ViewModels/` extending `BaseViewModel` (use `ObservableObject` and source generators).
 5. Build the page in `Views/Pages/` and bind to the ViewModel.
 6. Register all new types in `MauiProgram.cs`.
 7. Add tab or route to `AppShell.xaml` if navigation is needed.
