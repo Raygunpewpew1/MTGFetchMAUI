@@ -174,15 +174,12 @@
 
             </VerticalStackLayout>
 
-            <!-- Swipe overlay covers only the card image area (top 420 DIPs).
-                 HeightRequest matches card image (380) + VerticalStackLayout
-                 top padding (16) plus margin. Expanders below this height
-                 receive touches directly via the VerticalStackLayout.
+            <!-- Swipe overlay covers the entire scrollable content area.
                  WIllLock = Unlocked releases the ScrollView (parent) to scroll
                  when vertical movement is detected. -->
             <controls:SwipeOverlayView x:Name="SwipeOverlay"
-                                       VerticalOptions="Start"
-                                       HeightRequest="420" />
+                                       VerticalOptions="Fill"
+                                       HorizontalOptions="Fill" />
             </Grid>
         </ScrollView>
 
