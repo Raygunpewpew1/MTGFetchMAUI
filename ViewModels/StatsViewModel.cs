@@ -1,6 +1,7 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
-using System.Windows.Input;
 
 namespace MTGFetchMAUI.ViewModels;
 
@@ -8,41 +9,52 @@ namespace MTGFetchMAUI.ViewModels;
 /// ViewModel for statistics page.
 /// Displays collection stats and cache information.
 /// </summary>
-public class StatsViewModel : BaseViewModel
+public partial class StatsViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatsDisplay))]
     private CollectionStats _stats = new();
+
+    [ObservableProperty]
     private string _cacheStats = "";
+
+    [ObservableProperty]
     private string _databaseStatus = "";
 
-    public CollectionStats Stats
-    {
-        get => _stats;
-        set { SetProperty(ref _stats, value); OnPropertyChanged(nameof(StatsDisplay)); }
-    }
-
-    public string CacheStats
-    {
-        get => _cacheStats;
-        set => SetProperty(ref _cacheStats, value);
-    }
-
-    public string DatabaseStatus
-    {
-        get => _databaseStatus;
-        set => SetProperty(ref _databaseStatus, value);
-    }
-
     public string StatsDisplay => _stats.ToString();
-
-    public ICommand RefreshCommand { get; }
-    public ICommand ClearCacheCommand { get; }
 
     public StatsViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
-        RefreshCommand = new Command(async () => await LoadStatsAsync());
-        ClearCacheCommand = new Command(async () => await ClearCacheAsync());
+    }
+
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        await LoadStatsAsync();
+    }
+
+    [RelayCommand]
+    private async Task ClearCacheAsync()
+    {
+        IsBusy = true;
+        StatusMessage = "Clearing cache...";
+        try
+        {
+            await _cardManager.ClearImageCacheAsync();
+            CacheStats = await _cardManager.GetImageCacheStatsAsync();
+            StatusMessage = "Cache cleared";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     public async Task LoadStatsAsync()
@@ -68,26 +80,6 @@ public class StatsViewModel : BaseViewModel
         {
             DatabaseStatus = $"Error: {ex.Message}";
             Logger.LogStuff($"Stats load error: {ex.Message}", LogLevel.Error);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private async Task ClearCacheAsync()
-    {
-        IsBusy = true;
-        StatusMessage = "Clearing cache...";
-        try
-        {
-            await _cardManager.ClearImageCacheAsync();
-            CacheStats = await _cardManager.GetImageCacheStatsAsync();
-            StatusMessage = "Cache cleared";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Error: {ex.Message}";
         }
         finally
         {

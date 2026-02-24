@@ -1,3 +1,5 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Core.Layout;
@@ -13,92 +15,38 @@ namespace MTGFetchMAUI.ViewModels;
 /// and image loading for the card grid.
 /// Port of TSearchPresenter + TScrollHandler from MainUnit.Search.Custom.pas.
 /// </summary>
-public class SearchViewModel : BaseViewModel
+public partial class SearchViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
-    private string _searchText = "";
     private CancellationTokenSource? _searchDebounceCts;
-    private int _totalResults;
     private int _currentPage;
     private bool _isLoadingPage;
-    private bool _hasMorePages;
     private CardGrid? _grid;
+
+    [ObservableProperty]
+    private string _searchText = "";
+
+    [ObservableProperty]
+    private int _totalResults;
+
+    [ObservableProperty]
+    private bool _hasMorePages;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
+    private ViewMode _viewMode = ViewMode.Grid;
 
     public SearchOptions CurrentOptions { get; private set; } = new();
 
     private const int PageSize = 50;
-    private const int PreloadBuffer = 6;
 
-    public string SearchText
-    {
-        get => _searchText;
-        set
-        {
-            if (SetProperty(ref _searchText, value))
-            {
-                OnSearchTextChanged();
-            }
-        }
-    }
-
-    private void OnSearchTextChanged()
-    {
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts = new CancellationTokenSource();
-        var token = _searchDebounceCts.Token;
-
-        if (string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3)
-            return;
-
-        Task.Delay(750, token).ContinueWith(t =>
-        {
-            if (t.IsCanceled) return;
-            MainThread.BeginInvokeOnMainThread(() => SearchCommand.Execute(null));
-        });
-    }
-
-    public int TotalResults
-    {
-        get => _totalResults;
-        set => SetProperty(ref _totalResults, value);
-    }
-
-    public bool HasMorePages
-    {
-        get => _hasMorePages;
-        set => SetProperty(ref _hasMorePages, value);
-    }
-
-    private ViewMode _viewMode = ViewMode.Grid;
-    public ViewMode ViewMode
-    {
-        get => _viewMode;
-        set
-        {
-            if (SetProperty(ref _viewMode, value))
-            {
-                OnPropertyChanged(nameof(ViewModeButtonText));
-                if (_grid != null) _grid.ViewMode = value;
-            }
-        }
-    }
-
-    public string ViewModeButtonText => _viewMode == ViewMode.Grid ? "☰" : "⊞";
-
-    public ICommand SearchCommand { get; }
-    public ICommand ClearCommand { get; }
-    public ICommand GoToFiltersCommand { get; }
-    public ICommand ToggleViewModeCommand { get; }
+    public string ViewModeButtonText => ViewMode == ViewMode.Grid ? "☰" : "⊞";
 
     public event Action? SearchCompleted;
 
     public SearchViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
-        SearchCommand = new Command(async () => await PerformSearchAsync());
-        ClearCommand = new Command(ClearSearch);
-        GoToFiltersCommand = new Command(async () => await Shell.Current.GoToAsync("searchfilters"));
-        ToggleViewModeCommand = new Command(() => ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid);
 
         // Subscribe to CardManager events for status updates
         _cardManager.OnProgress += (msg, pct) =>
@@ -129,12 +77,63 @@ public class SearchViewModel : BaseViewModel
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
     }
 
+    partial void OnSearchTextChanged(string value)
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
+            return;
+
+        Task.Delay(750, token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            MainThread.BeginInvokeOnMainThread(() => SearchCommand.Execute(null));
+        });
+    }
+
+    partial void OnViewModeChanged(ViewMode value)
+    {
+        if (_grid != null) _grid.ViewMode = value;
+    }
+
+    [RelayCommand]
+    private async Task SearchAsync()
+    {
+        await PerformSearchAsync();
+    }
+
+    [RelayCommand]
+    private void Clear()
+    {
+        SearchText = "";
+        CurrentOptions = new SearchOptions();
+        _grid?.ClearCards();
+        TotalResults = 0;
+        HasMorePages = false;
+        StatusMessage = "";
+        SearchCompleted?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task GoToFiltersAsync()
+    {
+        await Shell.Current.GoToAsync("searchfilters");
+    }
+
+    [RelayCommand]
+    private void ToggleViewMode()
+    {
+        ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid;
+    }
+
     public async Task PerformSearchAsync(SearchOptions? options = null)
     {
         if (IsBusy) return;
 
         // If no text and no options, don't search
-        if (string.IsNullOrWhiteSpace(_searchText) && options == null)
+        if (string.IsNullOrWhiteSpace(SearchText) && options == null)
         {
             StatusMessage = "Enter a search term";
             return;
@@ -162,7 +161,7 @@ public class SearchViewModel : BaseViewModel
         }
         else
         {
-            CurrentOptions.NameFilter = _searchText;
+            CurrentOptions.NameFilter = SearchText;
         }
 
         _currentPage = 1;
@@ -325,17 +324,6 @@ public class SearchViewModel : BaseViewModel
                 });
             }
         });
-    }
-
-    private void ClearSearch()
-    {
-        SearchText = "";
-        CurrentOptions = new SearchOptions();
-        _grid?.ClearCards();
-        TotalResults = 0;
-        HasMorePages = false;
-        StatusMessage = "";
-        SearchCompleted?.Invoke();
     }
 
     private static void ApplySearchOptions(MTGSearchHelper helper, SearchOptions options)

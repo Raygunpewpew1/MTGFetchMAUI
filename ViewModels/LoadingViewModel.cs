@@ -1,34 +1,30 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MTGFetchMAUI.Services;
-using System.Windows.Input;
 
 namespace MTGFetchMAUI.ViewModels;
 
-public class LoadingViewModel : BaseViewModel
+public partial class LoadingViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
     private readonly IServiceProvider _serviceProvider;
+
+    [ObservableProperty]
     private double _progress;
+
+    [ObservableProperty]
     private bool _showRetry;
-
-    public double Progress
-    {
-        get => _progress;
-        set => SetProperty(ref _progress, value);
-    }
-
-    public bool ShowRetry
-    {
-        get => _showRetry;
-        set => SetProperty(ref _showRetry, value);
-    }
-
-    public ICommand RetryCommand { get; }
 
     public LoadingViewModel(CardManager cardManager, IServiceProvider serviceProvider)
     {
         _cardManager = cardManager;
         _serviceProvider = serviceProvider;
-        RetryCommand = new Command(async () => await StartDownloadAsync());
+    }
+
+    [RelayCommand]
+    private async Task RetryAsync()
+    {
+        await StartDownloadAsync();
     }
 
     public async Task InitAsync()
