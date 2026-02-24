@@ -16,12 +16,12 @@
     </Shell.BackButtonBehavior>
 
     <Grid RowDefinitions="*,Auto">
-        <Grid.GestureRecognizers>
-            <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
-            <SwipeGestureRecognizer Direction="Right" Swiped="OnSwipedRight" />
-        </Grid.GestureRecognizers>
 
         <ScrollView Grid.Row="0">
+            <ScrollView.GestureRecognizers>
+                <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
+                <SwipeGestureRecognizer Direction="Right" Swiped="OnSwipedRight" />
+            </ScrollView.GestureRecognizers>
             <VerticalStackLayout Padding="16" Spacing="8">
 
                 <Border StrokeShape="RoundRectangle 12"
@@ -179,6 +179,10 @@
               Padding="12,8"
               ColumnDefinitions="*,Auto,Auto"
               ColumnSpacing="8">
+            <Grid.GestureRecognizers>
+                <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
+                <SwipeGestureRecognizer Direction="Right" Swiped="OnSwipedRight" />
+            </Grid.GestureRecognizers>
 
             <Button Text="Add to Collection"
                     Clicked="OnAddClicked"
