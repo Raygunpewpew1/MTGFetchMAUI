@@ -12,10 +12,10 @@ public class CardTextView : View
         nameof(TextSize), typeof(double), typeof(CardTextView), 14.0);
 
     public static readonly BindableProperty KeywordColorProperty = BindableProperty.Create(
-        nameof(KeywordColor), typeof(Color), typeof(CardTextView), Colors.Black);
+        nameof(KeywordColor), typeof(Color), typeof(CardTextView), Colors.White);
 
     public static readonly BindableProperty SymbolSizeProperty = BindableProperty.Create(
-        nameof(SymbolSize), typeof(double), typeof(CardTextView), 16.0);
+        nameof(SymbolSize), typeof(double), typeof(CardTextView), 15.0);
 
     public string CardText
     {
