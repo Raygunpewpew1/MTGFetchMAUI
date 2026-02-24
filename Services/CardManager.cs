@@ -16,7 +16,6 @@ public class CardManager : IDisposable
     private readonly ICollectionRepository _collectionRepository;
 
     private ImageDownloadService? _imageService;
-    private DBImageCache? _thumbnailCache;
     private CardPriceManager? _priceManager;
     private CancellationTokenSource? _downloadCts;
     private readonly SemaphoreSlim _priceInitLock = new(1, 1);
@@ -48,7 +47,7 @@ public class CardManager : IDisposable
     /// <summary>
     /// Lazy-initialized image download service.
     /// </summary>
-    public ImageDownloadService ImageService => _imageService ??= CreateImageService();
+    public ImageDownloadService ImageService => _imageService ??= new ImageDownloadService();
 
     // ── Constructor ──────────────────────────────────────────────────
 
@@ -361,26 +360,9 @@ public class CardManager : IDisposable
         _downloadCts?.Cancel();
         _downloadCts?.Dispose();
         _imageService?.Dispose();
-        _thumbnailCache?.Dispose();
         _priceManager?.Dispose();
         _databaseManager.Dispose();
         _priceInitLock.Dispose();
         GC.SuppressFinalize(this);
-    }
-
-    // ── Private Helpers ──────────────────────────────────────────────
-
-    private ImageDownloadService CreateImageService()
-    {
-        var service = new ImageDownloadService();
-
-        // Link thumbnail cache if DB is connected
-        if (_databaseManager.IsConnected)
-        {
-            _thumbnailCache ??= new DBImageCache(_databaseManager);
-            service.ThumbnailCache = _thumbnailCache;
-        }
-
-        return service;
     }
 }
