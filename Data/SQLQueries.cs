@@ -202,6 +202,7 @@ public static class SQLQueries
         LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid
         LEFT JOIN sets s ON c.setCode = s.code
         LEFT JOIN cardLegalities cl ON c.uuid = cl.uuid
+        LEFT JOIN cardPurchaseUrls cp ON c.uuid = cp.uuid
         """;
 
     public const string WhereUuidEquals = " WHERE c.uuid = @uuid";
@@ -321,6 +322,7 @@ public static class SQLQueries
         LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid
         LEFT JOIN sets s ON c.setCode = s.code
         LEFT JOIN cardLegalities cl ON c.uuid = cl.uuid
+        LEFT JOIN cardPurchaseUrls cp ON c.uuid = cp.uuid
         """;
 
     public const string BaseCollection =

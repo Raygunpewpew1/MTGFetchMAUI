@@ -24,6 +24,15 @@ public class Card
     public string FlavorText { get; set; } = "";
     public CardRarity Rarity { get; set; } = CardRarity.Common;
 
+    // ── Purchase Urls ────────────────────────────────────────────────────
+    public string cardKingdom { get; set; } = "";
+    public string cardKingdomFoil { get; set; } = "";
+    public string cardKingdomEtched { get; set; } = "";
+    public string cardmarket { get; set; } = "";
+    public string tcgplayer { get; set; } = "";
+    public string tcgplayerEtched { get; set; } = "";
+
+
     // ── Set Info ────────────────────────────────────────────────────
     public string SetName { get; set; } = "";
     public string SetCode { get; set; } = "";

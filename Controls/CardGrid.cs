@@ -453,13 +453,11 @@ public class CardGrid : ContentView
     {
         int count = _lastState.Cards.Length;
         if (count == 0) return 0;
-
         if (_currentRenderList.ViewMode == ViewMode.List)
         {
-            int row = Math.Max(0, (int)(canvasY / 96f));
-            return Math.Min(count - 1, row);
+            int listRow = Math.Max(0, (int)(canvasY / 96f));
+            return Math.Min(count - 1, listRow);
         }
-
         // Grid mode: reverse the layout formula
         var config = _lastState.Config;
         float width = _lastState.Viewport.Width > 0 ? _lastState.Viewport.Width : 360f;
@@ -468,11 +466,9 @@ public class CardGrid : ContentView
         float cardWidth = (availWidth - config.CardSpacing * (columns + 1)) / columns;
         float cardHeight = cardWidth * config.CardImageRatio + config.LabelHeight;
         float rowHeight = cardHeight + config.CardSpacing;
-
         int row = Math.Max(0, (int)((canvasY - config.CardSpacing) / rowHeight));
         int col = Math.Max(0, (int)((canvasX - 10f - config.CardSpacing) / (cardWidth + config.CardSpacing)));
         col = Math.Min(col, columns - 1);
-
         return Math.Min(count - 1, row * columns + col);
     }
 
