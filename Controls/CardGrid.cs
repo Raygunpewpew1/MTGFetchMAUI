@@ -360,7 +360,7 @@ public class CardGrid : ContentView
             {
                 var newConfig = s.Config with
                 {
-                    MinCardWidth = isLargeScreen ? 160f : 100f,
+                    MinCardWidth = isLargeScreen ? 160f : 85f,
                     LabelHeight = isLargeScreen ? 52f : 42f
                 };
                 return s with
