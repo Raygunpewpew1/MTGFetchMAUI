@@ -40,6 +40,12 @@
     <Compile Include="..\Constants\MTGConstants.cs" Link="Constants\MTGConstants.cs" />
     <Compile Include="..\Core\CardLegalities.cs" Link="Models\CardLegalities.cs" />
     <Compile Include="..\Core\CardRuling.cs" Link="Models\CardRuling.cs" />
+    <Compile Include="..\Models\DeckEntity.cs" Link="Models\DeckEntity.cs" />
+    <Compile Include="..\Models\DeckCardEntity.cs" Link="Models\DeckCardEntity.cs" />
+    <Compile Include="..\Data\IDeckRepository.cs" Link="Data\IDeckRepository.cs" />
+    <Compile Include="..\Data\ICardRepository.cs" Link="Data\ICardRepository.cs" />
+    <Compile Include="..\Services\DeckBuilder\DeckValidator.cs" Link="Services\DeckBuilder\DeckValidator.cs" />
+    <Compile Include="..\Services\DeckBuilder\DeckBuilderService.cs" Link="Services\DeckBuilder\DeckBuilderService.cs" />
   </ItemGroup>
 
 </Project>
