@@ -167,9 +167,12 @@ internal sealed class CardGridRenderer : IDisposable
             };
             canvas.DrawRoundRect(dragRect, 8f, 8f, shadowPaint);
 
-            // Render card at drag position
+            // Render card at drag position (match the active view mode)
             var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
-            RenderCard(canvas, dragCmd);
+            if (isList)
+                RenderListCard(canvas, dragCmd);
+            else
+                RenderCard(canvas, dragCmd);
         }
     }
 
