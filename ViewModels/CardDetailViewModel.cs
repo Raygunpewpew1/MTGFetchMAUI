@@ -46,12 +46,6 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     private CardPriceData _priceData = CardPriceData.Empty;
 
     [ObservableProperty]
-    private bool _hasPreviousCard;
-
-    [ObservableProperty]
-    private bool _hasNextCard;
-
-    [ObservableProperty]
     private string _cardPosition = "";
 
     public bool HasPriceHistory => PriceData != CardPriceData.Empty &&
@@ -184,8 +178,6 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     private void UpdateGalleryState()
     {
-        HasPreviousCard = _galleryContext.GetPreviousUuid() != null;
-        HasNextCard = _galleryContext.GetNextUuid() != null;
         CardPosition = _galleryContext.GetPositionText();
         OnPropertyChanged(nameof(ShowGalleryNavigation));
     }
