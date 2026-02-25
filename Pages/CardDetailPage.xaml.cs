@@ -228,17 +228,15 @@ public partial class CardDetailPage : ContentPage
     {
         int currentQty = await _viewModel.GetCollectionQuantityAsync();
 
-        var popup = new CollectionAddSheet(
+        var page = new CollectionAddPage(
             _viewModel.Card.Name,
             $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}",
             currentQty);
 
-        var result = await this.ShowPopupAsync(popup);
+        await Navigation.PushModalAsync(page);
+        var result = await page.WaitForResultAsync();
 
-        if (result is IPopupResult popupResult
-            && !popupResult.WasDismissedByTappingOutsideOfPopup
-            && popupResult is IPopupResult<object?> typedResult
-            && typedResult.Result is int quantity)
+        if (result is int quantity)
         {
             _viewModel.AddToCollectionCommand.Execute(quantity);
             _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");
