@@ -1,114 +1,105 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="MTGFetchMAUI.Controls.CollectionAddSheet"
-             IsVisible="False"
-             BackgroundColor="Transparent"
-             InputTransparent="False">
+             Color="Transparent"
+             CanBeDismissedByTappingOutside="True">
 
-    <Grid VerticalOptions="Fill" HorizontalOptions="Fill" BackgroundColor="Transparent">
-        <!-- Dimmer background -->
-        <BoxView x:Name="Dimmer"
-                 BackgroundColor="#80000000"
-                 Opacity="0">
-            <BoxView.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnBackgroundTapped" />
-            </BoxView.GestureRecognizers>
-        </BoxView>
+    <Border x:Name="SheetContainer"
+            BackgroundColor="{StaticResource Surface}"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 24,24,0,0"
+            Padding="20,16,20,32"
+            VerticalOptions="End"
+            HorizontalOptions="Fill">
+        <Border.Shadow>
+            <Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.6" />
+        </Border.Shadow>
 
-        <Border x:Name="SheetContainer"
-                BackgroundColor="{StaticResource Surface}"
-                StrokeThickness="0"
-                StrokeShape="RoundRectangle 24,24,0,0"
-                Padding="20,16,20,32"
-                VerticalOptions="End">
-            <Border.Shadow>
-                <Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.6" />
-            </Border.Shadow>
+        <VerticalStackLayout Spacing="20" WidthRequest="300">
+            <!-- Handle -->
+            <BoxView HorizontalOptions="Center"
+                     WidthRequest="40"
+                     HeightRequest="4"
+                     Color="{StaticResource TextSecondary}"
+                     CornerRadius="2"
+                     Margin="0,0,0,4" />
 
-            <VerticalStackLayout Spacing="20">
-                <!-- Handle -->
-                <BoxView HorizontalOptions="Center"
-                         WidthRequest="40"
-                         HeightRequest="4"
-                         Color="{StaticResource TextSecondary}"
-                         CornerRadius="2"
-                         Margin="0,0,0,4" />
-
-                <!-- Card Info Header -->
-                <VerticalStackLayout Spacing="2">
-                    <Label x:Name="TitleLabel"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           TextColor="{StaticResource TextPrimary}"
-                           LineBreakMode="TailTruncation" />
-                    <Label x:Name="SetLabel"
-                           FontSize="13"
-                           HorizontalTextAlignment="Center"
-                           TextColor="{StaticResource TextSecondary}" />
-                </VerticalStackLayout>
-
-                <!-- Quantity Selector -->
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" HorizontalOptions="Center" WidthRequest="260">
-                    <Button Text="−"
-                            Clicked="OnMinusClicked"
-                            FontSize="24"
-                            WidthRequest="56"
-                            HeightRequest="56"
-                            CornerRadius="28"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
-
-                    <Label x:Name="QuantityLabel"
-                           Grid.Column="1"
-                           Text="1"
-                           FontSize="36"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center" />
-
-                    <Button Grid.Column="2"
-                            Text="+"
-                            Clicked="OnPlusClicked"
-                            FontSize="24"
-                            WidthRequest="56"
-                            HeightRequest="56"
-                            CornerRadius="28"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
-                </Grid>
-
-                <!-- Quick Presets -->
-                <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
-                    <Button Text="+1" Clicked="OnQuickAdd1" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
-                    <Button Text="+4" Clicked="OnQuickAdd4" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
-                    <Button Text="Set to 4" Clicked="OnSetTo4" WidthRequest="84" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
-                </HorizontalStackLayout>
-
-                <Label x:Name="CollectionInfoLabel"
-                       FontSize="13"
-                       TextColor="{StaticResource Accent}"
+            <!-- Card Info Header -->
+            <VerticalStackLayout Spacing="2">
+                <Label x:Name="TitleLabel"
+                       FontSize="20"
+                       FontAttributes="Bold"
                        HorizontalTextAlignment="Center"
-                       FontAttributes="Italic" />
-
-                <!-- Actions -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
-                    <Button Text="Cancel"
-                            Clicked="OnCancelClicked"
-                            HeightRequest="52"
-                            StyleClass="OutlinedButton" />
-
-                    <Button Grid.Column="1"
-                            x:Name="ConfirmBtn"
-                            Text="Add to Collection"
-                            Clicked="OnConfirmClicked"
-                            HeightRequest="52"
-                            FontAttributes="Bold"
-                            StyleClass="FilledButton" />
-                </Grid>
+                       TextColor="{StaticResource TextPrimary}"
+                       LineBreakMode="TailTruncation" />
+                <Label x:Name="SetLabel"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource TextSecondary}" />
             </VerticalStackLayout>
-        </Border>
-    </Grid>
-</ContentView>
+
+            <!-- Quantity Selector -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" HorizontalOptions="Center" WidthRequest="260">
+                <Button Text="−"
+                        Clicked="OnMinusClicked"
+                        FontSize="24"
+                        WidthRequest="56"
+                        HeightRequest="56"
+                        CornerRadius="28"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        TextColor="{StaticResource TextPrimary}" />
+
+                <Label x:Name="QuantityLabel"
+                       Grid.Column="1"
+                       Text="1"
+                       FontSize="36"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center" />
+
+                <Button Grid.Column="2"
+                        Text="+"
+                        Clicked="OnPlusClicked"
+                        FontSize="24"
+                        WidthRequest="56"
+                        HeightRequest="56"
+                        CornerRadius="28"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        TextColor="{StaticResource TextPrimary}" />
+            </Grid>
+
+            <!-- Quick Presets -->
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+                <Button Text="+1" Clicked="OnQuickAdd1" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
+                <Button Text="+4" Clicked="OnQuickAdd4" WidthRequest="64" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
+                <Button Text="Set to 4" Clicked="OnSetTo4" WidthRequest="84" HeightRequest="40" Padding="0" FontSize="14" BackgroundColor="{StaticResource CardBackground}" StyleClass="ElevatedButton" />
+            </HorizontalStackLayout>
+
+            <Label x:Name="CollectionInfoLabel"
+                   FontSize="13"
+                   TextColor="{StaticResource Accent}"
+                   HorizontalTextAlignment="Center"
+                   FontAttributes="Italic" />
+
+            <!-- Actions -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,10,0,0">
+                <Button Text="Cancel"
+                        Clicked="OnCancelClicked"
+                        HeightRequest="52"
+                        StyleClass="OutlinedButton" />
+
+                <Button Grid.Column="1"
+                        x:Name="ConfirmBtn"
+                        Text="Add to Collection"
+                        Clicked="OnConfirmClicked"
+                        HeightRequest="52"
+                        FontAttributes="Bold"
+                        StyleClass="FilledButton" />
+            </Grid>
+        </VerticalStackLayout>
+    </Border>
+
+</toolkit:Popup>
