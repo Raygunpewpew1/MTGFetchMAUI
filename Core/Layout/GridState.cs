@@ -1,4 +1,3 @@
-using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using System.Collections.Immutable;
