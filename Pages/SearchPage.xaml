@@ -77,7 +77,8 @@
         <!-- Card Grid -->
         <controls:CardGrid Grid.Row="2"
                            x:Name="CardGrid"
-                           Scrolled="OnGridScrolled" />
+                           Scrolled="OnGridScrolled"
+                           IsDragEnabled="False" />
 
         <!-- Overlays -->
         <controls:CollectionAddSheet Grid.RowSpan="3" x:Name="AddSheet" ZIndex="1000" HorizontalOptions="Fill" VerticalOptions="Fill" />

@@ -47,6 +47,22 @@ public class CardGrid : ContentView
 
     public float ContentHeight => _currentRenderList?.TotalHeight ?? 0;
 
+    public static readonly BindableProperty IsDragEnabledProperty = BindableProperty.Create(
+        nameof(IsDragEnabled), typeof(bool), typeof(CardGrid), true,
+        propertyChanged: (bindable, oldVal, newVal) =>
+        {
+            if (bindable is CardGrid grid)
+            {
+                grid._gestures.IsDragEnabled = (bool)newVal;
+            }
+        });
+
+    public bool IsDragEnabled
+    {
+        get => (bool)GetValue(IsDragEnabledProperty);
+        set => SetValue(IsDragEnabledProperty, value);
+    }
+
     public ViewMode ViewMode
     {
         get => _lastState.Config.ViewMode;
