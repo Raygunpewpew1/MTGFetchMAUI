@@ -233,20 +233,12 @@ public partial class CardDetailPage : ContentPage
             $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}",
             currentQty);
 
-        // Assuming ShowPopupAsync returns Task<object?> or Task<IPopupResult> depending on overloads.
-        // We will cast the result if needed.
         var result = await this.ShowPopupAsync(popup);
 
-        // Check if result is wrapped in IPopupResult or returned directly
-        if (result is IPopupResult popupResult)
-        {
-             if (popupResult.Result is int quantity)
-             {
-                _viewModel.AddToCollectionCommand.Execute(quantity);
-                _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");
-             }
-        }
-        else if (result is int quantity)
+        if (result is IPopupResult popupResult
+            && !popupResult.WasDismissedByTappingOutsideOfPopup
+            && popupResult is IPopupResult<object?> typedResult
+            && typedResult.Result is int quantity)
         {
             _viewModel.AddToCollectionCommand.Execute(quantity);
             _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");
