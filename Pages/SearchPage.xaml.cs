@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Maui.Extensions;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
@@ -68,15 +69,22 @@ public partial class SearchPage : ContentPage
 
         int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
 
-        var resultObj = await this.ShowPopupAsync(new CollectionAddSheet(
+        var popup = new CollectionAddSheet(
             card.Name,
             $"{card.SetCode} #{card.Number}",
-            currentQty));
+            currentQty);
 
-        if (resultObj is int quantity)
+        var result = await this.ShowPopupAsync(popup);
+
+        if (result is IPopupResult popupResult && popupResult.Result is int quantity)
         {
             await _viewModel.UpdateCollectionAsync(uuid, quantity);
             _toastService.Show($"{quantity}x {card.Name} in collection");
+        }
+        else if (result is int qty)
+        {
+             await _viewModel.UpdateCollectionAsync(uuid, qty);
+            _toastService.Show($"{qty}x {card.Name} in collection");
         }
     }
 }

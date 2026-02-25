@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Maui.Extensions;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Services;
@@ -226,12 +227,26 @@ public partial class CardDetailPage : ContentPage
     private async void OnAddClicked(object? sender, EventArgs e)
     {
         int currentQty = await _viewModel.GetCollectionQuantityAsync();
-        var resultObj = await this.ShowPopupAsync(new CollectionAddSheet(
+
+        var popup = new CollectionAddSheet(
             _viewModel.Card.Name,
             $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}",
-            currentQty));
+            currentQty);
 
-        if (resultObj is int quantity)
+        // Assuming ShowPopupAsync returns Task<object?> or Task<IPopupResult> depending on overloads.
+        // We will cast the result if needed.
+        var result = await this.ShowPopupAsync(popup);
+
+        // Check if result is wrapped in IPopupResult or returned directly
+        if (result is IPopupResult popupResult)
+        {
+             if (popupResult.Result is int quantity)
+             {
+                _viewModel.AddToCollectionCommand.Execute(quantity);
+                _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");
+             }
+        }
+        else if (result is int quantity)
         {
             _viewModel.AddToCollectionCommand.Execute(quantity);
             _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");

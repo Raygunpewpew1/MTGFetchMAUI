@@ -26,8 +26,6 @@ public partial class CollectionAddSheet : Popup
     private void UpdateQuantityUI()
     {
         QuantityLabel.Text = _quantity.ToString();
-        // Preserving logic: if we have some, "Update Quantity", else "Add to Collection"
-        // But logic below adds _quantity to _currentInCollection.
         ConfirmBtn.Text = _currentInCollection > 0 ? "Update Quantity" : "Add to Collection";
     }
 
@@ -66,13 +64,13 @@ public partial class CollectionAddSheet : Popup
 
     private async void OnConfirmClicked(object? sender, EventArgs e)
     {
-        // Return the existing amount PLUS the amount they just added
         int newTotal = _currentInCollection + _quantity;
-        await CloseAsync(newTotal);
+        // In v14, CloseAsync requires a token. We cast the result to object because this is a non-generic Popup.
+        await CloseAsync(newTotal, CancellationToken.None);
     }
 
     private async void OnCancelClicked(object? sender, EventArgs e)
     {
-        await CloseAsync(null);
+        await CloseAsync(null, CancellationToken.None);
     }
 }
