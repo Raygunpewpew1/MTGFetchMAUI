@@ -1,7 +1,3 @@
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Maui.Views;
-using CommunityToolkit.Maui.Extensions;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Services;
@@ -72,7 +68,7 @@ public partial class CardDetailPage : ContentPage
         CardNameLabel.Text = card.Name;
         ManaCost.ManaText = card.ManaCost ?? "";
         TypeLineLabel.Text = card.CardType;
-        
+
         SetInfoLabel.Text = card.GetSetAndNumber() + "\n" + card.SetName;
 
         // Set Symbol
