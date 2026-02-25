@@ -1,3 +1,8 @@
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Views;
+using CommunityToolkit.Maui.Extensions;
+using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
 
@@ -50,7 +55,6 @@ public partial class CollectionPage : ContentPage
     {
         base.OnAppearing();
         CollectionGrid.OnResume();
-        _toastService.OnShow += OnToastShow;
 
         // Ensure scroll is synced after a tab switch
         MainThread.BeginInvokeOnMainThread(() =>
@@ -69,12 +73,6 @@ public partial class CollectionPage : ContentPage
     {
         base.OnDisappearing();
         CollectionGrid.OnSleep();
-        _toastService.OnShow -= OnToastShow;
-    }
-
-    private void OnToastShow(string message, int duration)
-    {
-        MainThread.BeginInvokeOnMainThread(() => _ = GridSnackbar.ShowAsync(message, duration));
     }
 
     private async void OnRefreshClicked(object? sender, EventArgs e)
@@ -100,14 +98,20 @@ public partial class CollectionPage : ContentPage
 
         int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
 
-        var result = await AddSheet.ShowAsync(card.Name, $"{card.SetCode} #{card.Number}", currentQty);
+        var popup = new CollectionAddSheet(
+            card.Name,
+            $"{card.SetCode} #{card.Number}",
+            currentQty);
 
-        if (result.HasValue)
+        var result = await this.ShowPopupAsync(popup);
+
+        if (result is IPopupResult popupResult
+            && !popupResult.WasDismissedByTappingOutsideOfPopup
+            && popupResult is IPopupResult<object?> typedResult
+            && typedResult.Result is int quantity)
         {
-            await _viewModel.UpdateCollectionAsync(uuid, result.Value);
-            _toastService.Show($"{result.Value}x {card.Name} in collection");
-
-            // Refresh collection to show updated quantity
+            await _viewModel.UpdateCollectionAsync(uuid, quantity);
+            _toastService.Show($"{quantity}x {card.Name} in collection");
             await _viewModel.LoadCollectionAsync();
         }
     }
@@ -115,15 +119,5 @@ public partial class CollectionPage : ContentPage
     private async void OnCardReorderRequested(int fromIndex, int toIndex)
     {
         await _viewModel.ReorderCollectionAsync(fromIndex, toIndex);
-    }
-
-    protected override bool OnBackButtonPressed()
-    {
-        if (AddSheet.IsVisible)
-        {
-            _ = AddSheet.HandleBackAsync();
-            return true;
-        }
-        return base.OnBackButtonPressed();
     }
 }
