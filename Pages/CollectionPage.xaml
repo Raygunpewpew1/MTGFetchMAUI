@@ -51,10 +51,6 @@
                            x:Name="CollectionGrid"
                            Scrolled="OnCollectionScrolled" />
 
-        <!-- Overlays -->
-        <controls:CollectionAddSheet Grid.RowSpan="2" x:Name="AddSheet" ZIndex="1000" HorizontalOptions="Fill" VerticalOptions="Fill" />
-        <controls:Snackbar Grid.RowSpan="2" x:Name="GridSnackbar" ZIndex="1001" HorizontalOptions="Fill" VerticalOptions="Fill" />
-
     </Grid>
 
 </ContentPage>
