@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui.Views;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Services;
 using MTGFetchMAUI.ViewModels;
@@ -36,19 +37,12 @@ public partial class SearchPage : ContentPage
     {
         base.OnAppearing();
         CardGrid.OnResume();
-        _toastService.OnShow += OnToastShow;
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         CardGrid.OnSleep();
-        _toastService.OnShow -= OnToastShow;
-    }
-
-    private void OnToastShow(string message, int duration)
-    {
-        MainThread.BeginInvokeOnMainThread(() => _ = GridSnackbar.ShowAsync(message, duration));
     }
 
     private void OnGridScrolled(object? sender, ScrolledEventArgs e)
@@ -72,22 +66,15 @@ public partial class SearchPage : ContentPage
 
         int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
 
-        var result = await AddSheet.ShowAsync(card.Name, $"{card.SetCode} #{card.Number}", currentQty);
+        var resultObj = await this.ShowPopupAsync(new CollectionAddSheet(
+            card.Name,
+            $"{card.SetCode} #{card.Number}",
+            currentQty));
 
-        if (result.HasValue)
+        if (resultObj is int quantity)
         {
-            await _viewModel.UpdateCollectionAsync(uuid, result.Value);
-            _toastService.Show($"{result.Value}x {card.Name} in collection");
+            await _viewModel.UpdateCollectionAsync(uuid, quantity);
+            _toastService.Show($"{quantity}x {card.Name} in collection");
         }
-    }
-
-    protected override bool OnBackButtonPressed()
-    {
-        if (AddSheet.IsVisible)
-        {
-            _ = AddSheet.HandleBackAsync();
-            return true;
-        }
-        return base.OnBackButtonPressed();
     }
 }
