@@ -53,16 +53,16 @@ internal sealed class CardGridRenderer : IDisposable
     public void EnsureResources()
     {
         _bgPaint ??= new SKPaint { Color = new SKColor(30, 30, 30), IsAntialias = true };
-        _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true, SubpixelText = true };
-        _textFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 12f);
-        _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true, SubpixelText = true };
-        _priceFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 8.5f);
+        _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true };
+        _textFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 12f) { Subpixel = true };
+        _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
+        _priceFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 8.5f) { Subpixel = true };
         _badgeBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
-        _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White, SubpixelText = true };
-        _badgeFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), 11f);
+        _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
+        _badgeFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), 11f) { Subpixel = true };
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
-        _secondaryTextPaint ??= new SKPaint { Color = new SKColor(160, 160, 160), IsAntialias = true, SubpixelText = true };
-        _secondaryTextFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 11f);
+        _secondaryTextPaint ??= new SKPaint { Color = new SKColor(160, 160, 160), IsAntialias = true };
+        _secondaryTextFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 11f) { Subpixel = true };
         _separatorPaint ??= new SKPaint { Color = new SKColor(50, 50, 50) };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
@@ -76,10 +76,10 @@ internal sealed class CardGridRenderer : IDisposable
         _badgeFont?.Dispose();
         _secondaryTextFont?.Dispose();
 
-        _textFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 15f : 12f);
-        _priceFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 11f : 8.5f);
-        _badgeFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), isLargeScreen ? 13f : 11f);
-        _secondaryTextFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 13f : 11f);
+        _textFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 15f : 12f) { Subpixel = true };
+        _priceFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 11f : 8.5f) { Subpixel = true };
+        _badgeFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), isLargeScreen ? 13f : 11f) { Subpixel = true };
+        _secondaryTextFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 13f : 11f) { Subpixel = true };
 
         _canvas.InvalidateSurface();
     }
