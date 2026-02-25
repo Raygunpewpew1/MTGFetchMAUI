@@ -85,7 +85,8 @@ public partial class CardDetailPage : ContentPage
         CardNameLabel.Text = card.Name;
         ManaCost.ManaText = card.ManaCost ?? "";
         TypeLineLabel.Text = card.CardType;
-        SetInfoLabel.Text = card.GetSetAndNumber() + " " + card.SetName;
+        
+        SetInfoLabel.Text = card.GetSetAndNumber() + "\n" + card.SetName;
 
         // Set Symbol
         SetSymbolView.IsVisible = !string.IsNullOrEmpty(card.SetCode) && SetSvgCache.GetSymbol(card.SetCode) != null;
