@@ -76,15 +76,13 @@ public partial class SearchPage : ContentPage
 
         var result = await this.ShowPopupAsync(popup);
 
-        if (result is IPopupResult popupResult && popupResult.Result is int quantity)
+        if (result is IPopupResult popupResult
+            && !popupResult.WasDismissedByTappingOutsideOfPopup
+            && popupResult is IPopupResult<object?> typedResult
+            && typedResult.Result is int quantity)
         {
             await _viewModel.UpdateCollectionAsync(uuid, quantity);
             _toastService.Show($"{quantity}x {card.Name} in collection");
-        }
-        else if (result is int qty)
-        {
-             await _viewModel.UpdateCollectionAsync(uuid, qty);
-            _toastService.Show($"{qty}x {card.Name} in collection");
         }
     }
 }
