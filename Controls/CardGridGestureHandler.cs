@@ -16,6 +16,8 @@ internal sealed class CardGridGestureHandler
     internal Action? DisallowScrollIntercept;
     internal Action? AllowScrollIntercept;
 
+    public bool IsDragEnabled { get; set; } = true;
+
     private enum GestureState { Idle, PressTracking, DragArmed, Dragging }
 
     private IDispatcherTimer? _longPressTimer;
@@ -88,6 +90,8 @@ internal sealed class CardGridGestureHandler
                 // Transition to dragging once the finger moves from the hold point
                 if (Math.Abs(x - _pressPoint.X) > 8 || Math.Abs(y - _pressPoint.Y) > 8)
                 {
+                    if (!IsDragEnabled) return;
+
                     var uuid = _armedUuid!;
                     var index = _armedIndex;
                     _gestureState = GestureState.Dragging;
