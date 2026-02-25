@@ -53,16 +53,16 @@ internal sealed class CardGridRenderer : IDisposable
     public void EnsureResources()
     {
         _bgPaint ??= new SKPaint { Color = new SKColor(30, 30, 30), IsAntialias = true };
-        _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true };
-        _textFont ??= new SKFont { Size = 12f };
-        _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true };
-        _priceFont ??= new SKFont { Size = 8.5f };
+        _textPaint ??= new SKPaint { Color = SKColors.White, IsAntialias = true, SubpixelText = true };
+        _textFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 12f);
+        _pricePaint ??= new SKPaint { Color = SKColors.LightGreen, IsAntialias = true, SubpixelText = true };
+        _priceFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 8.5f);
         _badgeBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(220, 50, 50) };
-        _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White };
-        _badgeFont ??= new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), 11f);
+        _badgeTextPaint ??= new SKPaint { IsAntialias = true, Color = SKColors.White, SubpixelText = true };
+        _badgeFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), 11f);
         _shimmerBasePaint ??= new SKPaint { Color = new SKColor(40, 40, 40) };
-        _secondaryTextPaint ??= new SKPaint { Color = new SKColor(160, 160, 160), IsAntialias = true };
-        _secondaryTextFont ??= new SKFont { Size = 11f };
+        _secondaryTextPaint ??= new SKPaint { Color = new SKColor(160, 160, 160), IsAntialias = true, SubpixelText = true };
+        _secondaryTextFont ??= new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), 11f);
         _separatorPaint ??= new SKPaint { Color = new SKColor(50, 50, 50) };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
@@ -76,10 +76,10 @@ internal sealed class CardGridRenderer : IDisposable
         _badgeFont?.Dispose();
         _secondaryTextFont?.Dispose();
 
-        _textFont = new SKFont { Size = isLargeScreen ? 15f : 12f };
-        _priceFont = new SKFont { Size = isLargeScreen ? 11f : 8.5f };
-        _badgeFont = new SKFont(SKTypeface.FromFamilyName(null, SKFontStyle.Bold), isLargeScreen ? 13f : 11f);
-        _secondaryTextFont = new SKFont { Size = isLargeScreen ? 13f : 11f };
+        _textFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 15f : 12f);
+        _priceFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 11f : 8.5f);
+        _badgeFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), isLargeScreen ? 13f : 11f);
+        _secondaryTextFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 13f : 11f);
 
         _canvas.InvalidateSurface();
     }
@@ -376,7 +376,7 @@ internal sealed class CardGridRenderer : IDisposable
         // 3. Mana Cost
         float measuredName = _textFont.MeasureText(nameTrunc);
         float manaX = nameX + measuredName + 8f;
-        DrawManaCost(canvas, card.ManaCost, manaX, row.MidY - 7f, 14f);
+        float manaEndX = DrawManaCost(canvas, card.ManaCost, manaX, row.MidY - 7f, 14f);
 
         // 4. Quantity Badge (Rightmost)
         float priceRightLimit = row.Right - pad;
@@ -411,7 +411,8 @@ internal sealed class CardGridRenderer : IDisposable
         // 7. Type Line (Between Mana and Set Symbol)
         float typeX = row.Width * 0.45f;
         // Make sure it doesn't overlap with mana cost if name is long, or with set symbol
-        if (typeX < manaX + 40f) typeX = manaX + 40f;
+        // Use manaEndX + padding instead of fixed offset
+        if (typeX < manaEndX + 10f) typeX = manaEndX + 10f;
 
         float typeRightLimit = setX - 10f;
         float typeWidth = typeRightLimit - typeX;
@@ -423,9 +424,9 @@ internal sealed class CardGridRenderer : IDisposable
         }
     }
 
-    private void DrawManaCost(SKCanvas canvas, string manaCost, float x, float y, float size)
+    private float DrawManaCost(SKCanvas canvas, string manaCost, float x, float y, float size)
     {
-        if (string.IsNullOrEmpty(manaCost)) return;
+        if (string.IsNullOrEmpty(manaCost)) return x;
 
         float currentX = x;
         int i = 0;
@@ -445,6 +446,7 @@ internal sealed class CardGridRenderer : IDisposable
             }
             i++;
         }
+        return currentX;
     }
 
     private void DrawShimmer(SKCanvas canvas, SKRect rect)
