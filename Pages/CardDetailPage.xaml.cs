@@ -34,10 +34,10 @@ public partial class CardDetailPage : ContentPage
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-        // Wire cross-platform swipe navigation via SwipeOverlayView overlay.
+        // Wire cross-platform swipe navigation via SwipeGestureContainer wrapper.
         // Left swipe = next card; Right swipe = previous card.
-        SwipeOverlay.SwipedLeft += () => _viewModel.NavigateNextCardCommand.Execute(null);
-        SwipeOverlay.SwipedRight += () => _viewModel.NavigatePreviousCardCommand.Execute(null);
+        SwipeContainer.SwipedLeft += () => _viewModel.NavigateNextCardCommand.Execute(null);
+        SwipeContainer.SwipedRight += () => _viewModel.NavigatePreviousCardCommand.Execute(null);
 
         Unloaded += (s, e) => _viewModel.Dispose();
     }
