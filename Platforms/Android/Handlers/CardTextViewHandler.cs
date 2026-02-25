@@ -54,6 +54,7 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
     {
         var textView = new TextView(Context);
         textView.SetLineSpacing(0f, 1.2f); // Default line spacing
+        textView.Typeface = Typeface.SansSerif;
         return textView;
     }
 
