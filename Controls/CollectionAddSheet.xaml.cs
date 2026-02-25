@@ -64,15 +64,15 @@ public partial class CollectionAddSheet : Popup
         UpdateQuantityUI();
     }
 
-    private void OnConfirmClicked(object? sender, EventArgs e)
+    private async void OnConfirmClicked(object? sender, EventArgs e)
     {
         // Return the existing amount PLUS the amount they just added
         int newTotal = _currentInCollection + _quantity;
-        Close(newTotal);
+        await CloseAsync(newTotal);
     }
 
-    private void OnCancelClicked(object? sender, EventArgs e)
+    private async void OnCancelClicked(object? sender, EventArgs e)
     {
-        Close(null);
+        await CloseAsync(null);
     }
 }
