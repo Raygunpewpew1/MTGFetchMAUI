@@ -120,14 +120,26 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
-        var stats = new CollectionStats();
         var collection = await GetCollectionAsync();
+        return CalculateStats(collection);
+    }
+
+    /// <summary>
+    /// Calculates collection statistics from a list of items.
+    /// Public static for testing.
+    /// </summary>
+    public static CollectionStats CalculateStats(IList<CollectionItem> collection)
+    {
+        var stats = new CollectionStats();
+        double totalCMC = 0;
+        int nonLandCount = 0;
 
         foreach (var item in collection)
         {
             stats.UniqueCards++;
             stats.TotalCards += item.Quantity;
 
+            // Type Breakdown
             if (item.Card.IsCreature)
                 stats.CreatureCount += item.Quantity;
             else if (item.Card.IsLand)
@@ -135,6 +147,7 @@ public class CollectionRepository : ICollectionRepository
             else
                 stats.SpellCount += item.Quantity;
 
+            // Rarity Breakdown
             switch (item.Card.Rarity)
             {
                 case CardRarity.Common: stats.CommonCount += item.Quantity; break;
@@ -142,7 +155,21 @@ public class CollectionRepository : ICollectionRepository
                 case CardRarity.Rare: stats.RareCount += item.Quantity; break;
                 case CardRarity.Mythic: stats.MythicCount += item.Quantity; break;
             }
+
+            // CMC Calculation (Non-Lands only)
+            if (!item.Card.IsLand)
+            {
+                totalCMC += item.Card.CMC * item.Quantity;
+                nonLandCount += item.Quantity;
+            }
+
+            // Note: FoilCount cannot be accurately calculated as the current schema
+            // does not track which finish (foil/non-foil) the user owns.
+            // item.Card.IsFoil only indicates if a foil version exists.
         }
+
+        if (nonLandCount > 0)
+            stats.AvgCMC = totalCMC / nonLandCount;
 
         return stats;
     }
