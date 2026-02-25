@@ -195,7 +195,13 @@ public static class SQLQueries
             cl.standard,
             cl.standardbrawl,
             cl.timeless,
-            cl.vintage
+            cl.vintage,
+            cp.cardKingdom,
+            cp.cardKingdomFoil,
+            cp.cardKingdomEtched,
+            cp.cardmarket,
+            cp.tcgplayer,
+            cp.tcgplayerEtched
         FROM cards c
         LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid
         LEFT JOIN sets s ON c.setCode = s.code
@@ -297,7 +303,9 @@ public static class SQLQueries
         cl.alchemy, cl.brawl, cl.commander, cl.duel, cl.future, cl.gladiator,
         cl.historic, cl.legacy, cl.modern, cl.oathbreaker, cl.oldschool,
         cl.pauper, cl.paupercommander, cl.penny, cl.pioneer, cl.predh,
-        cl.premodern, cl.standard, cl.standardbrawl, cl.timeless, cl.vintage
+        cl.premodern, cl.standard, cl.standardbrawl, cl.timeless, cl.vintage,
+        cp.cardKingdom, cp.cardKingdomFoil, cp.cardKingdomEtched,
+        cp.cardmarket, cp.tcgplayer, cp.tcgplayerEtched
         FROM cards c
         LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid
         LEFT JOIN sets s ON c.setCode = s.code
