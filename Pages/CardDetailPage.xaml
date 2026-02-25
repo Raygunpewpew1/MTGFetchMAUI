@@ -9,7 +9,7 @@
              x:Name="DetailScreen"
              Title="Card Details"
              BackgroundColor="{StaticResource Background}"
-             Shell.PresentationMode="ModalAnimated">
+             Shell.PresentationMode="Animated">
 
     <Shell.BackButtonBehavior>
         <BackButtonBehavior Command="{Binding BindingContext.BackCommand, Source={x:Reference DetailScreen}}" />
@@ -83,7 +83,6 @@
                            FontSize="12"
                            LineBreakMode ="WordWrap"
                            TextColor="{StaticResource TextSecondary}" />
-                    
                     <Label x:Name="RarityLabel"
                            VerticalOptions="Center"
                            FontSize="12"
