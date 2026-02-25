@@ -395,4 +395,9 @@ public partial class CardDetailPage : ContentPage
         }
         return base.OnBackButtonPressed();
     }
+
+    private void CardImageView_Touch(object sender, SKTouchEventArgs e)
+    {
+
+    }
 }
