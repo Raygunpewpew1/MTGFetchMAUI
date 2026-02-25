@@ -83,6 +83,7 @@
                            FontSize="12"
                            LineBreakMode ="WordWrap"
                            TextColor="{StaticResource TextSecondary}" />
+                    
                     <Label x:Name="RarityLabel"
                            VerticalOptions="Center"
                            FontSize="12"
