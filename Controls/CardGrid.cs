@@ -465,9 +465,10 @@ public class CardGrid : ContentView
     {
         int count = _lastState.Cards.Length;
         if (count == 0) return 0;
-        if (_currentRenderList.ViewMode == ViewMode.List)
+        if (_currentRenderList.ViewMode == ViewMode.List || _currentRenderList.ViewMode == ViewMode.TextOnly)
         {
-            int listRow = Math.Max(0, (int)(canvasY / 96f));
+            float rowHeight = _currentRenderList.CardHeight > 0 ? _currentRenderList.CardHeight : 96f;
+            int listRow = Math.Max(0, (int)(canvasY / rowHeight));
             return Math.Min(count - 1, listRow);
         }
         // Grid mode: reverse the layout formula

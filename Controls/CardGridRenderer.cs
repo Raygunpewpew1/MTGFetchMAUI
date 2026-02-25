@@ -122,7 +122,7 @@ internal sealed class CardGridRenderer : IDisposable
         canvas.Scale(scale);
         canvas.Translate(0, -scrollY);
 
-        bool isList = list.ViewMode == MTGFetchMAUI.Core.Layout.ViewMode.List;
+        var viewMode = list.ViewMode;
         foreach (var cmd in list.Commands)
         {
             if (cmd is DrawCardCommand draw)
@@ -130,8 +130,10 @@ internal sealed class CardGridRenderer : IDisposable
                 bool isSource = dragState != null && draw.Index == dragState.SourceIndex;
                 bool isTarget = dragState != null && !isSource && draw.Index == dragState.TargetIndex;
 
-                if (isList)
+                if (viewMode == MTGFetchMAUI.Core.Layout.ViewMode.List)
                     RenderListCard(canvas, draw);
+                else if (viewMode == MTGFetchMAUI.Core.Layout.ViewMode.TextOnly)
+                    RenderTextOnlyCard(canvas, draw);
                 else
                     RenderCard(canvas, draw);
 
@@ -169,8 +171,10 @@ internal sealed class CardGridRenderer : IDisposable
 
             // Render card at drag position (match the active view mode)
             var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
-            if (isList)
+            if (list.ViewMode == MTGFetchMAUI.Core.Layout.ViewMode.List)
                 RenderListCard(canvas, dragCmd);
+            else if (list.ViewMode == MTGFetchMAUI.Core.Layout.ViewMode.TextOnly)
+                RenderTextOnlyCard(canvas, dragCmd);
             else
                 RenderCard(canvas, dragCmd);
         }
@@ -350,6 +354,96 @@ internal sealed class CardGridRenderer : IDisposable
         if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
         {
             canvas.DrawText(card.CachedDisplayPrice, textRight, metaY, SKTextAlign.Right, _priceFont!, _pricePaint!);
+        }
+    }
+
+    private void RenderTextOnlyCard(SKCanvas canvas, DrawCardCommand cmd)
+    {
+        var row = cmd.Rect;
+        var card = cmd.Card;
+        const float pad = 10f;
+
+        // 1. Separator
+        canvas.DrawRect(new SKRect(0f, row.Bottom - 1f, row.Right, row.Bottom), _separatorPaint);
+
+        // 2. Name
+        float textY = row.MidY + (_textFont!.Size / 2f) - 2f;
+        float nameX = pad;
+        float nameWidth = row.Width * 0.35f;
+        string nameTrunc = TruncateWithEllipsis(card.Name, nameWidth, _textFont);
+        canvas.DrawText(nameTrunc, nameX, textY, SKTextAlign.Left, _textFont, _textPaint!);
+
+        // 3. Mana Cost
+        float measuredName = _textFont.MeasureText(nameTrunc);
+        float manaX = nameX + measuredName + 8f;
+        DrawManaCost(canvas, card.ManaCost, manaX, row.MidY - 7f, 14f);
+
+        // 4. Quantity Badge (Rightmost)
+        float priceRightLimit = row.Right - pad;
+        if (card.Quantity > 0)
+        {
+            string qtyStr = card.Quantity.ToString();
+            float tw = _badgeFont!.MeasureText(qtyStr);
+            float bw = Math.Max(16f, tw + 6f);
+            float bx = row.Right - bw - 4f;
+            float by = row.MidY - 9f;
+            canvas.DrawRoundRect(bx, by, bw, 18f, 9f, 9f, _badgeBgPaint!);
+            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 13f, _badgeFont, _badgeTextPaint!);
+            priceRightLimit = bx - 8f;
+        }
+
+        // 5. Price
+        if (!string.IsNullOrEmpty(card.CachedDisplayPrice))
+        {
+            canvas.DrawText(card.CachedDisplayPrice, priceRightLimit, textY, SKTextAlign.Right, _priceFont!, _pricePaint!);
+        }
+
+        // 6. Set Symbol (Left of Price)
+        float setSize = 14f;
+        // Estimate price width to position set symbol
+        float priceWidth = string.IsNullOrEmpty(card.CachedDisplayPrice) ? 0 : _priceFont!.MeasureText(card.CachedDisplayPrice);
+        float setX = priceRightLimit - priceWidth - setSize - 12f;
+        if (!string.IsNullOrEmpty(card.SetCode))
+        {
+            SetSvgCache.DrawSymbol(canvas, card.SetCode, setX, row.MidY - setSize / 2f, setSize, new SKColor(160, 160, 160));
+        }
+
+        // 7. Type Line (Between Mana and Set Symbol)
+        float typeX = row.Width * 0.45f;
+        // Make sure it doesn't overlap with mana cost if name is long, or with set symbol
+        if (typeX < manaX + 40f) typeX = manaX + 40f;
+
+        float typeRightLimit = setX - 10f;
+        float typeWidth = typeRightLimit - typeX;
+
+        if (typeWidth > 20f && !string.IsNullOrEmpty(card.TypeLine))
+        {
+            string typeTrunc = TruncateWithEllipsis(card.TypeLine, typeWidth, _secondaryTextFont!);
+            canvas.DrawText(typeTrunc, typeX, textY, SKTextAlign.Left, _secondaryTextFont, _secondaryTextPaint!);
+        }
+    }
+
+    private void DrawManaCost(SKCanvas canvas, string manaCost, float x, float y, float size)
+    {
+        if (string.IsNullOrEmpty(manaCost)) return;
+
+        float currentX = x;
+        int i = 0;
+        while (i < manaCost.Length)
+        {
+            if (manaCost[i] == '{')
+            {
+                int end = manaCost.IndexOf('}', i);
+                if (end > i)
+                {
+                    string symbol = manaCost.Substring(i + 1, end - i - 1);
+                    ManaSvgCache.DrawSymbol(canvas, symbol, currentX, y, size);
+                    currentX += size + 2f;
+                    i = end + 1;
+                    continue;
+                }
+            }
+            i++;
         }
     }
 
