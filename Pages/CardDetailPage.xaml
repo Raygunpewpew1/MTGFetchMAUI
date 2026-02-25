@@ -18,31 +18,30 @@
     <Grid RowDefinitions="*,Auto">
 
         <ScrollView Grid.Row="0">
-            <!-- Inner Grid allows SwipeOverlayView to layer on top of the card
-                 image area while leaving the expanders below it untouched.
-                 SwipeOverlayView must be inside the ScrollView so WIllLock
-                 controls the ScrollView (its parent) when releasing to scroll. -->
-            <Grid HorizontalOptions="Fill">
-            <VerticalStackLayout Padding="16" Spacing="8">
+            <!-- SwipeGestureContainer wraps the content instead of overlaying it.
+                 This allows children (buttons, expanders) to receive touches while
+                 still capturing horizontal swipes for navigation. -->
+            <controls:SwipeGestureContainer x:Name="SwipeContainer">
+                <VerticalStackLayout Padding="16" Spacing="8">
 
-                <Border StrokeShape="RoundRectangle 12"
-                        StrokeThickness="0"
-                        HeightRequest="380"
-                        HorizontalOptions="Center"
-                        WidthRequest="272">
-                    <Grid>
-                        <skia:SKCanvasView x:Name="CardImageView"
-                                           PaintSurface="OnCardImagePaint"
-                                           HeightRequest="380"
-                                           WidthRequest="272" />
-                        <ActivityIndicator x:Name="ImageLoading"
-                                           IsRunning="True"
-                                           IsVisible="True"
-                                           VerticalOptions="Center"
-                                           HorizontalOptions="Center"
-                                           Color="{StaticResource Primary}" />
-                    </Grid>
-                </Border>
+                    <Border StrokeShape="RoundRectangle 12"
+                            StrokeThickness="0"
+                            HeightRequest="380"
+                            HorizontalOptions="Center"
+                            WidthRequest="272">
+                        <Grid>
+                            <skia:SKCanvasView x:Name="CardImageView"
+                                               PaintSurface="OnCardImagePaint"
+                                               HeightRequest="380"
+                                               WidthRequest="272" />
+                            <ActivityIndicator x:Name="ImageLoading"
+                                               IsRunning="True"
+                                               IsVisible="True"
+                                               VerticalOptions="Center"
+                                               HorizontalOptions="Center"
+                                               Color="{StaticResource Primary}" />
+                        </Grid>
+                    </Border>
 
                 <Label Text="{Binding CardPosition}"
                        IsVisible="{Binding ShowGalleryNavigation}"
@@ -173,15 +172,8 @@
                     </uranium:ExpanderView>
                 </Border>
 
-            </VerticalStackLayout>
-
-            <!-- Swipe overlay covers the entire scrollable content area.
-                 WIllLock = Unlocked releases the ScrollView (parent) to scroll
-                 when vertical movement is detected. -->
-            <controls:SwipeOverlayView x:Name="SwipeOverlay"
-                                       VerticalOptions="Fill"
-                                       HorizontalOptions="Fill" />
-            </Grid>
+                </VerticalStackLayout>
+            </controls:SwipeGestureContainer>
         </ScrollView>
 
         <Grid Grid.Row="1"
