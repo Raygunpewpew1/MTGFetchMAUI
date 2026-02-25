@@ -1,3 +1,5 @@
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
