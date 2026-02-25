@@ -69,17 +69,15 @@ public partial class SearchPage : ContentPage
 
         int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
 
-        var popup = new CollectionAddSheet(
+        var page = new CollectionAddPage(
             card.Name,
             $"{card.SetCode} #{card.Number}",
             currentQty);
 
-        var result = await this.ShowPopupAsync(popup);
+        await Navigation.PushModalAsync(page);
+        var result = await page.WaitForResultAsync();
 
-        if (result is IPopupResult popupResult
-            && !popupResult.WasDismissedByTappingOutsideOfPopup
-            && popupResult is IPopupResult<object?> typedResult
-            && typedResult.Result is int quantity)
+        if (result is int quantity)
         {
             await _viewModel.UpdateCollectionAsync(uuid, quantity);
             _toastService.Show($"{quantity}x {card.Name} in collection");

@@ -63,7 +63,8 @@ MTGFetchMAUI/
 │   ├── SearchFiltersPage.xaml/.cs   # Advanced search filter UI
 │   ├── CollectionPage.xaml/.cs      # User collection management
 │   ├── StatsPage.xaml/.cs           # Statistics and analytics
-│   └── LoadingPage.xaml/.cs         # Splash/loading screen
+│   ├── LoadingPage.xaml/.cs         # Splash/loading screen
+│   └── CollectionAddPage.xaml/.cs   # Modal page for adding cards to collection
 │
 ├── Controls/
 │   ├── CardGrid.cs                  # High-performance custom card grid (gesture + scroll)
@@ -72,7 +73,6 @@ MTGFetchMAUI/
 │   ├── CardTextView.cs              # Custom text view (Android handler)
 │   ├── ManaCostView.cs              # Mana cost symbol strip
 │   ├── ManaSymbolView.cs            # Individual mana symbol renderer
-│   ├── CollectionAddSheet.xaml/.cs  # Bottom sheet for adding cards to collection
 │   ├── Snackbar.xaml/.cs            # Toast/snackbar notification UI
 │   └── GridCardData.cs              # Card data structure for grid rendering
 │
@@ -137,7 +137,7 @@ Pages bind to ViewModels via MAUI data binding. ViewModels expose `ObservablePro
 ### Dependency Injection
 All services, repositories, and ViewModels are registered in `MauiProgram.cs`.
 - **Singleton**: `DatabaseManager`, `CardManager`, image caches, repositories (long-lived, stateful).
-- **Transient**: Modal/overlay ViewModels (e.g., `CollectionAddSheet`).
+- **Transient**: Modal/overlay ViewModels (e.g., `CollectionAddPage`).
 
 ### Fluent Query Builder
 `MTGSearchHelper` constructs parameterized SQLite queries. Always add new search predicates through this class rather than writing raw SQL inline.
