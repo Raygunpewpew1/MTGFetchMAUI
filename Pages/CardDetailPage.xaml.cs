@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui.Views;
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Services;
@@ -40,23 +41,6 @@ public partial class CardDetailPage : ContentPage
         SwipeContainer.SwipedRight += () => _viewModel.NavigatePreviousCardCommand.Execute(null);
 
         Unloaded += (s, e) => _viewModel.Dispose();
-    }
-
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-        _toastService.OnShow += OnToastShow;
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        _toastService.OnShow -= OnToastShow;
-    }
-
-    private void OnToastShow(string message, int duration)
-    {
-        MainThread.BeginInvokeOnMainThread(() => _ = DetailSnackbar.ShowAsync(message, duration));
     }
 
     private async Task LoadCard()
@@ -240,12 +224,15 @@ public partial class CardDetailPage : ContentPage
     private async void OnAddClicked(object? sender, EventArgs e)
     {
         int currentQty = await _viewModel.GetCollectionQuantityAsync();
-        var result = await AddSheet.ShowAsync(_viewModel.Card.Name, $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}", currentQty);
+        var resultObj = await this.ShowPopupAsync(new CollectionAddSheet(
+            _viewModel.Card.Name,
+            $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}",
+            currentQty));
 
-        if (result.HasValue)
+        if (resultObj is int quantity)
         {
-            _viewModel.AddToCollectionCommand.Execute(result.Value);
-            _toastService.Show($"{result.Value}x {_viewModel.Card.Name} in collection");
+            _viewModel.AddToCollectionCommand.Execute(quantity);
+            _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");
         }
     }
 
@@ -384,16 +371,6 @@ public partial class CardDetailPage : ContentPage
                 RulingsStack.Add(stack);
             }
         }
-    }
-
-    protected override bool OnBackButtonPressed()
-    {
-        if (AddSheet.IsVisible)
-        {
-            _ = AddSheet.HandleBackAsync();
-            return true;
-        }
-        return base.OnBackButtonPressed();
     }
 
     private void CardImageView_Touch(object sender, SKTouchEventArgs e)
