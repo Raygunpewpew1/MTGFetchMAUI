@@ -81,11 +81,6 @@
                 <Setter Property="StrokeShape" Value="RoundRectangle 8" />
                 <Setter Property="Padding" Value="12" />
             </Style>
-
-            <!-- UraniumUI ExpanderView Arrow -->
-            <Style TargetType="Path" Class="ExpanderView.Arrow">
-                <Setter Property="Fill" Value="{StaticResource TextPrimary}" />
-            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
