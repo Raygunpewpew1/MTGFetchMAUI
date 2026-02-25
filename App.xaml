@@ -75,6 +75,11 @@
                 </Setter>
             </Style>
 
+            <!-- UraniumUI ExpanderView Arrow -->
+            <Style TargetType="Path" Class="ExpanderView.Arrow">
+                <Setter Property="Fill" Value="{StaticResource TextPrimary}" />
+            </Style>
+
             <Style x:Key="CardStyle" TargetType="Border">
                 <Setter Property="BackgroundColor" Value="{StaticResource CardBackground}" />
                 <Setter Property="Stroke" Value="Transparent" />
