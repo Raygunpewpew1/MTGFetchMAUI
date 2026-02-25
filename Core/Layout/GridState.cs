@@ -1,10 +1,11 @@
+using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
 using System.Collections.Immutable;
 
 namespace MTGFetchMAUI.Core.Layout;
 
-public enum ViewMode { Grid, List }
+public enum ViewMode { Grid, List, TextOnly }
 
 public readonly record struct CardId(string Value);
 
@@ -21,7 +22,9 @@ public record CardState(
     bool IsOnlineOnly,
     string TypeLine = "",
     CardPriceData? PriceData = null,
-    string CachedDisplayPrice = ""
+    string CachedDisplayPrice = "",
+    string ManaCost = "",
+    CardRarity Rarity = CardRarity.Common
 )
 {
     // Factory method to create state and pre-calculate display price
@@ -36,7 +39,10 @@ public record CardState(
             quantity,
             card.IsOnlineOnly,
             card.CardType,
-            prices
+            prices,
+            "",
+            card.ManaCost,
+            card.Rarity
         );
         return state with { CachedDisplayPrice = state.GetDisplayPrice() };
     }

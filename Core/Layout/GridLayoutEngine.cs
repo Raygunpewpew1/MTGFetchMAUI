@@ -27,11 +27,14 @@ public static class GridLayoutEngine
     // Constants for list view row sizing
     private const float ListRowHeight = 96f;
     private const float ListImgWidth = 55f;
+    private const float TextRowHeight = 50f;
 
     public static RenderList Calculate(GridState state)
     {
         if (state.Config.ViewMode == ViewMode.List)
             return CalculateList(state);
+        if (state.Config.ViewMode == ViewMode.TextOnly)
+            return CalculateTextOnly(state);
 
         return CalculateGrid(state);
     }
@@ -145,6 +148,47 @@ public static class GridLayoutEngine
             width,
             ListRowHeight,
             ViewMode.List
+        );
+    }
+
+    private static RenderList CalculateTextOnly(GridState state)
+    {
+        var viewport = state.Viewport;
+        var cards = state.Cards;
+        int count = cards.Length;
+
+        if (count == 0)
+            return RenderList.Empty;
+
+        float width = viewport.Width > 0 ? viewport.Width : 360f;
+        float totalHeight = count * TextRowHeight + 50f;
+
+        float effectiveOffset = Math.Max(0, viewport.ScrollY);
+        float viewportHeight = viewport.Height > 0 ? viewport.Height : 1000f;
+
+        int visibleStart = Math.Max(0, (int)(effectiveOffset / TextRowHeight));
+        int visibleEnd = Math.Min(count - 1, (int)((effectiveOffset + viewportHeight) / TextRowHeight) + 1);
+
+        if (visibleStart >= count)
+            return new RenderList(ImmutableArray<RenderCommand>.Empty, totalHeight, 0, -1, width, TextRowHeight, ViewMode.TextOnly);
+
+        var commands = ImmutableArray.CreateBuilder<RenderCommand>(visibleEnd - visibleStart + 1);
+
+        for (int i = visibleStart; i <= visibleEnd; i++)
+        {
+            float y = i * TextRowHeight;
+            var rect = new SKRect(0f, y, width, y + TextRowHeight);
+            commands.Add(new DrawCardCommand(cards[i], rect, i));
+        }
+
+        return new RenderList(
+            commands.ToImmutable(),
+            totalHeight,
+            visibleStart,
+            visibleEnd,
+            width,
+            TextRowHeight,
+            ViewMode.TextOnly
         );
     }
 }

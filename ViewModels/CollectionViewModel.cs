@@ -26,7 +26,12 @@ public partial class CollectionViewModel : BaseViewModel
     [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
     private ViewMode _viewMode = ViewMode.Grid;
 
-    public string ViewModeButtonText => ViewMode == ViewMode.Grid ? "☰" : "⊞";
+    public string ViewModeButtonText => ViewMode switch
+    {
+        ViewMode.Grid => "☰",
+        ViewMode.List => "≣",
+        _ => "⊞"
+    };
 
     public event Action? CollectionLoaded;
 
@@ -55,7 +60,12 @@ public partial class CollectionViewModel : BaseViewModel
     [RelayCommand]
     private void ToggleViewMode()
     {
-        ViewMode = ViewMode == ViewMode.Grid ? ViewMode.List : ViewMode.Grid;
+        ViewMode = ViewMode switch
+        {
+            ViewMode.Grid => ViewMode.List,
+            ViewMode.List => ViewMode.TextOnly,
+            _ => ViewMode.Grid
+        };
     }
 
     public async Task<Card?> GetCardDetailsAsync(string uuid)
