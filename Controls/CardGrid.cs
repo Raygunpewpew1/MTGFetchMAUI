@@ -244,6 +244,12 @@ public class CardGrid : ContentView
 
     public void OnResume()
     {
+        // Reset the gesture state machine in case the app was minimized mid-gesture.
+        // On Android 14+ (e.g. S24), ACTION_CANCEL is not reliably delivered when
+        // the activity loses focus, so the state machine can be left in DragArmed
+        // or Dragging with WIllLock = Locked, blocking subsequent touch events.
+        _gestures.HandleCancel();
+
         Task.Run(async () =>
         {
             if (_imageCache == null) return;

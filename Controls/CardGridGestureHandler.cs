@@ -40,6 +40,11 @@ internal sealed class CardGridGestureHandler
 
     internal void HandleDown(float x, float y)
     {
+        // Always unlock scroll at the start of a new gesture sequence.
+        // Guards against stale Locked state if a previous gesture was
+        // interrupted without a matching Up/Cancel (e.g. app backgrounded on S24).
+        AllowScrollIntercept?.Invoke();
+
         _pressPoint = new Point(x, y);
         _gestureState = GestureState.PressTracking;
         _armedUuid = null;
@@ -147,6 +152,8 @@ internal sealed class CardGridGestureHandler
 
     internal void HandleCancel()
     {
+        _longPressTimer?.Stop();
+
         if (_gestureState == GestureState.Dragging)
         {
             _gestureState = GestureState.Idle;
@@ -155,8 +162,10 @@ internal sealed class CardGridGestureHandler
         }
         else
         {
+            // Also unlock scroll for DragArmed (timer fired while app was backgrounded)
+            // and any other interrupted state.
             _gestureState = GestureState.Idle;
-            _longPressTimer?.Stop();
+            AllowScrollIntercept?.Invoke();
         }
     }
 }
