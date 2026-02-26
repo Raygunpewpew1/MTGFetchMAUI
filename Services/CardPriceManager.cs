@@ -196,14 +196,13 @@ public class CardPriceManager : IDisposable
         if (!hasData || !meta.Date.Equals(localDate, StringComparison.OrdinalIgnoreCase))
         {
             Logger.LogStuff($"Prices out of date or missing. Local: {localDate}, Remote: {meta.Date}, HasData: {hasData}", LogLevel.Info);
-            // New prices available or DB empty - download
+            // New prices available or DB empty - download and import (import happens inside)
             OnProgress?.Invoke("Downloading price data...", 0);
-            var downloaded = await DownloadAndExtractPricesAsync();
-            if (downloaded)
+            var imported = await DownloadAndImportPricesAsync();
+            if (imported)
             {
-                Logger.LogStuff("Price download and extraction successful.", LogLevel.Info);
+                Logger.LogStuff("Price download and import successful.", LogLevel.Info);
                 SaveLocalMetaDate(meta.Date);
-                ImportDataAsync();
             }
             else
             {
@@ -243,7 +242,7 @@ public class CardPriceManager : IDisposable
         }
     }
 
-    private async Task<bool> DownloadAndExtractPricesAsync()
+    private async Task<bool> DownloadAndImportPricesAsync()
     {
         await _updateLock.WaitAsync();
         try
@@ -256,7 +255,7 @@ public class CardPriceManager : IDisposable
                     if (attempt > 1)
                         OnProgress?.Invoke($"Retrying price download (attempt {attempt})...", 0);
 
-                    if (await DoDownloadAndExtractAsync())
+                    if (await DoDownloadAndImportAsync())
                         return true;
                 }
                 catch (Exception ex)
@@ -278,10 +277,9 @@ public class CardPriceManager : IDisposable
         }
     }
 
-    private async Task<bool> DoDownloadAndExtractAsync()
+    private async Task<bool> DoDownloadAndImportAsync()
     {
         var zipPath = Path.Combine(AppDataManager.GetAppDataPath(), PricesZipFile);
-        var jsonPath = AppDataManager.GetPricesJsonPath();
 
         try
         {
@@ -289,31 +287,23 @@ public class CardPriceManager : IDisposable
             using var response = await client.GetAsync(MtgjsonPricesUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
-            // 1. Download to ZIP file
+            // 1. Download ZIP to disk (ZipArchive requires a seekable stream)
             await using (var contentStream = await response.Content.ReadAsStreamAsync())
+            await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    await contentStream.CopyToAsync(fileStream);
-                } // fileStream is DISPOSED here, releasing the lock
+                await contentStream.CopyToAsync(fileStream);
             }
 
-            OnProgress?.Invoke("Extracting price data...", 80);
+            OnProgress?.Invoke("Importing price data...", 80);
 
-            // 2. Extract JSON from ZIP
-            using (var archive = ZipFile.OpenRead(zipPath))
-            {
-                foreach (var entry in archive.Entries)
-                {
-                    if (entry.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                    {
-                        entry.ExtractToFile(jsonPath, overwrite: true);
-                        break;
-                    }
-                }
-            }
+            // 2. Stream JSON entry directly into the importer — no JSON file written to disk
+            using var archive = ZipFile.OpenRead(zipPath);
+            var entry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+            if (entry == null) return false;
 
-            return File.Exists(jsonPath);
+            await using var entryStream = entry.Open();
+            await _importer.ImportFromStreamAsync(entryStream, entry.Length);
+            return true;
         }
         finally
         {

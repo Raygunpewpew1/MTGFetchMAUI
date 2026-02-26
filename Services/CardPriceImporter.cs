@@ -19,12 +19,16 @@ namespace MTGFetchMAUI.Services;
 public class CardPriceImporter
 {
     private volatile bool _isImporting;
-    private const int BatchSize = 500; // Optimal for SQLite
+    private const int BatchSize = 2000;    // Increased from 500 for fewer SQL round-trips
+    private const int CommitInterval = 4; // Commit every 4 batches (8,000 cards) to reduce checkpoint overhead
 
     public Action<bool, int, string>? OnComplete { get; set; }
     public Action<string, int>? OnProgress { get; set; }
     public bool IsImporting => _isImporting;
 
+    /// <summary>
+    /// Fire-and-forget import from a local JSON file path (used for leftover files on startup).
+    /// </summary>
     public void ImportAsync(string jsonFilePath)
     {
         if (_isImporting) return;
@@ -39,7 +43,8 @@ public class CardPriceImporter
         {
             try
             {
-                await DoImportAsync(jsonFilePath);
+                await using var stream = File.OpenRead(jsonFilePath);
+                await DoImportAsync(stream, stream.Length);
             }
             catch (Exception ex)
             {
@@ -53,7 +58,30 @@ public class CardPriceImporter
         });
     }
 
-    private async Task DoImportAsync(string jsonFilePath)
+    /// <summary>
+    /// Awaitable import from a stream (used by the download pipeline to avoid writing JSON to disk).
+    /// Accepts non-seekable streams (e.g. a ZIP entry DeflateStream).
+    /// </summary>
+    public async Task ImportFromStreamAsync(Stream jsonStream, long uncompressedLength = 0)
+    {
+        if (_isImporting) return;
+        _isImporting = true;
+        try
+        {
+            await DoImportAsync(jsonStream, uncompressedLength > 0 ? uncompressedLength : null);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Price import failed: {ex.Message}", LogLevel.Error);
+            OnComplete?.Invoke(false, 0, ex.Message);
+        }
+        finally
+        {
+            _isImporting = false;
+        }
+    }
+
+    private async Task DoImportAsync(Stream jsonStream, long? streamLength = null)
     {
         var dbPath = AppDataManager.GetPricesDatabasePath();
         var connStr = new SqliteConnectionStringBuilder
@@ -69,7 +97,8 @@ public class CardPriceImporter
         using (var pragma = conn.CreateCommand())
         {
             pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000; " +
-                                 "PRAGMA temp_store=MEMORY; PRAGMA synchronous=OFF";
+                                 "PRAGMA temp_store=MEMORY; PRAGMA synchronous=OFF; " +
+                                 "PRAGMA cache_size=-16384";
             await pragma.ExecuteNonQueryAsync();
         }
 
@@ -81,29 +110,41 @@ public class CardPriceImporter
 
         OnProgress?.Invoke("Preparing import...", 5);
 
-        await using var fileStream = File.OpenRead(jsonFilePath);
-        var totalLength = fileStream.Length;
+        var totalLength = streamLength ?? 0;
 
+        // Sliding buffer: bufferedBytes tracks unconsumed bytes from the previous read
+        // sitting at the start of the buffer. New data is appended after them.
         var buffer = new byte[1024 * 1024]; // 1MB buffer
-        int bytesRead;
+        int bufferedBytes = 0;
+        long bytesReadFromStream = 0;
+
         int totalCards = 0;
         var state = new JsonReaderState();
         bool inData = false;
         int depth = 0;
 
-        long streamPos = 0;
         int todayInt = int.Parse(DateTime.Now.ToString("yyyyMMdd"));
 
         // Buffers for bulk insert
         var pricesValues = new StringBuilder();
         var historyValues = new StringBuilder();
         int pendingCount = 0;
+        int batchesSinceCommit = 0;
 
         var transaction = conn.BeginTransaction();
 
-        while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)
+        while (true)
         {
-            bool isFinalBlock = (streamPos + bytesRead >= totalLength);
+            // Fill the buffer after any previously unconsumed bytes
+            int spaceInBuffer = buffer.Length - bufferedBytes;
+            int bytesRead = await jsonStream.ReadAsync(buffer.AsMemory(bufferedBytes, spaceInBuffer));
+            bytesReadFromStream += bytesRead;
+            int totalInBuffer = bufferedBytes + bytesRead;
+
+            if (totalInBuffer == 0) break;
+
+            bool isFinalBlock = bytesRead == 0 ||
+                                (totalLength > 0 && bytesReadFromStream >= totalLength);
 
             // Local variables to capture reader state before it goes out of scope
             JsonReaderState nextState;
@@ -112,7 +153,7 @@ public class CardPriceImporter
 
             // Block scope for Utf8JsonReader (ref struct)
             {
-                var reader = new Utf8JsonReader(buffer.AsSpan(0, bytesRead), isFinalBlock, state);
+                var reader = new Utf8JsonReader(buffer.AsSpan(0, totalInBuffer), isFinalBlock, state);
                 var safeState = state;
                 long safeConsumed = 0;
 
@@ -133,7 +174,6 @@ public class CardPriceImporter
                         if (inData && reader.CurrentDepth == depth + 1)
                         {
                             var uuid = propName;
-                            // Fix CS8604: ensure uuid is not null
                             if (string.IsNullOrEmpty(uuid))
                             {
                                 safeConsumed = reader.BytesConsumed;
@@ -202,14 +242,22 @@ public class CardPriceImporter
             } // End of reader scope
 
             state = nextState;
-            streamPos += bytesRead;
 
-            if (consumedBytes < bytesRead)
+            // Slide any unconsumed bytes to the start of the buffer so they are
+            // prepended to the next read. This avoids needing Stream.CanSeek.
+            int consumed = (int)consumedBytes;
+            int unconsumed = totalInBuffer - consumed;
+            if (unconsumed > 0 && consumed > 0)
             {
-                var remaining = bytesRead - (int)consumedBytes;
-                fileStream.Position -= remaining;
-                streamPos -= remaining;
+                buffer.AsSpan(consumed, unconsumed).CopyTo(buffer);
             }
+            else if (consumed == 0 && !isFinalBlock && unconsumed == buffer.Length)
+            {
+                // Nothing consumed and buffer is full — card too large for buffer. Should not happen.
+                Logger.LogStuff("Price import: buffer exhausted without progress. Skipping.", LogLevel.Warning);
+                break;
+            }
+            bufferedBytes = unconsumed;
 
             if (pendingCount >= BatchSize)
             {
@@ -217,15 +265,29 @@ public class CardPriceImporter
                 pricesValues.Clear();
                 historyValues.Clear();
                 pendingCount = 0;
+                batchesSinceCommit++;
 
                 // Renew transaction periodically to keep WAL manageable
-                await transaction.CommitAsync();
-                await transaction.DisposeAsync();
-                transaction = conn.BeginTransaction();
+                if (batchesSinceCommit >= CommitInterval)
+                {
+                    await transaction.CommitAsync();
+                    await transaction.DisposeAsync();
+                    transaction = conn.BeginTransaction();
+                    batchesSinceCommit = 0;
+                }
 
-                int percent = (int)(streamPos * 100 / totalLength);
-                OnProgress?.Invoke($"Imported {totalCards} cards...", Math.Min(percent, 99));
+                if (totalLength > 0)
+                {
+                    int percent = (int)(bytesReadFromStream * 100 / totalLength);
+                    OnProgress?.Invoke($"Imported {totalCards} cards...", Math.Min(percent, 99));
+                }
+                else
+                {
+                    OnProgress?.Invoke($"Imported {totalCards} cards...", 50);
+                }
             }
+
+            if (isFinalBlock) break;
         }
 
         // Flush remaining
@@ -315,29 +377,28 @@ public class CardPriceImporter
         if (!vendorElement.TryGetProperty(category, out var catElement)) return PriceEntry.Empty;
         if (!catElement.TryGetProperty(type, out var typeElement)) return PriceEntry.Empty;
 
-        // If it's a number (AllPricesToday format often), use it directly
+        // If it's a number (AllPricesToday format), use it directly
         if (typeElement.ValueKind == JsonValueKind.Number)
         {
             return new PriceEntry(DateTime.Now, typeElement.GetDouble());
         }
-        // If it's an object (history), take the last one
+        // If it's an object (historical date-series), take the last entry.
+        // MTGJSON date keys are ISO 8601 (YYYY-MM-DD) and sort lexicographically,
+        // so the last key is the most recent — no DateTime parsing required.
         else if (typeElement.ValueKind == JsonValueKind.Object)
         {
             double lastPrice = 0;
-            DateTime lastDate = DateTime.MinValue;
+            bool hasValue = false;
             foreach (var prop in typeElement.EnumerateObject())
             {
-                // We just want the latest. Assuming sorted or we scan all.
-                // Keys are dates.
-                var dt = PriceDateParser.ParseISO8601Date(prop.Name);
-                if (dt > lastDate && prop.Value.TryGetDouble(out var p))
+                if (prop.Value.TryGetDouble(out var p))
                 {
-                    lastDate = dt;
                     lastPrice = p;
+                    hasValue = true;
                 }
             }
-            if (lastDate != DateTime.MinValue)
-                return new PriceEntry(lastDate, lastPrice);
+            if (hasValue)
+                return new PriceEntry(DateTime.Now, lastPrice);
         }
 
         return PriceEntry.Empty;
