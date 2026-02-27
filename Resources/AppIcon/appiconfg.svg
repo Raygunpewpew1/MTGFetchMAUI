@@ -1,3 +1,120 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <text x="128" y="160" text-anchor="middle" font-family="Arial,sans-serif" font-size="120" font-weight="bold" fill="white">M</text>
+  <defs>
+    <!-- Gold shimmer -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#ffe566"/>
+      <stop offset="45%"  stop-color="#ffd700"/>
+      <stop offset="75%"  stop-color="#daa520"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </linearGradient>
+
+    <!-- Central gem gradient -->
+    <radialGradient id="gemGrad" cx="38%" cy="32%" r="68%">
+      <stop offset="0%"   stop-color="#f3e5ff"/>
+      <stop offset="20%"  stop-color="#e1bee7"/>
+      <stop offset="55%"  stop-color="#7b1fa2"/>
+      <stop offset="85%"  stop-color="#38006b"/>
+      <stop offset="100%" stop-color="#1a0035"/>
+    </radialGradient>
+
+    <!-- Glow for mana arcs and dots -->
+    <filter id="colorGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Larger glow for the central gem -->
+    <filter id="gemGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for the M monogram -->
+    <filter id="textGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Five-color mana arcs (radius 84, clockwise WUBRG) ────────── -->
+  <!-- Pentagon vertices: W(128,44) U(208,102) B(177,196) R(79,196) G(48,102) -->
+
+  <!-- White: W→U -->
+  <path d="M 128 44 A 84 84 0 0 1 208 102"
+        fill="none" stroke="#d8d8b0" stroke-width="7"
+        stroke-linecap="round" filter="url(#colorGlow)"/>
+  <!-- Blue: U→B -->
+  <path d="M 208 102 A 84 84 0 0 1 177 196"
+        fill="none" stroke="#1565c0" stroke-width="7"
+        stroke-linecap="round" filter="url(#colorGlow)"/>
+  <!-- Black: B→R -->
+  <path d="M 177 196 A 84 84 0 0 1 79 196"
+        fill="none" stroke="#455a64" stroke-width="7"
+        stroke-linecap="round" filter="url(#colorGlow)"/>
+  <!-- Red: R→G -->
+  <path d="M 79 196 A 84 84 0 0 1 48 102"
+        fill="none" stroke="#c62828" stroke-width="7"
+        stroke-linecap="round" filter="url(#colorGlow)"/>
+  <!-- Green: G→W -->
+  <path d="M 48 102 A 84 84 0 0 1 128 44"
+        fill="none" stroke="#2e7d32" stroke-width="7"
+        stroke-linecap="round" filter="url(#colorGlow)"/>
+
+  <!-- ── Gold decorative ring ─────────────────────────────────────── -->
+  <circle cx="128" cy="128" r="72" fill="none"
+          stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.65"/>
+
+  <!-- ── Mana dots at pentagon vertices ─────────────────────────── -->
+  <!-- White (top) -->
+  <circle cx="128" cy="44" r="10" fill="#a8a870" filter="url(#colorGlow)"/>
+  <circle cx="128" cy="44" r="7"  fill="#f0f0d0"/>
+  <circle cx="128" cy="44" r="3"  fill="white" opacity="0.9"/>
+
+  <!-- Blue (top-right) -->
+  <circle cx="208" cy="102" r="10" fill="#0a3d8f" filter="url(#colorGlow)"/>
+  <circle cx="208" cy="102" r="7"  fill="#1976d2"/>
+  <circle cx="208" cy="102" r="3"  fill="#90caf9" opacity="0.9"/>
+
+  <!-- Black (bottom-right) -->
+  <circle cx="177" cy="196" r="10" fill="#263238" filter="url(#colorGlow)"/>
+  <circle cx="177" cy="196" r="7"  fill="#455a64"/>
+  <circle cx="177" cy="196" r="3"  fill="#cfd8dc" opacity="0.8"/>
+
+  <!-- Red (bottom-left) -->
+  <circle cx="79" cy="196" r="10" fill="#7f0000" filter="url(#colorGlow)"/>
+  <circle cx="79" cy="196" r="7"  fill="#e53935"/>
+  <circle cx="79" cy="196" r="3"  fill="#ff8a80" opacity="0.9"/>
+
+  <!-- Green (top-left) -->
+  <circle cx="48" cy="102" r="10" fill="#1b5e20" filter="url(#colorGlow)"/>
+  <circle cx="48" cy="102" r="7"  fill="#388e3c"/>
+  <circle cx="48" cy="102" r="3"  fill="#a5d6a7" opacity="0.9"/>
+
+  <!-- ── Central diamond gem ──────────────────────────────────────── -->
+  <polygon points="128,82 163,128 128,174 93,128"
+           fill="url(#gemGrad)" filter="url(#gemGlow)"/>
+  <polygon points="128,82 163,128 128,128"
+           fill="white" opacity="0.06"/>
+  <polygon points="128,82 146,107 128,128 110,107"
+           fill="white" opacity="0.13"/>
+  <ellipse cx="115" cy="104" rx="12" ry="7" fill="white" opacity="0.22"
+           transform="rotate(-35 115 104)"/>
+
+  <!-- ── Gold "M" monogram ────────────────────────────────────────── -->
+  <text x="128" y="148"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="54"
+        font-weight="bold"
+        fill="url(#goldGrad)"
+        filter="url(#textGlow)">M</text>
 </svg>
