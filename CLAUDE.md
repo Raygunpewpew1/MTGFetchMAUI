@@ -27,27 +27,42 @@ MTGFetchMAUI/
 ├── Models/
 │   ├── Card.cs                      # Core MTG card model (106+ properties; ~10,330 lines)
 │   ├── CollectionItem.cs            # Represents a card in a user's collection
+│   ├── DeckEntity.cs                # Database entity for a deck (name, format, dates, commander)
+│   ├── DeckCardEntity.cs            # Database entity for a card in a deck (quantity, section)
 │   └── DeckTypes.cs                 # Deck-related type definitions
 │
 ├── Data/
 │   ├── DatabaseManager.cs           # Thread-safe SQLite connection manager (two DBs)
+│   ├── ICardRepository.cs           # Async interface for card data access
 │   ├── CardRepository.cs            # Query layer for MTG master DB (cards, legalities, rulings)
+│   ├── ICollectionRepository.cs     # Async interface for collection data access
 │   ├── CollectionRepository.cs      # CRUD layer for user collection DB
+│   ├── IDeckRepository.cs           # Async interface for deck data access
+│   ├── DeckRepository.cs            # CRUD layer for deck data in collection DB
 │   ├── MTGSearchHelper.cs           # Fluent SQL query builder for card searches
 │   ├── SQLQueries.cs                # Centralized SQL query string constants
 │   └── CardMapper.cs                # Maps SQLite DataReader rows to Card objects
 │
 ├── Services/
+│   ├── AppDataManager.cs            # Static utility for file paths, DB downloads, versioning
 │   ├── CardManager.cs               # Facade coordinating repos, image service, and pricing
+│   ├── CardGalleryContext.cs        # Tracks ordered card UUID list for swipe-to-navigate
 │   ├── ImageDownloadService.cs      # Async Scryfall CDN fetcher with rate limiting (120ms min)
 │   ├── ImageCacheService.cs         # Orchestrates file image cache
 │   ├── FileImageCache.cs            # File-based cache (500 MB limit, 90-day retention)
 │   ├── CardPriceManager.cs          # Card pricing information
 │   ├── CardPriceImporter.cs         # Imports price data
+│   ├── CardPriceDatabase.cs         # SQLite database wrapper for price data
+│   ├── CardPriceTypes.cs            # Price type enums (PriceType, PriceCategory, currency)
+│   ├── NetworkHelper.cs             # HttpClient factory with consistent timeout/headers
+│   ├── SvgCacheEngine.cs            # Shared SVG loading/caching infrastructure (DRY base)
 │   ├── SetSvgCache.cs               # SVG caching for set symbols
 │   ├── ManaSvgCache.cs              # SVG caching for mana symbols
-│   ├── ToastService.cs              # User-facing toast notifications
-│   └── Logger.cs                    # Logging utility
+│   ├── ToastService.cs              # User-facing toast notifications (implements IToastService)
+│   ├── Logger.cs                    # Logging utility
+│   └── DeckBuilder/
+│       ├── DeckBuilderService.cs    # Deck creation, modification, and card management
+│       └── DeckValidator.cs         # Deck legality and construction rule validation
 │
 ├── ViewModels/
 │   ├── BaseViewModel.cs             # ObservableObject base class
@@ -57,9 +72,9 @@ MTGFetchMAUI/
 │   ├── StatsViewModel.cs            # Collection statistics
 │   └── LoadingViewModel.cs          # App initialization / splash screen
 │
-├── Views/Pages/
+├── Pages/
 │   ├── SearchPage.xaml/.cs          # Main card search UI (UraniumUI Material Design inputs)
-│   ├── CardDetailPage.xaml/.cs      # Card detail display
+│   ├── CardDetailPage.xaml/.cs      # Card detail display with swipe-to-navigate
 │   ├── SearchFiltersPage.xaml/.cs   # Advanced search filter UI
 │   ├── CollectionPage.xaml/.cs      # User collection management
 │   ├── StatsPage.xaml/.cs           # Statistics and analytics
@@ -73,7 +88,7 @@ MTGFetchMAUI/
 │   ├── CardTextView.cs              # Custom text view (Android handler)
 │   ├── ManaCostView.cs              # Mana cost symbol strip
 │   ├── ManaSymbolView.cs            # Individual mana symbol renderer
-│   ├── Snackbar.xaml/.cs            # Toast/snackbar notification UI
+│   ├── SwipeGestureContainer.cs     # Swipe left/right gesture wrapper (AppoMobi gestures)
 │   └── GridCardData.cs              # Card data structure for grid rendering
 │
 ├── Core/
@@ -82,6 +97,7 @@ MTGFetchMAUI/
 │   ├── CardLegalities.cs            # Format legality data per card
 │   ├── CardRuling.cs                # Card ruling data
 │   ├── CardTypeInfo.cs              # Card type classification helpers
+│   ├── CardTypesJsonData.cs         # MTGJSON card types JSON parser
 │   ├── ScryfallCDN.cs               # Scryfall API URL helpers
 │   ├── SearchOptions.cs             # Search filter options model
 │   └── Layout/
@@ -97,6 +113,9 @@ MTGFetchMAUI/
 │   ├── Images/                      # App icon, splash screen, asset images
 │   └── Raw/                         # Raw resource files
 │
+├── Assets/
+│   └── SVGSets/                     # Embedded SVG set symbol assets
+│
 ├── Platforms/
 │   ├── Android/
 │   │   └── AndroidManifest.xml      # Permissions: Network, Internet, External Storage, Camera
@@ -106,6 +125,8 @@ MTGFetchMAUI/
 ├── MTGFetchMAUI.Tests/
 │   ├── MTGFetchMAUI.Tests.csproj    # xUnit test project linked to main project source files
 │   ├── MTGSearchHelperTests.cs      # Tests for the fluent SQL query builder
+│   ├── CollectionStatsTests.cs      # Tests for collection statistics logic
+│   ├── DeckBuilderTests.cs          # Tests for deck builder service and validation
 │   └── Core/Layout/
 │       └── GridLayoutEngineTests.cs # Tests for grid layout calculation
 │
@@ -130,20 +151,26 @@ Pages bind to ViewModels via MAUI data binding. ViewModels expose `ObservablePro
 - Mark ViewModel classes as `partial`.
 
 ### Repository Pattern
-- `CardRepository` — read-only queries against the MTG master database.
-- `CollectionRepository` — CRUD operations on the user's collection database.
-- Both are coordinated by `CardManager` (facade).
+- `ICardRepository` / `CardRepository` — read-only queries against the MTG master database.
+- `ICollectionRepository` / `CollectionRepository` — CRUD operations on the user's collection database.
+- `IDeckRepository` / `DeckRepository` — CRUD operations on deck data (stored in the collection DB).
+- All three are coordinated by `CardManager` (facade).
 
 ### Dependency Injection
 All services, repositories, and ViewModels are registered in `MauiProgram.cs`.
-- **Singleton**: `DatabaseManager`, `CardManager`, image caches, repositories (long-lived, stateful).
-- **Transient**: Modal/overlay ViewModels (e.g., `CollectionAddPage`).
+- **Singleton**: `DatabaseManager`, `CardManager`, image caches, repositories, `CardGalleryContext` (long-lived, stateful).
+- **Transient**: Modal/overlay pages and their ViewModels (e.g., `CardDetailPage`, `LoadingPage`).
+
+Register repositories via their interfaces (`ICardRepository`, `ICollectionRepository`, `IDeckRepository`) so they are mockable in tests.
 
 ### Fluent Query Builder
 `MTGSearchHelper` constructs parameterized SQLite queries. Always add new search predicates through this class rather than writing raw SQL inline.
 
 ### Custom Rendering
 The card grid (`CardGrid`, `CardGridRenderer`) uses SkiaSharp for high-performance rendering. Do not replace with MAUI `CollectionView` without careful performance benchmarking.
+
+### Swipe Navigation
+`CardGalleryContext` holds the ordered list of card UUIDs from the current search or collection view. `SwipeGestureContainer` (wrapping `CardDetailPage`) calls into this context to enable swipe-to-navigate between adjacent cards.
 
 ---
 
@@ -154,10 +181,11 @@ App (App.xaml.cs)
   └─► LoadingPage
         └─► LoadingViewModel.OnAppearing()
               └─► CardManager.InitializeAsync()
+                    ├─► AppDataManager — check/download MTG master DB if missing or stale
                     ├─► DatabaseManager.ConnectAsync()
                     │     ├─► Connect to MTG master DB (read-only SQLite)
                     │     └─► Connect/create Collection DB (read-write SQLite)
-                    └─► (Collection tables created if absent)
+                    └─► (Collection and deck tables created if absent)
   └─► AppShell (tab navigation)
         ├─► Search Tab  → SearchPage
         ├─► Collection Tab → CollectionPage
@@ -171,11 +199,12 @@ App (App.xaml.cs)
 | Database | Access Mode | Purpose |
 |---|---|---|
 | MTG master (`MTG_App_DB.zip`) | Read-only | All card data from MTGJSON |
-| Collection DB | Read-write | User's personal card collection |
+| Collection DB | Read-write | User's collection and decks |
 
 - Both databases use SQLite via `Microsoft.Data.Sqlite` and `Dapper`.
 - `DatabaseManager` uses a `SemaphoreSlim` to guard concurrent access.
-- MTG master DB is downloaded automatically on first launch from the GitHub Releases URL defined in `MTGConstants.MTGDatabaseUrl`.
+- MTG master DB is downloaded automatically on first launch via `AppDataManager`, from the GitHub Releases URL defined in `MTGConstants.MTGDatabaseUrl`.
+- A local version file (`main_db_version.txt`) tracks the downloaded DB version; `AppDataManager` checks it before re-downloading.
 - The master DB is updated weekly via GitHub Actions (drops `cardForeignData`, runs `VACUUM`, zips, publishes).
 
 ---
@@ -227,7 +256,7 @@ Request card image
 |---|---|---|
 | `Microsoft.Maui.Controls` | 10.0.41 | MAUI framework |
 | `CommunityToolkit.Maui` | 14.0.0 | MAUI community extensions |
-| `CommunityToolkit.Mvvm` | 8.3.2 | MVVM Source Generators |
+| `CommunityToolkit.Mvvm` | 8.4.0 | MVVM Source Generators |
 | `Microsoft.Data.Sqlite` | 10.0.3 | SQLite provider |
 | `Dapper` | 2.1.66 | Micro-ORM for data mapping |
 | `SkiaSharp` | 3.119.2 | 2D vector graphics |
@@ -235,6 +264,7 @@ Request card image
 | `Svg.Skia` | 3.4.1 | SVG rendering via SkiaSharp |
 | `UraniumUI.Material` | 2.14.0 | Material Design UI components |
 | `UraniumUI.Icons.FontAwesome` | 2.14.0 | Font Awesome icon set |
+| `AppoMobi.Maui.Gestures` | 1.11.9.1 | Cross-platform gesture recognition (swipe) |
 | `Plugin.Maui.OCR` | 1.1.1 | OCR (Android only, ML Kit) |
 
 > **Note**: Syncfusion was evaluated and rejected due to licensing costs. UraniumUI (MIT) is the chosen UI library.
@@ -246,8 +276,8 @@ Request card image
 - **Framework**: xUnit 2.9.3 with Coverlet for coverage.
 - **Location**: `MTGFetchMAUI.Tests/`
 - **Approach**: The test project uses `<Compile Include>` links to pull in specific source files from the main project rather than referencing the project as a whole (avoids MAUI platform dependencies in tests).
-- **Existing tests**: `MTGSearchHelperTests`, `GridLayoutEngineTests`.
-- When adding new logic to `MTGSearchHelper`, `GridLayoutEngine`, or other pure C# utilities, add corresponding xUnit tests.
+- **Existing tests**: `MTGSearchHelperTests`, `GridLayoutEngineTests`, `CollectionStatsTests`, `DeckBuilderTests`.
+- When adding new logic to `MTGSearchHelper`, `GridLayoutEngine`, `DeckBuilderService`, or other pure C# utilities, add corresponding xUnit tests.
 - Platform-specific code (MAUI controls, Android handlers) is not covered by unit tests.
 
 ### Running Tests
@@ -285,19 +315,21 @@ The app downloads this artifact from `MTGConstants.MTGDatabaseUrl` on first laun
 
 ### Naming
 - ViewModels: `<Feature>ViewModel.cs` in `ViewModels/`.
-- Pages: `<Feature>Page.xaml` in `Views/Pages/`.
+- Pages: `<Feature>Page.xaml` in `Pages/`.
 - Services: descriptive noun + `Service` or `Manager` suffix in `Services/`.
+- Repository interfaces: `I<Name>Repository.cs` in `Data/`; implementations alongside.
 - SQL queries: defined as `const string` in `SQLQueries.cs`.
 - Application-wide string constants: defined in `MTGConstants.cs`.
 
 ### Adding a New Feature
 1. Define any new data in `Models/`.
-2. Add data access in `CardRepository` or `CollectionRepository` (and SQL in `SQLQueries.cs`).
-3. Expose functionality through `CardManager` if it spans multiple services.
-4. Create a ViewModel in `ViewModels/` extending `BaseViewModel` (use `ObservableObject` and source generators).
-5. Build the page in `Views/Pages/` and bind to the ViewModel.
-6. Register all new types in `MauiProgram.cs`.
-7. Add tab or route to `AppShell.xaml` if navigation is needed.
+2. Add an interface in `Data/` (`I<Name>Repository`), then implement in a `<Name>Repository` class.
+3. Add SQL in `SQLQueries.cs`.
+4. Expose functionality through `CardManager` if it spans multiple services.
+5. Create a ViewModel in `ViewModels/` extending `BaseViewModel` (use `ObservableObject` and source generators).
+6. Build the page in `Pages/` and bind to the ViewModel.
+7. Register all new types in `MauiProgram.cs`.
+8. Add tab or route to `AppShell.xaml` if navigation is needed.
 
 ### Thread Safety
 - Always acquire the `SemaphoreSlim` in `DatabaseManager` before database operations.
@@ -310,6 +342,7 @@ The app downloads this artifact from `MTGConstants.MTGDatabaseUrl` on first laun
 ### Custom Controls
 - The `CardGrid` and `CardGridRenderer` are SkiaSharp-based. Modifications require understanding the `GridLayoutEngine` and `GridState` classes.
 - Do not add MAUI-heavy controls inside the SkiaSharp canvas; delegate rendering to `CardGridRenderer`.
+- Use `SwipeGestureContainer` (backed by `AppoMobi.Maui.Gestures`) for swipe gesture handling outside the SkiaSharp canvas.
 
 ---
 
@@ -318,14 +351,17 @@ The app downloads this artifact from `MTGConstants.MTGDatabaseUrl` on first laun
 | Area | Status |
 |---|---|
 | Material Design inputs via UraniumUI | Done |
-| Deck building feature | Not started |
+| Deck building feature | In progress |
 
 ---
 
 ## Common Gotchas
 
 - The MTG master database is **read-only**. Never attempt write operations on it.
-- `CardPriceManager` and `CardPriceImporter` are present but may not be fully wired up — verify before relying on pricing data.
+- `CardPriceManager`, `CardPriceImporter`, and `CardPriceDatabase` handle pricing — verify wiring before relying on price data, as this subsystem may not be fully integrated in all flows.
 - `Plugin.Maui.OCR` is Android-only; any OCR code path must be guarded with `#if ANDROID` or runtime platform checks.
 - The `Card` model (`Card.cs`) is very large (~10,330 lines). Use `CardMapper.cs` to map new database columns rather than modifying raw read logic scattered across the class.
 - Image caching relies on `FileImageCache`. If cache behavior seems wrong, check there.
+- Pages are located in `Pages/` at the project root, not `Views/Pages/`.
+- `SvgCacheEngine` is the internal shared base for `ManaSvgCache` and `SetSvgCache`; do not duplicate SVG loading logic outside of it.
+- `AppDataManager` owns all DB download/versioning logic. Do not add HTTP download code elsewhere.
