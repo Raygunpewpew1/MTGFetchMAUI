@@ -144,6 +144,8 @@ public partial class CardDetailPage : ContentPage
         // Price History
         PopulateHistory();
 
+        PopulatePurchaseLinks();
+
         PopulateLegalities();
 
         // Image
@@ -299,6 +301,30 @@ public partial class CardDetailPage : ContentPage
             row.Add(new Label { Text = entry.Date.ToShortDateString(), FontSize = 12, TextColor = Color.FromArgb("#A0A0A0") });
             row.Add(new Label { Text = $"${entry.Price:F2}", FontSize = 12, HorizontalTextAlignment = TextAlignment.End }, 1);
             HistoryStack.Add(row);
+        }
+    }
+
+    private void PopulatePurchaseLinks()
+    {
+        PurchaseLinksStack.Children.Clear();
+        foreach (var (label, url) in _viewModel.GetPurchaseLinks())
+        {
+            var link = new Label
+            {
+                Text = label,
+                FontSize = 14,
+                TextColor = Color.FromArgb("#6CB4E4"),
+                TextDecorations = TextDecorations.Underline
+            };
+            link.GestureRecognizers.Add(new TapGestureRecognizer
+            {
+                Command = new Command(async () =>
+                {
+                    if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                        await Launcher.OpenAsync(uri);
+                })
+            });
+            PurchaseLinksStack.Children.Add(link);
         }
     }
 
