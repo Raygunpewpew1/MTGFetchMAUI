@@ -136,6 +136,12 @@ public class CardGrid : ContentView
 
         _renderer.EnsureResources();
         MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
+
+#if ANDROID
+        // Subscribe here rather than in the constructor so we only listen while
+        // the view is actually part of the visual tree.
+        MainActivity.WindowFocusGained += OnWindowFocusGained;
+#endif
     }
 
     private void OnUnloaded(object? sender, EventArgs e)
@@ -146,7 +152,23 @@ public class CardGrid : ContentView
         _cts = null;
         _isProcessingUpdates = false;
         _renderer.Dispose();
+
+#if ANDROID
+        MainActivity.WindowFocusGained -= OnWindowFocusGained;
+#endif
     }
+
+#if ANDROID
+    // Called when the Android activity window regains input focus (reliable on all
+    // Android versions including 14+ / One UI 7 where OnAppearing can be skipped).
+    // Resets both our gesture state machine and the AppoMobi library's internal
+    // pointer-tracking state so the next touch works cleanly.
+    private void OnWindowFocusGained(object? sender, EventArgs e)
+    {
+        _gestures.HandleCancel();
+        _spacer.ResetEffect();
+    }
+#endif
 
     // ── Public API ─────────────────────────────────────────────────────
 
@@ -542,6 +564,16 @@ public class CardGrid : ContentView
                 var effect = TouchEffect.GetFrom(this);
                 if (effect != null) effect.WIllLock = ShareLockState.Unlocked;
             };
+        }
+
+        // Detaches and re-attaches the TouchEffect to reset AppoMobi's internal
+        // pointer-tracking state. Called after app minimize/restore on Android 14+
+        // where the library can be left believing a touch is still in progress.
+        internal void ResetEffect()
+        {
+            TouchEffect.SetForceAttach(this, false);
+            TouchEffect.SetForceAttach(this, true);
+            TouchEffect.SetShareTouch(this, TouchHandlingStyle.Manual);
         }
 
         // Explicit implementation avoids ambiguity with BoxView.InputTransparent.
