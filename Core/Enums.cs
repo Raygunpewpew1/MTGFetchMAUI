@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace MTGFetchMAUI.Core;
 
 /// <summary>Legality status for a card in a format.</summary>
@@ -102,6 +104,26 @@ public enum MtgColor
 
 public static class EnumExtensions
 {
+    static EnumExtensions()
+    {
+        Debug.Assert(LegalityStrings.Length == Enum.GetValues<LegalityStatus>().Length,
+            "LegalityStrings is out of sync with LegalityStatus enum.");
+        Debug.Assert(RarityStrings.Length == Enum.GetValues<CardRarity>().Length,
+            "RarityStrings is out of sync with CardRarity enum.");
+        Debug.Assert(LayoutStrings.Length == Enum.GetValues<CardLayout>().Length,
+            "LayoutStrings is out of sync with CardLayout enum.");
+        Debug.Assert(FormatDbFields.Length == Enum.GetValues<DeckFormat>().Length,
+            "FormatDbFields is out of sync with DeckFormat enum.");
+        Debug.Assert(FormatDisplayNames.Length == Enum.GetValues<DeckFormat>().Length,
+            "FormatDisplayNames is out of sync with DeckFormat enum.");
+        Debug.Assert(ColorChars.Length == Enum.GetValues<MtgColor>().Length,
+            "ColorChars is out of sync with MtgColor enum.");
+        Debug.Assert(ColorNames.Length == Enum.GetValues<MtgColor>().Length,
+            "ColorNames is out of sync with MtgColor enum.");
+        Debug.Assert(ArchetypeNames.Length == Enum.GetValues<CommanderArchetype>().Length,
+            "ArchetypeNames is out of sync with CommanderArchetype enum.");
+    }
+
     // ── LegalityStatus ──────────────────────────────────────────────
 
     private static readonly string[] LegalityStrings =
