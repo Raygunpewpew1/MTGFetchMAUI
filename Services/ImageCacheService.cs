@@ -12,8 +12,9 @@ public class ImageCacheService : IDisposable
     private readonly LinkedList<string> _lruList = new();
     private readonly object _lruLock = new();
 
-    // Keep enough images for ~3-4 screens of content to ensure smooth scrolling
-    private const int MaxMemoryImages = 100;
+    // 400 thumbnails at ~270 KB each ≈ 108 MB — same budget as 100 full-res images,
+    // but 4× more unique cards cached for large-collection browsing.
+    private const int MaxMemoryImages = 400;
 
     public ImageCacheService(FileImageCache fileCache)
     {
@@ -54,6 +55,15 @@ public class ImageCacheService : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reads from L2 file cache only. Does NOT promote the result to L1 memory cache.
+    /// Used by the card grid to temporarily load a full-res image for thumbnail generation.
+    /// </summary>
+    public async Task<SKImage?> GetFileOnlyAsync(string key)
+    {
+        return await _fileCache.GetImageAsync(key);
     }
 
     public void AddToMemoryCache(string key, SKImage image)

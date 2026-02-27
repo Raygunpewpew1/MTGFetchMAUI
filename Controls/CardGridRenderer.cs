@@ -203,7 +203,7 @@ internal sealed class CardGridRenderer : IDisposable
 
         // 2. Card image
         var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + rect.Width * 1.3968f);
-        var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
+        var cacheKey = "thumb:" + ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
         var image = _getImage(cacheKey);
 
         if (image != null && image.Handle != IntPtr.Zero)
@@ -288,7 +288,7 @@ internal sealed class CardGridRenderer : IDisposable
         float imgTop = row.Top + (row.Height - ListImgHeight) / 2f;
         var imgRect = new SKRect(pad, imgTop, pad + ListImgWidth, imgTop + ListImgHeight);
 
-        var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
+        var cacheKey = "thumb:" + ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
         var image = _getImage(cacheKey);
 
         if (image != null && image.Handle != IntPtr.Zero)
