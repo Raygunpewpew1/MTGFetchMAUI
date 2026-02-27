@@ -70,6 +70,15 @@ public class CardManager : IDisposable
     }
 
     /// <summary>
+    /// Returns true immediately if already connected, otherwise calls InitializeAsync().
+    /// </summary>
+    public async Task<bool> EnsureInitializedAsync()
+    {
+        if (_databaseManager.IsConnected) return true;
+        return await InitializeAsync();
+    }
+
+    /// <summary>
     /// Disconnects from databases.
     /// </summary>
     public void Disconnect()

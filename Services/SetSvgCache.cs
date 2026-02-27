@@ -1,6 +1,4 @@
 using SkiaSharp;
-using Svg.Skia;
-using System.Reflection;
 
 namespace MTGFetchMAUI.Services;
 
@@ -10,65 +8,24 @@ namespace MTGFetchMAUI.Services;
 /// </summary>
 public static class SetSvgCache
 {
-    private static readonly Dictionary<string, SKSvg> _cache = new();
-    private static readonly HashSet<string> _failedSymbols = [];
-    private static readonly object _lock = new();
-    private static readonly Assembly _assembly = typeof(SetSvgCache).Assembly;
-    private static string? _resourcePrefix;
+    private static readonly SvgCacheEngine _engine = new(
+        typeof(SetSvgCache).Assembly,
+        s => s.ToLowerInvariant(),
+        name => name.Contains("Assets.SVGSets", StringComparison.OrdinalIgnoreCase),
+        (prefix, normalized) => $"{prefix}.{normalized}.svg",
+        "SetSymbol");
 
     /// <summary>
     /// Normalizes a set code from card data to SVG filename format.
     /// E.g. "ZEN" -> "zen"
     /// </summary>
-    public static string NormalizeSetCode(string setCode)
-    {
-        return setCode.ToLowerInvariant();
-    }
+    public static string NormalizeSetCode(string setCode) => setCode.ToLowerInvariant();
 
     /// <summary>
     /// Gets the cached SKPicture for a set symbol, loading it if necessary.
     /// Returns null if the symbol SVG doesn't exist.
     /// </summary>
-    public static SKPicture? GetSymbol(string setCode)
-    {
-        if (string.IsNullOrEmpty(setCode)) return null;
-
-        var normalized = NormalizeSetCode(setCode);
-
-        lock (_lock)
-        {
-            if (_cache.TryGetValue(normalized, out var cached))
-                return cached.Picture;
-
-            if (_failedSymbols.Contains(normalized))
-                return null;
-        }
-
-        // Load outside the lock to avoid holding it during I/O
-        var svg = LoadSvgFromResources(normalized);
-
-        lock (_lock)
-        {
-            // Double-check after loading
-            if (_cache.TryGetValue(normalized, out var cached))
-            {
-                svg?.Dispose();
-                return cached.Picture;
-            }
-
-            if (svg?.Picture != null)
-            {
-                _cache[normalized] = svg;
-                return svg.Picture;
-            }
-            else
-            {
-                svg?.Dispose();
-                _failedSymbols.Add(normalized);
-                return null;
-            }
-        }
-    }
+    public static SKPicture? GetSymbol(string setCode) => _engine.GetSymbol(setCode);
 
     /// <summary>
     /// Draws a set symbol SVG onto the canvas at the specified position and size.
@@ -128,8 +85,8 @@ public static class SetSvgCache
         {
             IsAntialias = true,
             ColorFilter = tint.HasValue
-            ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn)
-            : null
+                ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn)
+                : null
         };
 
         canvas.DrawPicture(picture, paint);
@@ -139,73 +96,5 @@ public static class SetSvgCache
     /// <summary>
     /// Clears all cached SVGs and failed lookups.
     /// </summary>
-    public static void ClearCache()
-    {
-        lock (_lock)
-        {
-            foreach (var kvp in _cache)
-                kvp.Value.Dispose();
-            _cache.Clear();
-            _failedSymbols.Clear();
-        }
-    }
-
-    private static SKSvg? LoadSvgFromResources(string normalizedName)
-    {
-        try
-        {
-            _resourcePrefix ??= FindResourcePrefix();
-            if (_resourcePrefix == null) return null;
-
-            // Symbols are in Assets/SVGSets as {normalizedName}.svg
-            // e.g. "zen" -> "zen.svg"
-            // The resource name will look like "MTGFetchMAUI.Assets.SVGSets.zen.svg"
-            var resourceName = $"{_resourcePrefix}.{normalizedName}.svg";
-
-            using var stream = _assembly.GetManifestResourceStream(resourceName);
-            if (stream == null)
-            {
-                // Try fallback if normalized didn't work (e.g. maybe case issue, but likely handled by ToLower)
-                return null;
-            }
-
-            using var reader = new StreamReader(stream);
-            var svgContent = reader.ReadToEnd();
-
-            var svg = new SKSvg();
-            svg.FromSvg(svgContent);
-            return svg;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogStuff($"Failed to load Set SVG '{normalizedName}': {ex.Message}", LogLevel.Warning);
-            return null;
-        }
-    }
-
-    private static string? FindResourcePrefix()
-    {
-        // Find the resource prefix by looking for a set symbol SVG resource
-        // e.g. "zen.svg" or "10e.svg"
-        // We know "10e.svg" exists in Assets/SVGSets based on list_files
-        var names = _assembly.GetManifestResourceNames();
-        foreach (var name in names)
-        {
-            // Look for resources that end in .svg and contain "Assets.SVGSets" or similar
-            if (name.Contains("Assets.SVGSets", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
-            {
-                // Resource name example: "MTGFetchMAUI.Assets.SVGSets.10e.svg"
-                // We want "MTGFetchMAUI.Assets.SVGSets"
-                var lastDotSvg = name.LastIndexOf(".svg", StringComparison.OrdinalIgnoreCase);
-                var nameWithoutExt = name[..lastDotSvg];
-                var lastDot = nameWithoutExt.LastIndexOf('.'); // Last dot before extension (e.g. before "10e")
-
-                if (lastDot > 0)
-                {
-                    return nameWithoutExt[..lastDot];
-                }
-            }
-        }
-        return null;
-    }
+    public static void ClearCache() => _engine.ClearCache();
 }

@@ -59,14 +59,10 @@ public partial class StatsViewModel : BaseViewModel
 
     public async Task LoadStatsAsync()
     {
-        if (!_cardManager.DatabaseManager.IsConnected)
+        if (!await _cardManager.EnsureInitializedAsync())
         {
-            DatabaseStatus = "Connecting...";
-            if (!await _cardManager.InitializeAsync())
-            {
-                DatabaseStatus = "Database not connected";
-                return;
-            }
+            DatabaseStatus = "Database not connected";
+            return;
         }
 
         IsBusy = true;
