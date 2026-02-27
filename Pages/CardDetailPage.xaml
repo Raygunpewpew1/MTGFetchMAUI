@@ -146,6 +146,19 @@
                 <Border StrokeShape="RoundRectangle 8"
                         BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
+                        Padding="12"
+                        IsVisible="{Binding HasPurchaseLinks}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Buy Online"
+                               FontSize="16"
+                               FontAttributes="Bold" />
+                        <VerticalStackLayout x:Name="PurchaseLinksStack" Spacing="6" Padding="0,4,0,0" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
                         Padding="12">
                     <uranium:ExpanderView>
                         <uranium:ExpanderView.Header>

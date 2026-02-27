@@ -20,6 +20,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]
     [NotifyPropertyChangedFor(nameof(HasRulings))]
+    [NotifyPropertyChangedFor(nameof(HasPurchaseLinks))]
     private Card _card = new();
 
     [ObservableProperty]
@@ -52,6 +53,14 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
                                     PriceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
 
     public bool HasRulings => Card?.Rulings != null && Card.Rulings.Count > 0;
+
+    public bool HasPurchaseLinks => Card != null &&
+        (!string.IsNullOrEmpty(Card.cardKingdom) ||
+         !string.IsNullOrEmpty(Card.cardKingdomFoil) ||
+         !string.IsNullOrEmpty(Card.cardKingdomEtched) ||
+         !string.IsNullOrEmpty(Card.cardmarket) ||
+         !string.IsNullOrEmpty(Card.tcgplayer) ||
+         !string.IsNullOrEmpty(Card.tcgplayerEtched));
 
     public bool HasMultipleFaces => Faces.Length > 1 && Card.Layout.IsDoubleFaced();
 
@@ -267,6 +276,18 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     {
         await _cardManager.RemoveCardFromCollectionAsync(Card.UUID);
         IsInCollection = false;
+    }
+
+    public List<(string label, string url)> GetPurchaseLinks()
+    {
+        var links = new List<(string, string)>();
+        if (!string.IsNullOrEmpty(Card.tcgplayer))         links.Add(("TCGPlayer", Card.tcgplayer));
+        if (!string.IsNullOrEmpty(Card.tcgplayerEtched))   links.Add(("TCGPlayer \u2014 Etched", Card.tcgplayerEtched));
+        if (!string.IsNullOrEmpty(Card.cardmarket))         links.Add(("Cardmarket", Card.cardmarket));
+        if (!string.IsNullOrEmpty(Card.cardKingdom))        links.Add(("Card Kingdom", Card.cardKingdom));
+        if (!string.IsNullOrEmpty(Card.cardKingdomFoil))    links.Add(("Card Kingdom \u2014 Foil", Card.cardKingdomFoil));
+        if (!string.IsNullOrEmpty(Card.cardKingdomEtched))  links.Add(("Card Kingdom \u2014 Etched", Card.cardKingdomEtched));
+        return links;
     }
 
     public List<(string format, LegalityStatus status)> GetLegalityList()
