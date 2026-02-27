@@ -195,7 +195,7 @@ public sealed class DatabaseManager : IDisposable
         bool hasSortOrder = false;
         using (var pragma = conn.CreateCommand())
         {
-            pragma.CommandText = "PRAGMA table_info(my_collection)";
+            pragma.CommandText = SQLQueries.CollectionTableInfo;
             using var reader = await pragma.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
@@ -206,12 +206,12 @@ public sealed class DatabaseManager : IDisposable
         if (!hasSortOrder)
         {
             using var alter = conn.CreateCommand();
-            alter.CommandText = "ALTER TABLE my_collection ADD COLUMN sort_order INTEGER DEFAULT 0";
+            alter.CommandText = SQLQueries.CollectionAddSortOrder;
             await alter.ExecuteNonQueryAsync();
 
             // Seed existing rows so relative order is preserved
             using var seed = conn.CreateCommand();
-            seed.CommandText = "UPDATE my_collection SET sort_order = rowid WHERE sort_order = 0";
+            seed.CommandText = SQLQueries.CollectionSeedSortOrder;
             await seed.ExecuteNonQueryAsync();
         }
     }
