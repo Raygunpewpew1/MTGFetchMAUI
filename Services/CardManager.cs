@@ -15,7 +15,7 @@ public class CardManager : IDisposable
     private readonly ICardRepository _cardRepository;
     private readonly ICollectionRepository _collectionRepository;
 
-    private ImageDownloadService? _imageService;
+    private readonly ImageDownloadService _imageService;
     private CardPriceManager? _priceManager;
     private CancellationTokenSource? _downloadCts;
     private readonly SemaphoreSlim _priceInitLock = new(1, 1);
@@ -44,29 +44,16 @@ public class CardManager : IDisposable
 
     public DatabaseManager DatabaseManager => _databaseManager;
 
-    /// <summary>
-    /// Lazy-initialized image download service.
-    /// </summary>
-    public ImageDownloadService ImageService => _imageService ??= new ImageDownloadService();
+    public ImageDownloadService ImageService => _imageService;
 
     // ── Constructor ──────────────────────────────────────────────────
 
-    public CardManager()
+    public CardManager(ImageDownloadService imageDownloadService)
     {
+        _imageService = imageDownloadService;
         _databaseManager = new DatabaseManager();
         _cardRepository = new CardRepository(_databaseManager);
         _collectionRepository = new CollectionRepository(_databaseManager, _cardRepository);
-    }
-
-    /// <summary>
-    /// Creates a separate CardManager instance for use on background threads.
-    /// Has its own database connection.
-    /// </summary>
-    public static async Task<CardManager> CreateForThreadAsync()
-    {
-        var manager = new CardManager();
-        await manager.InitializeAsync();
-        return manager;
     }
 
     // ── Initialization ───────────────────────────────────────────────
@@ -326,20 +313,17 @@ public class CardManager : IDisposable
 
     public void CancelPendingImageDownloads()
     {
-        _imageService?.CancelPendingDownloads();
+        _imageService.CancelPendingDownloads();
     }
 
     public async Task ClearImageCacheAsync()
     {
-        if (_imageService != null)
-            await _imageService.ClearCacheAsync();
+        await _imageService.ClearCacheAsync();
     }
 
     public async Task<string> GetImageCacheStatsAsync()
     {
-        return _imageService != null
-            ? await _imageService.GetCacheStatsAsync()
-            : "Image service not initialized.";
+        return await _imageService.GetCacheStatsAsync();
     }
 
     // ── Price Methods ────────────────────────────────────────────────
@@ -364,7 +348,6 @@ public class CardManager : IDisposable
     {
         _downloadCts?.Cancel();
         _downloadCts?.Dispose();
-        _imageService?.Dispose();
         _priceManager?.Dispose();
         _databaseManager.Dispose();
         _priceInitLock.Dispose();
