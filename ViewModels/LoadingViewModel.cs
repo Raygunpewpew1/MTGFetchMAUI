@@ -29,6 +29,24 @@ public partial class LoadingViewModel : BaseViewModel
 
     public async Task InitAsync()
     {
+        // Guard against re-entry on Android 14+ (Samsung S24 / One UI 7) where an
+        // unhandled configuration change can recreate the activity after minimize/restore,
+        // causing a fresh LoadingPage to appear while the app is already running.
+        // Re-running init would call Disconnect() on the live singleton database,
+        // tearing down the already-initialized app state.
+        if (_cardManager.DatabaseManager.IsConnected)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (Application.Current?.Windows.FirstOrDefault() is { } window
+                    && window.Page is not AppShell)
+                {
+                    window.Page = _serviceProvider.GetRequiredService<AppShell>();
+                }
+            });
+            return;
+        }
+
         StatusMessage = "Checking database...";
         ShowRetry = false;
         Progress = 0;
