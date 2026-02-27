@@ -104,9 +104,9 @@ public class CardPriceImporter
 
         // Create/Ensure Schema
         await ExecuteAsync(conn, SQLQueries.CreatePricesTable);
-        await ExecuteAsync(SQLQueries.CreatePriceHistoryTable, conn);
+        await ExecuteAsync(conn, SQLQueries.CreatePriceHistoryTable);
         await ExecuteAsync(conn, SQLQueries.CreatePricesIndex);
-        await ExecuteAsync(SQLQueries.CreatePriceHistoryIndex, conn);
+        await ExecuteAsync(conn, SQLQueries.CreatePriceHistoryIndex);
 
         OnProgress?.Invoke("Preparing import...", 5);
 
@@ -402,13 +402,6 @@ public class CardPriceImporter
         }
 
         return PriceEntry.Empty;
-    }
-
-    private static async Task ExecuteAsync(string sql, SqliteConnection conn)
-    {
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        await cmd.ExecuteNonQueryAsync();
     }
 
     private static async Task ExecuteAsync(SqliteConnection conn, string sql)

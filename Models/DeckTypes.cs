@@ -84,19 +84,12 @@ public class DeckStats
 }
 
 /// <summary>
-/// Represents a Commander deck.
-/// Port of TCommanderDeck from MTGCollection.pas.
+/// Common properties shared by all deck types.
 /// </summary>
-public class CommanderDeck
+public abstract class BaseDeck
 {
-    public int DeckID { get; set; }
     public string DeckName { get; set; } = "";
-    public string CommanderName { get; set; } = "";
-    public string PartnerName { get; set; } = "";
-    public string Companion { get; set; } = "";
-    public DeckFormat DeckFormat { get; set; } = DeckFormat.Commander;
-    public CommanderArchetype Archetype { get; set; } = CommanderArchetype.Unknown;
-    public ColorIdentity ColorIdentity { get; set; }
+    public DeckFormat DeckFormat { get; set; }
     public List<DeckCard> MainDeck { get; set; } = [];
     public List<DeckCard> Sideboard { get; set; } = [];
     public string Description { get; set; } = "";
@@ -104,9 +97,38 @@ public class CommanderDeck
     public DateTime DateModified { get; set; }
     public DeckStats Stats { get; set; } = new();
 
+    public virtual int GetTotalCards() => MainDeck.Sum(c => c.Quantity);
+
+    public virtual int GetCardCount(string cardName) =>
+        MainDeck.Where(c => c.CardName.Equals(cardName, StringComparison.OrdinalIgnoreCase))
+                .Sum(c => c.Quantity) +
+        Sideboard.Where(c => c.CardName.Equals(cardName, StringComparison.OrdinalIgnoreCase))
+                 .Sum(c => c.Quantity);
+
+    public abstract string GetDisplayInfo();
+}
+
+/// <summary>
+/// Represents a Commander deck.
+/// Port of TCommanderDeck from MTGCollection.pas.
+/// </summary>
+public class CommanderDeck : BaseDeck
+{
+    public int DeckID { get; set; }
+    public string CommanderName { get; set; } = "";
+    public string PartnerName { get; set; } = "";
+    public string Companion { get; set; } = "";
+    public CommanderArchetype Archetype { get; set; } = CommanderArchetype.Unknown;
+    public ColorIdentity ColorIdentity { get; set; }
+
+    public CommanderDeck()
+    {
+        DeckFormat = DeckFormat.Commander;
+    }
+
     public bool HasCommander => !string.IsNullOrEmpty(CommanderName);
 
-    public int GetTotalCards()
+    public override int GetTotalCards()
     {
         int total = MainDeck.Sum(c => c.Quantity);
         if (!string.IsNullOrEmpty(CommanderName)) total++;
@@ -114,7 +136,7 @@ public class CommanderDeck
         return total;
     }
 
-    public int GetCardCount(string cardName)
+    public override int GetCardCount(string cardName)
     {
         int count = 0;
         if (CommanderName.Equals(cardName, StringComparison.OrdinalIgnoreCase)) count++;
@@ -132,7 +154,7 @@ public class CommanderDeck
         GetTotalCards() == 100 &&
         DeckFormat is DeckFormat.Commander or DeckFormat.Brawl or DeckFormat.Oathbreaker;
 
-    public string GetDisplayInfo()
+    public override string GetDisplayInfo()
     {
         var result = $"{DeckName}\n" +
                      $"Commander: {CommanderName}\n" +
@@ -151,24 +173,12 @@ public class CommanderDeck
 /// Generic deck structure (non-Commander).
 /// Port of TDeck from MTGCollection.pas.
 /// </summary>
-public class Deck
+public class Deck : BaseDeck
 {
-    public string DeckName { get; set; } = "";
-    public DeckFormat DeckFormat { get; set; } = DeckFormat.Standard;
-    public List<DeckCard> MainDeck { get; set; } = [];
-    public List<DeckCard> Sideboard { get; set; } = [];
-    public string Description { get; set; } = "";
-    public DateTime DateCreated { get; set; }
-    public DateTime DateModified { get; set; }
-    public DeckStats Stats { get; set; } = new();
-
-    public int GetTotalCards() => MainDeck.Sum(c => c.Quantity);
-
-    public int GetCardCount(string cardName) =>
-        MainDeck.Where(c => c.CardName.Equals(cardName, StringComparison.OrdinalIgnoreCase))
-                .Sum(c => c.Quantity) +
-        Sideboard.Where(c => c.CardName.Equals(cardName, StringComparison.OrdinalIgnoreCase))
-                 .Sum(c => c.Quantity);
+    public Deck()
+    {
+        DeckFormat = DeckFormat.Standard;
+    }
 
     public bool IsValid
     {
@@ -183,7 +193,7 @@ public class Deck
         }
     }
 
-    public string GetDisplayInfo() =>
+    public override string GetDisplayInfo() =>
         $"{DeckName}\n" +
         $"Format: {DeckFormat.ToDisplayName()}\n" +
         $"Main Deck: {GetTotalCards()} cards\n" +

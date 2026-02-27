@@ -102,13 +102,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     public async Task LoadCardAsync(string uuid)
     {
-        if (!_cardManager.DatabaseManager.IsConnected)
-        {
-            if (!await _cardManager.InitializeAsync())
-            {
-                return;
-            }
-        }
+        if (!await _cardManager.EnsureInitializedAsync()) return;
 
         IsBusy = true;
 

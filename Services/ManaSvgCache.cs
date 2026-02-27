@@ -1,6 +1,4 @@
 using SkiaSharp;
-using Svg.Skia;
-using System.Reflection;
 
 namespace MTGFetchMAUI.Services;
 
@@ -11,65 +9,26 @@ namespace MTGFetchMAUI.Services;
 /// </summary>
 public static class ManaSvgCache
 {
-    // Cache the full SKSvg objects to keep the SKPicture alive
-    private static readonly Dictionary<string, SKSvg> _cache = new();
-    private static readonly HashSet<string> _failedSymbols = [];
-    private static readonly object _lock = new();
-    private static readonly Assembly _assembly = typeof(ManaSvgCache).Assembly;
-    private static string? _resourcePrefix;
+    private static readonly SvgCacheEngine _engine = new(
+        typeof(ManaSvgCache).Assembly,
+        s => s.Replace("/", "_").ToUpperInvariant(),
+        name => name.Contains(".mana_", StringComparison.OrdinalIgnoreCase),
+        (prefix, normalized) => $"{prefix}.mana_{normalized.ToLowerInvariant()}.svg",
+        "ManaSymbol");
 
     /// <summary>
     /// Normalizes a mana symbol from card text format to SVG filename format.
     /// E.g. "2/W" -> "2_W", "B/G/P" -> "B_G_P", "T" -> "T"
     /// Port of NormalizeSymbol from MTGCardTextView.pas.
     /// </summary>
-    public static string NormalizeSymbol(string symbol)
-    {
-        return symbol.Replace("/", "_").ToUpperInvariant();
-    }
+    public static string NormalizeSymbol(string symbol) =>
+        symbol.Replace("/", "_").ToUpperInvariant();
 
     /// <summary>
     /// Gets the cached SKPicture for a mana symbol, loading it if necessary.
     /// Returns null if the symbol SVG doesn't exist.
     /// </summary>
-    public static SKPicture? GetSymbol(string symbolName)
-    {
-        var normalized = NormalizeSymbol(symbolName);
-
-        lock (_lock)
-        {
-            if (_cache.TryGetValue(normalized, out var cached))
-                return cached.Picture;
-
-            if (_failedSymbols.Contains(normalized))
-                return null;
-        }
-
-        // Load outside the lock to avoid holding it during I/O
-        var svg = LoadSvgFromResources(normalized);
-
-        lock (_lock)
-        {
-            // Double-check after loading
-            if (_cache.TryGetValue(normalized, out var cached))
-            {
-                svg?.Dispose();
-                return cached.Picture;
-            }
-
-            if (svg?.Picture != null)
-            {
-                _cache[normalized] = svg;
-                return svg.Picture;
-            }
-            else
-            {
-                svg?.Dispose();
-                _failedSymbols.Add(normalized);
-                return null;
-            }
-        }
-    }
+    public static SKPicture? GetSymbol(string symbolName) => _engine.GetSymbol(symbolName);
 
     /// <summary>
     /// Draws a mana symbol SVG onto the canvas at the specified position and size.
@@ -95,62 +54,5 @@ public static class ManaSvgCache
     /// <summary>
     /// Clears all cached SVGs and failed lookups.
     /// </summary>
-    public static void ClearCache()
-    {
-        lock (_lock)
-        {
-            foreach (var kvp in _cache)
-                kvp.Value.Dispose();
-            _cache.Clear();
-            _failedSymbols.Clear();
-        }
-    }
-
-    private static SKSvg? LoadSvgFromResources(string normalizedName)
-    {
-        try
-        {
-            _resourcePrefix ??= FindResourcePrefix();
-            if (_resourcePrefix == null) return null;
-
-            // Symbols are now stored in Resources/Images as mana_{lowercase_symbol}.svg
-            // e.g. "2_W" -> "mana_2_w.svg"
-            var resourceName = $"{_resourcePrefix}.mana_{normalizedName.ToLowerInvariant()}.svg";
-            using var stream = _assembly.GetManifestResourceStream(resourceName);
-            if (stream == null) return null;
-
-            using var reader = new StreamReader(stream);
-            var svgContent = reader.ReadToEnd();
-
-            var svg = new SKSvg();
-            svg.FromSvg(svgContent);
-            return svg;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Logger.LogStuff($"Failed to load SVG '{normalizedName}': {ex.Message}", LogLevel.Warning);
-            return null;
-        }
-    }
-
-    private static string? FindResourcePrefix()
-    {
-        // Find the resource prefix by looking for a mana symbol SVG resource
-        var names = _assembly.GetManifestResourceNames();
-        foreach (var name in names)
-        {
-            // Look for resources like "...mana_w.svg" to ensure we get the right folder
-            if (name.Contains(".mana_", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
-            {
-                // Resource names are like "MTGFetchMAUI.Resources.Images.mana_w.svg"
-                // We want "MTGFetchMAUI.Resources.Images"
-                var lastDotSvg = name.LastIndexOf(".svg", StringComparison.OrdinalIgnoreCase);
-                var nameWithoutExt = name[..lastDotSvg];
-                var lastDot = nameWithoutExt.LastIndexOf('.');
-                if (lastDot > 0)
-                    return nameWithoutExt[..lastDot];
-            }
-        }
-        return null;
-    }
+    public static void ClearCache() => _engine.ClearCache();
 }

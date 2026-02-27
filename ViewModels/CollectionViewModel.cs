@@ -22,17 +22,6 @@ public partial class CollectionViewModel : BaseViewModel
     [ObservableProperty]
     private int _uniqueCards;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
-    private ViewMode _viewMode = ViewMode.Grid;
-
-    public string ViewModeButtonText => ViewMode switch
-    {
-        ViewMode.Grid => "☰",
-        ViewMode.List => "≣",
-        _ => "⊞"
-    };
-
     public event Action? CollectionLoaded;
 
     public CollectionViewModel(CardManager cardManager)
@@ -46,7 +35,7 @@ public partial class CollectionViewModel : BaseViewModel
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
     }
 
-    partial void OnViewModeChanged(ViewMode value)
+    protected override void OnViewModeUpdated(ViewMode value)
     {
         if (_grid != null) _grid.ViewMode = value;
     }
@@ -55,17 +44,6 @@ public partial class CollectionViewModel : BaseViewModel
     private async Task RefreshAsync()
     {
         await LoadCollectionAsync();
-    }
-
-    [RelayCommand]
-    private void ToggleViewMode()
-    {
-        ViewMode = ViewMode switch
-        {
-            ViewMode.Grid => ViewMode.List,
-            ViewMode.List => ViewMode.TextOnly,
-            _ => ViewMode.Grid
-        };
     }
 
     public async Task<Card?> GetCardDetailsAsync(string uuid)
@@ -125,14 +103,10 @@ public partial class CollectionViewModel : BaseViewModel
     {
         if (IsBusy) return;
 
-        if (!_cardManager.DatabaseManager.IsConnected)
+        if (!await _cardManager.EnsureInitializedAsync())
         {
-            StatusMessage = "Connecting...";
-            if (!await _cardManager.InitializeAsync())
-            {
-                StatusMessage = "Database not connected.";
-                return;
-            }
+            StatusMessage = "Database not connected.";
+            return;
         }
 
         // Ensure prices are initialized

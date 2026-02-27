@@ -31,20 +31,9 @@ public partial class SearchViewModel : BaseViewModel
     [ObservableProperty]
     private bool _hasMorePages;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
-    private ViewMode _viewMode = ViewMode.Grid;
-
     public SearchOptions CurrentOptions { get; private set; } = new();
 
     private const int PageSize = 50;
-
-    public string ViewModeButtonText => ViewMode switch
-    {
-        ViewMode.Grid => "☰",
-        ViewMode.List => "≣",
-        _ => "⊞"
-    };
 
     public event Action? SearchCompleted;
 
@@ -97,7 +86,7 @@ public partial class SearchViewModel : BaseViewModel
         });
     }
 
-    partial void OnViewModeChanged(ViewMode value)
+    protected override void OnViewModeUpdated(ViewMode value)
     {
         if (_grid != null) _grid.ViewMode = value;
     }
@@ -126,17 +115,6 @@ public partial class SearchViewModel : BaseViewModel
         await Shell.Current.GoToAsync("searchfilters");
     }
 
-    [RelayCommand]
-    private void ToggleViewMode()
-    {
-        ViewMode = ViewMode switch
-        {
-            ViewMode.Grid => ViewMode.List,
-            ViewMode.List => ViewMode.TextOnly,
-            _ => ViewMode.Grid
-        };
-    }
-
     public async Task PerformSearchAsync(SearchOptions? options = null)
     {
         if (IsBusy) return;
@@ -148,14 +126,10 @@ public partial class SearchViewModel : BaseViewModel
             return;
         }
 
-        if (!_cardManager.DatabaseManager.IsConnected)
+        if (!await _cardManager.EnsureInitializedAsync())
         {
-            StatusMessage = "Connecting to database...";
-            if (!await _cardManager.InitializeAsync())
-            {
-                StatusMessage = "Database not found. Please download.";
-                return;
-            }
+            StatusMessage = "Database not found. Please download.";
+            return;
         }
 
         // Ensure prices are initialized
