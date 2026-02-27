@@ -1,4 +1,175 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <rect width="256" height="256" rx="32" fill="#6200EE"/>
-  <text x="128" y="160" text-anchor="middle" font-family="Arial,sans-serif" font-size="120" font-weight="bold" fill="white">M</text>
+  <defs>
+    <clipPath id="iconClip">
+      <rect width="256" height="256" rx="36"/>
+    </clipPath>
+
+    <!-- Deep cosmic dark background -->
+    <radialGradient id="bgGrad" cx="40%" cy="35%" r="75%">
+      <stop offset="0%"   stop-color="#1e0050"/>
+      <stop offset="55%"  stop-color="#0f0028"/>
+      <stop offset="100%" stop-color="#050010"/>
+    </radialGradient>
+
+    <!-- Gold shimmer for ornamental elements -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#ffe566"/>
+      <stop offset="45%"  stop-color="#ffd700"/>
+      <stop offset="75%"  stop-color="#daa520"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </linearGradient>
+
+    <!-- Central gem gradient: bright highlight → deep purple -->
+    <radialGradient id="gemGrad" cx="38%" cy="32%" r="68%">
+      <stop offset="0%"   stop-color="#f3e5ff"/>
+      <stop offset="20%"  stop-color="#e1bee7"/>
+      <stop offset="55%"  stop-color="#7b1fa2"/>
+      <stop offset="85%"  stop-color="#38006b"/>
+      <stop offset="100%" stop-color="#1a0035"/>
+    </radialGradient>
+
+    <!-- Glow for mana arcs and dots -->
+    <filter id="colorGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Larger glow for the central gem -->
+    <filter id="gemGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for the M monogram -->
+    <filter id="textGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Background ─────────────────────────────────────────────────── -->
+  <rect width="256" height="256" rx="36" fill="url(#bgGrad)"/>
+
+  <g clip-path="url(#iconClip)">
+
+    <!-- ── Star field ──────────────────────────────────────────────── -->
+    <g opacity="0.55">
+      <circle cx="35"  cy="42"  r="1.5" fill="white"/>
+      <circle cx="72"  cy="20"  r="1"   fill="white"/>
+      <circle cx="52"  cy="70"  r="0.8" fill="white"/>
+      <circle cx="198" cy="33"  r="1.5" fill="white"/>
+      <circle cx="225" cy="60"  r="1"   fill="white"/>
+      <circle cx="242" cy="28"  r="1.2" fill="white"/>
+      <circle cx="215" cy="80"  r="0.8" fill="white"/>
+      <circle cx="18"  cy="185" r="1"   fill="white"/>
+      <circle cx="42"  cy="215" r="1.5" fill="white"/>
+      <circle cx="22"  cy="105" r="0.8" fill="white"/>
+      <circle cx="218" cy="192" r="1.2" fill="white"/>
+      <circle cx="237" cy="222" r="1"   fill="white"/>
+      <circle cx="170" cy="243" r="1.5" fill="white"/>
+      <circle cx="92"  cy="240" r="1"   fill="white"/>
+      <circle cx="245" cy="145" r="0.8" fill="white"/>
+      <circle cx="12"  cy="145" r="1.2" fill="white"/>
+      <circle cx="160" cy="12"  r="1"   fill="white"/>
+      <circle cx="110" cy="15"  r="0.8" fill="white"/>
+      <circle cx="140" cy="235" r="0.8" fill="white"/>
+      <circle cx="8"   cy="68"  r="1"   fill="white"/>
+    </g>
+
+    <!-- ── Faint pentagram inner lines (connecting non-adjacent vertices) ── -->
+    <!-- W(128,44) U(208,102) B(177,196) R(79,196) G(48,102) -->
+    <g stroke="url(#goldGrad)" stroke-width="0.6" opacity="0.12">
+      <line x1="128" y1="44"  x2="177" y2="196"/>
+      <line x1="128" y1="44"  x2="79"  y2="196"/>
+      <line x1="208" y1="102" x2="79"  y2="196"/>
+      <line x1="208" y1="102" x2="48"  y2="102"/>
+      <line x1="177" y1="196" x2="48"  y2="102"/>
+    </g>
+
+    <!-- ── Five-color mana arcs (radius 84, clockwise WUBRG) ────────── -->
+    <!-- White: W→U -->
+    <path d="M 128 44 A 84 84 0 0 1 208 102"
+          fill="none" stroke="#d8d8b0" stroke-width="7"
+          stroke-linecap="round" filter="url(#colorGlow)"/>
+    <!-- Blue: U→B -->
+    <path d="M 208 102 A 84 84 0 0 1 177 196"
+          fill="none" stroke="#1565c0" stroke-width="7"
+          stroke-linecap="round" filter="url(#colorGlow)"/>
+    <!-- Black: B→R -->
+    <path d="M 177 196 A 84 84 0 0 1 79 196"
+          fill="none" stroke="#455a64" stroke-width="7"
+          stroke-linecap="round" filter="url(#colorGlow)"/>
+    <!-- Red: R→G -->
+    <path d="M 79 196 A 84 84 0 0 1 48 102"
+          fill="none" stroke="#c62828" stroke-width="7"
+          stroke-linecap="round" filter="url(#colorGlow)"/>
+    <!-- Green: G→W -->
+    <path d="M 48 102 A 84 84 0 0 1 128 44"
+          fill="none" stroke="#2e7d32" stroke-width="7"
+          stroke-linecap="round" filter="url(#colorGlow)"/>
+
+    <!-- ── Gold decorative ring ─────────────────────────────────────── -->
+    <circle cx="128" cy="128" r="72" fill="none"
+            stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.65"/>
+
+    <!-- ── Mana dots at pentagon vertices ─────────────────────────── -->
+    <!-- White (top) -->
+    <circle cx="128" cy="44" r="10" fill="#a8a870" filter="url(#colorGlow)"/>
+    <circle cx="128" cy="44" r="7"  fill="#f0f0d0"/>
+    <circle cx="128" cy="44" r="3"  fill="white" opacity="0.9"/>
+
+    <!-- Blue (top-right) -->
+    <circle cx="208" cy="102" r="10" fill="#0a3d8f" filter="url(#colorGlow)"/>
+    <circle cx="208" cy="102" r="7"  fill="#1976d2"/>
+    <circle cx="208" cy="102" r="3"  fill="#90caf9" opacity="0.9"/>
+
+    <!-- Black (bottom-right) -->
+    <circle cx="177" cy="196" r="10" fill="#263238" filter="url(#colorGlow)"/>
+    <circle cx="177" cy="196" r="7"  fill="#455a64"/>
+    <circle cx="177" cy="196" r="3"  fill="#cfd8dc" opacity="0.8"/>
+
+    <!-- Red (bottom-left) -->
+    <circle cx="79" cy="196" r="10" fill="#7f0000" filter="url(#colorGlow)"/>
+    <circle cx="79" cy="196" r="7"  fill="#e53935"/>
+    <circle cx="79" cy="196" r="3"  fill="#ff8a80" opacity="0.9"/>
+
+    <!-- Green (top-left) -->
+    <circle cx="48" cy="102" r="10" fill="#1b5e20" filter="url(#colorGlow)"/>
+    <circle cx="48" cy="102" r="7"  fill="#388e3c"/>
+    <circle cx="48" cy="102" r="3"  fill="#a5d6a7" opacity="0.9"/>
+
+    <!-- ── Central diamond gem ──────────────────────────────────────── -->
+    <!-- Points: top(128,82) right(163,128) bottom(128,174) left(93,128) -->
+    <polygon points="128,82 163,128 128,174 93,128"
+             fill="url(#gemGrad)" filter="url(#gemGlow)"/>
+    <!-- Right-half facet (slightly lighter) -->
+    <polygon points="128,82 163,128 128,128"
+             fill="white" opacity="0.06"/>
+    <!-- Upper-center ridge highlight -->
+    <polygon points="128,82 146,107 128,128 110,107"
+             fill="white" opacity="0.13"/>
+    <!-- Specular highlight near top-left of gem -->
+    <ellipse cx="115" cy="104" rx="12" ry="7" fill="white" opacity="0.22"
+             transform="rotate(-35 115 104)"/>
+
+    <!-- ── Gold "M" monogram ────────────────────────────────────────── -->
+    <!-- Baseline ~148 visually centers the cap-height within the gem -->
+    <text x="128" y="148"
+          text-anchor="middle"
+          font-family="Georgia, 'Times New Roman', serif"
+          font-size="54"
+          font-weight="bold"
+          fill="url(#goldGrad)"
+          filter="url(#textGlow)">M</text>
+
+  </g>
 </svg>
