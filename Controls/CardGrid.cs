@@ -28,6 +28,15 @@ public class CardGrid : ContentView
     private readonly object _loadingLock = new();
     private readonly SemaphoreSlim _downloadSemaphore = new(4, 4);
 
+    // Thumbnail constants: grid cards display at 85-160 logical px; 220px wide thumbnails
+    // are sharp enough for all display densities while using ~5× less L1 memory than full-res.
+    private const string ThumbnailCacheKeyPrefix = "thumb:";
+    private const int ThumbnailMaxWidth = 220;
+
+    // Tracks the Scryfall IDs currently in the render list (i.e. visible on screen).
+    // Guarded by _loadingLock. Used to skip downloads for cards scrolled past quickly.
+    private readonly HashSet<string> _visibleScryfallIds = new();
+
     // Subsystems
     private readonly CardGridRenderer _renderer;
     private readonly CardGridGestureHandler _gestures;
@@ -285,9 +294,24 @@ public class CardGrid : ContentView
 
             foreach (var id in visible)
             {
-                var cacheKey = ImageDownloadService.GetCacheKey(id, "normal", "");
-                if (_imageCache.GetMemoryImage(cacheKey) == null)
-                    await _imageCache.GetImageAsync(cacheKey);
+                var normalKey = ImageDownloadService.GetCacheKey(id, "normal", "");
+                var thumbKey  = ThumbnailCacheKeyPrefix + normalKey;
+
+                if (_imageCache.GetMemoryImage(thumbKey) != null) continue;
+
+                // Read from disk without promoting full-res to L1.
+                var fullRes = await _imageCache.GetFileOnlyAsync(normalKey);
+                if (fullRes == null) continue; // Not on disk; EnqueueImageLoad will handle it.
+
+                try
+                {
+                    var thumb = ResizeForDisplay(fullRes, ThumbnailMaxWidth);
+                    _imageCache.AddToMemoryCache(thumbKey, thumb);
+                }
+                finally
+                {
+                    fullRes.Dispose();
+                }
             }
 
             MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
@@ -312,7 +336,13 @@ public class CardGrid : ContentView
             {
                 var renderList = GridLayoutEngine.Calculate(state);
 
-                // Trigger image loads for newly visible cards (outside the render path)
+                // Update the visible set then enqueue image loads for visible cards.
+                lock (_loadingLock)
+                {
+                    _visibleScryfallIds.Clear();
+                    foreach (var cmd in renderList.Commands.OfType<DrawCardCommand>())
+                        _visibleScryfallIds.Add(cmd.Card.ScryfallId);
+                }
                 foreach (var cmd in renderList.Commands.OfType<DrawCardCommand>())
                     EnqueueImageLoad(cmd.Card.ScryfallId);
 
@@ -345,14 +375,15 @@ public class CardGrid : ContentView
     {
         if (_imageCache == null) return;
 
-        var cacheKey = ImageDownloadService.GetCacheKey(scryfallId, "normal", "");
+        var normalKey = ImageDownloadService.GetCacheKey(scryfallId, "normal", "");
+        var thumbKey  = ThumbnailCacheKeyPrefix + normalKey;
 
         bool shouldLoad = false;
         lock (_loadingLock)
         {
-            if (_imageCache.GetMemoryImage(cacheKey) == null && !_loadingImages.Contains(cacheKey))
+            if (_imageCache.GetMemoryImage(thumbKey) == null && !_loadingImages.Contains(thumbKey))
             {
-                _loadingImages.Add(cacheKey);
+                _loadingImages.Add(thumbKey);
                 shouldLoad = true;
             }
         }
@@ -361,27 +392,85 @@ public class CardGrid : ContentView
 
         Task.Run(async () =>
         {
+            // Pre-check: card may have already scrolled out of view before we start.
+            // Dropping it here avoids wasting a semaphore slot on stale work.
+            lock (_loadingLock)
+            {
+                if (!_visibleScryfallIds.Contains(scryfallId))
+                {
+                    _loadingImages.Remove(thumbKey);
+                    return;
+                }
+            }
+
             await _downloadSemaphore.WaitAsync();
             try
             {
-                var img = await _imageCache.GetImageAsync(cacheKey);
-
-                if (img == null && _downloadService != null)
+                // Post-check: visible range may have shifted while we waited for a slot.
+                lock (_loadingLock)
                 {
-                    img = await _downloadService.DownloadImageDirectAsync(scryfallId);
-                    if (img != null)
-                        _imageCache.AddToMemoryCache(cacheKey, img);
+                    if (!_visibleScryfallIds.Contains(scryfallId))
+                        return; // finally block releases semaphore and removes from _loadingImages.
                 }
 
-                if (img != null)
+                // Load full-res from file cache WITHOUT adding it to L1 memory cache.
+                SKImage? fullRes = await _imageCache.GetFileOnlyAsync(normalKey);
+
+                // If not on disk yet, download from Scryfall (auto-saves to file cache).
+                if (fullRes == null && _downloadService != null)
+                    fullRes = await _downloadService.DownloadImageDirectAsync(scryfallId);
+
+                if (fullRes != null)
+                {
+                    try
+                    {
+                        // Store only the resized thumbnail in L1 — not the full-res image.
+                        var thumb = ResizeForDisplay(fullRes, ThumbnailMaxWidth);
+                        _imageCache.AddToMemoryCache(thumbKey, thumb);
+                        // thumb ownership transferred to cache; do NOT dispose here.
+                    }
+                    finally
+                    {
+                        fullRes.Dispose(); // Full-res stays on disk; must not linger in memory.
+                    }
+
                     MainThread.BeginInvokeOnMainThread(() => _canvas.InvalidateSurface());
+                }
             }
             finally
             {
-                lock (_loadingLock) _loadingImages.Remove(cacheKey);
+                lock (_loadingLock) _loadingImages.Remove(thumbKey);
                 _downloadSemaphore.Release();
             }
         });
+    }
+
+    /// <summary>
+    /// Returns a new independent <see cref="SKImage"/> scaled so its width is at most
+    /// <paramref name="maxWidth"/> pixels, maintaining aspect ratio.
+    /// The caller owns the returned image and must dispose it when done.
+    /// The <paramref name="source"/> image is never disposed by this method.
+    /// </summary>
+    private static SKImage ResizeForDisplay(SKImage source, int maxWidth)
+    {
+        if (source.Width <= maxWidth)
+        {
+            // Already small enough. Return an independent copy so the caller can
+            // safely dispose source without affecting what we store in the cache.
+            using var bmp = SKBitmap.FromImage(source);
+            return SKImage.FromBitmap(bmp);
+        }
+
+        float scale       = (float)maxWidth / source.Width;
+        int targetWidth   = maxWidth;
+        int targetHeight  = (int)(source.Height * scale);
+
+        var info = new SKImageInfo(targetWidth, targetHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
+        using var surface = SKSurface.Create(info);
+        surface.Canvas.DrawImage(source,
+            new SKRect(0, 0, source.Width, source.Height),
+            new SKRect(0, 0, targetWidth, targetHeight));
+        return surface.Snapshot();
     }
 
     // ── Event Handlers ─────────────────────────────────────────────────
