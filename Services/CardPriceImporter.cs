@@ -309,13 +309,7 @@ public class CardPriceImporter
         if (prices.Length == 0) return;
         using var cmd = conn.CreateCommand();
         cmd.Transaction = trans;
-        cmd.CommandText =
-            "INSERT OR REPLACE INTO card_prices (" +
-            "card_uuid, tcg_retail_normal, tcg_retail_foil, tcg_buylist_normal, tcg_currency, " +
-            "cm_retail_normal, cm_retail_foil, cm_buylist_normal, cm_currency, " +
-            "ck_retail_normal, ck_retail_foil, ck_buylist_normal, ck_currency, " +
-            "mp_retail_normal, mp_retail_foil, mp_buylist_normal, mp_currency, last_updated) VALUES " +
-            prices.ToString();
+        cmd.CommandText = SQLQueries.PricesInsertOrReplace + prices.ToString();
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -324,9 +318,7 @@ public class CardPriceImporter
         if (history.Length == 0) return;
         using var cmd = conn.CreateCommand();
         cmd.Transaction = trans;
-        cmd.CommandText =
-            "INSERT OR IGNORE INTO card_price_history (card_uuid, price_date, vendor, price_type, price_value) VALUES " +
-            history.ToString();
+        cmd.CommandText = SQLQueries.PriceHistoryInsertOrIgnore + history.ToString();
         await cmd.ExecuteNonQueryAsync();
     }
 

@@ -140,7 +140,7 @@ public class CardPriceDatabase : IDisposable
                     paramsList.Add(pName);
                 }
 
-                cmd.CommandText = $"SELECT * FROM card_prices WHERE card_uuid IN ({string.Join(",", paramsList)})";
+                cmd.CommandText = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramsList));
 
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())

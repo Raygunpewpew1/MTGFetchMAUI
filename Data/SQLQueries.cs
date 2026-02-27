@@ -164,6 +164,20 @@ public static class SQLQueries
     public const string PricesDeleteAll =
         "DELETE FROM card_prices";
 
+    public const string PricesGetBulkByUuids =
+        "SELECT * FROM card_prices WHERE card_uuid IN ({0})";
+
+    public const string PricesInsertOrReplace =
+        "INSERT OR REPLACE INTO card_prices (" +
+        "card_uuid, tcg_retail_normal, tcg_retail_foil, tcg_buylist_normal, tcg_currency, " +
+        "cm_retail_normal, cm_retail_foil, cm_buylist_normal, cm_currency, " +
+        "ck_retail_normal, ck_retail_foil, ck_buylist_normal, ck_currency, " +
+        "mp_retail_normal, mp_retail_foil, mp_buylist_normal, mp_currency, " +
+        "last_updated) VALUES ";
+
+    public const string PriceHistoryInsertOrIgnore =
+        "INSERT OR IGNORE INTO card_price_history (card_uuid, price_date, vendor, price_type, price_value) VALUES ";
+
     // ============================================================================
     // CARD QUERIES
     // ============================================================================
@@ -238,6 +252,10 @@ public static class SQLQueries
 
     public const string CollectionDeleteCard =
         "DELETE FROM my_collection WHERE card_uuid = @uuid";
+
+    public const string CollectionTableInfo = "PRAGMA table_info(my_collection)";
+    public const string CollectionAddSortOrder = "ALTER TABLE my_collection ADD COLUMN sort_order INTEGER DEFAULT 0";
+    public const string CollectionSeedSortOrder = "UPDATE my_collection SET sort_order = rowid WHERE sort_order = 0";
 
     public const string CollectionGetAll =
         "SELECT card_uuid, quantity, date_added, sort_order FROM my_collection ORDER BY sort_order ASC, date_added DESC";
