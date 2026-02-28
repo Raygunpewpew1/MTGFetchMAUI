@@ -36,6 +36,9 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     private SKImage? _cardImage;
 
     [ObservableProperty]
+    private bool _cardImageLoadFailed;
+
+    [ObservableProperty]
     private bool _isInCollection;
 
     [ObservableProperty]
@@ -118,6 +121,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         try
         {
             CardImage = null;
+            CardImageLoadFailed = false;
 
             // Load full card with rulings
             var mainCard = await _cardManager.GetCardWithRulingsAsync(uuid);
@@ -187,7 +191,11 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     private async Task LoadCardImageAsync()
     {
         var currentFace = CurrentFace;
-        if (string.IsNullOrEmpty(currentFace.ScryfallId)) return;
+        if (string.IsNullOrEmpty(currentFace.ScryfallId))
+        {
+            CardImageLoadFailed = true;
+            return;
+        }
 
         // Determine face parameter for Scryfall
         string faceParam = "front";
@@ -209,10 +217,13 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
         _cardManager.DownloadCardImageAsync(currentFace.ScryfallId, (image, success) =>
         {
-            if (success && image != null)
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                MainThread.BeginInvokeOnMainThread(() => CardImage = image);
-            }
+                if (success && image != null)
+                    CardImage = image;
+                else
+                    CardImageLoadFailed = true;
+            });
         }, MTGConstants.ImageSizeNormal, faceParam);
     }
 
