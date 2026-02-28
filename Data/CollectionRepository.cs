@@ -20,7 +20,7 @@ public class CollectionRepository : ICollectionRepository
         _cardRepo = cardRepository;
     }
 
-    public async Task AddCardAsync(string cardUUID, int quantity = 1)
+    public async Task AddCardAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false)
     {
         await WithCollectionTransactionAsync(async conn =>
         {
@@ -31,6 +31,8 @@ public class CollectionRepository : ICollectionRepository
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = SQLQueries.CollectionUpdateQuantity;
                 cmd.Parameters.AddWithValue("@qty", currentQty + quantity);
+                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
+                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
                 cmd.Parameters.AddWithValue("@uuid", cardUUID);
                 await cmd.ExecuteNonQueryAsync();
             }
@@ -40,6 +42,8 @@ public class CollectionRepository : ICollectionRepository
                 cmd.CommandText = SQLQueries.CollectionInsertCard;
                 cmd.Parameters.AddWithValue("@uuid", cardUUID);
                 cmd.Parameters.AddWithValue("@qty", quantity);
+                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
+                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
                 await cmd.ExecuteNonQueryAsync();
             }
         });
@@ -51,7 +55,7 @@ public class CollectionRepository : ICollectionRepository
             cmd.Parameters.AddWithValue("@uuid", cardUUID));
     }
 
-    public async Task UpdateQuantityAsync(string cardUUID, int quantity)
+    public async Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false)
     {
         if (quantity <= 0)
         {
@@ -62,6 +66,8 @@ public class CollectionRepository : ICollectionRepository
         await WithCollectionCommandAsync(SQLQueries.CollectionUpdateQuantity, cmd =>
         {
             cmd.Parameters.AddWithValue("@qty", quantity);
+            cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
+            cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
             cmd.Parameters.AddWithValue("@uuid", cardUUID);
         });
     }
@@ -70,7 +76,7 @@ public class CollectionRepository : ICollectionRepository
     {
         var items = new List<CollectionItem>();
         var uuids = new List<string>();
-        var entries = new List<(string uuid, int qty, DateTime dateAdded, int sortOrder)>();
+        var entries = new List<(string uuid, int qty, DateTime dateAdded, int sortOrder, bool isFoil, bool isEtched)>();
 
         await _lock.WaitAsync();
         try
@@ -85,8 +91,10 @@ public class CollectionRepository : ICollectionRepository
                 var qty = reader.GetInt32(1);
                 var dateAdded = DateTime.TryParse(reader.GetString(2), out var d) ? d : DateTime.Now;
                 var sortOrder = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+                var isFoil = !reader.IsDBNull(4) && reader.GetInt32(4) != 0;
+                var isEtched = !reader.IsDBNull(5) && reader.GetInt32(5) != 0;
                 uuids.Add(uuid);
-                entries.Add((uuid, qty, dateAdded, sortOrder));
+                entries.Add((uuid, qty, dateAdded, sortOrder, isFoil, isEtched));
             }
         }
         finally
@@ -99,7 +107,7 @@ public class CollectionRepository : ICollectionRepository
         {
             var cardCache = await _cardRepo.GetCardsByUUIDsAsync(uuids.ToArray());
 
-            foreach (var (uuid, qty, dateAdded, sortOrder) in entries)
+            foreach (var (uuid, qty, dateAdded, sortOrder, isFoil, isEtched) in entries)
             {
                 if (cardCache.TryGetValue(uuid, out var card))
                 {
@@ -107,6 +115,8 @@ public class CollectionRepository : ICollectionRepository
                     {
                         CardUUID = uuid,
                         Quantity = qty,
+                        IsFoil = isFoil,
+                        IsEtched = isEtched,
                         DateAdded = dateAdded,
                         SortOrder = sortOrder,
                         Card = card
@@ -163,9 +173,8 @@ public class CollectionRepository : ICollectionRepository
                 nonLandCount += item.Quantity;
             }
 
-            // Note: FoilCount cannot be accurately calculated as the current schema
-            // does not track which finish (foil/non-foil) the user owns.
-            // item.Card.IsFoil only indicates if a foil version exists.
+            if (item.IsFoil || item.IsEtched)
+                stats.FoilCount += item.Quantity;
         }
 
         if (nonLandCount > 0)

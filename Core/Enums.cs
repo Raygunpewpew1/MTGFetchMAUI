@@ -102,6 +102,16 @@ public enum MtgColor
     Green
 }
 
+/// <summary>Sort modes for the user's collection view.</summary>
+public enum CollectionSortMode
+{
+    Manual = 0,
+    Name = 1,
+    CMC = 2,
+    Rarity = 3,
+    Color = 4,
+}
+
 public static class EnumExtensions
 {
     static EnumExtensions()
