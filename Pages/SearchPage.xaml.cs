@@ -73,10 +73,13 @@ public partial class SearchPage : ContentPage
         await Navigation.PushModalAsync(page);
         var result = await page.WaitForResultAsync();
 
-        if (result is int quantity)
+        if (result is CollectionAddResult r)
         {
-            await _viewModel.UpdateCollectionAsync(uuid, quantity);
-            _toastService.Show($"{quantity}x {card.Name} in collection");
+            await _viewModel.UpdateCollectionAsync(uuid, r.NewQuantity, r.IsFoil, r.IsEtched);
+            if (r.NewQuantity > 0)
+                _toastService.Show($"{r.NewQuantity}x {card.Name} in collection");
+            else
+                _toastService.Show($"{card.Name} removed from collection");
         }
     }
 }

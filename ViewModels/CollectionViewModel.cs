@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MTGFetchMAUI.Controls;
+using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Core.Layout;
 using MTGFetchMAUI.Models;
 using MTGFetchMAUI.Services;
@@ -15,6 +16,7 @@ public partial class CollectionViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
     private CardGrid? _grid;
+    private CollectionItem[] _allItems = [];
 
     [ObservableProperty]
     private int _totalCards;
@@ -24,6 +26,24 @@ public partial class CollectionViewModel : BaseViewModel
 
     [ObservableProperty]
     private bool _isCollectionEmpty;
+
+    [ObservableProperty]
+    private CollectionSortMode _sortMode = CollectionSortMode.Manual;
+
+    [ObservableProperty]
+    private string _filterText = "";
+
+    public List<string> SortModeOptions { get; } = ["Manual", "Name", "CMC", "Rarity", "Color"];
+
+    public int SortModeIndex
+    {
+        get => (int)SortMode;
+        set
+        {
+            if (value >= 0 && value < SortModeOptions.Count)
+                SortMode = (CollectionSortMode)value;
+        }
+    }
 
     public event Action? CollectionLoaded;
 
@@ -41,6 +61,47 @@ public partial class CollectionViewModel : BaseViewModel
     protected override void OnViewModeUpdated(ViewMode value)
     {
         if (_grid != null) _grid.ViewMode = value;
+    }
+
+    partial void OnSortModeChanged(CollectionSortMode value)
+    {
+        OnPropertyChanged(nameof(SortModeIndex));
+        ApplyFilterAndSort();
+    }
+
+    partial void OnFilterTextChanged(string value) => ApplyFilterAndSort();
+
+    private void ApplyFilterAndSort()
+    {
+        if (_allItems.Length == 0) return;
+
+        IEnumerable<CollectionItem> result = _allItems;
+
+        // Filter by name
+        var filter = FilterText?.Trim();
+        if (!string.IsNullOrEmpty(filter))
+            result = result.Where(i => i.Card.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+        // Sort
+        result = SortMode switch
+        {
+            CollectionSortMode.Name => result.OrderBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+            CollectionSortMode.CMC => result.OrderBy(i => i.Card.FaceManaValue).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+            CollectionSortMode.Rarity => result.OrderByDescending(i => i.Card.Rarity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+            CollectionSortMode.Color => result.OrderBy(i => i.Card.ColorIdentity.Length).ThenBy(i => i.Card.ColorIdentity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+            _ => result // Manual: keep loaded order
+        };
+
+        var filtered = result.ToArray();
+        _grid?.SetCollection(filtered);
+
+        var displayedTotal = filtered.Sum(i => i.Quantity);
+        var displayedUnique = filtered.Length;
+        TotalCards = displayedTotal;
+        UniqueCards = displayedUnique;
+        IsCollectionEmpty = _allItems.Length == 0;
+
+        StatusMessage = _allItems.Length == 0 ? "" : $"{displayedTotal} cards ({displayedUnique} unique)";
     }
 
     [RelayCommand]
@@ -73,11 +134,11 @@ public partial class CollectionViewModel : BaseViewModel
         }
     }
 
-    public async Task UpdateCollectionAsync(string uuid, int quantity)
+    public async Task UpdateCollectionAsync(string uuid, int quantity, bool isFoil = false, bool isEtched = false)
     {
         try
         {
-            await _cardManager.UpdateCardQuantityAsync(uuid, quantity);
+            await _cardManager.UpdateCardQuantityAsync(uuid, quantity, isFoil, isEtched);
         }
         catch (Exception ex)
         {
@@ -122,16 +183,10 @@ public partial class CollectionViewModel : BaseViewModel
 
         try
         {
-            var items = await _cardManager.GetCollectionAsync();
+            _allItems = await _cardManager.GetCollectionAsync();
 
-            TotalCards = items.Sum(i => i.Quantity);
-            UniqueCards = items.Length;
-
-            _grid?.SetCollection(items);
+            ApplyFilterAndSort();
             CollectionLoaded?.Invoke();
-
-            IsCollectionEmpty = UniqueCards == 0;
-            StatusMessage = UniqueCards == 0 ? "" : $"{TotalCards} cards ({UniqueCards} unique)";
         }
         catch (Exception ex)
         {

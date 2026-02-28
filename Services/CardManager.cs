@@ -31,6 +31,9 @@ public class CardManager : IDisposable
     /// <summary>Fired with success status on database operations.</summary>
     public event Action<bool>? OnDatabaseError;
 
+    /// <summary>Fired when a download is cancelled by the user.</summary>
+    public event Action? OnDownloadCancelled;
+
     /// <summary>Fired when a new MTG database version is available remotely.</summary>
     public event Action<string>? OnDatabaseUpdateAvailable;
 
@@ -110,7 +113,23 @@ public class CardManager : IDisposable
 
         _ = Task.Run(async () =>
         {
-            var success = await AppDataManager.DownloadDatabaseAsync(ct);
+            bool success;
+            try
+            {
+                success = await AppDataManager.DownloadDatabaseAsync(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                OnDownloadCancelled?.Invoke();
+                return;
+            }
+
+            if (ct.IsCancellationRequested)
+            {
+                OnDownloadCancelled?.Invoke();
+                return;
+            }
+
             if (success)
             {
                 try
@@ -129,6 +148,14 @@ public class CardManager : IDisposable
                 OnDatabaseError?.Invoke(false);
             }
         });
+    }
+
+    /// <summary>
+    /// Cancels an in-progress database download.
+    /// </summary>
+    public void CancelDownload()
+    {
+        _downloadCts?.Cancel();
     }
 
     /// <summary>
@@ -263,9 +290,9 @@ public class CardManager : IDisposable
 
     // ── Collection Methods ───────────────────────────────────────────
 
-    public async Task AddCardToCollectionAsync(string cardUUID, int quantity = 1)
+    public async Task AddCardToCollectionAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false)
     {
-        await _collectionRepository.AddCardAsync(cardUUID, quantity);
+        await _collectionRepository.AddCardAsync(cardUUID, quantity, isFoil, isEtched);
     }
 
     public async Task RemoveCardFromCollectionAsync(string cardUUID)
@@ -273,9 +300,9 @@ public class CardManager : IDisposable
         await _collectionRepository.RemoveCardAsync(cardUUID);
     }
 
-    public async Task UpdateCardQuantityAsync(string cardUUID, int quantity)
+    public async Task UpdateCardQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false)
     {
-        await _collectionRepository.UpdateQuantityAsync(cardUUID, quantity);
+        await _collectionRepository.UpdateQuantityAsync(cardUUID, quantity, isFoil, isEtched);
     }
 
     public async Task<bool> IsInCollectionAsync(string cardUUID)

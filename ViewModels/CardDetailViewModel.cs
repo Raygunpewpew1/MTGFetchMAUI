@@ -184,7 +184,8 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     private void UpdateGalleryState()
     {
-        CardPosition = _galleryContext.GetPositionText();
+        var pos = _galleryContext.GetPositionText();
+        CardPosition = string.IsNullOrEmpty(pos) ? "" : $"‹  {pos}  ›";
         OnPropertyChanged(nameof(ShowGalleryNavigation));
     }
 
@@ -279,6 +280,13 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     {
         await _cardManager.AddCardToCollectionAsync(Card.UUID, quantity);
         IsInCollection = true;
+        AddedToCollection?.Invoke(Card.UUID);
+    }
+
+    public async Task AddToCollectionWithFinishAsync(int quantity, bool isFoil, bool isEtched)
+    {
+        await _cardManager.UpdateCardQuantityAsync(Card.UUID, quantity, isFoil, isEtched);
+        IsInCollection = quantity > 0;
         AddedToCollection?.Invoke(Card.UUID);
     }
 

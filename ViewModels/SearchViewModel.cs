@@ -234,11 +234,11 @@ public partial class SearchViewModel : BaseViewModel
         }
     }
 
-    public async Task UpdateCollectionAsync(string uuid, int quantity)
+    public async Task UpdateCollectionAsync(string uuid, int quantity, bool isFoil = false, bool isEtched = false)
     {
         try
         {
-            await _cardManager.UpdateCardQuantityAsync(uuid, quantity);
+            await _cardManager.UpdateCardQuantityAsync(uuid, quantity, isFoil, isEtched);
         }
         catch (Exception ex)
         {

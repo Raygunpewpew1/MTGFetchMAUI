@@ -62,6 +62,13 @@
                        FontSize="11"
                        TextColor="{StaticResource TextSecondary}" />
 
+                <Label x:Name="SwipeHintLabel"
+                       Text="Swipe left or right to browse cards"
+                       HorizontalOptions="Center"
+                       FontSize="11"
+                       Opacity="0"
+                       TextColor="{StaticResource TextSecondary}" />
+
                 <Label x:Name="FlipHint"
                        Text="Tap image to flip"
                        IsVisible="False"

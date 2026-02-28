@@ -8,9 +8,9 @@ namespace MTGFetchMAUI.Data;
 /// </summary>
 public interface ICollectionRepository
 {
-    Task AddCardAsync(string cardUUID, int quantity = 1);
+    Task AddCardAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false);
     Task RemoveCardAsync(string cardUUID);
-    Task UpdateQuantityAsync(string cardUUID, int quantity);
+    Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false);
     Task<CollectionItem[]> GetCollectionAsync();
     Task<CollectionStats> GetCollectionStatsAsync();
     Task<bool> IsInCollectionAsync(string cardUUID);

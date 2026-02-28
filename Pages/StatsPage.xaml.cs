@@ -37,6 +37,7 @@ public partial class StatsPage : ContentPage
                 DbStatusLabel.TextColor = Color.FromArgb("#4CAF50");
                 DownloadProgress.IsVisible = false;
                 DownloadStatusLabel.Text = "Download complete!";
+                CancelDownloadBtn.IsVisible = false;
             });
         };
 
@@ -49,6 +50,18 @@ public partial class StatsPage : ContentPage
                 DownloadDbBtn.IsVisible = true;
                 DownloadProgress.IsVisible = false;
                 DownloadStatusLabel.Text = "Download failed. Please try again.";
+                CancelDownloadBtn.IsVisible = false;
+            });
+        };
+
+        _cardManager.OnDownloadCancelled += () =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                DownloadProgress.IsVisible = false;
+                CancelDownloadBtn.IsVisible = false;
+                DownloadDbBtn.IsVisible = true;
+                DownloadStatusLabel.Text = "Download cancelled.";
             });
         };
     }
@@ -109,8 +122,14 @@ public partial class StatsPage : ContentPage
         DownloadDbBtn.IsVisible = false;
         DownloadProgress.IsVisible = true;
         DownloadStatusLabel.IsVisible = true;
+        CancelDownloadBtn.IsVisible = true;
 
         _cardManager.DownloadDatabase();
+    }
+
+    private void OnCancelDownloadClicked(object? sender, EventArgs e)
+    {
+        _cardManager.CancelDownload();
     }
 
     private async void OnClearCacheClicked(object? sender, EventArgs e)

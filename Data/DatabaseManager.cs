@@ -191,15 +191,20 @@ public sealed class DatabaseManager : IDisposable
 
     private static async Task MigrateCollectionSchemaAsync(SqliteConnection conn)
     {
-        // Add sort_order column if it doesn't exist (upgrade from older schema)
         bool hasSortOrder = false;
+        bool hasIsFoil = false;
+        bool hasIsEtched = false;
+
         using (var pragma = conn.CreateCommand())
         {
             pragma.CommandText = SQLQueries.CollectionTableInfo;
             using var reader = await pragma.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                if (reader.GetString(1) == "sort_order") { hasSortOrder = true; break; }
+                var colName = reader.GetString(1);
+                if (colName == "sort_order") hasSortOrder = true;
+                if (colName == "is_foil") hasIsFoil = true;
+                if (colName == "is_etched") hasIsEtched = true;
             }
         }
 
@@ -209,10 +214,23 @@ public sealed class DatabaseManager : IDisposable
             alter.CommandText = SQLQueries.CollectionAddSortOrder;
             await alter.ExecuteNonQueryAsync();
 
-            // Seed existing rows so relative order is preserved
             using var seed = conn.CreateCommand();
             seed.CommandText = SQLQueries.CollectionSeedSortOrder;
             await seed.ExecuteNonQueryAsync();
+        }
+
+        if (!hasIsFoil)
+        {
+            using var alter = conn.CreateCommand();
+            alter.CommandText = SQLQueries.CollectionAddIsFoil;
+            await alter.ExecuteNonQueryAsync();
+        }
+
+        if (!hasIsEtched)
+        {
+            using var alter = conn.CreateCommand();
+            alter.CommandText = SQLQueries.CollectionAddIsEtched;
+            await alter.ExecuteNonQueryAsync();
         }
     }
 
