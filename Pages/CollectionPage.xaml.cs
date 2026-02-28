@@ -39,10 +39,6 @@ public partial class CollectionPage : ContentPage
                 CollectionLoading.IsRunning = _viewModel.IsBusy;
                 CollectionLoading.IsVisible = _viewModel.IsBusy;
             }
-            else if (e.PropertyName == nameof(CollectionViewModel.StatusMessage))
-            {
-                CollectionStatus.Text = _viewModel.StatusMessage;
-            }
         };
     }
 

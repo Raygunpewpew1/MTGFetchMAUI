@@ -17,8 +17,9 @@
                        FontAttributes="Bold"
                        TextColor="{StaticResource TextPrimary}" />
                 <Label x:Name="CollectionStatus"
+                       Text="{Binding StatusMessage}"
                        FontSize="12"
-                       TextColor="{StaticResource TextSecondary}" />
+                       TextColor="{Binding StatusTextColor}" />
             </VerticalStackLayout>
 
             <HorizontalStackLayout Grid.Column="1" Spacing="8">
@@ -50,6 +51,27 @@
         <controls:CardGrid Grid.Row="1"
                            x:Name="CollectionGrid"
                            Scrolled="OnCollectionScrolled" />
+
+        <!-- Empty State -->
+        <VerticalStackLayout Grid.Row="1"
+                             IsVisible="{Binding IsCollectionEmpty}"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="8">
+            <Label Text="&#x1F4C2;"
+                   FontSize="48"
+                   HorizontalOptions="Center" />
+            <Label Text="Your collection is empty"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalOptions="Center" />
+            <Label Text="Search for cards and long-press to add them"
+                   FontSize="13"
+                   TextColor="{StaticResource TextSecondary}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
 
     </Grid>
 

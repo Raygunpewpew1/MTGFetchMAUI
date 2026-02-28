@@ -31,7 +31,19 @@ public partial class SearchViewModel : BaseViewModel
     [ObservableProperty]
     private bool _hasMorePages;
 
+    [ObservableProperty]
+    private bool _isEmpty;
+
     public SearchOptions CurrentOptions { get; private set; } = new();
+
+    public string FiltersButtonText
+    {
+        get
+        {
+            int count = CurrentOptions.ActiveFilterCount;
+            return count > 0 ? $"Filters ({count})" : "Filters";
+        }
+    }
 
     private const int PageSize = 50;
 
@@ -105,7 +117,10 @@ public partial class SearchViewModel : BaseViewModel
         _grid?.ClearCards();
         TotalResults = 0;
         HasMorePages = false;
+        IsEmpty = false;
+        StatusIsError = false;
         StatusMessage = "";
+        OnPropertyChanged(nameof(FiltersButtonText));
         SearchCompleted?.Invoke();
     }
 
@@ -136,6 +151,8 @@ public partial class SearchViewModel : BaseViewModel
         await _cardManager.InitializePricesAsync();
 
         IsBusy = true;
+        IsEmpty = false;
+        StatusIsError = false;
         StatusMessage = "Searching...";
 
         if (options != null)
@@ -146,6 +163,7 @@ public partial class SearchViewModel : BaseViewModel
         {
             CurrentOptions.NameFilter = SearchText;
         }
+        OnPropertyChanged(nameof(FiltersButtonText));
 
         _currentPage = 1;
 
@@ -177,10 +195,12 @@ public partial class SearchViewModel : BaseViewModel
             _cardManager.ImageService.CancelPendingDownloads();
 
             StatusMessage = $"Found {TotalResults} cards";
+            IsEmpty = TotalResults == 0;
             SearchCompleted?.Invoke();
         }
         catch (Exception ex)
         {
+            StatusIsError = true;
             StatusMessage = $"Search failed: {ex.Message}";
             Logger.LogStuff($"Search error: {ex.Message}", LogLevel.Error);
         }

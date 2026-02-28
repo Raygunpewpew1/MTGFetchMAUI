@@ -41,7 +41,7 @@
                     Padding="16,0" StyleClass="ElevatedButton" />
 
             <Button Grid.Column="2"
-                    Text="Filters"
+                    Text="{Binding FiltersButtonText}"
                     Command="{Binding GoToFiltersCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     BackgroundColor="{StaticResource CardBackground}"
@@ -63,7 +63,7 @@
         <Grid Grid.Row="1" Padding="8,0,8,4">
             <Label x:Name="StatusLabel"
                    Text="{Binding StatusMessage}"
-                   TextColor="{StaticResource TextSecondary}"
+                   TextColor="{Binding StatusTextColor}"
                    FontSize="12" />
             <ActivityIndicator x:Name="LoadingIndicator"
                                IsRunning="{Binding IsBusy}"
@@ -79,6 +79,27 @@
                            x:Name="CardGrid"
                            Scrolled="OnGridScrolled"
                            IsDragEnabled="False" />
+
+        <!-- Empty State -->
+        <VerticalStackLayout Grid.Row="2"
+                             IsVisible="{Binding IsEmpty}"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="8">
+            <Label Text="&#x1F50D;"
+                   FontSize="48"
+                   HorizontalOptions="Center" />
+            <Label Text="No cards found"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalOptions="Center" />
+            <Label Text="Try a different search or adjust your filters"
+                   FontSize="13"
+                   TextColor="{StaticResource TextSecondary}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
 
     </Grid>
 

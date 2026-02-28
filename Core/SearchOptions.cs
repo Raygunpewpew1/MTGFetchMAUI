@@ -67,6 +67,27 @@ public class SearchOptions
         IncludeAllFaces = false;
     }
 
+    public int ActiveFilterCount
+    {
+        get
+        {
+            int count = 0;
+            if (!string.IsNullOrEmpty(ColorFilter)) count++;
+            if (!string.IsNullOrEmpty(TextFilter)) count++;
+            if (!string.IsNullOrEmpty(TypeFilter) && !TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase)) count++;
+            if (!string.IsNullOrEmpty(SubtypeFilter)) count++;
+            if (!string.IsNullOrEmpty(SupertypeFilter)) count++;
+            if (RarityFilter.Count > 0) count++;
+            if (!string.IsNullOrEmpty(SetFilter)) count++;
+            if (UseCMCRange || UseCMCExact) count++;
+            if (!string.IsNullOrEmpty(PowerFilter)) count++;
+            if (!string.IsNullOrEmpty(ToughnessFilter)) count++;
+            if (UseLegalFormat) count++;
+            if (!string.IsNullOrEmpty(ArtistFilter)) count++;
+            return count;
+        }
+    }
+
     public bool HasActiveFilters =>
         !string.IsNullOrEmpty(NameFilter) ||
         !string.IsNullOrEmpty(TextFilter) ||
