@@ -22,6 +22,9 @@ public partial class CollectionViewModel : BaseViewModel
     [ObservableProperty]
     private int _uniqueCards;
 
+    [ObservableProperty]
+    private bool _isCollectionEmpty;
+
     public event Action? CollectionLoaded;
 
     public CollectionViewModel(CardManager cardManager)
@@ -113,6 +116,8 @@ public partial class CollectionViewModel : BaseViewModel
         await _cardManager.InitializePricesAsync();
 
         IsBusy = true;
+        IsCollectionEmpty = false;
+        StatusIsError = false;
         StatusMessage = "Loading collection...";
 
         try
@@ -125,10 +130,12 @@ public partial class CollectionViewModel : BaseViewModel
             _grid?.SetCollection(items);
             CollectionLoaded?.Invoke();
 
-            StatusMessage = $"{TotalCards} cards ({UniqueCards} unique)";
+            IsCollectionEmpty = UniqueCards == 0;
+            StatusMessage = UniqueCards == 0 ? "" : $"{TotalCards} cards ({UniqueCards} unique)";
         }
         catch (Exception ex)
         {
+            StatusIsError = true;
             StatusMessage = $"Load failed: {ex.Message}";
             Logger.LogStuff($"Collection load error: {ex.Message}", LogLevel.Error);
         }

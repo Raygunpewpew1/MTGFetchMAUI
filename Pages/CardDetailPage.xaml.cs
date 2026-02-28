@@ -149,8 +149,10 @@ public partial class CardDetailPage : ContentPage
         PopulateLegalities();
 
         // Image
-        ImageLoading.IsVisible = _viewModel.CardImage == null;
-        ImageLoading.IsRunning = _viewModel.CardImage == null;
+        bool hasImage = _viewModel.CardImage != null;
+        ImageLoading.IsVisible = !hasImage && !_viewModel.CardImageLoadFailed;
+        ImageLoading.IsRunning = !hasImage && !_viewModel.CardImageLoadFailed;
+        ImageFallback.IsVisible = _viewModel.CardImageLoadFailed;
         CardImageView.InvalidateSurface();
     }
 
@@ -164,6 +166,18 @@ public partial class CardDetailPage : ContentPage
                 ImageLoading.IsVisible = !hasImage;
                 ImageLoading.IsRunning = !hasImage;
                 CardImageView.InvalidateSurface();
+            });
+        }
+        else if (e.PropertyName == nameof(CardDetailViewModel.CardImageLoadFailed))
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (_viewModel.CardImageLoadFailed)
+                {
+                    ImageLoading.IsVisible = false;
+                    ImageLoading.IsRunning = false;
+                    ImageFallback.IsVisible = true;
+                }
             });
         }
         else if (e.PropertyName == nameof(CardDetailViewModel.CurrentFace))
