@@ -154,6 +154,17 @@ public partial class CardDetailPage : ContentPage
         ImageLoading.IsRunning = !hasImage && !_viewModel.CardImageLoadFailed;
         ImageFallback.IsVisible = _viewModel.CardImageLoadFailed;
         CardImageView.InvalidateSurface();
+
+        if (_viewModel.ShowGalleryNavigation)
+            ShowSwipeHintIfNeededAsync();
+    }
+
+    private async void ShowSwipeHintIfNeededAsync()
+    {
+        if (Preferences.Default.Get("SwipeHintShown", false)) return;
+        Preferences.Default.Set("SwipeHintShown", true);
+        SwipeHintLabel.Opacity = 1;
+        await SwipeHintLabel.FadeTo(0, 2500);
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -248,10 +259,13 @@ public partial class CardDetailPage : ContentPage
         await Navigation.PushModalAsync(page);
         var result = await page.WaitForResultAsync();
 
-        if (result is int quantity)
+        if (result is CollectionAddResult r)
         {
-            _viewModel.AddToCollectionCommand.Execute(quantity);
-            _toastService.Show($"{quantity}x {_viewModel.Card.Name} in collection");
+            await _viewModel.AddToCollectionWithFinishAsync(r.NewQuantity, r.IsFoil, r.IsEtched);
+            if (r.NewQuantity > 0)
+                _toastService.Show($"{r.NewQuantity}x {_viewModel.Card.Name} in collection");
+            else
+                _toastService.Show($"{_viewModel.Card.Name} removed from collection");
         }
     }
 

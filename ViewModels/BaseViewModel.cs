@@ -13,15 +13,19 @@ public abstract partial class BaseViewModel : ObservableObject
     private bool _isBusy;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusDisplayText))]
     private string _statusMessage = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusTextColor))]
+    [NotifyPropertyChangedFor(nameof(StatusDisplayText))]
     private bool _statusIsError;
 
     public Color StatusTextColor => StatusIsError
         ? Color.FromArgb("#F44336")
         : Color.FromArgb("#888888");
+
+    public string StatusDisplayText => StatusIsError ? $"⚠ {StatusMessage}" : StatusMessage;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]

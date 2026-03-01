@@ -245,10 +245,10 @@ public static class SQLQueries
         "SELECT quantity FROM my_collection WHERE card_uuid = @uuid";
 
     public const string CollectionUpdateQuantity =
-        "UPDATE my_collection SET quantity = @qty WHERE card_uuid = @uuid";
+        "UPDATE my_collection SET quantity = @qty, is_foil = @isFoil, is_etched = @isEtched WHERE card_uuid = @uuid";
 
     public const string CollectionInsertCard =
-        "INSERT INTO my_collection (card_uuid, quantity, sort_order) VALUES (@uuid, @qty, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM my_collection))";
+        "INSERT INTO my_collection (card_uuid, quantity, is_foil, is_etched, sort_order) VALUES (@uuid, @qty, @isFoil, @isEtched, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM my_collection))";
 
     public const string CollectionDeleteCard =
         "DELETE FROM my_collection WHERE card_uuid = @uuid";
@@ -256,9 +256,11 @@ public static class SQLQueries
     public const string CollectionTableInfo = "PRAGMA table_info(my_collection)";
     public const string CollectionAddSortOrder = "ALTER TABLE my_collection ADD COLUMN sort_order INTEGER DEFAULT 0";
     public const string CollectionSeedSortOrder = "UPDATE my_collection SET sort_order = rowid WHERE sort_order = 0";
+    public const string CollectionAddIsFoil = "ALTER TABLE my_collection ADD COLUMN is_foil INTEGER NOT NULL DEFAULT 0";
+    public const string CollectionAddIsEtched = "ALTER TABLE my_collection ADD COLUMN is_etched INTEGER NOT NULL DEFAULT 0";
 
     public const string CollectionGetAll =
-        "SELECT card_uuid, quantity, date_added, sort_order FROM my_collection ORDER BY sort_order ASC, date_added DESC";
+        "SELECT card_uuid, quantity, date_added, sort_order, is_foil, is_etched FROM my_collection ORDER BY sort_order ASC, date_added DESC";
 
     public const string CollectionReorderItem =
         "UPDATE my_collection SET sort_order = @sortOrder WHERE card_uuid = @uuid";

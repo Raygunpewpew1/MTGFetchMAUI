@@ -28,6 +28,12 @@
                            IsVisible="False"
                            FontSize="12"
                            TextColor="{StaticResource TextSecondary}" />
+                    <Button x:Name="CancelDownloadBtn"
+                            Text="Cancel Download"
+                            Clicked="OnCancelDownloadClicked"
+                            IsVisible="False"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            StyleClass="OutlinedButton" />
                 </VerticalStackLayout>
             </Border>
 

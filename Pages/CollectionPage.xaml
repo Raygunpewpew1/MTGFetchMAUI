@@ -6,7 +6,7 @@
              Title="Collection"
              BackgroundColor="{StaticResource Background}">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Header -->
         <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
@@ -17,7 +17,7 @@
                        FontAttributes="Bold"
                        TextColor="{StaticResource TextPrimary}" />
                 <Label x:Name="CollectionStatus"
-                       Text="{Binding StatusMessage}"
+                       Text="{Binding StatusDisplayText}"
                        FontSize="12"
                        TextColor="{Binding StatusTextColor}" />
             </VerticalStackLayout>
@@ -47,13 +47,33 @@
             </HorizontalStackLayout>
         </Grid>
 
+        <!-- Filter + Sort Row -->
+        <Grid Grid.Row="1" Padding="8,0,8,6" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Entry Placeholder="Filter collection..."
+                   Text="{Binding FilterText, Mode=TwoWay}"
+                   BackgroundColor="{StaticResource Surface}"
+                   TextColor="{StaticResource TextPrimary}"
+                   PlaceholderColor="{StaticResource TextSecondary}"
+                   HeightRequest="36"
+                   FontSize="13"
+                   ClearButtonVisibility="WhileEditing" />
+            <Picker Grid.Column="1"
+                    ItemsSource="{Binding SortModeOptions}"
+                    SelectedIndex="{Binding SortModeIndex, Mode=TwoWay}"
+                    TextColor="{StaticResource TextPrimary}"
+                    BackgroundColor="{StaticResource Surface}"
+                    HeightRequest="36"
+                    WidthRequest="110"
+                    FontSize="13" />
+        </Grid>
+
         <!-- Card Grid -->
-        <controls:CardGrid Grid.Row="1"
+        <controls:CardGrid Grid.Row="2"
                            x:Name="CollectionGrid"
                            Scrolled="OnCollectionScrolled" />
 
         <!-- Empty State -->
-        <VerticalStackLayout Grid.Row="1"
+        <VerticalStackLayout Grid.Row="2"
                              IsVisible="{Binding IsCollectionEmpty}"
                              VerticalOptions="Center"
                              HorizontalOptions="Center"

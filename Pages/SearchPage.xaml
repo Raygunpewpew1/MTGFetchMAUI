@@ -62,7 +62,7 @@
         <!-- Status Bar -->
         <Grid Grid.Row="1" Padding="8,0,8,4">
             <Label x:Name="StatusLabel"
-                   Text="{Binding StatusMessage}"
+                   Text="{Binding StatusDisplayText}"
                    TextColor="{Binding StatusTextColor}"
                    FontSize="12" />
             <ActivityIndicator x:Name="LoadingIndicator"
