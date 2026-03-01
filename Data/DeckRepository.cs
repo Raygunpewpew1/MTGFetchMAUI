@@ -31,6 +31,7 @@ public class DeckRepository : IDeckRepository
                 insertCmd.Parameters.AddWithValue("@Description", deck.Description);
                 insertCmd.Parameters.AddWithValue("@CoverCardId", deck.CoverCardId ?? "");
                 insertCmd.Parameters.AddWithValue("@CommanderId", deck.CommanderId ?? "");
+                insertCmd.Parameters.AddWithValue("@CommanderName", deck.CommanderName ?? "");
                 insertCmd.Parameters.AddWithValue("@PartnerId", deck.PartnerId ?? "");
                 insertCmd.Parameters.AddWithValue("@ColorIdentity", deck.ColorIdentity ?? "");
                 await insertCmd.ExecuteNonQueryAsync();
@@ -66,6 +67,7 @@ public class DeckRepository : IDeckRepository
             cmd.Parameters.AddWithValue("@Description", deck.Description);
             cmd.Parameters.AddWithValue("@CoverCardId", deck.CoverCardId ?? "");
             cmd.Parameters.AddWithValue("@CommanderId", deck.CommanderId ?? "");
+            cmd.Parameters.AddWithValue("@CommanderName", deck.CommanderName ?? "");
             cmd.Parameters.AddWithValue("@PartnerId", deck.PartnerId ?? "");
             cmd.Parameters.AddWithValue("@ColorIdentity", deck.ColorIdentity ?? "");
             cmd.Parameters.AddWithValue("@Id", deck.Id);
@@ -274,6 +276,7 @@ public class DeckRepository : IDeckRepository
             DateCreated = created,
             DateModified = modified,
             CommanderId = reader.IsDBNull(reader.GetOrdinal("CommanderId")) ? "" : reader.GetString(reader.GetOrdinal("CommanderId")),
+            CommanderName = reader.IsDBNull(reader.GetOrdinal("CommanderName")) ? "" : reader.GetString(reader.GetOrdinal("CommanderName")),
             PartnerId = reader.IsDBNull(reader.GetOrdinal("PartnerId")) ? "" : reader.GetString(reader.GetOrdinal("PartnerId")),
             ColorIdentity = reader.IsDBNull(reader.GetOrdinal("ColorIdentity")) ? "" : reader.GetString(reader.GetOrdinal("ColorIdentity"))
         };

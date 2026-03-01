@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
+             xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
+             xmlns:vm="clr-namespace:MTGFetchMAUI.ViewModels"
+             xmlns:pages="clr-namespace:MTGFetchMAUI.Pages"
+             x:Class="MTGFetchMAUI.Pages.DeckDetailPage"
+             Title="{Binding Deck.Name}"
+             BackgroundColor="{StaticResource Background}"
+             x:DataType="vm:DeckDetailViewModel">
+
+    <Grid RowDefinitions="Auto,140,Auto,*,Auto">
+
+        <!-- Row 0: Deck Name + Card Count badge -->
+        <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
+            <VerticalStackLayout>
+                <Label Text="{Binding Deck.Name}"
+                       FontSize="17"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       LineBreakMode="TailTruncation" />
+                <Label Text="{Binding DeckFormat}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextSecondary}" />
+            </VerticalStackLayout>
+
+            <Border Grid.Column="1"
+                    BackgroundColor="{StaticResource Accent}"
+                    Padding="10,5"
+                    StrokeShape="RoundRectangle 14"
+                    Stroke="Transparent"
+                    VerticalOptions="Center">
+                <Label Text="{Binding TotalCardCount}"
+                       TextColor="Black"
+                       FontSize="14"
+                       FontAttributes="Bold" />
+            </Border>
+        </Grid>
+
+        <!-- Row 1: Commander Art Header (gradient placeholder, shows commander name) -->
+        <skia:SKCanvasView Grid.Row="1"
+                           x:Name="CommanderArtCanvas"
+                           PaintSurface="OnCommanderArtPaint" />
+
+        <!-- Row 2: Section Tab Bar -->
+        <Grid Grid.Row="2"
+              ColumnDefinitions="*,*,*,*"
+              BackgroundColor="{StaticResource Surface}">
+            <Button Grid.Column="0"
+                    Text="Commander"
+                    Command="{Binding SelectCommanderCommand}"
+                    BackgroundColor="{Binding Tab0Color}"
+                    TextColor="{StaticResource TextPrimary}"
+                    FontSize="11"
+                    HeightRequest="40"
+                    CornerRadius="0"
+                    Padding="0" />
+            <Button Grid.Column="1"
+                    Text="Main"
+                    Command="{Binding SelectMainCommand}"
+                    BackgroundColor="{Binding Tab1Color}"
+                    TextColor="{StaticResource TextPrimary}"
+                    FontSize="11"
+                    HeightRequest="40"
+                    CornerRadius="0"
+                    Padding="0" />
+            <Button Grid.Column="2"
+                    Text="Sideboard"
+                    Command="{Binding SelectSideboardCommand}"
+                    BackgroundColor="{Binding Tab2Color}"
+                    TextColor="{StaticResource TextPrimary}"
+                    FontSize="11"
+                    HeightRequest="40"
+                    CornerRadius="0"
+                    Padding="0" />
+            <Button Grid.Column="3"
+                    Text="Stats"
+                    Command="{Binding SelectStatsCommand}"
+                    BackgroundColor="{Binding Tab3Color}"
+                    TextColor="{StaticResource TextPrimary}"
+                    FontSize="11"
+                    HeightRequest="40"
+                    CornerRadius="0"
+                    Padding="0" />
+        </Grid>
+
+        <!-- Row 3: Content Panels (overlapping, one visible at a time) -->
+        <Grid Grid.Row="3">
+
+            <!-- Commander Tab -->
+            <ScrollView IsVisible="{Binding IsCommanderTab}" Padding="16,8">
+                <VerticalStackLayout Spacing="12">
+                    <!-- No commander placeholder -->
+                    <VerticalStackLayout IsVisible="{Binding HasNoCommander}"
+                                         VerticalOptions="Center"
+                                         HorizontalOptions="Center"
+                                         Spacing="8"
+                                         Padding="0,40,0,0">
+                        <Label Text="No commander set"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalOptions="Center" />
+                        <Label Text="Search for a legendary creature and add it to the Commander section"
+                               FontSize="13"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+
+                    <!-- Commander cards -->
+                    <CollectionView ItemsSource="{Binding CommanderCards}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DeckCardDisplayItem">
+                                <SwipeView>
+                                    <SwipeView.RightItems>
+                                        <SwipeItems>
+                                            <SwipeItem Text="Remove"
+                                                       BackgroundColor="#B00020"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.RemoveCardCommand}"
+                                                       CommandParameter="{Binding .}" />
+                                        </SwipeItems>
+                                    </SwipeView.RightItems>
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                                          Padding="0,6"
+                                          ColumnSpacing="8">
+                                        <Border BackgroundColor="{StaticResource Accent}"
+                                                Padding="6,2"
+                                                StrokeShape="RoundRectangle 6"
+                                                Stroke="Transparent"
+                                                VerticalOptions="Center">
+                                            <Label Text="{Binding Entity.Quantity}"
+                                                   TextColor="Black"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold" />
+                                        </Border>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding DisplayName}"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               FontSize="14"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="2"
+                                               Text="{Binding ManaCostText}"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               FontSize="12"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                </SwipeView>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <!-- Main Deck Tab -->
+            <CollectionView IsVisible="{Binding IsMainTab}"
+                            ItemsSource="{Binding MainDeckGroups}"
+                            IsGrouped="True"
+                            SelectionMode="None">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardGroup">
+                        <Label Text="{Binding GroupName}"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}"
+                               BackgroundColor="{StaticResource Background}"
+                               Padding="12,6,12,2" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardDisplayItem">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Remove"
+                                               BackgroundColor="#B00020"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.RemoveCardCommand}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
+                                  Padding="12,5"
+                                  ColumnSpacing="6"
+                                  BackgroundColor="{StaticResource Background}">
+                                <Border BackgroundColor="{StaticResource Surface}"
+                                        Padding="6,2"
+                                        StrokeShape="RoundRectangle 6"
+                                        Stroke="Transparent"
+                                        VerticalOptions="Center">
+                                    <Label Text="{Binding Entity.Quantity}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="12"
+                                           FontAttributes="Bold" />
+                                </Border>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayName}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="14"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding ManaCostText}"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       FontSize="11"
+                                       VerticalOptions="Center" />
+                                <Button Grid.Column="3"
+                                        Text="−"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="{StaticResource Surface}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        WidthRequest="32"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        FontSize="16"
+                                        CornerRadius="4" />
+                                <Button Grid.Column="4"
+                                        Text="+"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="{StaticResource Accent}"
+                                        TextColor="Black"
+                                        WidthRequest="32"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        FontSize="16"
+                                        CornerRadius="4" />
+                            </Grid>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Sideboard Tab -->
+            <CollectionView IsVisible="{Binding IsSideboardTab}"
+                            ItemsSource="{Binding SideboardCards}"
+                            SelectionMode="None">
+                <CollectionView.Header>
+                    <Label Text="Sideboard"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextSecondary}"
+                           Padding="12,8,12,4" />
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardDisplayItem">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Remove"
+                                               BackgroundColor="#B00020"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.RemoveCardCommand}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
+                                  Padding="12,5"
+                                  ColumnSpacing="6"
+                                  BackgroundColor="{StaticResource Background}">
+                                <Border BackgroundColor="{StaticResource Surface}"
+                                        Padding="6,2"
+                                        StrokeShape="RoundRectangle 6"
+                                        Stroke="Transparent"
+                                        VerticalOptions="Center">
+                                    <Label Text="{Binding Entity.Quantity}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="12"
+                                           FontAttributes="Bold" />
+                                </Border>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DisplayName}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="14"
+                                       VerticalOptions="Center"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding ManaCostText}"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       FontSize="11"
+                                       VerticalOptions="Center" />
+                                <Button Grid.Column="3"
+                                        Text="−"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="{StaticResource Surface}"
+                                        TextColor="{StaticResource TextPrimary}"
+                                        WidthRequest="32"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        FontSize="16"
+                                        CornerRadius="4" />
+                                <Button Grid.Column="4"
+                                        Text="+"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="{StaticResource Accent}"
+                                        TextColor="Black"
+                                        WidthRequest="32"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        FontSize="16"
+                                        CornerRadius="4" />
+                            </Grid>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Stats Tab -->
+            <ScrollView IsVisible="{Binding IsStatsTab}" Padding="16,8">
+                <VerticalStackLayout Spacing="16">
+
+                    <!-- Mana Curve Chart -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Mana Curve"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <controls:ManaCurveView ManaCurve="{Binding Stats.ManaCurve}"
+                                                HeightRequest="140"
+                                                BackgroundColor="Transparent" />
+                    </VerticalStackLayout>
+
+                    <!-- Stats Grid -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Composition"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto"
+                              RowSpacing="8" ColumnSpacing="8">
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="0" Grid.Column="0">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.TotalCards}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource Accent}" />
+                                    <Label Text="Total" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="0" Grid.Column="1">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.AvgCMC, StringFormat='{0:F1}'}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource Accent}" />
+                                    <Label Text="Avg CMC" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="0" Grid.Column="2">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Lands}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource Accent}" />
+                                    <Label Text="Lands" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="1" Grid.Column="0">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Creatures}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Creatures" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="1" Grid.Column="1">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Instants}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Instants" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="1" Grid.Column="2">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Sorceries}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Sorceries" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="2" Grid.Column="0">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Artifacts}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Artifacts" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="2" Grid.Column="1">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Enchantments}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Enchants" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource CardStyle}" Grid.Row="2" Grid.Column="2">
+                                <VerticalStackLayout HorizontalOptions="Center">
+                                    <Label Text="{Binding Stats.Planeswalkers}" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                                    <Label Text="Planeswalkers" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <!-- Status message -->
+                    <Label Text="{Binding StatusDisplayText}"
+                           FontSize="12"
+                           TextColor="{Binding StatusTextColor}"
+                           HorizontalOptions="Center" />
+
+                </VerticalStackLayout>
+            </ScrollView>
+
+        </Grid>
+
+        <!-- Row 4: Footer -->
+        <Grid Grid.Row="4"
+              Padding="12,8"
+              BackgroundColor="{StaticResource Surface}">
+            <Label Text="{Binding StatusDisplayText}"
+                   FontSize="12"
+                   TextColor="{Binding StatusTextColor}"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

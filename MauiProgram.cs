@@ -1,6 +1,7 @@
 using MTGFetchMAUI.Data;
 using MTGFetchMAUI.Pages;
 using MTGFetchMAUI.Services;
+using MTGFetchMAUI.Services.DeckBuilder;
 using MTGFetchMAUI.ViewModels;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using CommunityToolkit.Maui;
@@ -61,19 +62,27 @@ public static class MauiProgram
         // ── Services ─────────────────────────────────────────────────
         builder.Services.AddSingleton<IToastService, ToastService>();
         builder.Services.AddSingleton<DatabaseManager>();
-        builder.Services.AddSingleton<ICardRepository, CardRepository>();
+        builder.Services.AddSingleton<CardManager>();
+        // ICardRepository and IDeckRepository use CardManager's internal connected DatabaseManager
+        builder.Services.AddSingleton<ICardRepository>(sp =>
+            new CardRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
+        builder.Services.AddSingleton<IDeckRepository>(sp =>
+            new DeckRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
+        builder.Services.AddSingleton<DeckValidator>();
+        builder.Services.AddSingleton<DeckBuilderService>();
         builder.Services.AddSingleton<FileImageCache>();
         builder.Services.AddSingleton<ImageCacheService>();
         builder.Services.AddSingleton<ImageDownloadService>();
-        builder.Services.AddSingleton<CardManager>();
         builder.Services.AddSingleton<CardGalleryContext>();
 
         // ── ViewModels ──────────────────────────────────────────────
         builder.Services.AddSingleton<SearchViewModel>();
         builder.Services.AddSingleton<CollectionViewModel>();
         builder.Services.AddSingleton<StatsViewModel>();
+        builder.Services.AddSingleton<DecksViewModel>();
         builder.Services.AddTransient<CardDetailViewModel>();
+        builder.Services.AddTransient<DeckDetailViewModel>();
         builder.Services.AddTransient<LoadingViewModel>();
 
         // ── Pages ───────────────────────────────────────────────────
@@ -82,7 +91,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<SearchPage>();
         builder.Services.AddSingleton<CollectionPage>();
         builder.Services.AddSingleton<StatsPage>();
+        builder.Services.AddSingleton<DecksPage>();
         builder.Services.AddTransient<CardDetailPage>();
+        builder.Services.AddTransient<DeckDetailPage>();
         builder.Services.AddTransient<SearchFiltersPage>();
 
         return builder.Build();

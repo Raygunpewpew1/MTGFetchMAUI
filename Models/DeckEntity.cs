@@ -17,6 +17,11 @@ public class DeckEntity
 
     // Commander specific
     public string CommanderId { get; set; } = "";
+    public string CommanderName { get; set; } = "";
     public string PartnerId { get; set; } = "";
     public string ColorIdentity { get; set; } = "";
+
+    public bool HasCommander => !string.IsNullOrEmpty(CommanderName);
+    public string CommanderDisplay => HasCommander ? $"☆ {CommanderName}" : "";
+    public string FormatDisplay => EnumExtensions.ParseDeckFormat(Format).ToDisplayName();
 }

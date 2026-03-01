@@ -232,6 +232,26 @@ public sealed class DatabaseManager : IDisposable
             alter.CommandText = SQLQueries.CollectionAddIsEtched;
             await alter.ExecuteNonQueryAsync();
         }
+
+        // Migrate Decks table — add CommanderName if missing
+        bool hasCommanderName = false;
+        using (var pragma = conn.CreateCommand())
+        {
+            pragma.CommandText = SQLQueries.DecksTableInfo;
+            using var reader = await pragma.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if (reader.GetString(1) == "CommanderName")
+                    hasCommanderName = true;
+            }
+        }
+
+        if (!hasCommanderName)
+        {
+            using var alter = conn.CreateCommand();
+            alter.CommandText = SQLQueries.DecksAddCommanderName;
+            await alter.ExecuteNonQueryAsync();
+        }
     }
 
     private static async Task ExecuteNonQueryAsync(SqliteConnection connection, string sql)

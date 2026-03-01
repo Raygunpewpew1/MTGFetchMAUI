@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MTGFetchMAUI.Pages.CreateDeckPage"
+             Title="New Deck"
+             BackgroundColor="{StaticResource Background}">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20,16">
+
+        <!-- Title -->
+        <Label Grid.Row="0"
+               Text="Create Deck"
+               FontSize="20"
+               FontAttributes="Bold"
+               TextColor="{StaticResource TextPrimary}"
+               Margin="0,0,0,16" />
+
+        <!-- Form -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="16">
+
+                <!-- Deck Name -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Deck Name"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Entry x:Name="NameEntry"
+                           Placeholder="My Deck"
+                           MaxLength="64"
+                           BackgroundColor="{StaticResource Surface}"
+                           TextColor="{StaticResource TextPrimary}"
+                           PlaceholderColor="{StaticResource TextSecondary}"
+                           HeightRequest="44"
+                           FontSize="15" />
+                </VerticalStackLayout>
+
+                <!-- Format -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Format"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Picker x:Name="FormatPicker"
+                            BackgroundColor="{StaticResource Surface}"
+                            TextColor="{StaticResource TextPrimary}"
+                            HeightRequest="44"
+                            FontSize="15" />
+                </VerticalStackLayout>
+
+                <!-- Description -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Description (optional)"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <Editor x:Name="DescriptionEntry"
+                            Placeholder="Describe your deck..."
+                            MaxLength="256"
+                            BackgroundColor="{StaticResource Surface}"
+                            TextColor="{StaticResource TextPrimary}"
+                            PlaceholderColor="{StaticResource TextSecondary}"
+                            HeightRequest="90"
+                            FontSize="14" />
+                </VerticalStackLayout>
+
+                <!-- Error label -->
+                <Label x:Name="ErrorLabel"
+                       IsVisible="False"
+                       TextColor="#F44336"
+                       FontSize="13"
+                       HorizontalOptions="Center" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,16,0,0">
+            <Button Grid.Column="0"
+                    Text="Cancel"
+                    Clicked="OnCancelClicked"
+                    BackgroundColor="{StaticResource Surface}"
+                    TextColor="{StaticResource TextPrimary}"
+                    HeightRequest="44" />
+            <Button Grid.Column="1"
+                    Text="Create"
+                    Clicked="OnCreateClicked"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="Black"
+                    FontAttributes="Bold"
+                    HeightRequest="44" />
+        </Grid>
+
+    </Grid>
+
+</ContentPage>
