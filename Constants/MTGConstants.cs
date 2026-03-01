@@ -87,8 +87,13 @@ public static class MTGConstants
     public const string FileCollectionDb = "MyCollection.sqlite";
     public const string FilePricesDb = "prices.sqlite";
     public const string FileSymbolCache = "SymbolCache.json";
-    public const string FilePricesJson = "AllPricesToday.json";
+    public const string FilePricesTempZip = "AllPricesToday_temp.zip";
+    public const string FilePricesTempSqlite = "AllPricesToday_temp.sqlite";
     public const string AppRootFolder = "MTGApp";
+
+    // How many days of daily price history to keep in card_price_history.
+    // Without trimming, the table grows ~170 MB/month. 90 days ≈ 500 MB ceiling.
+    public const int PriceHistoryRetentionDays = 90;
 
     // ── Legality Display Strings ────────────────────────────────────
 
