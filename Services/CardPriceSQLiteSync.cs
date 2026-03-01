@@ -69,6 +69,7 @@ public class CardPriceSQLiteSync
         await ExecuteAsync(conn, "PRAGMA journal_mode=WAL");
         await ExecuteAsync(conn, "PRAGMA synchronous=OFF");
         await ExecuteAsync(conn, "PRAGMA cache_size=-16384");
+        await ExecuteAsync(conn, "PRAGMA busy_timeout=60000");
 
         // Migrate old wide-column schema if present
         await MigrateIfNeededAsync(conn);
@@ -88,6 +89,7 @@ public class CardPriceSQLiteSync
 
             using var trans = conn.BeginTransaction();
 
+            await ExecuteTransactedAsync(conn, trans, SQLQueries.PricesDeleteAll);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PricesSyncFromAttached);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistorySyncFromAttached);
             await ExecuteTransactedAsync(conn, trans,

@@ -187,6 +187,25 @@ public class CardPriceDatabase : IDisposable
         }
     }
 
+    /// <summary>
+    /// Closes the database connection so the sync process can take exclusive write access.
+    /// Call <see cref="EnsureDatabaseAsync"/> to reconnect when sync is finished.
+    /// </summary>
+    public async Task CloseAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            _connection?.Close();
+            _connection?.Dispose();
+            _connection = null;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public void Dispose()
     {
         _connection?.Close();
