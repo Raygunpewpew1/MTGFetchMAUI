@@ -339,6 +339,8 @@ public partial class CardDetailPage : ContentPage
         {
             var link = new Label
             {
+               
+                TextType = TextType.Html,
                 Text = label,
                 FontSize = 14,
                 TextColor = Color.FromArgb("#6CB4E4"),
