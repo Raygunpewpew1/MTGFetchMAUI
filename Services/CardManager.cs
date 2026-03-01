@@ -184,8 +184,6 @@ public class CardManager : IDisposable
                 }
             };
 
-            // Try importing existing local data, then check for updates
-            _priceManager.ImportDataAsync();
             _priceManager.CheckForUpdates();
             _priceManager.StartPeriodicCheck();
         }
