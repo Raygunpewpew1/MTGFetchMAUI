@@ -71,4 +71,111 @@ public class CollectionStatsTests
         var stats = CollectionRepository.CalculateStats(items);
         Assert.Equal(0, stats.AvgCMC);
     }
+
+    [Fact]
+    public void CalculateStats_MythicRarity_CountedInMythicCount()
+    {
+        var items = new[]
+        {
+            new CollectionItem { Quantity = 2, Card = new Card { CMC = 5, CardType = "Creature", Rarity = CardRarity.Mythic } }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        Assert.Equal(2, stats.MythicCount);
+        Assert.Equal(0, stats.RareCount);
+        Assert.Equal(0, stats.CommonCount);
+        Assert.Equal(0, stats.UncommonCount);
+    }
+
+    [Fact]
+    public void CalculateStats_SpecialRarity_NotCountedInAnyRarityBucket()
+    {
+        // Special and Bonus rarities fall through the switch — none of the four buckets increase
+        var items = new[]
+        {
+            new CollectionItem { Quantity = 1, Card = new Card { CMC = 3, CardType = "Creature", Rarity = CardRarity.Special } }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        Assert.Equal(0, stats.CommonCount);
+        Assert.Equal(0, stats.UncommonCount);
+        Assert.Equal(0, stats.RareCount);
+        Assert.Equal(0, stats.MythicCount);
+        Assert.Equal(1, stats.TotalCards); // still counts toward total
+    }
+
+    [Fact]
+    public void CalculateStats_FoilCard_CountedInFoilCount()
+    {
+        var items = new[]
+        {
+            new CollectionItem
+            {
+                Quantity = 3,
+                IsFoil = true,
+                Card = new Card { CMC = 2, CardType = "Creature", Rarity = CardRarity.Rare }
+            }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        Assert.Equal(3, stats.FoilCount);
+    }
+
+    [Fact]
+    public void CalculateStats_EtchedCard_CountedInFoilCount()
+    {
+        var items = new[]
+        {
+            new CollectionItem
+            {
+                Quantity = 1,
+                IsEtched = true,
+                Card = new Card { CMC = 2, CardType = "Instant", Rarity = CardRarity.Uncommon }
+            }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        Assert.Equal(1, stats.FoilCount);
+    }
+
+    [Fact]
+    public void CalculateStats_ZeroCMCNonLand_IncludedInAvgCalc()
+    {
+        // A 0-CMC creature (e.g. Memnite) is not a land, so it IS counted in AvgCMC
+        // and brings the average down compared to not including it
+        var items = new[]
+        {
+            // 4x 4-CMC creature
+            new CollectionItem { Quantity = 4, Card = new Card { CMC = 4, CardType = "Creature", Rarity = CardRarity.Common } },
+            // 4x 0-CMC creature
+            new CollectionItem { Quantity = 4, Card = new Card { CMC = 0, CardType = "Creature", Rarity = CardRarity.Common } }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        // AvgCMC = (4*4 + 4*0) / 8 = 16/8 = 2.0
+        Assert.Equal(2.0, stats.AvgCMC, 2);
+    }
+
+    [Fact]
+    public void CalculateStats_ArtifactCreature_CountedAsCreature()
+    {
+        // IsCreature is checked first in the if/else chain
+        var items = new[]
+        {
+            new CollectionItem { Quantity = 2, Card = new Card { CMC = 3, CardType = "Artifact Creature", Rarity = CardRarity.Common } }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        Assert.Equal(2, stats.CreatureCount);
+        Assert.Equal(0, stats.SpellCount);
+        Assert.Equal(0, stats.LandCount);
+    }
+
+    [Fact]
+    public void CalculateStats_Planeswalker_CountedAsSpell()
+    {
+        // Planeswalker is neither Creature nor Land — falls into SpellCount
+        var items = new[]
+        {
+            new CollectionItem { Quantity = 1, Card = new Card { CMC = 4, CardType = "Legendary Planeswalker", Rarity = CardRarity.Mythic } }
+        };
+        var stats = CollectionRepository.CalculateStats(items);
+        Assert.Equal(1, stats.SpellCount);
+        Assert.Equal(0, stats.CreatureCount);
+        Assert.Equal(0, stats.LandCount);
+    }
 }

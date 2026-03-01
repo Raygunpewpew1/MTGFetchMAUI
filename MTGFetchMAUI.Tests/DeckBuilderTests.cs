@@ -120,6 +120,259 @@ public class DeckBuilderTests
         Assert.Contains("outside commander's color identity", result.Message);
     }
 
+    // ── Not-found guard tests ─────────────────────────────────────────
+
+    [Fact]
+    public async Task AddCard_CardNotFound_ReturnsError()
+    {
+        var deckId = await _service.CreateDeckAsync("Test Deck", DeckFormat.Standard);
+        // "missing-uuid" was never added to _cardRepo
+        var result = await _service.AddCardAsync(deckId, "missing-uuid", 1);
+        Assert.True(result.IsError);
+        Assert.Contains("Card not found", result.Message);
+    }
+
+    [Fact]
+    public async Task AddCard_DeckNotFound_ReturnsError()
+    {
+        var card = CreateCard("uuid-x", "Some Card", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+        var result = await _service.AddCardAsync(9999, card.UUID, 1);
+        Assert.True(result.IsError);
+        Assert.Contains("Deck not found", result.Message);
+    }
+
+    [Fact]
+    public async Task SetCommander_DeckNotFound_ReturnsError()
+    {
+        var result = await _service.SetCommanderAsync(9999, "any-uuid");
+        Assert.True(result.IsError);
+        Assert.Contains("Deck not found", result.Message);
+    }
+
+    [Fact]
+    public async Task SetCommander_CardNotFound_ReturnsError()
+    {
+        var deckId = await _service.CreateDeckAsync("Commander Deck", DeckFormat.Commander);
+        var result = await _service.SetCommanderAsync(deckId, "missing-uuid");
+        Assert.True(result.IsError);
+        Assert.Contains("Card not found", result.Message);
+    }
+
+    // ── Copy limit and exception tests ────────────────────────────────
+
+    [Fact]
+    public async Task AddCard_BasicLand_AllowsMoreThan4Copies()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+        var land = CreateCard("land-1", "Forest", DeckFormat.Standard, LegalityStatus.Legal);
+        land.CardType = "Basic Land — Forest"; // triggers IsBasicLand
+        _cardRepo.AddCard(land);
+
+        await _service.AddCardAsync(deckId, land.UUID, 4);
+        var result = await _service.AddCardAsync(deckId, land.UUID, 20); // total 24
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AddCard_RelentlessCard_AllowsMoreThan4Copies()
+    {
+        var deckId = await _service.CreateDeckAsync("Modern Deck", DeckFormat.Modern);
+        var relentless = CreateCard("rats-1", "Relentless Rats", DeckFormat.Modern, LegalityStatus.Legal);
+        relentless.Text = "A deck can have any number of cards named Relentless Rats.";
+        _cardRepo.AddCard(relentless);
+
+        await _service.AddCardAsync(deckId, relentless.UUID, 4);
+        var result = await _service.AddCardAsync(deckId, relentless.UUID, 20);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AddCard_VintageRestricted_AllowsOneCopy()
+    {
+        var deckId = await _service.CreateDeckAsync("Vintage Deck", DeckFormat.Vintage);
+        var restricted = new Card
+        {
+            UUID = "restricted-1",
+            Name = "Black Lotus",
+            CardType = "Artifact",
+            Legalities = new CardLegalities(),
+            Colors = "",
+            Text = ""
+        };
+        restricted.Legalities[DeckFormat.Vintage] = LegalityStatus.Restricted;
+        _cardRepo.AddCard(restricted);
+
+        var result = await _service.AddCardAsync(deckId, restricted.UUID, 1);
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AddCard_VintageRestricted_RejectsTwoCopies()
+    {
+        var deckId = await _service.CreateDeckAsync("Vintage Deck", DeckFormat.Vintage);
+        var restricted = new Card
+        {
+            UUID = "restricted-2",
+            Name = "Ancestral Recall",
+            CardType = "Instant",
+            Legalities = new CardLegalities(),
+            Colors = "U",
+            Text = ""
+        };
+        restricted.Legalities[DeckFormat.Vintage] = LegalityStatus.Restricted;
+        _cardRepo.AddCard(restricted);
+
+        await _service.AddCardAsync(deckId, restricted.UUID, 1);
+        var result = await _service.AddCardAsync(deckId, restricted.UUID, 1); // total 2
+
+        Assert.True(result.IsError);
+        Assert.Contains("Restricted", result.Message);
+    }
+
+    // ── Commander validation tests ─────────────────────────────────────
+
+    [Fact]
+    public async Task SetCommander_NonCommanderFormat_ReturnsError()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+        var card = CreateCard("cmdr-std", "Legendary Creature", DeckFormat.Standard, LegalityStatus.Legal);
+        card.CardType = "Legendary Creature";
+        _cardRepo.AddCard(card);
+
+        var result = await _service.SetCommanderAsync(deckId, card.UUID);
+        Assert.True(result.IsError);
+        Assert.Contains("format does not support commanders", result.Message);
+    }
+
+    [Fact]
+    public async Task SetCommander_NonLegendaryCreature_ReturnsError()
+    {
+        var deckId = await _service.CreateDeckAsync("Commander Deck", DeckFormat.Commander);
+        var card = CreateCard("plain-creature", "Grizzly Bears", DeckFormat.Commander, LegalityStatus.Legal);
+        card.CardType = "Creature — Bear"; // NOT Legendary
+        _cardRepo.AddCard(card);
+
+        var result = await _service.SetCommanderAsync(deckId, card.UUID);
+        Assert.True(result.IsError);
+        Assert.Contains("cannot be a commander", result.Message);
+    }
+
+    [Fact]
+    public async Task SetCommander_Planeswalker_BrawlFormat_Succeeds()
+    {
+        var deckId = await _service.CreateDeckAsync("Brawl Deck", DeckFormat.Brawl);
+        var pw = new Card
+        {
+            UUID = "pw-1",
+            Name = "Jace, the Mind Sculptor",
+            CardType = "Legendary Planeswalker — Jace",
+            Legalities = new CardLegalities(),
+            Colors = "U",
+            Text = ""
+        };
+        pw.Legalities[DeckFormat.Brawl] = LegalityStatus.Legal;
+        _cardRepo.AddCard(pw);
+
+        var result = await _service.SetCommanderAsync(deckId, pw.UUID);
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AddCard_CommanderFormat_NoCommanderSet_AllowsCard()
+    {
+        // Without a commander, there is no color identity restriction
+        var deckId = await _service.CreateDeckAsync("Commander Deck", DeckFormat.Commander);
+        var card = CreateCard("red-2", "Red Card", DeckFormat.Commander, LegalityStatus.Legal);
+        card.Colors = "R";
+        _cardRepo.AddCard(card);
+
+        var result = await _service.AddCardAsync(deckId, card.UUID, 1);
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AddCard_CommanderFormat_MaxOneCopyPerCard()
+    {
+        var deckId = await _service.CreateDeckAsync("Commander Deck", DeckFormat.Commander);
+        var card = CreateCard("sol-ring", "Sol Ring", DeckFormat.Commander, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+
+        await _service.AddCardAsync(deckId, card.UUID, 1);
+        var result = await _service.AddCardAsync(deckId, card.UUID, 1); // total 2
+
+        Assert.True(result.IsError);
+        Assert.Contains("more than 1 copies", result.Message);
+    }
+
+    // ── UpdateQuantity / Remove edge case tests ───────────────────────
+
+    [Fact]
+    public async Task UpdateQuantity_ZeroQuantity_RemovesCard()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+        var card = CreateCard("uuid-rm1", "Card To Remove", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+        await _service.AddCardAsync(deckId, card.UUID, 2);
+
+        var result = await _service.UpdateQuantityAsync(deckId, card.UUID, 0, "Main");
+
+        Assert.True(result.IsSuccess);
+        var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Empty(deckCards);
+    }
+
+    [Fact]
+    public async Task UpdateQuantity_NegativeQuantity_RemovesCard()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+        var card = CreateCard("uuid-rm2", "Card To Remove", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+        await _service.AddCardAsync(deckId, card.UUID, 2);
+
+        var result = await _service.UpdateQuantityAsync(deckId, card.UUID, -1, "Main");
+
+        Assert.True(result.IsSuccess);
+        var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Empty(deckCards);
+    }
+
+    [Fact]
+    public async Task RemoveCard_UpdatesDeck()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+        var card = CreateCard("uuid-del1", "Removable Card", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+        await _service.AddCardAsync(deckId, card.UUID, 2);
+
+        await _service.RemoveCardAsync(deckId, card.UUID, "Main");
+
+        var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Empty(deckCards);
+    }
+
+    // ── Section tracking test ─────────────────────────────────────────
+
+    [Fact]
+    public async Task AddCard_SameCard_DifferentSections_BothTracked()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+        var card = CreateCard("uuid-multi", "Versatile Card", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+
+        await _service.AddCardAsync(deckId, card.UUID, 4, "Main");
+        // Note: adding to sideboard after 4 in main will fail total-quantity check
+        // because GetTotalQuantity sums across all sections.
+        // This test documents the current behavior.
+        var sideResult = await _service.AddCardAsync(deckId, card.UUID, 1, "Sideboard");
+
+        // Expect error: total across all sections (4+1=5) exceeds max 4
+        Assert.True(sideResult.IsError);
+        Assert.Contains("more than 4 copies", sideResult.Message);
+    }
+
     private Card CreateCard(string uuid, string name, DeckFormat format, LegalityStatus legality)
     {
         var card = new Card
@@ -128,7 +381,8 @@ public class DeckBuilderTests
             Name = name,
             CardType = "Creature",
             Legalities = new CardLegalities(),
-            Colors = ""
+            Colors = "",
+            Text = ""
         };
         card.Legalities[format] = legality;
         return card;

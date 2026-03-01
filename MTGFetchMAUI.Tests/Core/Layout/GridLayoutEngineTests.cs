@@ -88,4 +88,125 @@ public class GridLayoutEngineTests
         Assert.True(col2X > col1X, "Card 2 should be right of card 1");
         Assert.Equal(col0X, col3X, 0.1f); // Card 3 wraps to row 2, same column as card 0
     }
+
+    [Fact]
+    public void Calculate_ZeroViewportWidth_DefaultsTo360()
+    {
+        // Zero width should fall back to 360f, producing the same layout as an explicit 360 viewport
+        var viewportZero = new Viewport(0f, 800f, 0f);
+        var viewport360 = new Viewport(360f, 800f, 0f);
+        var config = new GridConfig { MinCardWidth = 100f, CardSpacing = 8f, LabelHeight = 42f };
+
+        var card = new CardState(new CardId("1"), "Card", "TST", "1", "scry1", 0, false);
+        var cards = ImmutableArray.Create(card);
+
+        var resultZero = GridLayoutEngine.Calculate(new GridState(cards, config, viewportZero));
+        var result360 = GridLayoutEngine.Calculate(new GridState(cards, config, viewport360));
+
+        Assert.Equal(result360.CardWidth, resultZero.CardWidth, 0.1f);
+        Assert.Equal(result360.Commands.Length, resultZero.Commands.Length);
+    }
+
+    [Fact]
+    public void Calculate_NegativeScrollY_ClampsToZero()
+    {
+        // Negative scroll should behave exactly like scroll=0 (clamped by Math.Max)
+        var config = new GridConfig { MinCardWidth = 100f, CardSpacing = 8f, LabelHeight = 42f };
+
+        var cards = Enumerable.Range(1, 6)
+            .Select(i => new CardState(new CardId(i.ToString()), $"Card {i}", "TST", $"{i}", $"scry{i}", 0, false))
+            .ToImmutableArray();
+
+        var stateNoScroll = new GridState(cards, config, new Viewport(360f, 800f, 0f));
+        var stateNegScroll = new GridState(cards, config, new Viewport(360f, 800f, -500f));
+
+        var resultNoScroll = GridLayoutEngine.Calculate(stateNoScroll);
+        var resultNegScroll = GridLayoutEngine.Calculate(stateNegScroll);
+
+        Assert.Equal(resultNoScroll.Commands.Length, resultNegScroll.Commands.Length);
+        Assert.Equal(resultNoScroll.VisibleStart, resultNegScroll.VisibleStart);
+        Assert.Equal(resultNoScroll.VisibleEnd, resultNegScroll.VisibleEnd);
+    }
+
+    [Fact]
+    public void Calculate_ManyCards_AllCommandsGeneratedAtOnce()
+    {
+        // With a very tall viewport (9000px), all 100 cards should be in a single render pass
+        var config = new GridConfig { MinCardWidth = 100f, CardSpacing = 8f, LabelHeight = 42f };
+        var cards = Enumerable.Range(1, 100)
+            .Select(i => new CardState(new CardId(i.ToString()), $"Card {i}", "TST", $"{i}", $"scry{i}", 0, false))
+            .ToImmutableArray();
+
+        var state = new GridState(cards, config, new Viewport(360f, 9000f, 0f));
+        var result = GridLayoutEngine.Calculate(state);
+
+        Assert.Equal(100, result.Commands.Length);
+    }
+
+    [Fact]
+    public void Calculate_WideTabletViewport_GivesMoreColumns()
+    {
+        // 800dp wide with MinCardWidth=100 should generate more render commands than 360dp
+        // because more cards fit in the visible area per row.
+        // 360dp → columns = floor((340-8)/(100+8)) = 3
+        // 800dp → columns = floor((780-8)/(100+8)) = 7
+        var config = new GridConfig { MinCardWidth = 100f, CardSpacing = 8f, LabelHeight = 42f };
+        var cards = Enumerable.Range(1, 10)
+            .Select(i => new CardState(new CardId(i.ToString()), $"Card {i}", "TST", $"{i}", $"scry{i}", 0, false))
+            .ToImmutableArray();
+
+        // Use same tall viewport so all cards are visible in both cases
+        var narrowState = new GridState(cards, config, new Viewport(360f, 9000f, 0f));
+        var wideState = new GridState(cards, config, new Viewport(800f, 9000f, 0f));
+
+        var narrowResult = GridLayoutEngine.Calculate(narrowState);
+        var wideResult = GridLayoutEngine.Calculate(wideState);
+
+        // Both render all 10 cards, but the wide layout puts 7 per row vs 3 per row
+        Assert.Equal(10, narrowResult.Commands.Length);
+        Assert.Equal(10, wideResult.Commands.Length);
+
+        // On the wide layout, first-row cards are further to the right (card index 6 has a non-zero X)
+        var narrowCmds = narrowResult.Commands.OfType<DrawCardCommand>().ToList();
+        var wideCmds = wideResult.Commands.OfType<DrawCardCommand>().ToList();
+
+        // Column 0 X should be the same (leftmost); column 6 should exist only on wide
+        // Wide: card index 6 is still in row 0 (7 columns); narrow: it's in row 2
+        float wideCard6Y = wideCmds[6].Rect.Top;
+        float narrowCard6Y = narrowCmds[6].Rect.Top;
+        Assert.True(wideCard6Y < narrowCard6Y,
+            $"Card 6 should be higher (same row as card 0) on wide viewport. Wide y={wideCard6Y:F1}, Narrow y={narrowCard6Y:F1}");
+    }
+
+    [Fact]
+    public void Calculate_ListMode_RowsSpanFullWidth()
+    {
+        var config = new GridConfig { MinCardWidth = 100f, CardSpacing = 8f, LabelHeight = 42f, ViewMode = ViewMode.List };
+        var card = new CardState(new CardId("1"), "Card", "TST", "1", "scry1", 0, false);
+        var state = new GridState(ImmutableArray.Create(card), config, new Viewport(360f, 800f, 0f));
+
+        var result = GridLayoutEngine.Calculate(state);
+
+        Assert.Single(result.Commands);
+        var cmd = result.Commands[0] as DrawCardCommand;
+        Assert.NotNull(cmd);
+        // List rows span the full viewport width
+        Assert.Equal(360f, cmd.Rect.Width, 0.1f);
+    }
+
+    [Fact]
+    public void Calculate_TextOnlyMode_UsesTextRowHeight()
+    {
+        const float TextRowHeight = 50f;
+        var config = new GridConfig { MinCardWidth = 100f, CardSpacing = 8f, LabelHeight = 42f, ViewMode = ViewMode.TextOnly };
+        var card = new CardState(new CardId("1"), "Card", "TST", "1", "scry1", 0, false);
+        var state = new GridState(ImmutableArray.Create(card), config, new Viewport(360f, 800f, 0f));
+
+        var result = GridLayoutEngine.Calculate(state);
+
+        Assert.Single(result.Commands);
+        var cmd = result.Commands[0] as DrawCardCommand;
+        Assert.NotNull(cmd);
+        Assert.Equal(TextRowHeight, cmd.Rect.Height, 0.1f);
+    }
 }
