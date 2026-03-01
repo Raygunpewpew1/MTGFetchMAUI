@@ -300,12 +300,12 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     public List<(string label, string url)> GetPurchaseLinks()
     {
         var links = new List<(string, string)>();
-        if (!string.IsNullOrEmpty(Card.tcgplayer))         links.Add(("TCGPlayer", Card.tcgplayer));
-        if (!string.IsNullOrEmpty(Card.tcgplayerEtched))   links.Add(("TCGPlayer \u2014 Etched", Card.tcgplayerEtched));
-        if (!string.IsNullOrEmpty(Card.cardmarket))         links.Add(("Cardmarket", Card.cardmarket));
-        if (!string.IsNullOrEmpty(Card.cardKingdom))        links.Add(("Card Kingdom", Card.cardKingdom));
-        if (!string.IsNullOrEmpty(Card.cardKingdomFoil))    links.Add(("Card Kingdom \u2014 Foil", Card.cardKingdomFoil));
-        if (!string.IsNullOrEmpty(Card.cardKingdomEtched))  links.Add(("Card Kingdom \u2014 Etched", Card.cardKingdomEtched));
+        if (!string.IsNullOrEmpty(Card.tcgplayer)) links.Add(("TCGPlayer", Card.tcgplayer));
+        if (!string.IsNullOrEmpty(Card.tcgplayerEtched)) links.Add(("TCGPlayer \u2014 Etched", Card.tcgplayerEtched));
+        if (!string.IsNullOrEmpty(Card.cardmarket)) links.Add(("Cardmarket", Card.cardmarket));
+        if (!string.IsNullOrEmpty(Card.cardKingdom)) links.Add(("Card Kingdom", Card.cardKingdom));
+        if (!string.IsNullOrEmpty(Card.cardKingdomFoil)) links.Add(("Card Kingdom \u2014 Foil", Card.cardKingdomFoil));
+        if (!string.IsNullOrEmpty(Card.cardKingdomEtched)) links.Add(("Card Kingdom \u2014 Etched", Card.cardKingdomEtched));
         return links;
     }
 

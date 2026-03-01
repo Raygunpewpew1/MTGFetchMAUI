@@ -339,7 +339,7 @@ public partial class CardDetailPage : ContentPage
         {
             var link = new Label
             {
-               
+
                 TextType = TextType.Html,
                 Text = label,
                 FontSize = 14,

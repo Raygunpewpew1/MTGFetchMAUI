@@ -362,9 +362,9 @@ public class CardPriceImporter
         ParseCardPrices(ref Utf8JsonReader reader)
     {
         var tcg = VendorPrices.Empty;
-        var cm  = VendorPrices.Empty;
-        var ck  = VendorPrices.Empty;
-        var mp  = VendorPrices.Empty;
+        var cm = VendorPrices.Empty;
+        var ck = VendorPrices.Empty;
+        var mp = VendorPrices.Empty;
 
         int cardDepth = reader.CurrentDepth;
 
@@ -387,11 +387,11 @@ public class CardPriceImporter
                     // Fallback: vendors appear at card root (non-paper platforms or unusual structure)
                     switch (prop)
                     {
-                        case "tcgplayer":  tcg = ParseVendor(ref reader); break;
-                        case "cardmarket": cm  = ParseVendor(ref reader); break;
+                        case "tcgplayer": tcg = ParseVendor(ref reader); break;
+                        case "cardmarket": cm = ParseVendor(ref reader); break;
                         case "cardkingdom": ck = ParseVendor(ref reader); break;
-                        case "manapool":   mp  = ParseVendor(ref reader); break;
-                        default:           reader.TrySkip(); break;
+                        case "manapool": mp = ParseVendor(ref reader); break;
+                        default: reader.TrySkip(); break;
                     }
                 }
             }
@@ -425,11 +425,11 @@ public class CardPriceImporter
             {
                 switch (vendorName)
                 {
-                    case "tcgplayer":   tcg = ParseVendor(ref reader); break;
-                    case "cardmarket":  cm  = ParseVendor(ref reader); break;
-                    case "cardkingdom": ck  = ParseVendor(ref reader); break;
-                    case "manapool":    mp  = ParseVendor(ref reader); break;
-                    default:            reader.TrySkip(); break;
+                    case "tcgplayer": tcg = ParseVendor(ref reader); break;
+                    case "cardmarket": cm = ParseVendor(ref reader); break;
+                    case "cardkingdom": ck = ParseVendor(ref reader); break;
+                    case "manapool": mp = ParseVendor(ref reader); break;
+                    default: reader.TrySkip(); break;
                 }
             }
             else if (reader.TokenType == JsonTokenType.StartArray)
