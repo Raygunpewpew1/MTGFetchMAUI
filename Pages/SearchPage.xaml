@@ -28,19 +28,10 @@
                    TextColor="{StaticResource TextPrimary}"
                    TitleColor="{StaticResource TextSecondary}"
                    AccentColor="{StaticResource Primary}"
-                   HeightRequest="50"
                    AllowClear="True">
             </material:TextField>
 
             <Button Grid.Column="1"
-                    Text="Search"
-                    IsVisible="False"
-                    Command="{Binding SearchCommand}"
-                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-                    HeightRequest="44"
-                    Padding="16,0" StyleClass="ElevatedButton" />
-
-            <Button Grid.Column="2"
                     Text="{Binding FiltersButtonText}"
                     Command="{Binding GoToFiltersCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
@@ -48,7 +39,7 @@
                     HeightRequest="44"
                     Padding="12,0" StyleClass="ElevatedButton" />
 
-            <Button Grid.Column="3"
+            <Button Grid.Column="2"
                     Text="{Binding ViewModeButtonText}"
                     Command="{Binding ToggleViewModeCommand}"
                     BackgroundColor="{StaticResource CardBackground}"
