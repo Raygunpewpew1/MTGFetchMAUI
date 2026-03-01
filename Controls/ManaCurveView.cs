@@ -61,20 +61,10 @@ public class ManaCurveView : SKCanvasView
         float chartH = h - labelH;
 
         using var barPaint = new SKPaint { IsAntialias = true };
-        using var labelPaint = new SKPaint
-        {
-            IsAntialias = true,
-            Color = new SKColor(0x99, 0x99, 0x99),
-            TextSize = Math.Max(8f, h * 0.13f),
-            TextAlign = SKTextAlign.Center
-        };
-        using var countPaint = new SKPaint
-        {
-            IsAntialias = true,
-            Color = SKColors.White,
-            TextSize = Math.Max(7f, h * 0.11f),
-            TextAlign = SKTextAlign.Center
-        };
+        using var labelFont = new SKFont { Size = Math.Max(8f, h * 0.13f) };
+        using var labelPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0x99, 0x99, 0x99) };
+        using var countFont = new SKFont { Size = Math.Max(7f, h * 0.11f) };
+        using var countPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
 
         for (int i = 0; i < slotCount; i++)
         {
@@ -89,14 +79,14 @@ public class ManaCurveView : SKCanvasView
             {
                 canvas.DrawRect(x, y, bw, barH, barPaint);
 
-                if (curve[i] > 0 && barH > countPaint.TextSize * 1.4f)
+                if (curve[i] > 0 && barH > countFont.Size * 1.4f)
                 {
-                    canvas.DrawText(curve[i].ToString(), x + bw / 2f, y + countPaint.TextSize, countPaint);
+                    canvas.DrawText(curve[i].ToString(), x + bw / 2f, y + countFont.Size, SKTextAlign.Center, countFont, countPaint);
                 }
             }
 
             string label = i == 10 ? "10+" : i.ToString();
-            canvas.DrawText(label, x + bw / 2f, h - 2f, labelPaint);
+            canvas.DrawText(label, x + bw / 2f, h - 2f, SKTextAlign.Center, labelFont, labelPaint);
         }
     }
 }
