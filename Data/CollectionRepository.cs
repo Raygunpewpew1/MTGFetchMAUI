@@ -63,12 +63,30 @@ public class CollectionRepository : ICollectionRepository
             return;
         }
 
-        await WithCollectionCommandAsync(SQLQueries.CollectionUpdateQuantity, cmd =>
+        await WithCollectionTransactionAsync(async conn =>
         {
-            cmd.Parameters.AddWithValue("@qty", quantity);
-            cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
-            cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
-            cmd.Parameters.AddWithValue("@uuid", cardUUID);
+            var currentQty = await GetQuantityInternalAsync(conn, cardUUID);
+
+            if (currentQty > 0)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = SQLQueries.CollectionUpdateQuantity;
+                cmd.Parameters.AddWithValue("@qty", quantity);
+                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
+                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
+                cmd.Parameters.AddWithValue("@uuid", cardUUID);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            else
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = SQLQueries.CollectionInsertCard;
+                cmd.Parameters.AddWithValue("@uuid", cardUUID);
+                cmd.Parameters.AddWithValue("@qty", quantity);
+                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
+                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
+                await cmd.ExecuteNonQueryAsync();
+            }
         });
     }
 
