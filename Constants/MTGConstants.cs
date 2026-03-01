@@ -83,7 +83,7 @@ public static class MTGConstants
 
     // NEW:
     public const string FileAllPrintings = "AllPrintings.sqlite";
-    public const string FileAllPrintingsZip = "MTG_App_DB.zip"; // Matches your GitHub release asset 
+    public const string FileAllPrintingsZip = "MTG_App_DB.zip"; // GitHub release asset 
     public const string FileCollectionDb = "MyCollection.sqlite";
     public const string FilePricesDb = "prices.sqlite";
     public const string FileSymbolCache = "SymbolCache.json";
