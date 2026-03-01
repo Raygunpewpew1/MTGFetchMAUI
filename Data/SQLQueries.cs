@@ -32,10 +32,14 @@ public static class SQLQueries
             DateCreated DATETIME DEFAULT CURRENT_TIMESTAMP,
             DateModified DATETIME DEFAULT CURRENT_TIMESTAMP,
             CommanderId TEXT,
+            CommanderName TEXT DEFAULT '',
             PartnerId TEXT,
             ColorIdentity TEXT
         )
         """;
+
+    public const string DecksTableInfo = "PRAGMA table_info(Decks)";
+    public const string DecksAddCommanderName = "ALTER TABLE Decks ADD COLUMN CommanderName TEXT DEFAULT ''";
 
     public const string CreateDeckCardsTable =
         """
@@ -273,10 +277,10 @@ public static class SQLQueries
     // ============================================================================
 
     public const string DeckInsert =
-        "INSERT INTO Decks (Name, Format, Description, CoverCardId, CommanderId, PartnerId, ColorIdentity) VALUES (@Name, @Format, @Description, @CoverCardId, @CommanderId, @PartnerId, @ColorIdentity)";
+        "INSERT INTO Decks (Name, Format, Description, CoverCardId, CommanderId, CommanderName, PartnerId, ColorIdentity) VALUES (@Name, @Format, @Description, @CoverCardId, @CommanderId, @CommanderName, @PartnerId, @ColorIdentity)";
 
     public const string DeckUpdate =
-        "UPDATE Decks SET Name = @Name, Description = @Description, CoverCardId = @CoverCardId, DateModified = CURRENT_TIMESTAMP, CommanderId = @CommanderId, PartnerId = @PartnerId, ColorIdentity = @ColorIdentity WHERE Id = @Id";
+        "UPDATE Decks SET Name = @Name, Description = @Description, CoverCardId = @CoverCardId, DateModified = CURRENT_TIMESTAMP, CommanderId = @CommanderId, CommanderName = @CommanderName, PartnerId = @PartnerId, ColorIdentity = @ColorIdentity WHERE Id = @Id";
 
     public const string DeckGetLastId = "SELECT last_insert_rowid() AS Id";
 
