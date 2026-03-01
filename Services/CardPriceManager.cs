@@ -265,12 +265,18 @@ public class CardPriceManager : IDisposable
                 await contentStream.CopyToAsync(fileStream);
             }
 
+            // Close the read connection so the sync has sole access to the prices DB file.
+            // This prevents WAL lock contention between the two concurrent connections.
+            await _database.CloseAsync();
+
             OnProgress?.Invoke("Syncing price data...", 80);
             await _sync.SyncFromZipAsync(zipPath);
             return true;
         }
         finally
         {
+            // Reopen read connection for subsequent price lookups.
+            await _database.EnsureDatabaseAsync();
             try { if (File.Exists(zipPath)) File.Delete(zipPath); } catch { }
         }
     }
