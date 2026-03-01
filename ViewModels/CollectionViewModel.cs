@@ -33,9 +33,6 @@ public partial class CollectionViewModel : BaseViewModel
     [ObservableProperty]
     private string _filterText = "";
 
-    [ObservableProperty]
-    private bool _isRefreshing;
-
     public List<string> SortModeOptions { get; } = ["Manual", "Name", "CMC", "Rarity", "Color"];
 
     public int SortModeIndex
@@ -110,9 +107,7 @@ public partial class CollectionViewModel : BaseViewModel
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        IsRefreshing = true;
         await LoadCollectionAsync();
-        IsRefreshing = false;
     }
 
     public async Task<Card?> GetCardDetailsAsync(string uuid)

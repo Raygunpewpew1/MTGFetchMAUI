@@ -6,6 +6,18 @@
              Title="Collection"
              BackgroundColor="{StaticResource Background}">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Refresh"
+                     Command="{Binding RefreshCommand}">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.ArrowsRotate}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
+
     <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Header -->
@@ -60,13 +72,10 @@
                     FontSize="13" />
         </Grid>
 
-        <!-- Card Grid wrapped in RefreshView -->
-        <RefreshView Grid.Row="2"
-                     Command="{Binding RefreshCommand}"
-                     IsRefreshing="{Binding IsRefreshing, Mode=TwoWay}">
-            <controls:CardGrid x:Name="CollectionGrid"
-                               Scrolled="OnCollectionScrolled" />
-        </RefreshView>
+        <!-- Card Grid -->
+        <controls:CardGrid Grid.Row="2"
+                           x:Name="CollectionGrid"
+                           Scrolled="OnCollectionScrolled" />
 
         <!-- Empty State -->
         <VerticalStackLayout Grid.Row="2"
