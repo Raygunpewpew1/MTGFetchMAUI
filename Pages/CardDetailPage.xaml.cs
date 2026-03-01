@@ -164,7 +164,7 @@ public partial class CardDetailPage : ContentPage
         if (Preferences.Default.Get("SwipeHintShown", false)) return;
         Preferences.Default.Set("SwipeHintShown", true);
         SwipeHintLabel.Opacity = 1;
-        await SwipeHintLabel.FadeTo(0, 2500);
+        await SwipeHintLabel.FadeToAsync(0, 2500);
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
