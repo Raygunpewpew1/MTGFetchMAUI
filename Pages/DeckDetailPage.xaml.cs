@@ -70,16 +70,10 @@ public partial class DeckDetailPage : ContentPage
 
         if (!string.IsNullOrEmpty(headline))
         {
-            using var textPaint = new SKPaint
-            {
-                IsAntialias = true,
-                Color = SKColors.White,
-                TextSize = Math.Min(h * 0.2f, 28f),
-                TextAlign = SKTextAlign.Left,
-                FakeBoldText = true
-            };
-            float textY = h - textPaint.TextSize * 0.5f;
-            canvas.DrawText(headline, 16f, textY, textPaint);
+            using var textFont = new SKFont { Size = Math.Min(h * 0.2f, 28f), Embolden = true };
+            using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+            float textY = h - textFont.Size * 0.5f;
+            canvas.DrawText(headline, 16f, textY, SKTextAlign.Left, textFont, textPaint);
         }
     }
 
