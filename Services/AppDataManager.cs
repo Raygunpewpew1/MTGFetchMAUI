@@ -50,9 +50,6 @@ public static class AppDataManager
     public static string GetLogPath() =>
         Path.Combine(GetAppDataPath(), "mtgfetch.log");
 
-    public static string GetPricesJsonPath() =>
-        Path.Combine(GetAppDataPath(), MTGConstants.FilePricesJson);
-
     public static string GetVersionFilePath() =>
         Path.Combine(GetAppDataPath(), VersionFile);
 

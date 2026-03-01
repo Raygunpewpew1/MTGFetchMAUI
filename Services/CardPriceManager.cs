@@ -1,22 +1,21 @@
-using System.IO.Compression;
 using System.Text.Json;
 
 namespace MTGFetchMAUI.Services;
 
 /// <summary>
-/// Coordinates price data lifecycle: checks for updates, downloads, imports, and provides price lookups.
+/// Coordinates price data lifecycle: checks for updates, downloads, syncs, and provides price lookups.
 /// Port of TCardPriceManager from CardPriceManager.pas.
 /// </summary>
 public class CardPriceManager : IDisposable
 {
     private readonly CardPriceDatabase _database = new();
-    private readonly CardPriceImporter _importer = new();
+    private readonly CardPriceSQLiteSync _sync = new();
     private Timer? _checkTimer;
     private volatile bool _isChecking;
     private readonly SemaphoreSlim _updateLock = new(1, 1);
 
     private const string MtgjsonMetaUrl = "https://mtgjson.com/api/v5/Meta.json";
-    private const string MtgjsonPricesUrl = "https://mtgjson.com/api/v5/AllPricesToday.json.zip";
+    private const string MtgjsonPricesUrl = "https://mtgjson.com/api/v5/AllPricesToday.sqlite.zip";
     private const int ConnectionTimeoutSeconds = 15;
     private const int ResponseTimeoutSeconds = 300;
     private const int CheckIntervalMs = 12 * 60 * 60 * 1000; // 12 hours
@@ -25,7 +24,6 @@ public class CardPriceManager : IDisposable
     private const string MetaDateFile = "prices_meta_date.txt";
     private const string DbVersionFile = "db_meta_version.txt";
     private const string DbLastCheckFile = "db_last_checked.txt";
-    private const string PricesZipFile = "AllPricesToday.json.zip";
 
     /// <summary>Fired when price data load completes: (success, message).</summary>
     public Action<bool, string>? OnLoadComplete { get; set; }
@@ -40,46 +38,21 @@ public class CardPriceManager : IDisposable
     public string RemoteDatabaseVersion { get; private set; } = "";
 
     /// <summary>
-    /// Initializes the price database.
+    /// Initializes the price database and wires up sync callbacks.
     /// </summary>
     public async Task InitializeAsync()
     {
         await _database.EnsureDatabaseAsync();
 
-        _importer.OnComplete = (success, count, error) =>
+        _sync.OnComplete = (success, count, error) =>
         {
             if (success)
-            {
-                // Delete JSON file after successful import
-                var jsonPath = AppDataManager.GetPricesJsonPath();
-                try { if (File.Exists(jsonPath)) File.Delete(jsonPath); } catch { }
-
-                OnLoadComplete?.Invoke(true, $"Imported {count} card prices.");
-            }
+                OnLoadComplete?.Invoke(true, $"Synced {count} card prices.");
             else
-            {
                 OnLoadComplete?.Invoke(false, error);
-            }
         };
 
-        _importer.OnProgress = (msg, pct) => OnProgress?.Invoke(msg, pct);
-    }
-
-    /// <summary>
-    /// Imports the local JSON price file if it exists.
-    /// </summary>
-    public void ImportDataAsync()
-    {
-        var jsonPath = AppDataManager.GetPricesJsonPath();
-        if (File.Exists(jsonPath))
-        {
-            Logger.LogStuff($"Starting price import from {jsonPath}", LogLevel.Info);
-            _importer.ImportAsync(jsonPath);
-        }
-        else
-        {
-            Logger.LogStuff("Price JSON file not found, skipping import.", LogLevel.Debug);
-        }
+        _sync.OnProgress = (msg, pct) => OnProgress?.Invoke(msg, pct);
     }
 
     /// <summary>
@@ -196,12 +169,11 @@ public class CardPriceManager : IDisposable
         if (!hasData || !meta.Date.Equals(localDate, StringComparison.OrdinalIgnoreCase))
         {
             Logger.LogStuff($"Prices out of date or missing. Local: {localDate}, Remote: {meta.Date}, HasData: {hasData}", LogLevel.Info);
-            // New prices available or DB empty - download and import (import happens inside)
             OnProgress?.Invoke("Downloading price data...", 0);
-            var imported = await DownloadAndImportPricesAsync();
-            if (imported)
+            var downloaded = await DownloadAndSyncPricesAsync();
+            if (downloaded)
             {
-                Logger.LogStuff("Price download and import successful.", LogLevel.Info);
+                Logger.LogStuff("Price download and sync successful.", LogLevel.Info);
                 SaveLocalMetaDate(meta.Date);
             }
             else
@@ -242,7 +214,7 @@ public class CardPriceManager : IDisposable
         }
     }
 
-    private async Task<bool> DownloadAndImportPricesAsync()
+    private async Task<bool> DownloadAndSyncPricesAsync()
     {
         await _updateLock.WaitAsync();
         try
@@ -255,7 +227,7 @@ public class CardPriceManager : IDisposable
                     if (attempt > 1)
                         OnProgress?.Invoke($"Retrying price download (attempt {attempt})...", 0);
 
-                    if (await DoDownloadAndImportAsync())
+                    if (await DoDownloadAndSyncAsync())
                         return true;
                 }
                 catch (Exception ex)
@@ -277,9 +249,9 @@ public class CardPriceManager : IDisposable
         }
     }
 
-    private async Task<bool> DoDownloadAndImportAsync()
+    private async Task<bool> DoDownloadAndSyncAsync()
     {
-        var zipPath = Path.Combine(AppDataManager.GetAppDataPath(), PricesZipFile);
+        var zipPath = Path.Combine(AppDataManager.GetAppDataPath(), MTGConstants.FilePricesTempZip);
 
         try
         {
@@ -287,22 +259,14 @@ public class CardPriceManager : IDisposable
             using var response = await client.GetAsync(MtgjsonPricesUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
-            // 1. Download ZIP to disk (ZipArchive requires a seekable stream)
             await using (var contentStream = await response.Content.ReadAsStreamAsync())
             await using (var fileStream = new FileStream(zipPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await contentStream.CopyToAsync(fileStream);
             }
 
-            OnProgress?.Invoke("Importing price data...", 80);
-
-            // 2. Stream JSON entry directly into the importer — no JSON file written to disk
-            using var archive = ZipFile.OpenRead(zipPath);
-            var entry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
-            if (entry == null) return false;
-
-            await using var entryStream = entry.Open();
-            await _importer.ImportFromStreamAsync(entryStream, entry.Length);
+            OnProgress?.Invoke("Syncing price data...", 80);
+            await _sync.SyncFromZipAsync(zipPath);
             return true;
         }
         finally
@@ -315,7 +279,6 @@ public class CardPriceManager : IDisposable
     {
         if (string.IsNullOrEmpty(remoteVersion)) return;
 
-        // Only check weekly
         var lastCheck = GetLastDbCheckDate();
         if ((DateTime.Now - lastCheck).TotalDays < DbCheckIntervalDays) return;
         SaveLastDbCheckDate(DateTime.Now);

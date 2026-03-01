@@ -40,18 +40,25 @@ public record VendorPrices
     public PriceEntry BuylistNormal { get; init; }
     public PriceCurrency Currency { get; init; }
 
-    // Historical data (now only today or from persistent DB)
+    public PriceEntry RetailEtched { get; init; }
+    public PriceEntry BuylistEtched { get; init; }
+
+    // Historical data
     public List<PriceEntry> RetailNormalHistory { get; init; } = [];
     public List<PriceEntry> RetailFoilHistory { get; init; } = [];
+    public List<PriceEntry> RetailEtchedHistory { get; init; } = [];
     public List<PriceEntry> BuylistNormalHistory { get; init; } = [];
+    public List<PriceEntry> BuylistEtchedHistory { get; init; } = [];
 
-    public bool IsValid => RetailNormal.Price > 0 || RetailFoil.Price > 0;
+    public bool IsValid => RetailNormal.Price > 0 || RetailFoil.Price > 0 || RetailEtched.Price > 0;
 
     public static readonly VendorPrices Empty = new()
     {
         RetailNormal = PriceEntry.Empty,
         RetailFoil = PriceEntry.Empty,
+        RetailEtched = PriceEntry.Empty,
         BuylistNormal = PriceEntry.Empty,
+        BuylistEtched = PriceEntry.Empty,
         Currency = PriceCurrency.USD
     };
 }

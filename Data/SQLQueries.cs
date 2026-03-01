@@ -114,53 +114,69 @@ public static class SQLQueries
     public const string CreatePricesTable =
         """
         CREATE TABLE IF NOT EXISTS card_prices (
-            card_uuid TEXT PRIMARY KEY,
-            tcg_retail_normal REAL DEFAULT 0,
-            tcg_retail_foil REAL DEFAULT 0,
-            tcg_buylist_normal REAL DEFAULT 0,
-            tcg_currency TEXT DEFAULT 'USD',
-            cm_retail_normal REAL DEFAULT 0,
-            cm_retail_foil REAL DEFAULT 0,
-            cm_buylist_normal REAL DEFAULT 0,
-            cm_currency TEXT DEFAULT 'EUR',
-            ck_retail_normal REAL DEFAULT 0,
-            ck_retail_foil REAL DEFAULT 0,
-            ck_buylist_normal REAL DEFAULT 0,
-            ck_currency TEXT DEFAULT 'USD',
-            mp_retail_normal REAL DEFAULT 0,
-            mp_retail_foil REAL DEFAULT 0,
-            mp_buylist_normal REAL DEFAULT 0,
-            mp_currency TEXT DEFAULT 'USD',
-            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+            uuid       TEXT NOT NULL,
+            source     TEXT NOT NULL,
+            provider   TEXT NOT NULL,
+            price_type TEXT NOT NULL,
+            finish     TEXT NOT NULL,
+            currency   TEXT NOT NULL,
+            price      REAL NOT NULL,
+            PRIMARY KEY (uuid, source, provider, price_type, finish)
         )
         """;
 
     public const string CreatePriceHistoryTable =
         """
         CREATE TABLE IF NOT EXISTS card_price_history (
-            card_uuid TEXT,
-            price_date INTEGER,
-            vendor TEXT,
-            price_type TEXT,
-            price_value REAL,
-            PRIMARY KEY (card_uuid, price_date, vendor, price_type)
+            uuid       TEXT NOT NULL,
+            source     TEXT NOT NULL,
+            provider   TEXT NOT NULL,
+            price_type TEXT NOT NULL,
+            finish     TEXT NOT NULL,
+            date       TEXT NOT NULL,
+            currency   TEXT NOT NULL,
+            price      REAL NOT NULL,
+            PRIMARY KEY (uuid, source, provider, price_type, finish, date)
         )
         """;
 
     public const string CreatePricesIndex =
-        "CREATE INDEX IF NOT EXISTS idx_prices_uuid ON card_prices(card_uuid)";
+        "CREATE INDEX IF NOT EXISTS idx_prices_uuid ON card_prices(uuid)";
 
     public const string CreatePriceHistoryIndex =
-        "CREATE INDEX IF NOT EXISTS idx_history_uuid ON card_price_history(card_uuid)";
+        "CREATE INDEX IF NOT EXISTS idx_history_uuid ON card_price_history(uuid)";
 
-    // NOTE: PricesInsert is now generated dynamically for bulk insert, but we keep a template here if needed
-    // or we can remove it. For now, we will use dynamic SQL generation in the importer.
+    // Detects old wide-column schema (pre-refactor). Used for one-time migration.
+    public const string PricesSchemaCheck =
+        "SELECT COUNT(*) FROM pragma_table_info('card_prices') WHERE name = 'tcg_retail_normal'";
+
+    // ATTACH-based sync from a downloaded AllPricesToday.sqlite (attached as 'today').
+    // 'priceType' is the camelCase column name used by MTGJSON; we map it to snake_case locally.
+    public const string PricesSyncFromAttached =
+        """
+        INSERT OR REPLACE INTO card_prices (uuid, source, provider, price_type, finish, currency, price)
+        SELECT uuid, source, provider, priceType, finish, currency, price
+        FROM today.prices
+        WHERE price IS NOT NULL AND price > 0
+        """;
+
+    public const string PriceHistorySyncFromAttached =
+        """
+        INSERT OR IGNORE INTO card_price_history (uuid, source, provider, price_type, finish, date, currency, price)
+        SELECT uuid, source, provider, priceType, finish, date, currency, price
+        FROM today.prices
+        WHERE price IS NOT NULL AND price > 0
+        """;
+
+    // Trim history older than N days. Use string.Format to inject the retention constant.
+    public const string PriceHistoryTrimOld =
+        "DELETE FROM card_price_history WHERE date < date('now', '-{0} days')";
 
     public const string PricesGetByUuid =
-        "SELECT * FROM card_prices WHERE card_uuid = @uuid";
+        "SELECT * FROM card_prices WHERE uuid = @uuid AND source = 'paper'";
 
     public const string PricesGetHistoryByUuid =
-        "SELECT * FROM card_price_history WHERE card_uuid = @uuid ORDER BY price_date ASC";
+        "SELECT * FROM card_price_history WHERE uuid = @uuid AND source = 'paper' ORDER BY date ASC";
 
     public const string PricesCount =
         "SELECT COUNT(*) FROM card_prices";
@@ -169,18 +185,7 @@ public static class SQLQueries
         "DELETE FROM card_prices";
 
     public const string PricesGetBulkByUuids =
-        "SELECT * FROM card_prices WHERE card_uuid IN ({0})";
-
-    public const string PricesInsertOrReplace =
-        "INSERT OR REPLACE INTO card_prices (" +
-        "card_uuid, tcg_retail_normal, tcg_retail_foil, tcg_buylist_normal, tcg_currency, " +
-        "cm_retail_normal, cm_retail_foil, cm_buylist_normal, cm_currency, " +
-        "ck_retail_normal, ck_retail_foil, ck_buylist_normal, ck_currency, " +
-        "mp_retail_normal, mp_retail_foil, mp_buylist_normal, mp_currency, " +
-        "last_updated) VALUES ";
-
-    public const string PriceHistoryInsertOrIgnore =
-        "INSERT OR IGNORE INTO card_price_history (card_uuid, price_date, vendor, price_type, price_value) VALUES ";
+        "SELECT * FROM card_prices WHERE uuid IN ({0}) AND source = 'paper'";
 
     // ============================================================================
     // CARD QUERIES
