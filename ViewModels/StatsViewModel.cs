@@ -23,6 +23,18 @@ public partial class StatsViewModel : BaseViewModel
     [ObservableProperty]
     private string _databaseStatus = "";
 
+    [ObservableProperty]
+    private string _storageMtgDb = "—";
+
+    [ObservableProperty]
+    private string _storagePricesDb = "—";
+
+    [ObservableProperty]
+    private string _storageImageCache = "—";
+
+    [ObservableProperty]
+    private string _storageCollectionDb = "—";
+
     public string StatsDisplay => Stats.ToString();
 
     public StatsViewModel(CardManager cardManager)
@@ -71,6 +83,12 @@ public partial class StatsViewModel : BaseViewModel
             Stats = await _cardManager.GetCollectionStatsAsync();
             CacheStats = await _cardManager.GetImageCacheStatsAsync();
             DatabaseStatus = "Connected";
+
+            var (mtgDb, pricesDb, imageCache, collectionDb) = await _cardManager.GetStorageSizesAsync();
+            StorageMtgDb = $"{mtgDb:F0} MB";
+            StoragePricesDb = $"{pricesDb:F0} MB";
+            StorageImageCache = $"{imageCache:F0} MB";
+            StorageCollectionDb = $"{collectionDb:F0} MB";
         }
         catch (Exception ex)
         {

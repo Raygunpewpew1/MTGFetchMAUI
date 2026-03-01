@@ -362,6 +362,36 @@ public class CardManager : IDisposable
         return await _imageService.GetCacheStatsAsync();
     }
 
+    /// <summary>
+    /// Returns on-disk sizes in MB for the major storage components.
+    /// </summary>
+    public Task<(double mtgDbMB, double pricesDbMB, double imageCacheMB, double collectionDbMB)> GetStorageSizesAsync()
+    {
+        static double FileMB(string path)
+        {
+            try { return File.Exists(path) ? new FileInfo(path).Length / (1024.0 * 1024.0) : 0; }
+            catch { return 0; }
+        }
+
+        static double DirMB(string dir)
+        {
+            try
+            {
+                if (!Directory.Exists(dir)) return 0;
+                return Directory.GetFiles(dir, "*", SearchOption.AllDirectories)
+                    .Sum(f => { try { return new FileInfo(f).Length; } catch { return 0L; } }) / (1024.0 * 1024.0);
+            }
+            catch { return 0; }
+        }
+
+        var mtgDb = FileMB(AppDataManager.GetMTGDatabasePath());
+        var pricesDb = FileMB(AppDataManager.GetPricesDatabasePath());
+        var imageCache = DirMB(_imageService.Cache.CacheDir);
+        var collectionDb = FileMB(AppDataManager.GetCollectionDatabasePath());
+
+        return Task.FromResult((mtgDb, pricesDb, imageCache, collectionDb));
+    }
+
     // ── Price Methods ────────────────────────────────────────────────
 
     public async Task<(bool found, CardPriceData prices)> GetCardPricesAsync(string uuid)

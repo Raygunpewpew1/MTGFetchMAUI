@@ -137,8 +137,8 @@ public partial class StatsPage : ContentPage
         bool confirm = await DisplayAlertAsync("Clear Cache", "Clear all cached card images?", "Yes", "No");
         if (!confirm) return;
 
-        _viewModel.ClearCacheCommand.Execute(null);
-        await Task.Delay(500);
-        CacheStatsLabel.Text = _viewModel.CacheStats;
+        await _viewModel.ClearCacheCommand.ExecuteAsync(null);
+        await _viewModel.LoadStatsAsync();
+        UpdateStatsUI();
     }
 }

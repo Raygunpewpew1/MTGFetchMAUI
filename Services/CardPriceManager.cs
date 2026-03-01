@@ -46,6 +46,10 @@ public class CardPriceManager : IDisposable
     {
         await _database.EnsureDatabaseAsync();
 
+        // One-time cleanup: remove history rows accumulated by older app versions
+        // and reclaim disk space via VACUUM. Safe to call every startup — fast no-op if table is empty.
+        await _database.PruneAllHistoryAsync();
+
         _importer.OnComplete = (success, count, error) =>
         {
             if (success)

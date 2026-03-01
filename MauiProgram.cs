@@ -71,7 +71,11 @@ public static class MauiProgram
             new DeckRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<DeckValidator>();
         builder.Services.AddSingleton<DeckBuilderService>();
-        builder.Services.AddSingleton<FileImageCache>();
+        builder.Services.AddSingleton<FileImageCache>(_ =>
+            new FileImageCache(
+                cacheDir: Path.Combine(FileSystem.CacheDirectory, "ImageCache"),
+                maxCacheSizeMB: 300,
+                maxCacheAgeDays: 30));
         builder.Services.AddSingleton<ImageCacheService>();
         builder.Services.AddSingleton<ImageDownloadService>();
         builder.Services.AddSingleton<CardGalleryContext>();

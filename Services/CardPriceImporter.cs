@@ -19,8 +19,7 @@ namespace MTGFetchMAUI.Services;
 public class CardPriceImporter
 {
     private volatile bool _isImporting;
-    private const int BatchSize = 2000;         // Cards per price INSERT flush
-    private const int HistoryBatchSize = 2000;  // History rows per history INSERT flush
+    private const int BatchSize = 2000; // Cards per price INSERT flush
 
     public Action<bool, int, string>? OnComplete { get; set; }
     public Action<string, int>? OnProgress { get; set; }
@@ -104,9 +103,7 @@ public class CardPriceImporter
 
         // Create/Ensure Schema
         await ExecuteAsync(conn, SQLQueries.CreatePricesTable);
-        await ExecuteAsync(conn, SQLQueries.CreatePriceHistoryTable);
         await ExecuteAsync(conn, SQLQueries.CreatePricesIndex);
-        await ExecuteAsync(conn, SQLQueries.CreatePriceHistoryIndex);
 
         OnProgress?.Invoke("Preparing import...", 5);
 
@@ -123,13 +120,8 @@ public class CardPriceImporter
         bool inData = false;
         int depth = 0;
 
-        int todayInt = int.Parse(DateTime.Now.ToString("yyyyMMdd"));
-
-        // Separate StringBuilders for price rows and history rows
         var pricesValues = new StringBuilder();
-        var historyValues = new StringBuilder();
-        int pendingCount = 0;         // cards pending flush
-        int historyPendingCount = 0;  // history rows pending flush
+        int pendingCount = 0;
 
         // Single transaction for the entire import — one commit at the end is
         // dramatically faster than multiple mid-import commits with WAL checkpoints.
@@ -207,11 +199,6 @@ public class CardPriceImporter
                                     mp.RetailNormal.Price, mp.RetailFoil.Price, mp.BuylistNormal.Price, mp.Currency
                                 );
 
-                                historyPendingCount += AppendHistory(historyValues, uuid, todayInt, "tcg", tcg);
-                                historyPendingCount += AppendHistory(historyValues, uuid, todayInt, "cm", cm);
-                                historyPendingCount += AppendHistory(historyValues, uuid, todayInt, "ck", ck);
-                                historyPendingCount += AppendHistory(historyValues, uuid, todayInt, "mp", mp);
-
                                 totalCards++;
                                 pendingCount++;
                             }
@@ -274,24 +261,12 @@ public class CardPriceImporter
                 }
             }
 
-            // Flush history independently — each card contributes up to 12 history rows,
-            // so this threshold is separate from the price batch to prevent enormous SQL strings
-            // (previously history could reach 24k rows per statement when batched with prices).
-            if (historyPendingCount >= HistoryBatchSize)
-            {
-                await FlushHistoryAsync(conn, transaction, historyValues);
-                historyValues.Clear();
-                historyPendingCount = 0;
-            }
-
             if (isFinalBlock) break;
         }
 
         // Flush remaining
         if (pendingCount > 0)
             await FlushPricesAsync(conn, transaction, pricesValues);
-        if (historyPendingCount > 0)
-            await FlushHistoryAsync(conn, transaction, historyValues);
 
         // Single commit for the entire import
         await transaction.CommitAsync();
@@ -311,40 +286,6 @@ public class CardPriceImporter
         cmd.Transaction = trans;
         cmd.CommandText = SQLQueries.PricesInsertOrReplace + prices.ToString();
         await cmd.ExecuteNonQueryAsync();
-    }
-
-    private static async Task FlushHistoryAsync(SqliteConnection conn, SqliteTransaction trans, StringBuilder history)
-    {
-        if (history.Length == 0) return;
-        using var cmd = conn.CreateCommand();
-        cmd.Transaction = trans;
-        cmd.CommandText = SQLQueries.PriceHistoryInsertOrIgnore + history.ToString();
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    // ── History Helpers ───────────────────────────────────────────────
-
-    /// <summary>Appends history entries for one vendor. Returns the number of rows added.</summary>
-    private static int AppendHistory(StringBuilder sb, string uuid, int date, string vendor, VendorPrices vp)
-    {
-        int count = 0;
-        count += AddEntry(sb, uuid, date, vendor, "rn", vp.RetailNormal.Price);
-        count += AddEntry(sb, uuid, date, vendor, "rf", vp.RetailFoil.Price);
-        count += AddEntry(sb, uuid, date, vendor, "bn", vp.BuylistNormal.Price);
-        return count;
-    }
-
-    /// <summary>Appends a single history entry if price > 0. Returns 1 if added, 0 otherwise.</summary>
-    private static int AddEntry(StringBuilder sb, string uuid, int date, string vendor, string type, double price)
-    {
-        if (price > 0)
-        {
-            if (sb.Length > 0) sb.Append(",");
-            sb.AppendFormat(System.Globalization.CultureInfo.InvariantCulture,
-                "('{0}',{1},'{2}','{3}',{4})", uuid, date, vendor, type, price);
-            return 1;
-        }
-        return 0;
     }
 
     // ── Streaming Price Parser ────────────────────────────────────────

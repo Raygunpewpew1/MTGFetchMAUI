@@ -100,17 +100,43 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Cache Stats -->
+            <!-- Storage Breakdown -->
             <Border Style="{StaticResource CardStyle}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="Image Cache" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="Storage" FontSize="18" FontAttributes="Bold" />
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+                        <Label Text="MTG Database" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                        <Label Grid.Column="1"
+                               Text="{Binding StorageMtgDb}"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center" />
+
+                        <Label Grid.Row="1" Text="Prices DB" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                        <Label Grid.Row="1" Grid.Column="1"
+                               Text="{Binding StoragePricesDb}"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center" />
+
+                        <Label Grid.Row="2" Text="Image Cache" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                        <Label Grid.Row="2" Grid.Column="1"
+                               Text="{Binding StorageImageCache}"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center" />
+
+                        <Label Grid.Row="3" Text="Collection DB" TextColor="{StaticResource TextSecondary}" VerticalOptions="Center" />
+                        <Label Grid.Row="3" Grid.Column="1"
+                               Text="{Binding StorageCollectionDb}"
+                               HorizontalTextAlignment="End"
+                               VerticalOptions="Center" />
+                    </Grid>
                     <Label x:Name="CacheStatsLabel"
-                           Text="Loading..."
-                           FontSize="13"
+                           Text=""
+                           FontSize="11"
                            TextColor="{StaticResource TextSecondary}" />
-                    <Button Text="Clear Cache"
+                    <Button Text="Clear Image Cache"
                             Clicked="OnClearCacheClicked"
-                            BackgroundColor="{StaticResource ErrorColor}" />
+                            BackgroundColor="{StaticResource ErrorColor}"
+                            Margin="0,4,0,0" />
                 </VerticalStackLayout>
             </Border>
 

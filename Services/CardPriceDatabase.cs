@@ -166,6 +166,49 @@ public class CardPriceDatabase : IDisposable
     }
 
     /// <summary>
+    /// Deletes all rows from price_history and runs VACUUM to reclaim disk space.
+    /// Call once on startup to clean up history accumulated by older app versions.
+    /// </summary>
+    public async Task PruneAllHistoryAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            if (!IsConnected) return;
+
+            // Check if the table exists before trying to delete
+            using (var check = _connection!.CreateCommand())
+            {
+                check.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='price_history'";
+                var result = await check.ExecuteScalarAsync();
+                if (result is not long count || count == 0) return;
+            }
+
+            using (var cmd = _connection!.CreateCommand())
+            {
+                cmd.CommandText = "DELETE FROM price_history";
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            using (var vacuum = _connection!.CreateCommand())
+            {
+                vacuum.CommandText = "VACUUM";
+                await vacuum.ExecuteNonQueryAsync();
+            }
+
+            Logger.LogStuff("PruneAllHistory: price_history cleared and VACUUM complete.", LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"PruneAllHistory failed: {ex.Message}", LogLevel.Warning);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>
     /// Returns true if the price database has any data.
     /// </summary>
     public async Task<bool> HasPriceDataAsync()
