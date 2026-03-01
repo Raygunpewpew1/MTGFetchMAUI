@@ -5,6 +5,7 @@ namespace MTGFetchMAUI.Services;
 
 /// <summary>
 /// SQLite database for card price data.
+/// Reads from the normalized schema (uuid, source, provider, price_type, finish, currency, price).
 /// Port of TCardPriceDatabase from CardPriceDatabase.pas.
 /// </summary>
 public class CardPriceDatabase : IDisposable
@@ -12,15 +13,11 @@ public class CardPriceDatabase : IDisposable
     private SqliteConnection? _connection;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    /// <summary>
-    /// The underlying SQLite connection. Null if not connected.
-    /// </summary>
-    public SqliteConnection? Connection => _connection;
-
     public bool IsConnected => _connection?.State == System.Data.ConnectionState.Open;
 
     /// <summary>
     /// Ensures the price database is created and connected.
+    /// Schema migration is handled by CardPriceSQLiteSync on first sync.
     /// </summary>
     public async Task EnsureDatabaseAsync()
     {
@@ -36,13 +33,12 @@ public class CardPriceDatabase : IDisposable
         _connection = new SqliteConnection(connStr);
         await _connection.OpenAsync();
 
-        // Configure for performance
         await ExecuteAsync("PRAGMA journal_mode=WAL");
         await ExecuteAsync("PRAGMA busy_timeout=30000");
         await ExecuteAsync("PRAGMA temp_store=MEMORY");
         await ExecuteAsync("PRAGMA synchronous=OFF");
 
-        // Create schema
+        // Create schema (no-ops if already correct; migration handled by sync)
         await ExecuteAsync(SQLQueries.CreatePricesTable);
         await ExecuteAsync(SQLQueries.CreatePriceHistoryTable);
         await ExecuteAsync(SQLQueries.CreatePricesIndex);
@@ -50,55 +46,43 @@ public class CardPriceDatabase : IDisposable
     }
 
     /// <summary>
-    /// Looks up price data by card UUID.
+    /// Looks up all paper price data for a single card UUID, including history.
     /// </summary>
     public async Task<(bool found, CardPriceData prices)> GetCardPricesAsync(string uuid)
     {
         await _lock.WaitAsync();
         try
         {
-            if (!IsConnected)
-                return (false, CardPriceData.Empty);
+            if (!IsConnected) return (false, CardPriceData.Empty);
 
-            // 1. Get current prices
-            CardPriceData? prices = null;
+            var currentRows = new List<PriceRow>();
             using (var cmd = _connection!.CreateCommand())
             {
                 cmd.CommandText = SQLQueries.PricesGetByUuid;
                 cmd.Parameters.AddWithValue("@uuid", uuid);
                 using var reader = await cmd.ExecuteReaderAsync();
-                if (await reader.ReadAsync())
-                {
-                    prices = PopulatePriceData(reader);
-                }
-            }
-
-            if (prices == null)
-                return (false, CardPriceData.Empty);
-
-            // 2. Get history
-            using (var historyCmd = _connection!.CreateCommand())
-            {
-                historyCmd.CommandText = SQLQueries.PricesGetHistoryByUuid;
-                historyCmd.Parameters.AddWithValue("@uuid", uuid);
-                using var reader = await historyCmd.ExecuteReaderAsync();
-
                 while (await reader.ReadAsync())
-                {
-                    var dateInt = reader.GetInt32(reader.GetOrdinal("price_date"));
-                    var vendor = reader.GetString(reader.GetOrdinal("vendor"));
-                    var type = reader.GetString(reader.GetOrdinal("price_type"));
-                    var val = reader.GetDouble(reader.GetOrdinal("price_value"));
-
-                    var dt = DateTime.ParseExact(dateInt.ToString(), "yyyyMMdd", null);
-                    var entry = new PriceEntry(dt, val);
-
-                    // Add to appropriate list
-                    AddToHistory(prices, vendor, type, entry);
-                }
+                    currentRows.Add(ReadPriceRow(reader));
             }
 
-            return (true, prices);
+            if (currentRows.Count == 0) return (false, CardPriceData.Empty);
+
+            var historyRows = new List<HistoryRow>();
+            using (var histCmd = _connection!.CreateCommand())
+            {
+                histCmd.CommandText = SQLQueries.PricesGetHistoryByUuid;
+                histCmd.Parameters.AddWithValue("@uuid", uuid);
+                using var reader = await histCmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                    historyRows.Add(ReadHistoryRow(reader));
+            }
+
+            return (true, new CardPriceData
+            {
+                UUID = uuid,
+                Paper = BuildPaperPlatform(currentRows, historyRows),
+                LastUpdated = DateTime.Now
+            });
         }
         catch (Exception ex)
         {
@@ -112,15 +96,14 @@ public class CardPriceDatabase : IDisposable
     }
 
     /// <summary>
-    /// Looks up price data for multiple cards by UUID.
+    /// Looks up paper price data for multiple card UUIDs. History is omitted for performance.
     /// </summary>
     public async Task<Dictionary<string, CardPriceData>> GetCardPricesBulkAsync(IEnumerable<string> uuids)
     {
         await _lock.WaitAsync();
         try
         {
-            if (!IsConnected)
-                return [];
+            if (!IsConnected) return [];
 
             var result = new Dictionary<string, CardPriceData>();
             var uuidList = uuids.Distinct().ToList();
@@ -132,26 +115,41 @@ public class CardPriceDatabase : IDisposable
                 var chunk = uuidList.Skip(i).Take(chunkSize).ToList();
                 using var cmd = _connection!.CreateCommand();
 
-                var paramsList = new List<string>(chunk.Count);
+                var paramNames = new List<string>(chunk.Count);
                 for (int j = 0; j < chunk.Count; j++)
                 {
-                    var pName = $"@p{j}";
-                    cmd.Parameters.AddWithValue(pName, chunk[j]);
-                    paramsList.Add(pName);
+                    var p = $"@p{j}";
+                    cmd.Parameters.AddWithValue(p, chunk[j]);
+                    paramNames.Add(p);
                 }
 
-                cmd.CommandText = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramsList));
+                cmd.CommandText = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramNames));
 
+                // Collect rows grouped by UUID, then pivot each group into CardPriceData
+                var rowsByUuid = new Dictionary<string, List<PriceRow>>();
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    var data = PopulatePriceData(reader);
-                    if (!string.IsNullOrEmpty(data.UUID))
+                    var rowUuid = reader.GetString(reader.GetOrdinal("uuid"));
+                    if (!rowsByUuid.TryGetValue(rowUuid, out var list))
                     {
-                        result[data.UUID] = data;
+                        list = [];
+                        rowsByUuid[rowUuid] = list;
                     }
+                    list.Add(ReadPriceRow(reader));
+                }
+
+                foreach (var (rowUuid, rows) in rowsByUuid)
+                {
+                    result[rowUuid] = new CardPriceData
+                    {
+                        UUID = rowUuid,
+                        Paper = BuildPaperPlatform(rows, []),
+                        LastUpdated = DateTime.Now
+                    };
                 }
             }
+
             return result;
         }
         catch (Exception ex)
@@ -174,7 +172,6 @@ public class CardPriceDatabase : IDisposable
         try
         {
             if (!IsConnected) return false;
-
             using var cmd = _connection!.CreateCommand();
             cmd.CommandText = SQLQueries.PricesCount;
             var result = await cmd.ExecuteScalarAsync();
@@ -198,7 +195,70 @@ public class CardPriceDatabase : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    // ── Private Helpers ──────────────────────────────────────────────
+    // ── Private Row Types ─────────────────────────────────────────────
+
+    private record PriceRow(string Provider, string PriceType, string Finish, string Currency, double Price);
+    private record HistoryRow(string Provider, string PriceType, string Finish, string Date, double Price);
+
+    // ── Read Helpers ──────────────────────────────────────────────────
+
+    private static PriceRow ReadPriceRow(SqliteDataReader r) => new(
+        r.GetString(r.GetOrdinal("provider")),
+        r.GetString(r.GetOrdinal("price_type")),
+        r.GetString(r.GetOrdinal("finish")),
+        r.GetString(r.GetOrdinal("currency")),
+        r.GetDouble(r.GetOrdinal("price")));
+
+    private static HistoryRow ReadHistoryRow(SqliteDataReader r) => new(
+        r.GetString(r.GetOrdinal("provider")),
+        r.GetString(r.GetOrdinal("price_type")),
+        r.GetString(r.GetOrdinal("finish")),
+        r.GetString(r.GetOrdinal("date")),
+        r.GetDouble(r.GetOrdinal("price")));
+
+    // ── Pivot Helpers ─────────────────────────────────────────────────
+
+    private static PaperPlatform BuildPaperPlatform(List<PriceRow> rows, List<HistoryRow> history) => new()
+    {
+        TCGPlayer  = BuildVendorPrices(rows, history, "tcgplayer"),
+        Cardmarket = BuildVendorPrices(rows, history, "cardmarket"),
+        CardKingdom = BuildVendorPrices(rows, history, "cardkingdom"),
+        ManaPool   = BuildVendorPrices(rows, history, "manapool")
+    };
+
+    private static VendorPrices BuildVendorPrices(List<PriceRow> rows, List<HistoryRow> history, string provider)
+    {
+        var vendorRows = rows.Where(r => r.Provider == provider).ToList();
+        if (vendorRows.Count == 0) return VendorPrices.Empty;
+
+        double Get(string priceType, string finish) =>
+            vendorRows.FirstOrDefault(r => r.PriceType == priceType && r.Finish == finish)?.Price ?? 0;
+
+        return new VendorPrices
+        {
+            RetailNormal  = new PriceEntry(DateTime.Now, Get("retail", "normal")),
+            RetailFoil    = new PriceEntry(DateTime.Now, Get("retail", "foil")),
+            RetailEtched  = new PriceEntry(DateTime.Now, Get("retail", "etched")),
+            BuylistNormal = new PriceEntry(DateTime.Now, Get("buylist", "normal")),
+            BuylistEtched = new PriceEntry(DateTime.Now, Get("buylist", "etched")),
+            Currency      = ParseCurrency(vendorRows[0].Currency),
+            RetailNormalHistory  = BuildHistoryList(history, provider, "retail",  "normal"),
+            RetailFoilHistory    = BuildHistoryList(history, provider, "retail",  "foil"),
+            RetailEtchedHistory  = BuildHistoryList(history, provider, "retail",  "etched"),
+            BuylistNormalHistory = BuildHistoryList(history, provider, "buylist", "normal"),
+            BuylistEtchedHistory = BuildHistoryList(history, provider, "buylist", "etched"),
+        };
+    }
+
+    private static List<PriceEntry> BuildHistoryList(
+        List<HistoryRow> history, string provider, string priceType, string finish) =>
+        history
+            .Where(h => h.Provider == provider && h.PriceType == priceType && h.Finish == finish)
+            .Select(h => new PriceEntry(PriceDateParser.ParseISO8601Date(h.Date), h.Price))
+            .ToList();
+
+    private static PriceCurrency ParseCurrency(string s) =>
+        s.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? PriceCurrency.EUR : PriceCurrency.USD;
 
     private async Task ExecuteAsync(string sql)
     {
@@ -206,71 +266,4 @@ public class CardPriceDatabase : IDisposable
         cmd.CommandText = sql;
         await cmd.ExecuteNonQueryAsync();
     }
-
-    private static CardPriceData PopulatePriceData(SqliteDataReader reader)
-    {
-        return new CardPriceData
-        {
-            UUID = SafeStr(reader, "card_uuid"),
-            Paper = new PaperPlatform
-            {
-                TCGPlayer = PopulateVendor(reader, "tcg"),
-                Cardmarket = PopulateVendor(reader, "cm"),
-                CardKingdom = PopulateVendor(reader, "ck"),
-                ManaPool = PopulateVendor(reader, "mp")
-            },
-            LastUpdated = DateTime.Now
-        };
-    }
-
-    private static VendorPrices PopulateVendor(SqliteDataReader reader, string prefix)
-    {
-        return new VendorPrices
-        {
-            RetailNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_retail_normal")),
-            RetailFoil = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_retail_foil")),
-            BuylistNormal = new PriceEntry(DateTime.Now, SafeDouble(reader, $"{prefix}_buylist_normal")),
-            Currency = ParseCurrency(SafeStr(reader, $"{prefix}_currency")),
-            // History populated separately
-            RetailNormalHistory = [],
-            RetailFoilHistory = [],
-            BuylistNormalHistory = []
-        };
-    }
-
-    private static void AddToHistory(CardPriceData data, string vendor, string type, PriceEntry entry)
-    {
-        VendorPrices? v = vendor switch
-        {
-            "tcg" => data.Paper.TCGPlayer,
-            "cm" => data.Paper.Cardmarket,
-            "ck" => data.Paper.CardKingdom,
-            "mp" => data.Paper.ManaPool,
-            _ => null
-        };
-
-        if (v == null) return;
-
-        switch (type)
-        {
-            case "rn": v.RetailNormalHistory.Add(entry); break;
-            case "rf": v.RetailFoilHistory.Add(entry); break;
-            case "bn": v.BuylistNormalHistory.Add(entry); break;
-        }
-    }
-
-    private static string SafeStr(SqliteDataReader reader, string col)
-    {
-        var ordinal = reader.GetOrdinal(col);
-        return reader.IsDBNull(ordinal) ? "" : reader.GetString(ordinal);
-    }
-
-    private static double SafeDouble(SqliteDataReader reader, string col)
-    {
-        var ordinal = reader.GetOrdinal(col);
-        return reader.IsDBNull(ordinal) ? 0.0 : reader.GetDouble(ordinal);
-    }
-
-    private static PriceCurrency ParseCurrency(string s) =>
-        s.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? PriceCurrency.EUR : PriceCurrency.USD;
 }
