@@ -66,11 +66,6 @@ public partial class CollectionPage : ContentPage
         CollectionGrid.OnSleep();
     }
 
-    private async void OnRefreshClicked(object? sender, EventArgs e)
-    {
-        await _viewModel.LoadCollectionAsync();
-    }
-
     private void OnCollectionScrolled(object? sender, ScrolledEventArgs e)
     {
         _viewModel.OnScrollChanged((float)e.ScrollY);

@@ -37,13 +37,6 @@
                         Padding="0"
                         FontSize="18"
                         StyleClass="ElevatedButton" />
-                <Button Text="Refresh"
-                        Clicked="OnRefreshClicked"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        HeightRequest="36"
-                        Padding="12,0"
-                        FontSize="12"
-                        StyleClass="ElevatedButton" />
             </HorizontalStackLayout>
         </Grid>
 
@@ -67,10 +60,13 @@
                     FontSize="13" />
         </Grid>
 
-        <!-- Card Grid -->
-        <controls:CardGrid Grid.Row="2"
-                           x:Name="CollectionGrid"
-                           Scrolled="OnCollectionScrolled" />
+        <!-- Card Grid wrapped in RefreshView -->
+        <RefreshView Grid.Row="2"
+                     Command="{Binding RefreshCommand}"
+                     IsRefreshing="{Binding IsRefreshing, Mode=TwoWay}">
+            <controls:CardGrid x:Name="CollectionGrid"
+                               Scrolled="OnCollectionScrolled" />
+        </RefreshView>
 
         <!-- Empty State -->
         <VerticalStackLayout Grid.Row="2"
