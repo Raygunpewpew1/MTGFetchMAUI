@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:vm="clr-namespace:MTGFetchMAUI.ViewModels"
+             xmlns:models="clr-namespace:MTGFetchMAUI.Models"
+             x:Class="MTGFetchMAUI.Pages.DecksPage"
+             Title="Decks"
+             BackgroundColor="{StaticResource Background}"
+             x:DataType="vm:DecksViewModel">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
+            <VerticalStackLayout>
+                <Label Text="My Decks"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}" />
+                <Label Text="{Binding StatusDisplayText}"
+                       FontSize="12"
+                       TextColor="{Binding StatusTextColor}" />
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   HeightRequest="20"
+                                   WidthRequest="20"
+                                   Color="{StaticResource Accent}" />
+                <Button Text="+ New"
+                        Clicked="OnNewDeckClicked"
+                        BackgroundColor="{StaticResource Accent}"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        HeightRequest="36"
+                        Padding="12,0"
+                        FontSize="13" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Content area -->
+        <Grid Grid.Row="1">
+
+            <!-- Deck List -->
+            <CollectionView ItemsSource="{Binding Decks}"
+                            IsVisible="{Binding IsEmpty, Converter={x:StaticResource InvertedBoolConverter}}"
+                            SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:DeckEntity">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Delete"
+                                               BackgroundColor="#B00020"
+                                               Invoked="OnDeleteSwipeInvoked" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                            <Border Style="{StaticResource CardStyle}"
+                                    Margin="12,4">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                    <!-- Deck Name -->
+                                    <Label Grid.Row="0" Grid.Column="0"
+                                           Text="{Binding Name}"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextPrimary}" />
+
+                                    <!-- Format badge -->
+                                    <Border Grid.Row="0" Grid.Column="1"
+                                            BackgroundColor="{StaticResource Surface}"
+                                            Padding="8,3"
+                                            StrokeShape="RoundRectangle 10"
+                                            Stroke="Transparent"
+                                            VerticalOptions="Center">
+                                        <Label Text="{Binding FormatDisplay}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextSecondary}" />
+                                    </Border>
+
+                                    <!-- Detail row -->
+                                    <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                                         Spacing="2"
+                                                         Margin="0,4,0,0">
+                                        <Label Text="{Binding CommanderDisplay}"
+                                               IsVisible="{Binding HasCommander}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Accent}" />
+                                        <Label Text="{Binding DateModified, StringFormat='Modified {0:MMM d, yyyy}'}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextSecondary}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDeckTapped" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Empty State -->
+            <VerticalStackLayout IsVisible="{Binding IsEmpty}"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="12">
+                <Label Text="🃏"
+                       FontSize="52"
+                       HorizontalOptions="Center" />
+                <Label Text="No decks yet"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalOptions="Center" />
+                <Label Text="Tap + New to create your first deck"
+                       FontSize="13"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

@@ -22,6 +22,11 @@
             x:Name="StatsTab"
             Title="Stats"
             Icon="icon_stats.png" />
+
+        <ShellContent
+            x:Name="DecksTab"
+            Title="Decks"
+            Icon="icon_decks.png" />
     </TabBar>
 
     <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>

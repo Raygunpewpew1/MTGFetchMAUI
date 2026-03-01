@@ -100,6 +100,7 @@ public class DeckBuilderService
 
         // Update deck commander
         deck.CommanderId = cardUuid;
+        deck.CommanderName = card.Name;
         deck.ColorIdentity = card.GetColorIdentity().AsString(); // "W,U,B" etc.
         deck.DateModified = DateTime.Now;
 
@@ -179,4 +180,8 @@ public class DeckBuilderService
     {
         return await _repository.GetDeckAsync(id);
     }
+
+    public Task DeleteDeckAsync(int id) => _repository.DeleteDeckAsync(id);
+
+    public Task<List<DeckCardEntity>> GetDeckCardsAsync(int id) => _repository.GetDeckCardsAsync(id);
 }
