@@ -47,7 +47,7 @@ public partial class DecksPage : ContentPage
     {
         if (sender is SwipeItem swipe && swipe.BindingContext is DeckEntity deck)
         {
-            bool confirmed = await DisplayAlert(
+            bool confirmed = await DisplayAlertAsync(
                 "Delete Deck",
                 $"Delete \"{deck.Name}\"? This cannot be undone.",
                 "Delete", "Cancel");
