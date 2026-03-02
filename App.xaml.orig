@@ -48,7 +48,7 @@
             <Style TargetType="Entry">
                 <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
                 <Setter Property="PlaceholderColor" Value="{StaticResource TextSecondary}" />
-                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
                 <Setter Property="FontSize">
                     <Setter.Value>
                         <OnIdiom x:TypeArguments="x:Double">
