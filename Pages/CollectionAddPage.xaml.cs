@@ -15,7 +15,7 @@ public partial class CollectionAddPage : ContentPage
     {
         InitializeComponent();
 
-        _tcs = new TaskCompletionSource<CollectionAddResult?>();
+        _tcs = new TaskCompletionSource<CollectionAddResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
         _currentInCollection = currentQty;
 
         // If already in collection: show current total, allow down to 0 (remove)

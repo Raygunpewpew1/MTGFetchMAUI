@@ -10,7 +10,7 @@ public partial class AddToDeckPage : ContentPage
     private readonly DeckBuilderService _deckService;
     private int _quantity = 1;
     private List<DeckEntity> _decks = [];
-    private readonly TaskCompletionSource<AddToDeckResult?> _tcs = new();
+    private readonly TaskCompletionSource<AddToDeckResult?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task<AddToDeckResult?> WaitForResultAsync() => _tcs.Task;
 
