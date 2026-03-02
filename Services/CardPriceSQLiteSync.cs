@@ -15,6 +15,12 @@ public class CardPriceSQLiteSync
     public Action<string, int>? OnProgress { get; set; }
 
     /// <summary>
+    /// Path to the collection SQLite database. When set and the file exists, price history is
+    /// restricted to owned cards only, keeping the history table small.
+    /// </summary>
+    public string? CollectionDbPath { get; set; }
+
+    /// <summary>
     /// Extracts the SQLite file from the downloaded ZIP, syncs it into the local prices database,
     /// then deletes the extracted temp file. The ZIP itself is cleaned up by the caller.
     /// </summary>
@@ -85,6 +91,19 @@ public class CardPriceSQLiteSync
         var escapedPath = sourceSqlitePath.Replace("'", "''");
         await ExecuteAsync(conn, $"ATTACH DATABASE '{escapedPath}' AS today");
 
+        bool collectionAttached = false;
+        if (!string.IsNullOrEmpty(CollectionDbPath) && File.Exists(CollectionDbPath))
+        {
+            var escapedCollPath = CollectionDbPath.Replace("'", "''");
+            await ExecuteAsync(conn, $"ATTACH DATABASE '{escapedCollPath}' AS col");
+            collectionAttached = true;
+            Logger.LogStuff("[PriceSync] Collection DB attached; history restricted to owned cards.", LogLevel.Info);
+        }
+        else
+        {
+            Logger.LogStuff("[PriceSync] No collection DB available; history unrestricted.", LogLevel.Info);
+        }
+
         try
         {
             OnProgress?.Invoke("Writing prices...", 60);
@@ -102,10 +121,22 @@ public class CardPriceSQLiteSync
 
             // Drop history secondary index before bulk insert — rebuilt at end
             await ExecuteTransactedAsync(conn, trans, SQLQueries.DropPriceHistoryIndex);
-            Logger.LogStuff("[PriceSync] Step 3: INSERT history", LogLevel.Info);
-            await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistorySyncFromAttached);
 
-            Logger.LogStuff("[PriceSync] Step 4: Trim old history", LogLevel.Info);
+            if (collectionAttached)
+            {
+                Logger.LogStuff("[PriceSync] Step 3: DELETE non-collection history", LogLevel.Info);
+                await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistoryDeleteNonCollection);
+
+                Logger.LogStuff("[PriceSync] Step 4: INSERT history for owned cards only", LogLevel.Info);
+                await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistorySyncCollectionOnly);
+            }
+            else
+            {
+                Logger.LogStuff("[PriceSync] Step 3/4: INSERT history (unfiltered fallback)", LogLevel.Info);
+                await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistorySyncFromAttached);
+            }
+
+            Logger.LogStuff("[PriceSync] Step 5: Trim old history", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans,
                 string.Format(SQLQueries.PriceHistoryTrimOld, MTGConstants.PriceHistoryRetentionDays));
 
@@ -126,7 +157,18 @@ public class CardPriceSQLiteSync
         }
         finally
         {
+            if (collectionAttached)
+                try { await ExecuteAsync(conn, "DETACH DATABASE col"); } catch { }
             try { await ExecuteAsync(conn, "DETACH DATABASE today"); } catch { }
+        }
+
+        // Reclaim freed pages after deleting non-collection history.
+        // VACUUM cannot run inside a transaction or while databases are attached — both are clear here.
+        if (collectionAttached)
+        {
+            Logger.LogStuff("[PriceSync] VACUUMing price DB to reclaim freed space...", LogLevel.Info);
+            await ExecuteAsync(conn, "VACUUM");
+            Logger.LogStuff("[PriceSync] VACUUM complete.", LogLevel.Info);
         }
 
         // Report row count from the now-updated local table
