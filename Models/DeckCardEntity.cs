@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Models;
+namespace AetherVault.Models;
 
 /// <summary>
 /// Database entity for a Card in a Deck.

@@ -2,7 +2,7 @@ using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 /// <summary>
 /// SKCanvasView that renders a mana curve bar chart.

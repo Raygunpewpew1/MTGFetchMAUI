@@ -1,6 +1,6 @@
-using MTGFetchMAUI.ViewModels;
+using AetherVault.ViewModels;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public partial class LoadingPage : ContentPage
 {

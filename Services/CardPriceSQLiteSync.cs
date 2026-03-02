@@ -1,8 +1,8 @@
 using Microsoft.Data.Sqlite;
-using MTGFetchMAUI.Data;
+using AetherVault.Data;
 using System.IO.Compression;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Syncs price data from a downloaded AllPricesToday.sqlite.zip into the local prices database.

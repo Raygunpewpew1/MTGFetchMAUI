@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>
 /// Represents a card's or deck's color identity as a set of Magic colors.

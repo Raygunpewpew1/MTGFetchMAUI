@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Log severity levels.

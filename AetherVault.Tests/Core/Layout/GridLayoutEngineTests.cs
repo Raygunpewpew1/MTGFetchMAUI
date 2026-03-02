@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Core.Layout;
+using AetherVault.Core.Layout;
 using System.Collections.Immutable;
 
-namespace MTGFetchMAUI.Tests.Core.Layout;
+namespace AetherVault.Tests.Core.Layout;
 
 public class GridLayoutEngineTests
 {

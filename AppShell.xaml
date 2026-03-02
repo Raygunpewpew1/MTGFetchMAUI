@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-       xmlns:pages="clr-namespace:MTGFetchMAUI.Pages"
-       x:Class="MTGFetchMAUI.AppShell"
-       Title="MTG Fetch"
+       xmlns:pages="clr-namespace:AetherVault.Pages"
+       x:Class="AetherVault.AppShell"
+       Title="AetherVault"
        Shell.BackgroundColor="{StaticResource Surface}"
        Shell.ForegroundColor="{StaticResource TextPrimary}">
 

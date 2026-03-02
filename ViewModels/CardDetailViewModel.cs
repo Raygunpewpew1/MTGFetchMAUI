@@ -1,11 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
+using AetherVault.Core;
+using AetherVault.Models;
+using AetherVault.Services;
 using SkiaSharp;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 /// <summary>
 /// ViewModel for card detail page.

@@ -1,7 +1,7 @@
 using Android.App;
 using Android.Runtime;
 
-namespace MTGFetchMAUI;
+namespace AetherVault;
 
 [Application]
 public class MainApplication : MauiApplication

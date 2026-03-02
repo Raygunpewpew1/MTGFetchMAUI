@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Services.DeckBuilder;
+using AetherVault.Core;
+using AetherVault.Services.DeckBuilder;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public partial class CreateDeckPage : ContentPage
 {

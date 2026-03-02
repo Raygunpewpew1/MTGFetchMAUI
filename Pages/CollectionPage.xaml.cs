@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Services;
-using MTGFetchMAUI.ViewModels;
+using AetherVault.Services;
+using AetherVault.ViewModels;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public partial class CollectionPage : ContentPage
 {

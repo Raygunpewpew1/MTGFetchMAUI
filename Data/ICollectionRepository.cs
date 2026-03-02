@@ -1,6 +1,6 @@
-using MTGFetchMAUI.Models;
+using AetherVault.Models;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Async interface for user collection data access.

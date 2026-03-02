@@ -1,9 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
+using AetherVault.Models;
+using AetherVault.Services;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 /// <summary>
 /// ViewModel for statistics page.

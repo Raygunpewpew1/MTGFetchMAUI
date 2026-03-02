@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Singleton service that tracks the ordered list of card UUIDs from the current search

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Price vendor type (normal vs foil).

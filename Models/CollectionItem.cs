@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Models;
+namespace AetherVault.Models;
 
 /// <summary>
 /// Represents a card in a user's collection.

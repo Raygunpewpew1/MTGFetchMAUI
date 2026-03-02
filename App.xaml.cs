@@ -1,7 +1,7 @@
-namespace MTGFetchMAUI;
+namespace AetherVault;
 
 using Microsoft.Extensions.DependencyInjection;
-using MTGFetchMAUI.Pages;
+using AetherVault.Pages;
 using System;
 
 public partial class App : Application

@@ -1,6 +1,6 @@
 using AppoMobi.Maui.Gestures;
 
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 public sealed class SwipeGestureContainer : ContentView, IGestureListener
 {

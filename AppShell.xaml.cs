@@ -1,6 +1,6 @@
-namespace MTGFetchMAUI;
+namespace AetherVault;
 
-using MTGFetchMAUI.Pages;
+using AetherVault.Pages;
 
 public partial class AppShell : Shell
 {

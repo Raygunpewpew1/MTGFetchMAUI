@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services.DeckBuilder;
-using MTGFetchMAUI.ViewModels;
+using AetherVault.Models;
+using AetherVault.Services.DeckBuilder;
+using AetherVault.ViewModels;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public partial class DecksPage : ContentPage
 {

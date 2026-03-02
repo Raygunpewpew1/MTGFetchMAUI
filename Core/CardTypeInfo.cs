@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>
 /// Information about card types, subtypes, and supertypes.

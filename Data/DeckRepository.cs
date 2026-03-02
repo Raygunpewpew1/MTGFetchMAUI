@@ -1,7 +1,7 @@
 using Microsoft.Data.Sqlite;
-using MTGFetchMAUI.Models;
+using AetherVault.Models;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 public class DeckRepository : IDeckRepository
 {

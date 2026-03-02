@@ -1,8 +1,8 @@
-using MTGFetchMAUI.ViewModels;
+using AetherVault.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 [QueryProperty(nameof(DeckId), "deckId")]
 public partial class DeckDetailPage : ContentPage

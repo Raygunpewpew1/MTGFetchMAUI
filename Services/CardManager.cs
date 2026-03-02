@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Data;
-using MTGFetchMAUI.Models;
+using AetherVault.Data;
+using AetherVault.Models;
 using SkiaSharp;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Facade coordinating repositories, image service, and price management.

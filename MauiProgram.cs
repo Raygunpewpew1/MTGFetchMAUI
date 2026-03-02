@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Data;
-using MTGFetchMAUI.Pages;
-using MTGFetchMAUI.Services;
-using MTGFetchMAUI.Services.DeckBuilder;
-using MTGFetchMAUI.ViewModels;
+using AetherVault.Data;
+using AetherVault.Pages;
+using AetherVault.Services;
+using AetherVault.Services.DeckBuilder;
+using AetherVault.ViewModels;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using CommunityToolkit.Maui;
 using UraniumUI;
@@ -12,7 +12,7 @@ using AppoMobi.Maui.Gestures;
 using Plugin.Maui.OCR;
 #endif
 
-namespace MTGFetchMAUI;
+namespace AetherVault;
 
 public static class MauiProgram
 {
@@ -30,7 +30,7 @@ public static class MauiProgram
             .ConfigureMauiHandlers(handlers =>
             {
 #if ANDROID
-                handlers.AddHandler<MTGFetchMAUI.Controls.CardTextView, MTGFetchMAUI.Platforms.Android.Handlers.CardTextViewHandler>();
+                handlers.AddHandler<AetherVault.Controls.CardTextView, AetherVault.Platforms.Android.Handlers.CardTextViewHandler>();
 #endif
             })
             .ConfigureFonts(fonts =>

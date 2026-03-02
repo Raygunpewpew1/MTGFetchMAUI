@@ -2,7 +2,7 @@ using SkiaSharp;
 using Svg.Skia;
 using System.Reflection;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Shared SVG loading, caching, and double-check-lock infrastructure used by

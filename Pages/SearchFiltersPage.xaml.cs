@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Controls;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.ViewModels;
+using AetherVault.Controls;
+using AetherVault.Core;
+using AetherVault.ViewModels;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public partial class SearchFiltersPage : ContentPage
 {

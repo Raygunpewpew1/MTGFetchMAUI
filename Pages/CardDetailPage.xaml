@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
-             x:Class="MTGFetchMAUI.Pages.CardDetailPage"
+             x:Class="AetherVault.Pages.CardDetailPage"
              x:Name="DetailScreen"
              Title="Card Details"
              BackgroundColor="{StaticResource Background}"

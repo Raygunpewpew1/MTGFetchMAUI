@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>Scryfall CDN image size options.</summary>
 public enum ScryfallSize

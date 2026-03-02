@@ -1,9 +1,9 @@
 using Microsoft.Data.Sqlite;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Models;
+using AetherVault.Core;
+using AetherVault.Models;
 using System.Text.Json;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Maps SQLite data reader rows to Card objects.

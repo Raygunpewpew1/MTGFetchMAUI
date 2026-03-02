@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 internal sealed class CardGridGestureHandler
 {

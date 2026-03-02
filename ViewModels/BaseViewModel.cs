@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Core.Layout;
+using AetherVault.Core.Layout;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 /// <summary>
 /// Base class for all ViewModels providing INotifyPropertyChanged.

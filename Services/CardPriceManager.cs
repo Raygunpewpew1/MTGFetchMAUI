@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Coordinates price data lifecycle: checks for updates, downloads, syncs, and provides price lookups.

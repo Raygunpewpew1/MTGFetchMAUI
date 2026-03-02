@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace MTGFetchMAUI.WinUI;
+namespace AetherVault.WinUI;
 
 public partial class App : MauiWinUIApplication
 {

@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Static utility for file paths, database downloads, and app data management.

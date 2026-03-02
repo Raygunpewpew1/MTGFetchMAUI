@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Data;
+using AetherVault.Core;
+using AetherVault.Data;
 
-namespace MTGFetchMAUI.Tests;
+namespace AetherVault.Tests;
 
 public class MTGSearchHelperTests
 {

@@ -1,9 +1,9 @@
-using MTGFetchMAUI.Core;
+using AetherVault.Core;
 
-namespace MTGFetchMAUI;
+namespace AetherVault;
 
 /// <summary>
-/// Centralized constants for the MTG Fetch application.
+/// Centralized constants for the AetherVault application.
 /// Port of MTGConstants.pas.
 /// </summary>
 public static class MTGConstants

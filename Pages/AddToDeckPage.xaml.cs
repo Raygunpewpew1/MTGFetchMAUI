@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services.DeckBuilder;
+using AetherVault.Models;
+using AetherVault.Services.DeckBuilder;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public record AddToDeckResult(int DeckId, string DeckName, string Section, int Quantity);
 

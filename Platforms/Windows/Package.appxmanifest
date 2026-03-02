@@ -8,7 +8,7 @@
   <Identity Name="com.mtgfetch.mobile" Publisher="CN=MTGFetch" Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>MTG Fetch</DisplayName>
+    <DisplayName>AetherVault</DisplayName>
     <PublisherDisplayName>MTGFetch</PublisherDisplayName>
     <Logo>$placeholder$.png</Logo>
   </Properties>
@@ -25,7 +25,7 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="MTG Fetch"
+        DisplayName="AetherVault"
         Description="Magic: The Gathering card management"
         Square150x150Logo="$placeholder$.png"
         Square44x44Logo="$placeholder$.png"

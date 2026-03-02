@@ -1,8 +1,8 @@
 using Microsoft.Data.Sqlite;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Models;
+using AetherVault.Core;
+using AetherVault.Models;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Async user collection CRUD operations.

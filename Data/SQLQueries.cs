@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Centralized SQL query definitions.

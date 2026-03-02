@@ -1,7 +1,7 @@
 using Microsoft.Data.Sqlite;
-using MTGFetchMAUI.Data;
+using AetherVault.Data;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// SQLite database for card price data.

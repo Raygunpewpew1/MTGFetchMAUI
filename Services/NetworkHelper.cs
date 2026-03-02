@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Helper class for creating HttpClient instances with consistent configuration.
