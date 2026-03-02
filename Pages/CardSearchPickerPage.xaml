@@ -19,26 +19,12 @@
         <!-- Search Bar -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto"
               Padding="8,8,8,4" ColumnSpacing="8">
-            <material:TextField x:Name="SearchEntry"
-                   Title="Search cards..."
-                   Text="{Binding SearchText, Mode=TwoWay}"
-                   ReturnCommand="{Binding SearchCommand}"
-                   BackgroundColor="{StaticResource Surface}"
-                   TextColor="{StaticResource TextPrimary}"
-                   TitleColor="{StaticResource TextSecondary}"
-                   AccentColor="{StaticResource Primary}"
-                   AllowClear="True">
-            </material:TextField>
-
-            <Button Grid.Column="1"
-                    Text="{Binding ViewModeButtonText}"
-                    Command="{Binding ToggleViewModeCommand}"
-                    BackgroundColor="{StaticResource CardBackground}"
-                    HeightRequest="44"
-                    WidthRequest="44"
-                    Padding="0"
-                    FontSize="18"
-                    StyleClass="ElevatedButton" />
+            <VerticalStackLayout Spacing="0" Grid.Column="1">
+                    <Label Text="Search cards..." Style="{StaticResource FormInputLabel}" />
+                    <Border Style="{StaticResource FormInputContainer}">
+                        <Entry x:Name="SearchEntry" Placeholder="Search cards..." BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" />
+                    </Border>
+                </VerticalStackLayout>
         </Grid>
 
         <!-- Status Bar -->
