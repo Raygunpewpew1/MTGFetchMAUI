@@ -146,6 +146,9 @@ public static class SQLQueries
     public const string CreatePriceHistoryIndex =
         "CREATE INDEX IF NOT EXISTS idx_history_uuid ON card_price_history(uuid)";
 
+    public const string DropPricesIndex = "DROP INDEX IF EXISTS idx_prices_uuid";
+    public const string DropPriceHistoryIndex = "DROP INDEX IF EXISTS idx_history_uuid";
+
     // Detects old wide-column schema (pre-refactor). Used for one-time migration.
     public const string PricesSchemaCheck =
         "SELECT COUNT(*) FROM pragma_table_info('card_prices') WHERE name = 'tcg_retail_normal'";
