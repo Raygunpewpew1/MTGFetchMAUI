@@ -26,9 +26,7 @@ public class FileImageCache : IDisposable
         MaxCacheSizeMB = maxCacheSizeMB;
         MaxCacheAgeDays = maxCacheAgeDays;
 
-        _cacheDir = cacheDir ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            MTGConstants.AppRootFolder, "ImageCache");
+        _cacheDir = cacheDir ?? Path.Combine(FileSystem.CacheDirectory, "ImageCache");
 
         Directory.CreateDirectory(_cacheDir);
     }

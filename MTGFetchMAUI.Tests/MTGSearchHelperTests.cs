@@ -223,9 +223,9 @@ public class MTGSearchHelperTests
         var helper = new MTGSearchHelper();
         helper.SearchCards().WhereLegalInAny(Array.Empty<DeckFormat>());
         var result = helper.Build();
-        // No legality column references added
-        Assert.DoesNotContain("cl.standard", result.sql);
-        Assert.DoesNotContain("cl.modern", result.sql);
+        // No WHERE legality condition added, but SELECT still contains standard
+        Assert.DoesNotContain("WHERE cl.standard", result.sql);
+        Assert.DoesNotContain("WHERE cl.modern", result.sql);
     }
 
     // ── Type and attribute filter tests ──────────────────────────────
