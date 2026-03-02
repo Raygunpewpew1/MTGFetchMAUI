@@ -10,16 +10,16 @@ namespace MTGFetchMAUI.ViewModels;
 public abstract partial class BaseViewModel : ObservableObject
 {
     [ObservableProperty]
-    private bool _isBusy;
+    public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusDisplayText))]
-    private string _statusMessage = "";
+    public partial string StatusMessage { get; set; } = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusTextColor))]
     [NotifyPropertyChangedFor(nameof(StatusDisplayText))]
-    private bool _statusIsError;
+    public partial bool StatusIsError { get; set; }
 
     public Color StatusTextColor => StatusIsError
         ? Color.FromArgb("#F44336")
@@ -29,7 +29,7 @@ public abstract partial class BaseViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
-    private ViewMode _viewMode = ViewMode.Grid;
+    public partial ViewMode ViewMode { get; set; } = ViewMode.Grid;
 
     public string ViewModeButtonText => ViewMode switch
     {

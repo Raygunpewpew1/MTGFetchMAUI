@@ -10,10 +10,10 @@ public partial class LoadingViewModel : BaseViewModel
     private readonly IServiceProvider _serviceProvider;
 
     [ObservableProperty]
-    private double _progress;
+    public partial double Progress { get; set; }
 
     [ObservableProperty]
-    private bool _showRetry;
+    public partial bool ShowRetry { get; set; }
 
     public LoadingViewModel(CardManager cardManager, IServiceProvider serviceProvider)
     {

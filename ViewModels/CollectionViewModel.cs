@@ -19,19 +19,19 @@ public partial class CollectionViewModel : BaseViewModel
     private CollectionItem[] _allItems = [];
 
     [ObservableProperty]
-    private int _totalCards;
+    public partial int TotalCards { get; set; }
 
     [ObservableProperty]
-    private int _uniqueCards;
+    public partial int UniqueCards { get; set; }
 
     [ObservableProperty]
-    private bool _isCollectionEmpty;
+    public partial bool IsCollectionEmpty { get; set; }
 
     [ObservableProperty]
-    private CollectionSortMode _sortMode = CollectionSortMode.Manual;
+    public partial CollectionSortMode SortMode { get; set; } = CollectionSortMode.Manual;
 
     [ObservableProperty]
-    private string _filterText = "";
+    public partial string FilterText { get; set; } = "";
 
     public List<string> SortModeOptions { get; } = ["Manual", "Name", "CMC", "Rarity", "Color"];
 
