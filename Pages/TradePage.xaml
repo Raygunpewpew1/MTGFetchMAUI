@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MTGFetchMAUI.ViewModels"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             x:Class="MTGFetchMAUI.Pages.TradePage"
+             Title="Trade Balancer"
+             BackgroundColor="{StaticResource Background}">
+
+    <Grid RowDefinitions="*, Auto, *" ColumnDefinitions="*" Padding="10" RowSpacing="10">
+
+        <!-- You Give Section (Top) -->
+        <Border Grid.Row="0" Stroke="{StaticResource Primary}" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 10" Padding="10">
+            <Grid RowDefinitions="Auto, *, Auto">
+                <Label Grid.Row="0" Text="You Give" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+
+                <CollectionView Grid.Row="1" ItemsSource="{Binding YouGiveCards}" Margin="0,10,0,10">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TradeItem">
+                            <Border Padding="10" Margin="0,0,0,5" BackgroundColor="{StaticResource SurfaceAlt}" StrokeShape="RoundRectangle 5" Stroke="Transparent">
+                                <Grid ColumnDefinitions="*, Auto, Auto">
+                                    <Label Grid.Column="0" Text="{Binding Card.Name}" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
+                                    <Label Grid.Column="1" Text="{Binding Price, StringFormat='${0:F2}'}" TextColor="{StaticResource TextSecondary}" Margin="10,0" VerticalOptions="Center"/>
+                                    <ImageButton Grid.Column="2" Source="{FontImageSource FontFamily=FASolid, Glyph={x:Static fa:Solid.Trash}}"
+                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TradeViewModel}}, Path=RemoveYouGiveCommand}"
+                                                 CommandParameter="{Binding .}"
+                                                 WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="Add cards you are trading away" HorizontalOptions="Center" VerticalOptions="Center" TextColor="{StaticResource TextSecondary}"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+
+                <Grid Grid.Row="2" ColumnDefinitions="*, Auto">
+                    <Button Grid.Column="0" Text="Add Card" Command="{Binding AddYouGiveCommand}" HorizontalOptions="Start" />
+                    <Label Grid.Column="1" Text="{Binding YouGiveTotal, StringFormat='Total: ${0:F2}'}" FontAttributes="Bold" VerticalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Balance Indicator (Middle) -->
+        <Border Grid.Row="1" BackgroundColor="{StaticResource SurfaceAlt}" StrokeShape="RoundRectangle 10" Padding="15" Stroke="Transparent">
+            <StackLayout HorizontalOptions="Center" Spacing="5">
+                <Label Text="Trade Balance" HorizontalOptions="Center" TextColor="{StaticResource TextSecondary}" FontSize="14" />
+                <Label Text="{Binding BalanceText}" TextColor="{Binding BalanceColor}" FontAttributes="Bold" FontSize="20" HorizontalOptions="Center" />
+            </StackLayout>
+        </Border>
+
+        <!-- You Get Section (Bottom) -->
+        <Border Grid.Row="2" Stroke="{StaticResource Secondary}" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 10" Padding="10">
+            <Grid RowDefinitions="Auto, *, Auto">
+                <Label Grid.Row="0" Text="You Get" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+
+                <CollectionView Grid.Row="1" ItemsSource="{Binding YouGetCards}" Margin="0,10,0,10">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TradeItem">
+                            <Border Padding="10" Margin="0,0,0,5" BackgroundColor="{StaticResource SurfaceAlt}" StrokeShape="RoundRectangle 5" Stroke="Transparent">
+                                <Grid ColumnDefinitions="*, Auto, Auto">
+                                    <Label Grid.Column="0" Text="{Binding Card.Name}" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
+                                    <Label Grid.Column="1" Text="{Binding Price, StringFormat='${0:F2}'}" TextColor="{StaticResource TextSecondary}" Margin="10,0" VerticalOptions="Center"/>
+                                    <ImageButton Grid.Column="2" Source="{FontImageSource FontFamily=FASolid, Glyph={x:Static fa:Solid.Trash}}"
+                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TradeViewModel}}, Path=RemoveYouGetCommand}"
+                                                 CommandParameter="{Binding .}"
+                                                 WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    <CollectionView.EmptyView>
+                        <Label Text="Add cards you are receiving" HorizontalOptions="Center" VerticalOptions="Center" TextColor="{StaticResource TextSecondary}"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+
+                <Grid Grid.Row="2" ColumnDefinitions="*, Auto">
+                    <Button Grid.Column="0" Text="Add Card" Command="{Binding AddYouGetCommand}" HorizontalOptions="Start" />
+                    <Label Grid.Column="1" Text="{Binding YouGetTotal, StringFormat='Total: ${0:F2}'}" FontAttributes="Bold" VerticalOptions="Center" TextColor="{StaticResource TextPrimary}" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>
