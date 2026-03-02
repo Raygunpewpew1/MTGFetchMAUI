@@ -271,10 +271,9 @@ public class CardPriceDatabase : IDisposable
 
     private static List<PriceEntry> BuildHistoryList(
         List<HistoryRow> history, string provider, string priceType, string finish) =>
-        history
+        [.. history
             .Where(h => h.Provider == provider && h.PriceType == priceType && h.Finish == finish)
-            .Select(h => new PriceEntry(PriceDateParser.ParseISO8601Date(h.Date), h.Price))
-            .ToList();
+            .Select(h => new PriceEntry(PriceDateParser.ParseISO8601Date(h.Date), h.Price))];
 
     private static PriceCurrency ParseCurrency(string s) =>
         s.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? PriceCurrency.EUR : PriceCurrency.USD;
