@@ -1,5 +1,7 @@
 namespace MTGFetchMAUI.Services;
 
+using Microsoft.Maui.Controls.Shapes;
+
 public interface IToastService
 {
     void Show(string message, int durationMs = 3000);
