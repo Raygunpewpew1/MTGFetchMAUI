@@ -48,9 +48,9 @@ public class ToastService : IToastService
 
         try
         {
-            await banner.FadeTo(1, 150);
+            await banner.FadeToAsync(1, 150);
             await Task.Delay(Math.Max(durationMs - 300, 200));
-            await banner.FadeTo(0, 150);
+            await banner.FadeToAsync(0, 150);
         }
         finally
         {
