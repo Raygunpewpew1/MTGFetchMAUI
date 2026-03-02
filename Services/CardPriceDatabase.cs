@@ -1,5 +1,5 @@
-using Microsoft.Data.Sqlite;
 using AetherVault.Data;
+using Microsoft.Data.Sqlite;
 
 namespace AetherVault.Services;
 
@@ -239,10 +239,10 @@ public class CardPriceDatabase : IDisposable
 
     private static PaperPlatform BuildPaperPlatform(List<PriceRow> rows, List<HistoryRow> history) => new()
     {
-        TCGPlayer  = BuildVendorPrices(rows, history, "tcgplayer"),
+        TCGPlayer = BuildVendorPrices(rows, history, "tcgplayer"),
         Cardmarket = BuildVendorPrices(rows, history, "cardmarket"),
         CardKingdom = BuildVendorPrices(rows, history, "cardkingdom"),
-        ManaPool   = BuildVendorPrices(rows, history, "manapool")
+        ManaPool = BuildVendorPrices(rows, history, "manapool")
     };
 
     private static VendorPrices BuildVendorPrices(List<PriceRow> rows, List<HistoryRow> history, string provider)
@@ -255,15 +255,15 @@ public class CardPriceDatabase : IDisposable
 
         return new VendorPrices
         {
-            RetailNormal  = new PriceEntry(DateTime.Now, Get("retail", "normal")),
-            RetailFoil    = new PriceEntry(DateTime.Now, Get("retail", "foil")),
-            RetailEtched  = new PriceEntry(DateTime.Now, Get("retail", "etched")),
+            RetailNormal = new PriceEntry(DateTime.Now, Get("retail", "normal")),
+            RetailFoil = new PriceEntry(DateTime.Now, Get("retail", "foil")),
+            RetailEtched = new PriceEntry(DateTime.Now, Get("retail", "etched")),
             BuylistNormal = new PriceEntry(DateTime.Now, Get("buylist", "normal")),
             BuylistEtched = new PriceEntry(DateTime.Now, Get("buylist", "etched")),
-            Currency      = ParseCurrency(vendorRows[0].Currency),
-            RetailNormalHistory  = BuildHistoryList(history, provider, "retail",  "normal"),
-            RetailFoilHistory    = BuildHistoryList(history, provider, "retail",  "foil"),
-            RetailEtchedHistory  = BuildHistoryList(history, provider, "retail",  "etched"),
+            Currency = ParseCurrency(vendorRows[0].Currency),
+            RetailNormalHistory = BuildHistoryList(history, provider, "retail", "normal"),
+            RetailFoilHistory = BuildHistoryList(history, provider, "retail", "foil"),
+            RetailEtchedHistory = BuildHistoryList(history, provider, "retail", "etched"),
             BuylistNormalHistory = BuildHistoryList(history, provider, "buylist", "normal"),
             BuylistEtchedHistory = BuildHistoryList(history, provider, "buylist", "etched"),
         };

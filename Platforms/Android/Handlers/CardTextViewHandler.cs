@@ -1,10 +1,10 @@
+using AetherVault.Controls;
 using Android.Graphics;
 using Android.Text;
 using Android.Text.Style;
 using Android.Widget;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Platform;
-using AetherVault.Controls;
 using System.Text.RegularExpressions;
 
 namespace AetherVault.Platforms.Android.Handlers;

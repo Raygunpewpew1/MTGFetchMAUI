@@ -1,7 +1,7 @@
 namespace AetherVault;
 
-using Microsoft.Extensions.DependencyInjection;
 using AetherVault.Pages;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 
 public partial class App : Application

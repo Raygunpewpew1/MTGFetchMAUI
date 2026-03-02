@@ -1,6 +1,6 @@
+using AetherVault.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using AetherVault.Services;
 
 namespace AetherVault.ViewModels;
 

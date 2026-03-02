@@ -117,11 +117,12 @@
                 </Grid>
 
                 <!-- Format Legality -->
-                <material:PickerField x:Name="FormatPicker"
-                        Title="Format"
-                        TextColor="{StaticResource TextPrimary}"
-                        TitleColor="{StaticResource TextSecondary}"
-                        AccentColor="{StaticResource Primary}" />
+                <VerticalStackLayout Spacing="0">
+                    <Label Text="Format" Style="{StaticResource FormInputLabel}" />
+                    <Border Style="{StaticResource FormInputContainer}">
+                        <Picker x:Name="FormatPicker" Title="Format" TextColor="{StaticResource TextPrimary}" BackgroundColor="Transparent" />
+                    </Border>
+                </VerticalStackLayout>
 
                 <!-- Set Code -->
                 <material:TextField x:Name="SetEntry" Title="Set Code"
