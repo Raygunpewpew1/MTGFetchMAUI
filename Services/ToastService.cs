@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 using Microsoft.Maui.Controls.Shapes;
 
