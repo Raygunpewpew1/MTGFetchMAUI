@@ -31,6 +31,8 @@
 		<PackageProjectUrl></PackageProjectUrl>
 
 		<RepositoryUrl>https://github.com/Raygunpewpew1/AetherVault</RepositoryUrl>
+
+		<DefaultLanguage>en</DefaultLanguage>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net10.0-android|AnyCPU'">
@@ -46,7 +48,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="AppoMobi.Maui.Gestures" Version="1.11.9.1" />
-		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
@@ -75,16 +77,23 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<AndroidResource Remove="MTGFetchMAUI.Tests\**" />
 		<Compile Remove="AetherVault.Tests\**" />
+		<Compile Remove="MTGFetchMAUI.Tests\**" />
 		<EmbeddedResource Remove="AetherVault.Tests\**" />
+		<EmbeddedResource Remove="MTGFetchMAUI.Tests\**" />
+		<MauiCss Remove="MTGFetchMAUI.Tests\**" />
+		<MauiXaml Remove="MTGFetchMAUI.Tests\**" />
 		<None Remove="AetherVault.Tests\**" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="MTGFetchMAUI.Tests\**" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Remove="BENCHMARK_RESULTS.md" />
+		<None Remove="MTGFetchMAUI.csproj.Backup.tmp" />
 		<None Remove="Resources\Splash\_splash.svg" />
 	</ItemGroup>
 
