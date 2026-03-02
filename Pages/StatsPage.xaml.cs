@@ -114,7 +114,19 @@ public partial class StatsPage : ContentPage
         RareLabel.Text = stats.RareCount.ToString();
         MythicLabel.Text = stats.MythicCount.ToString();
 
+        var storage = _viewModel.Storage;
+        MtgDbSizeLabel.Text = FormatSize(storage.MtgDatabaseSize);
+        CollectionDbSizeLabel.Text = FormatSize(storage.CollectionDatabaseSize);
+        PricesDbSizeLabel.Text = FormatSize(storage.PricesDatabaseSize);
+        ImageCacheSizeLabel.Text = FormatSize(storage.ImageCacheSize);
+        TotalStorageSizeLabel.Text = FormatSize(storage.TotalSize);
+
         CacheStatsLabel.Text = _viewModel.CacheStats;
+    }
+
+    private string FormatSize(long bytes)
+    {
+        return (bytes / (1024.0 * 1024.0)).ToString("F1") + " MB";
     }
 
     private void OnDownloadDbClicked(object? sender, EventArgs e)

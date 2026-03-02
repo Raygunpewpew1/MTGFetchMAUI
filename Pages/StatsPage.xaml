@@ -100,13 +100,32 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Cache Stats -->
+            <!-- Storage Stats -->
             <Border Style="{StaticResource CardStyle}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="Image Cache" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="Storage" FontSize="18" FontAttributes="Bold" />
+
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
+                        <Label Text="MTG Database:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="MtgDbSizeLabel" Grid.Column="1" Text="0.0 MB" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="1" Text="Collection Database:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="CollectionDbSizeLabel" Grid.Row="1" Grid.Column="1" Text="0.0 MB" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="2" Text="Prices Database:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="PricesDbSizeLabel" Grid.Row="2" Grid.Column="1" Text="0.0 MB" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="3" Text="Image Cache:" TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="ImageCacheSizeLabel" Grid.Row="3" Grid.Column="1" Text="0.0 MB" HorizontalTextAlignment="End" />
+
+                        <Label Grid.Row="4" Text="Total App Storage:" FontAttributes="Bold" Margin="0,4,0,0" />
+                        <Label x:Name="TotalStorageSizeLabel" Grid.Row="4" Grid.Column="1" Text="0.0 MB" HorizontalTextAlignment="End" FontAttributes="Bold" Margin="0,4,0,0" />
+                    </Grid>
+
                     <Label x:Name="CacheStatsLabel"
                            Text="Loading..."
                            FontSize="13"
+                           Margin="0,8,0,0"
                            TextColor="{StaticResource TextSecondary}" />
                     <Button Text="Clear Cache"
                             Clicked="OnClearCacheClicked"
