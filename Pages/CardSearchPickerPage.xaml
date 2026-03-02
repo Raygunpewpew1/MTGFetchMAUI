@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:controls="clr-namespace:MTGFetchMAUI.Controls"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             x:Class="MTGFetchMAUI.Pages.CardSearchPickerPage"
+             Title="Select a Card"
+             BackgroundColor="{StaticResource Background}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Search Bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto"
+              Padding="8,8,8,4" ColumnSpacing="8">
+            <material:TextField x:Name="SearchEntry"
+                   Title="Search cards..."
+                   Text="{Binding SearchText, Mode=TwoWay}"
+                   ReturnCommand="{Binding SearchCommand}"
+                   BackgroundColor="{StaticResource Surface}"
+                   TextColor="{StaticResource TextPrimary}"
+                   TitleColor="{StaticResource TextSecondary}"
+                   AccentColor="{StaticResource Primary}"
+                   AllowClear="True">
+            </material:TextField>
+
+            <Button Grid.Column="1"
+                    Text="{Binding ViewModeButtonText}"
+                    Command="{Binding ToggleViewModeCommand}"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    Padding="0"
+                    FontSize="18"
+                    StyleClass="ElevatedButton" />
+        </Grid>
+
+        <!-- Status Bar -->
+        <Grid Grid.Row="1" Padding="8,0,8,4">
+            <Label x:Name="StatusLabel"
+                   Text="{Binding StatusDisplayText}"
+                   TextColor="{Binding StatusTextColor}"
+                   FontSize="12" />
+            <ActivityIndicator x:Name="LoadingIndicator"
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="End"
+                               HeightRequest="20"
+                               WidthRequest="20"
+                               Color="{StaticResource Primary}" />
+        </Grid>
+
+        <!-- Card Grid -->
+        <controls:CardGrid Grid.Row="2"
+                           x:Name="CardGrid"
+                           Scrolled="OnGridScrolled"
+                           IsDragEnabled="False" />
+
+        <!-- Empty State -->
+        <VerticalStackLayout Grid.Row="2"
+                             IsVisible="{Binding IsEmpty}"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="8">
+            <Label Text="&#x1F50D;"
+                   FontSize="48"
+                   HorizontalOptions="Center" />
+            <Label Text="No cards found"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalOptions="Center" />
+            <Label Text="Try a different search or adjust your filters"
+                   FontSize="13"
+                   TextColor="{StaticResource TextSecondary}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>
