@@ -130,7 +130,7 @@
                     <Border Style="{StaticResource FormInputContainer}">
                         <Picker x:Name="FormatPicker" Title="Format" TextColor="{StaticResource TextPrimary}" BackgroundColor="Transparent" />
                     </Border>
-                </VerticalStackLayout> />
+                </VerticalStackLayout>
 
                 <!-- Set Code -->
                 <VerticalStackLayout Spacing="0">
