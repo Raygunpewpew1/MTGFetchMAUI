@@ -15,10 +15,10 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     private CancellationTokenSource? _searchCts;
 
     [ObservableProperty]
-    private string _searchText = "";
+    public partial string SearchText { get; set; } = "";
 
     [ObservableProperty]
-    private bool _isEmpty;
+    public partial bool IsEmpty { get; set; }
 
     public event Action? SearchCompleted;
 

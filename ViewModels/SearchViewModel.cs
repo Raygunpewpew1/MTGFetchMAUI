@@ -23,16 +23,16 @@ public partial class SearchViewModel : BaseViewModel
     private CardGrid? _grid;
 
     [ObservableProperty]
-    private string _searchText = "";
+    public partial string SearchText { get; set; } = "";
 
     [ObservableProperty]
-    private int _totalResults;
+    public partial int TotalResults { get; set; }
 
     [ObservableProperty]
-    private bool _hasMorePages;
+    public partial bool HasMorePages { get; set; }
 
     [ObservableProperty]
-    private bool _isEmpty;
+    public partial bool IsEmpty { get; set; }
 
     public SearchOptions CurrentOptions { get; private set; } = new();
 

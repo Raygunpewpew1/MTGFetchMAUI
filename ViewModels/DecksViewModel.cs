@@ -11,10 +11,10 @@ public partial class DecksViewModel : BaseViewModel
     private readonly DeckBuilderService _deckService;
 
     [ObservableProperty]
-    private ObservableCollection<DeckEntity> _decks = [];
+    public partial ObservableCollection<DeckEntity> Decks { get; set; } = [];
 
     [ObservableProperty]
-    private bool _isEmpty;
+    public partial bool IsEmpty { get; set; }
 
     public DecksViewModel(DeckBuilderService deckService)
     {

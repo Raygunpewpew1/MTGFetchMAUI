@@ -15,16 +15,16 @@ public partial class StatsViewModel : BaseViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatsDisplay))]
-    private CollectionStats _stats = new();
+    public partial CollectionStats Stats { get; set; } = new();
 
     [ObservableProperty]
-    private StorageStats _storage = new();
+    public partial StorageStats Storage { get; set; } = new();
 
     [ObservableProperty]
-    private string _cacheStats = "";
+    public partial string CacheStats { get; set; } = "";
 
     [ObservableProperty]
-    private string _databaseStatus = "";
+    public partial string DatabaseStatus { get; set; } = "";
 
     public string StatsDisplay => Stats.ToString();
 

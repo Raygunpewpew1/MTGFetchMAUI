@@ -21,35 +21,35 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]
     [NotifyPropertyChangedFor(nameof(HasRulings))]
     [NotifyPropertyChangedFor(nameof(HasPurchaseLinks))]
-    private Card _card = new();
+    public partial Card Card { get; set; } = new();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentFace))]
     [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]
-    private Card[] _faces = [];
+    public partial Card[] Faces { get; set; } = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentFace))]
-    private int _currentFaceIndex;
+    public partial int CurrentFaceIndex { get; set; }
 
     [ObservableProperty]
-    private SKImage? _cardImage;
+    public partial SKImage? CardImage { get; set; }
 
     [ObservableProperty]
-    private bool _cardImageLoadFailed;
+    public partial bool CardImageLoadFailed { get; set; }
 
     [ObservableProperty]
-    private bool _isInCollection;
+    public partial bool IsInCollection { get; set; }
 
     [ObservableProperty]
-    private string _priceDisplay = "";
+    public partial string PriceDisplay { get; set; } = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasPriceHistory))]
-    private CardPriceData _priceData = CardPriceData.Empty;
+    public partial CardPriceData PriceData { get; set; } = CardPriceData.Empty;
 
     [ObservableProperty]
-    private string _cardPosition = "";
+    public partial string CardPosition { get; set; } = "";
 
     public bool HasPriceHistory => PriceData != CardPriceData.Empty &&
                                    (PriceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
