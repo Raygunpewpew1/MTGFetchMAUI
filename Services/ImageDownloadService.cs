@@ -37,7 +37,7 @@ public class ImageDownloadService : IDisposable
 
     public ImageDownloadService(FileImageCache? fileCache = null)
     {
-        _fileCache = fileCache ?? new FileImageCache(maxCacheSizeMB: 500, maxCacheAgeDays: 90);
+        _fileCache = fileCache ?? new FileImageCache(Path.Combine(FileSystem.CacheDirectory, "ImageCache"), maxCacheSizeMB: 500, maxCacheAgeDays: 90);
         _downloadSemaphore = new SemaphoreSlim(MaxConcurrentDownloads, MaxConcurrentDownloads);
     }
 
