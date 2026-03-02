@@ -1,0 +1,25 @@
+--- Pages/SearchFiltersPage.xaml
++++ Pages/SearchFiltersPage.xaml
+@@ -29,11 +29,20 @@
+
+                 <!-- Card Text / Keywords -->
+-                <material:TextField x:Name="KeywordsEntry"
+-                       Title="Card Text"
+-                       BackgroundColor="{StaticResource Surface}"
+-                       TitleColor="{StaticResource TextSecondary}"
+-                       AccentColor="{StaticResource Primary}" />
++                <VerticalStackLayout Spacing="4">
++                    <Label Text="Card Text" FontSize="{StaticResource BodyFontSize}" TextColor="{StaticResource TextSecondary}" />
++                    <Border BackgroundColor="{StaticResource Surface}"
++                            Stroke="Transparent"
++                            StrokeShape="RoundRectangle 8"
++                            Padding="12,0">
++                        <Entry x:Name="KeywordsEntry"
++                               Placeholder="Card Text"
++                               TextColor="{StaticResource TextPrimary}"
++                               PlaceholderColor="{StaticResource TextSecondary}"
++                               BackgroundColor="Transparent" />
++                    </Border>
++                </VerticalStackLayout>
+
+                 <!-- Card Type -->
