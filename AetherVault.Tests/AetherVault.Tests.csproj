@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <RootNamespace>MTGFetchMAUI.Tests</RootNamespace>
+    <RootNamespace>AetherVault.Tests</RootNamespace>
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 

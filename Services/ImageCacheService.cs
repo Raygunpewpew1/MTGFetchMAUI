@@ -1,7 +1,7 @@
 using SkiaSharp;
 using System.Collections.Concurrent;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 public class ImageCacheService : IDisposable
 {

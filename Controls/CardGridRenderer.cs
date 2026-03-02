@@ -1,11 +1,11 @@
-using MTGFetchMAUI.Core.Layout;
-using MTGFetchMAUI.Services;
+using AetherVault.Core.Layout;
+using AetherVault.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Diagnostics;
 
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 /// <summary>
 /// Owns all Skia resources and card-drawing logic for CardGrid.
@@ -130,9 +130,9 @@ internal sealed class CardGridRenderer : IDisposable
                 bool isSource = dragState != null && draw.Index == dragState.SourceIndex;
                 bool isTarget = dragState != null && !isSource && draw.Index == dragState.TargetIndex;
 
-                if (viewMode == MTGFetchMAUI.Core.Layout.ViewMode.List)
+                if (viewMode == AetherVault.Core.Layout.ViewMode.List)
                     RenderListCard(canvas, draw);
-                else if (viewMode == MTGFetchMAUI.Core.Layout.ViewMode.TextOnly)
+                else if (viewMode == AetherVault.Core.Layout.ViewMode.TextOnly)
                     RenderTextOnlyCard(canvas, draw);
                 else
                     RenderCard(canvas, draw);
@@ -171,9 +171,9 @@ internal sealed class CardGridRenderer : IDisposable
 
             // Render card at drag position (match the active view mode)
             var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
-            if (list.ViewMode == MTGFetchMAUI.Core.Layout.ViewMode.List)
+            if (list.ViewMode == AetherVault.Core.Layout.ViewMode.List)
                 RenderListCard(canvas, dragCmd);
-            else if (list.ViewMode == MTGFetchMAUI.Core.Layout.ViewMode.TextOnly)
+            else if (list.ViewMode == AetherVault.Core.Layout.ViewMode.TextOnly)
                 RenderTextOnlyCard(canvas, dragCmd);
             else
                 RenderCard(canvas, dragCmd);

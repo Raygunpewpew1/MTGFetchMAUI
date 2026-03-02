@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:MTGFetchMAUI.ViewModels"
-             x:Class="MTGFetchMAUI.Pages.LoadingPage"
+             xmlns:vm="clr-namespace:AetherVault.ViewModels"
+             x:Class="AetherVault.Pages.LoadingPage"
              BackgroundColor="{StaticResource Background}">
 
     <VerticalStackLayout Spacing="30" VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
 
-        <Label Text="MTG Fetch"
+        <Label Text="AetherVault"
                FontSize="36"
                FontAttributes="Bold"
                TextColor="{StaticResource Primary}"

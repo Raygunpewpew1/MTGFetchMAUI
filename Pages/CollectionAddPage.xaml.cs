@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public record CollectionAddResult(int NewQuantity, bool IsFoil, bool IsEtched);
 

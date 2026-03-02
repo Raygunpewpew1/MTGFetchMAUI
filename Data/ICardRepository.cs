@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Models;
+using AetherVault.Core;
+using AetherVault.Models;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Async interface for card data access operations.

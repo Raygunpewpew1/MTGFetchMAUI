@@ -4,10 +4,10 @@ using Android.Text.Style;
 using Android.Widget;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Platform;
-using MTGFetchMAUI.Controls;
+using AetherVault.Controls;
 using System.Text.RegularExpressions;
 
-namespace MTGFetchMAUI.Platforms.Android.Handlers;
+namespace AetherVault.Platforms.Android.Handlers;
 
 public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
 {

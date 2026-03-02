@@ -1,6 +1,6 @@
-using MTGFetchMAUI.Core;
+using AetherVault.Core;
 
-namespace MTGFetchMAUI.Models;
+namespace AetherVault.Models;
 
 /// <summary>
 /// Database entity for a Deck.

@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Controls;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.ViewModels;
+using AetherVault.Controls;
+using AetherVault.Models;
+using AetherVault.ViewModels;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 public partial class CardSearchPickerPage : ContentPage
 {

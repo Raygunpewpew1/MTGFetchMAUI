@@ -1,9 +1,9 @@
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Data;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services.DeckBuilder;
+using AetherVault.Core;
+using AetherVault.Data;
+using AetherVault.Models;
+using AetherVault.Services.DeckBuilder;
 
-namespace MTGFetchMAUI.Tests;
+namespace AetherVault.Tests;
 
 public class DeckBuilderTests
 {

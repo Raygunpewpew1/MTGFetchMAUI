@@ -1,12 +1,12 @@
 using AppoMobi.Maui.Gestures;
-using MTGFetchMAUI.Core.Layout;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
+using AetherVault.Core.Layout;
+using AetherVault.Models;
+using AetherVault.Services;
 using SkiaSharp.Views.Maui.Controls;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 public class CardGrid : ContentView
 {

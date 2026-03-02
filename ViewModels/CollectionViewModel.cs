@@ -1,12 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Controls;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Core.Layout;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
+using AetherVault.Controls;
+using AetherVault.Core;
+using AetherVault.Core.Layout;
+using AetherVault.Models;
+using AetherVault.Services;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 /// <summary>
 /// ViewModel for the collection page.

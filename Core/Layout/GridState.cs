@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
+using AetherVault.Models;
+using AetherVault.Services;
 using System.Collections.Immutable;
 
-namespace MTGFetchMAUI.Core.Layout;
+namespace AetherVault.Core.Layout;
 
 public enum ViewMode { Grid, List, TextOnly }
 

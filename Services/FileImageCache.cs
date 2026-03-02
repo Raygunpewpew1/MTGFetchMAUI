@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Thread-safe, file-based image cache storing images as WebP files on disk.

@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Loads and caches SVG mana symbols from embedded resources.

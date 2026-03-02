@@ -1,7 +1,7 @@
 using SkiaSharp;
 using System.Collections.Immutable;
 
-namespace MTGFetchMAUI.Core.Layout;
+namespace AetherVault.Core.Layout;
 
 public abstract record RenderCommand;
 public record DrawCardCommand(CardState Card, SKRect Rect, int Index) : RenderCommand;

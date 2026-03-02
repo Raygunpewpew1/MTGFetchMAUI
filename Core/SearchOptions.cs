@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>
 /// Centralized search filter state. Holds all possible filter values for a card search.

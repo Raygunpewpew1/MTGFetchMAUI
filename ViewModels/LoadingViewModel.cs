@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Services;
+using AetherVault.Services;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 public partial class LoadingViewModel : BaseViewModel
 {

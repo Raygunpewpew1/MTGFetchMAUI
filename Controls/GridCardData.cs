@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
+using AetherVault.Models;
+using AetherVault.Services;
 using SkiaSharp;
 
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 /// <summary>
 /// Image quality levels for card grid display.

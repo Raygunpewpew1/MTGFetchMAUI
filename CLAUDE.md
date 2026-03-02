@@ -1,4 +1,4 @@
-# CLAUDE.md — MTGFetchMAUI
+# CLAUDE.md — AetherVault
 
 This file provides guidance for AI assistants (Claude Code and others) working in this repository.
 
@@ -6,7 +6,7 @@ This file provides guidance for AI assistants (Claude Code and others) working i
 
 ## Project Overview
 
-**MTGFetchMAUI** is a .NET MAUI Android application for browsing, searching, and managing Magic: The Gathering card collections. It queries a local SQLite copy of the [MTGJSON](https://mtgjson.com/) database, renders card images fetched from the Scryfall CDN, and persists user collections in a separate SQLite database.
+**AetherVault** is a .NET MAUI Android application for browsing, searching, and managing Magic: The Gathering card collections. It queries a local SQLite copy of the [MTGJSON](https://mtgjson.com/) database, renders card images fetched from the Scryfall CDN, and persists user collections in a separate SQLite database.
 
 - **Target Platform**: Android (primary), Windows (partial)
 - **Target Framework**: `net10.0-android`
@@ -18,7 +18,7 @@ This file provides guidance for AI assistants (Claude Code and others) working i
 ## Repository Structure
 
 ```
-MTGFetchMAUI/
+AetherVault/
 ├── App.xaml / App.xaml.cs          # Application root; global theme resources (dark Material theme)
 ├── AppShell.xaml / AppShell.xaml.cs # Tab-based navigation shell (Search / Collection / Stats)
 ├── MauiProgram.cs                   # DI container setup; registers all services, VMs, and pages
@@ -122,8 +122,8 @@ MTGFetchMAUI/
 │   └── Windows/
 │       └── Package.appxmanifest     # Windows app manifest
 │
-├── MTGFetchMAUI.Tests/
-│   ├── MTGFetchMAUI.Tests.csproj    # xUnit test project linked to main project source files
+├── AetherVault.Tests/
+│   ├── AetherVault.Tests.csproj    # xUnit test project linked to main project source files
 │   ├── MTGSearchHelperTests.cs      # Tests for the fluent SQL query builder
 │   ├── CollectionStatsTests.cs      # Tests for collection statistics logic
 │   ├── DeckBuilderTests.cs          # Tests for deck builder service and validation
@@ -134,7 +134,7 @@ MTGFetchMAUI/
 │   └── main.yml                     # GitHub Actions: weekly MTG DB update & publish to Releases
 │
 ├── TODO.md                          # Project roadmap (see below)
-└── MTGFetchMAUI.sln                 # Solution file
+└── AetherVault.sln                 # Solution file
 ```
 
 ---
@@ -274,7 +274,7 @@ Request card image
 ## Testing
 
 - **Framework**: xUnit 2.9.3 with Coverlet for coverage.
-- **Location**: `MTGFetchMAUI.Tests/`
+- **Location**: `AetherVault.Tests/`
 - **Approach**: The test project uses `<Compile Include>` links to pull in specific source files from the main project rather than referencing the project as a whole (avoids MAUI platform dependencies in tests).
 - **Existing tests**: `MTGSearchHelperTests`, `GridLayoutEngineTests`, `CollectionStatsTests`, `DeckBuilderTests`.
 - When adding new logic to `MTGSearchHelper`, `GridLayoutEngine`, `DeckBuilderService`, or other pure C# utilities, add corresponding xUnit tests.
@@ -283,7 +283,7 @@ Request card image
 ### Running Tests
 
 ```bash
-dotnet test MTGFetchMAUI.Tests/MTGFetchMAUI.Tests.csproj
+dotnet test AetherVault.Tests/AetherVault.Tests.csproj
 ```
 
 ---

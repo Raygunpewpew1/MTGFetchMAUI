@@ -1,7 +1,7 @@
-using MTGFetchMAUI.Core;
+using AetherVault.Core;
 using SkiaSharp;
 
-namespace MTGFetchMAUI.Services;
+namespace AetherVault.Services;
 
 /// <summary>
 /// Async image download service for fetching card images from Scryfall CDN.

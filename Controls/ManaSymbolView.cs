@@ -1,9 +1,9 @@
-using MTGFetchMAUI.Services;
+using AetherVault.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 
-namespace MTGFetchMAUI.Controls;
+namespace AetherVault.Controls;
 
 public class ManaSymbolView : SKCanvasView
 {

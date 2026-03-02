@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Data;
-using MTGFetchMAUI.Models;
+using AetherVault.Core;
+using AetherVault.Data;
+using AetherVault.Models;
 
-namespace MTGFetchMAUI.Tests;
+namespace AetherVault.Tests;
 
 public class CollectionStatsTests
 {

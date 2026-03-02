@@ -1,10 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services.DeckBuilder;
+using AetherVault.Models;
+using AetherVault.Services.DeckBuilder;
 using System.Collections.ObjectModel;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 public partial class DecksViewModel : BaseViewModel
 {

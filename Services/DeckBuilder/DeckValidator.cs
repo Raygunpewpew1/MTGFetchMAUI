@@ -1,8 +1,8 @@
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Data;
-using MTGFetchMAUI.Models;
+using AetherVault.Core;
+using AetherVault.Data;
+using AetherVault.Models;
 
-namespace MTGFetchMAUI.Services.DeckBuilder;
+namespace AetherVault.Services.DeckBuilder;
 
 public enum ValidationLevel
 {

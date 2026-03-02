@@ -1,6 +1,6 @@
-using MTGFetchMAUI.Core;
+using AetherVault.Core;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Fluent API for building MTG card search queries.

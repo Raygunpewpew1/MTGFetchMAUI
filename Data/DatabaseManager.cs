@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace MTGFetchMAUI.Data;
+namespace AetherVault.Data;
 
 /// <summary>
 /// Thread-safe SQLite connection manager for MTG and Collection databases.

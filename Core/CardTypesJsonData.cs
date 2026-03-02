@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>
 /// Embedded card type data from MTGJSON and parser.

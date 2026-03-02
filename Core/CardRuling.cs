@@ -1,4 +1,4 @@
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>
 /// Individual ruling for a card.

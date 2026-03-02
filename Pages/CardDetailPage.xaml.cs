@@ -1,13 +1,13 @@
-using MTGFetchMAUI.Controls;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Services;
-using MTGFetchMAUI.Services.DeckBuilder;
-using MTGFetchMAUI.ViewModels;
+using AetherVault.Controls;
+using AetherVault.Core;
+using AetherVault.Services;
+using AetherVault.Services.DeckBuilder;
+using AetherVault.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using TextAlignment = Microsoft.Maui.TextAlignment;
 
-namespace MTGFetchMAUI.Pages;
+namespace AetherVault.Pages;
 
 [QueryProperty(nameof(CardUUID), "uuid")]
 public partial class CardDetailPage : ContentPage

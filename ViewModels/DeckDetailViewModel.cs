@@ -1,12 +1,12 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Core;
-using MTGFetchMAUI.Data;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services.DeckBuilder;
+using AetherVault.Core;
+using AetherVault.Data;
+using AetherVault.Models;
+using AetherVault.Services.DeckBuilder;
 using System.Collections.ObjectModel;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 /// <summary>
 /// Represents a single card row in the deck editor list.

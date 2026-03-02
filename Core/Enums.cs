@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace MTGFetchMAUI.Core;
+namespace AetherVault.Core;
 
 /// <summary>Legality status for a card in a format.</summary>
 public enum LegalityStatus

@@ -1,11 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MTGFetchMAUI.Core.Layout;
-using MTGFetchMAUI.Models;
-using MTGFetchMAUI.Services;
-using MTGFetchMAUI.Controls;
+using AetherVault.Core.Layout;
+using AetherVault.Models;
+using AetherVault.Services;
+using AetherVault.Controls;
 
-namespace MTGFetchMAUI.ViewModels;
+namespace AetherVault.ViewModels;
 
 public partial class CardSearchPickerViewModel : BaseViewModel
 {

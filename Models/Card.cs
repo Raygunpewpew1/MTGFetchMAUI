@@ -1,6 +1,6 @@
-using MTGFetchMAUI.Core;
+using AetherVault.Core;
 
-namespace MTGFetchMAUI.Models;
+namespace AetherVault.Models;
 
 /// <summary>
 /// Main card model containing all card data.

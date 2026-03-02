@@ -1,6 +1,6 @@
-using MTGFetchMAUI.Core;
+using AetherVault.Core;
 
-namespace MTGFetchMAUI.Models;
+namespace AetherVault.Models;
 
 /// <summary>
 /// Represents a card in a deck.
