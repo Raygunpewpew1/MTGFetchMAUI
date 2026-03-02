@@ -32,12 +32,6 @@ public partial class AddToDeckPage : ContentPage
             DeckPicker.SelectedIndex = 0;
     }
 
-    protected override bool OnBackButtonPressed()
-    {
-        _tcs.TrySetResult(null);
-        return base.OnBackButtonPressed();
-    }
-
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
