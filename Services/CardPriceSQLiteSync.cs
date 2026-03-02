@@ -69,7 +69,8 @@ public class CardPriceSQLiteSync
 
         await ExecuteAsync(conn, "PRAGMA journal_mode=WAL");
         await ExecuteAsync(conn, "PRAGMA synchronous=OFF");
-        await ExecuteAsync(conn, "PRAGMA cache_size=-16384");
+        await ExecuteAsync(conn, "PRAGMA cache_size=-65536");  // 64 MB — larger cache for bulk inserts
+        await ExecuteAsync(conn, "PRAGMA temp_store=MEMORY");
         await ExecuteAsync(conn, "PRAGMA busy_timeout=60000");
 
         // Migrate old wide-column schema if present
@@ -93,16 +94,25 @@ public class CardPriceSQLiteSync
 
             Logger.LogStuff("[PriceSync] Step 1: DELETE old prices", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PricesDeleteAll);
+            // Drop secondary index before bulk insert — rebuilt in a single pass at the end
+            await ExecuteTransactedAsync(conn, trans, SQLQueries.DropPricesIndex);
 
             Logger.LogStuff("[PriceSync] Step 2: INSERT from attached DB", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PricesSyncFromAttached);
 
+            // Drop history secondary index before bulk insert — rebuilt at end
+            await ExecuteTransactedAsync(conn, trans, SQLQueries.DropPriceHistoryIndex);
             Logger.LogStuff("[PriceSync] Step 3: INSERT history", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistorySyncFromAttached);
 
             Logger.LogStuff("[PriceSync] Step 4: Trim old history", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans,
                 string.Format(SQLQueries.PriceHistoryTrimOld, MTGConstants.PriceHistoryRetentionDays));
+
+            // Rebuild both secondary indexes in a single pass now that all data is in place
+            Logger.LogStuff("[PriceSync] Rebuilding indexes...", LogLevel.Info);
+            await ExecuteTransactedAsync(conn, trans, SQLQueries.CreatePricesIndex);
+            await ExecuteTransactedAsync(conn, trans, SQLQueries.CreatePriceHistoryIndex);
 
             Logger.LogStuff("[PriceSync] Committing transaction...", LogLevel.Info);
             await trans.CommitAsync();
