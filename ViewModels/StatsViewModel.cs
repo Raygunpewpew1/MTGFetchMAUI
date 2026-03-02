@@ -18,6 +18,9 @@ public partial class StatsViewModel : BaseViewModel
     private CollectionStats _stats = new();
 
     [ObservableProperty]
+    private StorageStats _storage = new();
+
+    [ObservableProperty]
     private string _cacheStats = "";
 
     [ObservableProperty]
@@ -45,6 +48,8 @@ public partial class StatsViewModel : BaseViewModel
         {
             await _cardManager.ClearImageCacheAsync();
             CacheStats = await _cardManager.GetImageCacheStatsAsync();
+            Storage.ImageCacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize();
+            OnPropertyChanged(nameof(Storage)); // notify UI about the total size update
             StatusMessage = "Cache cleared";
         }
         catch (Exception ex)
@@ -70,6 +75,16 @@ public partial class StatsViewModel : BaseViewModel
         {
             Stats = await _cardManager.GetCollectionStatsAsync();
             CacheStats = await _cardManager.GetImageCacheStatsAsync();
+
+            // Calculate storage sizes
+            Storage = new StorageStats
+            {
+                MtgDatabaseSize = GetFileSize(AppDataManager.GetMTGDatabasePath()),
+                CollectionDatabaseSize = GetFileSize(AppDataManager.GetCollectionDatabasePath()),
+                PricesDatabaseSize = GetFileSize(AppDataManager.GetPricesDatabasePath()),
+                ImageCacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize()
+            };
+
             DatabaseStatus = "Connected";
         }
         catch (Exception ex)
@@ -81,5 +96,21 @@ public partial class StatsViewModel : BaseViewModel
         {
             IsBusy = false;
         }
+    }
+
+    private long GetFileSize(string path)
+    {
+        if (File.Exists(path))
+        {
+            try
+            {
+                return new FileInfo(path).Length;
+            }
+            catch
+            {
+                // Ignore permissions/locking issues and just return 0
+            }
+        }
+        return 0;
     }
 }

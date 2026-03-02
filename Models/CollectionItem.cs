@@ -42,3 +42,16 @@ public class CollectionStats
         $"Common: {CommonCount} | Uncommon: {UncommonCount} | Rare: {RareCount} | Mythic: {MythicCount}\n" +
         $"Foils: {FoilCount} | Avg CMC: {AvgCMC:F2}";
 }
+
+/// <summary>
+/// Statistics about app storage usage.
+/// </summary>
+public class StorageStats
+{
+    public long MtgDatabaseSize { get; set; }
+    public long CollectionDatabaseSize { get; set; }
+    public long PricesDatabaseSize { get; set; }
+    public long ImageCacheSize { get; set; }
+
+    public long TotalSize => MtgDatabaseSize + CollectionDatabaseSize + PricesDatabaseSize + ImageCacheSize;
+}
