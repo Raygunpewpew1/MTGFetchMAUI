@@ -27,20 +27,20 @@
                 </VerticalStackLayout>
 
                 <!-- Card Text / Keywords -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Card Text" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="KeywordsEntry" Placeholder="Card Text" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" />
-                    </Border>
-                </VerticalStackLayout>
+                <material:TextField x:Name="KeywordsEntry"
+                       Title="Card Text"
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Card Type -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Card Type" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Picker x:Name="TypePicker" Title="Card Type" TextColor="{StaticResource TextPrimary}" BackgroundColor="Transparent">
-                            <Picker.ItemsSource>
-                                <x:Array Type="{x:Type x:String}">
+                <material:PickerField x:Name="TypePicker"
+                        Title="Card Type"
+                        TextColor="{StaticResource TextPrimary}"
+                        TitleColor="{StaticResource TextSecondary}"
+                        AccentColor="{StaticResource Primary}">
+                    <material:PickerField.ItemsSource>
+                        <x:Array Type="{x:Type x:String}">
                             <x:String>Any</x:String>
                             <x:String>Artifact</x:String>
                             <x:String>Battle</x:String>
@@ -51,27 +51,23 @@
                             <x:String>Planeswalker</x:String>
                             <x:String>Sorcery</x:String>
                             <x:String>Kindred</x:String>
-                                </x:Array>
-                            </Picker.ItemsSource>
-                        </Picker>
-                    </Border>
-                </VerticalStackLayout>
+                        </x:Array>
+                    </material:PickerField.ItemsSource>
+                </material:PickerField>
 
                 <!-- Subtype -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Subtype" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="SubtypeEntry" Placeholder="Subtype" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" />
-                    </Border>
-                </VerticalStackLayout>
+                <material:TextField x:Name="SubtypeEntry"
+                       Title="Subtype"
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Supertype -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Supertype" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="SupertypeEntry" Placeholder="Supertype" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" />
-                    </Border>
-                </VerticalStackLayout>
+                <material:TextField x:Name="SupertypeEntry"
+                       Title="Supertype"
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Rarity -->
                 <VerticalStackLayout Spacing="4">
@@ -110,43 +106,34 @@
 
                 <!-- Power / Toughness -->
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <VerticalStackLayout Spacing="0">
-                    <Label Text="Power" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="PowerEntry" Placeholder="Power" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" Keyboard="Numeric" />
-                    </Border>
-                </VerticalStackLayout>
-                    <VerticalStackLayout Spacing="0" Grid.Column="1">
-                    <Label Text="Toughness" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="ToughnessEntry" Placeholder="Toughness" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" Keyboard="Numeric" />
-                    </Border>
-                </VerticalStackLayout>
+                    <material:TextField x:Name="PowerEntry" Title="Power"
+                           BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
+                    <material:TextField Grid.Column="1" x:Name="ToughnessEntry" Title="Toughness"
+                           BackgroundColor="{StaticResource Surface}" Keyboard="Numeric"
+                           TitleColor="{StaticResource TextSecondary}"
+                           AccentColor="{StaticResource Primary}" />
                 </Grid>
 
                 <!-- Format Legality -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Format" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Picker x:Name="FormatPicker" Title="Format" TextColor="{StaticResource TextPrimary}" BackgroundColor="Transparent" />
-                    </Border>
-                </VerticalStackLayout> />
+                <material:PickerField x:Name="FormatPicker"
+                        Title="Format"
+                        TextColor="{StaticResource TextPrimary}"
+                        TitleColor="{StaticResource TextSecondary}"
+                        AccentColor="{StaticResource Primary}" />
 
                 <!-- Set Code -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Set Code" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="SetEntry" Placeholder="Set Code" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" />
-                    </Border>
-                </VerticalStackLayout>
+                <material:TextField x:Name="SetEntry" Title="Set Code"
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Artist -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Artist" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Entry x:Name="ArtistEntry" Placeholder="Artist" BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}" />
-                    </Border>
-                </VerticalStackLayout>
+                <material:TextField x:Name="ArtistEntry" Title="Artist"
+                       BackgroundColor="{StaticResource Surface}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}" />
 
                 <!-- Special Options -->
                 <VerticalStackLayout Spacing="4">
