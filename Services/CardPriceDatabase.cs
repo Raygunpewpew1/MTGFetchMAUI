@@ -27,8 +27,9 @@ public class CardPriceDatabase : IDisposable
         var connStr = new SqliteConnectionStringBuilder
         {
             DataSource = dbPath,
-            Mode = SqliteOpenMode.ReadWriteCreate
-        }.ToString();
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false
+        }.ConnectionString;
 
         _connection = new SqliteConnection(connStr);
         await _connection.OpenAsync();
@@ -196,8 +197,7 @@ public class CardPriceDatabase : IDisposable
         await _lock.WaitAsync();
         try
         {
-            _connection?.Close();
-            _connection?.Dispose();
+            _connection?.Dispose();  // Dispose() calls Close() internally
             _connection = null;
         }
         finally
