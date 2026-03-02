@@ -175,6 +175,20 @@ public static class SQLQueries
     public const string PriceHistoryTrimOld =
         "DELETE FROM card_price_history WHERE date < date('now', '-{0} days')";
 
+    // Insert history only for cards in the user's collection (col = attached collection DB).
+    public const string PriceHistorySyncCollectionOnly =
+        """
+        INSERT OR IGNORE INTO card_price_history (uuid, source, provider, price_type, finish, date, currency, price)
+        SELECT p.uuid, p.source, p.provider, p.priceType, p.finish, p.date, p.currency, p.price
+        FROM today.prices p
+        WHERE p.price IS NOT NULL AND p.price > 0
+          AND p.uuid IN (SELECT card_uuid FROM col.my_collection)
+        """;
+
+    // Remove existing history for cards not in the user's collection (col = attached collection DB).
+    public const string PriceHistoryDeleteNonCollection =
+        "DELETE FROM card_price_history WHERE uuid NOT IN (SELECT card_uuid FROM col.my_collection)";
+
     public const string PricesGetByUuid =
         "SELECT * FROM card_prices WHERE uuid = @uuid AND source = 'paper'";
 
