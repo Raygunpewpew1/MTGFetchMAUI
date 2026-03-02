@@ -10,14 +10,14 @@
     <Grid RowDefinitions="*, Auto, *" ColumnDefinitions="*" Padding="10" RowSpacing="10">
 
         <!-- You Give Section (Top) -->
-        <Frame Grid.Row="0" BorderColor="{StaticResource Primary}" BackgroundColor="{StaticResource Surface}" CornerRadius="10" Padding="10">
+        <Border Grid.Row="0" Stroke="{StaticResource Primary}" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 10" Padding="10">
             <Grid RowDefinitions="Auto, *, Auto">
                 <Label Grid.Row="0" Text="You Give" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
 
                 <CollectionView Grid.Row="1" ItemsSource="{Binding YouGiveCards}" Margin="0,10,0,10">
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="vm:TradeItem">
-                            <Frame Padding="10" Margin="0,0,0,5" BackgroundColor="{StaticResource SurfaceAlt}" CornerRadius="5" BorderColor="Transparent">
+                            <Border Padding="10" Margin="0,0,0,5" BackgroundColor="{StaticResource SurfaceAlt}" StrokeShape="RoundRectangle 5" Stroke="Transparent">
                                 <Grid ColumnDefinitions="*, Auto, Auto">
                                     <Label Grid.Column="0" Text="{Binding Card.Name}" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
                                     <Label Grid.Column="1" Text="{Binding Price, StringFormat='${0:F2}'}" TextColor="{StaticResource TextSecondary}" Margin="10,0" VerticalOptions="Center"/>
@@ -26,7 +26,7 @@
                                                  CommandParameter="{Binding .}"
                                                  WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" />
                                 </Grid>
-                            </Frame>
+                            </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                     <CollectionView.EmptyView>
@@ -39,25 +39,25 @@
                     <Label Grid.Column="1" Text="{Binding YouGiveTotal, StringFormat='Total: ${0:F2}'}" FontAttributes="Bold" VerticalOptions="Center" TextColor="{StaticResource TextPrimary}" />
                 </Grid>
             </Grid>
-        </Frame>
+        </Border>
 
         <!-- Balance Indicator (Middle) -->
-        <Frame Grid.Row="1" BackgroundColor="{StaticResource SurfaceAlt}" CornerRadius="10" Padding="15" BorderColor="Transparent">
+        <Border Grid.Row="1" BackgroundColor="{StaticResource SurfaceAlt}" StrokeShape="RoundRectangle 10" Padding="15" Stroke="Transparent">
             <StackLayout HorizontalOptions="Center" Spacing="5">
                 <Label Text="Trade Balance" HorizontalOptions="Center" TextColor="{StaticResource TextSecondary}" FontSize="14" />
                 <Label Text="{Binding BalanceText}" TextColor="{Binding BalanceColor}" FontAttributes="Bold" FontSize="20" HorizontalOptions="Center" />
             </StackLayout>
-        </Frame>
+        </Border>
 
         <!-- You Get Section (Bottom) -->
-        <Frame Grid.Row="2" BorderColor="{StaticResource Secondary}" BackgroundColor="{StaticResource Surface}" CornerRadius="10" Padding="10">
+        <Border Grid.Row="2" Stroke="{StaticResource Secondary}" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 10" Padding="10">
             <Grid RowDefinitions="Auto, *, Auto">
                 <Label Grid.Row="0" Text="You Get" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
 
                 <CollectionView Grid.Row="1" ItemsSource="{Binding YouGetCards}" Margin="0,10,0,10">
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="vm:TradeItem">
-                            <Frame Padding="10" Margin="0,0,0,5" BackgroundColor="{StaticResource SurfaceAlt}" CornerRadius="5" BorderColor="Transparent">
+                            <Border Padding="10" Margin="0,0,0,5" BackgroundColor="{StaticResource SurfaceAlt}" StrokeShape="RoundRectangle 5" Stroke="Transparent">
                                 <Grid ColumnDefinitions="*, Auto, Auto">
                                     <Label Grid.Column="0" Text="{Binding Card.Name}" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center"/>
                                     <Label Grid.Column="1" Text="{Binding Price, StringFormat='${0:F2}'}" TextColor="{StaticResource TextSecondary}" Margin="10,0" VerticalOptions="Center"/>
@@ -66,7 +66,7 @@
                                                  CommandParameter="{Binding .}"
                                                  WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" />
                                 </Grid>
-                            </Frame>
+                            </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                     <CollectionView.EmptyView>
@@ -79,6 +79,6 @@
                     <Label Grid.Column="1" Text="{Binding YouGetTotal, StringFormat='Total: ${0:F2}'}" FontAttributes="Bold" VerticalOptions="Center" TextColor="{StaticResource TextPrimary}" />
                 </Grid>
             </Grid>
-        </Frame>
+        </Border>
     </Grid>
 </ContentPage>

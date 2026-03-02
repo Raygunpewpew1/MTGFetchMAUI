@@ -101,7 +101,7 @@ public partial class TradeViewModel : BaseViewModel
         var page = _serviceProvider.GetService<MTGFetchMAUI.Pages.CardSearchPickerPage>();
         if (page != null)
         {
-            await App.Current.MainPage.Navigation.PushModalAsync(new NavigationPage(page));
+            await Application.Current!.Windows[0].Page!.Navigation.PushModalAsync(new NavigationPage(page));
             var card = await page.WaitForResultAsync();
 
             if (card != null)
@@ -122,7 +122,7 @@ public partial class TradeViewModel : BaseViewModel
         var page = _serviceProvider.GetService<MTGFetchMAUI.Pages.CardSearchPickerPage>();
         if (page != null)
         {
-            await App.Current.MainPage.Navigation.PushModalAsync(new NavigationPage(page));
+            await Application.Current!.Windows[0].Page!.Navigation.PushModalAsync(new NavigationPage(page));
             var card = await page.WaitForResultAsync();
 
             if (card != null)
