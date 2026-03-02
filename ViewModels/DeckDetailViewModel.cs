@@ -24,35 +24,31 @@ public class DeckCardDisplayItem
 /// <summary>
 /// Grouped list of DeckCardDisplayItems for CollectionView IsGrouped support.
 /// </summary>
-public class DeckCardGroup : ObservableCollection<DeckCardDisplayItem>
+public class DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items)
+    : ObservableCollection<DeckCardDisplayItem>(items)
 {
-    public string GroupName { get; }
-
-    public DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items) : base(items)
-    {
-        GroupName = name;
-    }
+    public string GroupName { get; } = name;
 }
 
-public partial class DeckDetailViewModel : BaseViewModel
+public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRepository cardRepository) : BaseViewModel
 {
-    private readonly DeckBuilderService _deckService;
-    private readonly ICardRepository _cardRepository;
+    private readonly DeckBuilderService _deckService = deckService;
+    private readonly ICardRepository _cardRepository = cardRepository;
 
     [ObservableProperty]
-    private DeckEntity? _deck;
+    public partial DeckEntity? Deck { get; set; }
 
     [ObservableProperty]
-    private ObservableCollection<DeckCardGroup> _mainDeckGroups = [];
+    public partial ObservableCollection<DeckCardGroup> MainDeckGroups { get; set; } = [];
 
     [ObservableProperty]
-    private ObservableCollection<DeckCardDisplayItem> _sideboardCards = [];
+    public partial ObservableCollection<DeckCardDisplayItem> SideboardCards { get; set; } = [];
 
     [ObservableProperty]
-    private ObservableCollection<DeckCardDisplayItem> _commanderCards = [];
+    public partial ObservableCollection<DeckCardDisplayItem> CommanderCards { get; set; } = [];
 
     [ObservableProperty]
-    private DeckStats _stats = new();
+    public partial DeckStats Stats { get; set; } = new();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCommanderTab))]
@@ -63,7 +59,7 @@ public partial class DeckDetailViewModel : BaseViewModel
     [NotifyPropertyChangedFor(nameof(Tab1Color))]
     [NotifyPropertyChangedFor(nameof(Tab2Color))]
     [NotifyPropertyChangedFor(nameof(Tab3Color))]
-    private int _selectedSectionIndex = 1; // Default to Main tab
+    public partial int SelectedSectionIndex { get; set; } = 1; // Default to Main tab
 
     public bool IsCommanderTab => SelectedSectionIndex == 0;
     public bool IsMainTab => SelectedSectionIndex == 1;
@@ -76,18 +72,12 @@ public partial class DeckDetailViewModel : BaseViewModel
     public Color Tab3Color => SelectedSectionIndex == 3 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#2C2C2C");
 
     [ObservableProperty]
-    private int _totalCardCount;
+    public partial int TotalCardCount { get; set; }
 
     [ObservableProperty]
-    private string _deckFormat = "";
+    public partial string DeckFormat { get; set; } = "";
 
     public bool HasNoCommander => CommanderCards.Count == 0;
-
-    public DeckDetailViewModel(DeckBuilderService deckService, ICardRepository cardRepository)
-    {
-        _deckService = deckService;
-        _cardRepository = cardRepository;
-    }
 
     [RelayCommand]
     private void SelectCommander() => SelectedSectionIndex = 0;

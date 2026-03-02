@@ -30,7 +30,7 @@ public static class MauiProgram
             .ConfigureMauiHandlers(handlers =>
             {
 #if ANDROID
-                handlers.AddHandler(typeof(MTGFetchMAUI.Controls.CardTextView), typeof(MTGFetchMAUI.Platforms.Android.Handlers.CardTextViewHandler));
+                handlers.AddHandler<MTGFetchMAUI.Controls.CardTextView, MTGFetchMAUI.Platforms.Android.Handlers.CardTextViewHandler>();
 #endif
             })
             .ConfigureFonts(fonts =>
