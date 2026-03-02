@@ -154,7 +154,7 @@ public static class SQLQueries
     // 'priceType' is the camelCase column name used by MTGJSON; we map it to snake_case locally.
     public const string PricesSyncFromAttached =
         """
-        INSERT INTO card_prices (uuid, source, provider, price_type, finish, currency, price)
+        INSERT OR REPLACE INTO card_prices (uuid, source, provider, price_type, finish, currency, price)
         SELECT uuid, source, provider, priceType, finish, currency, price
         FROM today.prices
         WHERE price IS NOT NULL AND price > 0
