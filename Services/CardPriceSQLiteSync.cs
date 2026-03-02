@@ -162,6 +162,15 @@ public class CardPriceSQLiteSync
             try { await ExecuteAsync(conn, "DETACH DATABASE today"); } catch { }
         }
 
+        // Reclaim freed pages after deleting non-collection history.
+        // VACUUM cannot run inside a transaction or while databases are attached — both are clear here.
+        if (collectionAttached)
+        {
+            Logger.LogStuff("[PriceSync] VACUUMing price DB to reclaim freed space...", LogLevel.Info);
+            await ExecuteAsync(conn, "VACUUM");
+            Logger.LogStuff("[PriceSync] VACUUM complete.", LogLevel.Info);
+        }
+
         // Report row count from the now-updated local table
         using var countCmd = conn.CreateCommand();
         countCmd.CommandText = SQLQueries.PricesCount;
