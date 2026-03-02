@@ -6,7 +6,7 @@ namespace AetherVault.Pages;
 public partial class CreateDeckPage : ContentPage
 {
     private readonly DeckBuilderService _deckService;
-    private readonly TaskCompletionSource<int?> _tcs = new();
+    private readonly TaskCompletionSource<int?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private static readonly DeckFormat[] Formats =
     [

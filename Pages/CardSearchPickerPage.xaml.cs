@@ -7,7 +7,7 @@ namespace AetherVault.Pages;
 public partial class CardSearchPickerPage : ContentPage
 {
     private readonly CardSearchPickerViewModel _viewModel;
-    private TaskCompletionSource<Card?> _tcs = new();
+    private TaskCompletionSource<Card?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public CardSearchPickerPage(CardSearchPickerViewModel viewModel)
     {
