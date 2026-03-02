@@ -86,16 +86,32 @@ public class CardPriceSQLiteSync
         try
         {
             OnProgress?.Invoke("Writing prices...", 60);
+            await DiagnoseAttachedDbAsync(conn);
 
             using var trans = conn.BeginTransaction();
 
+            Logger.LogStuff("[PriceSync] Step 1: DELETE old prices", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PricesDeleteAll);
+
+            Logger.LogStuff("[PriceSync] Step 2: INSERT from attached DB", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PricesSyncFromAttached);
+
+            Logger.LogStuff("[PriceSync] Step 3: INSERT history", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SQLQueries.PriceHistorySyncFromAttached);
+
+            Logger.LogStuff("[PriceSync] Step 4: Trim old history", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans,
                 string.Format(SQLQueries.PriceHistoryTrimOld, MTGConstants.PriceHistoryRetentionDays));
 
+            Logger.LogStuff("[PriceSync] Committing transaction...", LogLevel.Info);
             await trans.CommitAsync();
+            Logger.LogStuff("[PriceSync] Commit successful.", LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"[PriceSync] Transaction failed: {ex.GetType().Name}: {ex.Message}", LogLevel.Error);
+            OnProgress?.Invoke($"Sync error: {ex.Message}", 0);
+            throw;
         }
         finally
         {
@@ -110,6 +126,45 @@ public class CardPriceSQLiteSync
         OnProgress?.Invoke("Sync complete.", 100);
         OnComplete?.Invoke(true, (int)count, "");
         Logger.LogStuff($"Price sync complete: {count} rows in card_prices.", LogLevel.Info);
+    }
+
+    /// <summary>
+    /// Probes the attached MTGJSON database and logs its table names, column names, and row count.
+    /// Run before the sync transaction so any schema mismatch is visible in the log.
+    /// </summary>
+    private static async Task DiagnoseAttachedDbAsync(SqliteConnection conn)
+    {
+        var tables = new List<string>();
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name FROM today.sqlite_master WHERE type='table' ORDER BY name";
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+                tables.Add(reader.GetString(0));
+        }
+        Logger.LogStuff($"[PriceSync] Attached DB tables: {string.Join(", ", tables)}", LogLevel.Info);
+
+        if (tables.Contains("prices"))
+        {
+            var cols = new List<string>();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "PRAGMA today.table_info('prices')";
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                    cols.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+            Logger.LogStuff($"[PriceSync] today.prices columns: {string.Join(", ", cols)}", LogLevel.Info);
+
+            using var countCmd = conn.CreateCommand();
+            countCmd.CommandText = "SELECT COUNT(*) FROM today.prices";
+            var count = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
+            Logger.LogStuff($"[PriceSync] today.prices row count: {count}", LogLevel.Info);
+        }
+        else
+        {
+            Logger.LogStuff("[PriceSync] WARNING: 'prices' table not found in attached DB!", LogLevel.Warning);
+        }
     }
 
     /// <summary>
