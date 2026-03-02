@@ -184,4 +184,13 @@ public class DeckBuilderService
     public Task DeleteDeckAsync(int id) => _repository.DeleteDeckAsync(id);
 
     public Task<List<DeckCardEntity>> GetDeckCardsAsync(int id) => _repository.GetDeckCardsAsync(id);
+
+    public async Task UpdateDeckNameAsync(int id, string newName)
+    {
+        var deck = await _repository.GetDeckAsync(id);
+        if (deck == null) return;
+        deck.Name = newName;
+        deck.DateModified = DateTime.Now;
+        await _repository.UpdateDeckAsync(deck);
+    }
 }

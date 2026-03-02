@@ -1,6 +1,7 @@
 using MTGFetchMAUI.Controls;
 using MTGFetchMAUI.Core;
 using MTGFetchMAUI.Services;
+using MTGFetchMAUI.Services.DeckBuilder;
 using MTGFetchMAUI.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
@@ -13,6 +14,7 @@ public partial class CardDetailPage : ContentPage
 {
     private readonly CardDetailViewModel _viewModel;
     private readonly IToastService _toastService;
+    private readonly DeckBuilderService _deckService;
     private string _cardUUID = "";
 
     public string CardUUID
@@ -25,11 +27,12 @@ public partial class CardDetailPage : ContentPage
         }
     }
 
-    public CardDetailPage(CardDetailViewModel viewModel, IToastService toastService)
+    public CardDetailPage(CardDetailViewModel viewModel, IToastService toastService, DeckBuilderService deckService)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _toastService = toastService;
+        _deckService = deckService;
         BindingContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -266,6 +269,22 @@ public partial class CardDetailPage : ContentPage
                 _toastService.Show($"{r.NewQuantity}x {_viewModel.Card.Name} in collection");
             else
                 _toastService.Show($"{_viewModel.Card.Name} removed from collection");
+        }
+    }
+
+    private async void OnAddToDeckClicked(object? sender, EventArgs e)
+    {
+        var page = new AddToDeckPage(_deckService, _viewModel.Card.UUID, _viewModel.Card.Name);
+        await Navigation.PushModalAsync(page);
+        var result = await page.WaitForResultAsync();
+
+        if (result != null)
+        {
+            var validation = await _deckService.AddCardAsync(result.DeckId, _viewModel.Card.UUID, result.Quantity, result.Section);
+            if (validation.IsError)
+                _toastService.Show(validation.Message ?? "Could not add card to deck.");
+            else
+                _toastService.Show($"{result.Quantity}× {_viewModel.Card.Name} added to {result.DeckName}.");
         }
     }
 

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MTGFetchMAUI.Pages.AddToDeckPage"
+             BackgroundColor="{StaticResource Background}">
+
+    <Border BackgroundColor="{StaticResource Surface}"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 24"
+            Padding="20,24,20,32"
+            VerticalOptions="Center"
+            HorizontalOptions="Center">
+        <Border.Shadow>
+            <Shadow Brush="Black" Offset="0,4" Radius="20" Opacity="0.4" />
+        </Border.Shadow>
+
+        <VerticalStackLayout Spacing="20" WidthRequest="300">
+
+            <!-- Card Name Header -->
+            <Label x:Name="TitleLabel"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource TextPrimary}"
+                   LineBreakMode="TailTruncation" />
+
+            <!-- Deck Picker -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Deck"
+                       FontSize="13"
+                       TextColor="{StaticResource TextSecondary}" />
+                <Border BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="4,0">
+                    <Picker x:Name="DeckPicker"
+                            Title="Select a deck"
+                            TextColor="{StaticResource TextPrimary}"
+                            TitleColor="{StaticResource TextSecondary}"
+                            BackgroundColor="Transparent" />
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Section Picker -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Section"
+                       FontSize="13"
+                       TextColor="{StaticResource TextSecondary}" />
+                <Border BackgroundColor="{StaticResource CardBackground}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="4,0">
+                    <Picker x:Name="SectionPicker"
+                            TextColor="{StaticResource TextPrimary}"
+                            BackgroundColor="Transparent">
+                        <Picker.Items>
+                            <x:String>Main</x:String>
+                            <x:String>Sideboard</x:String>
+                            <x:String>Commander</x:String>
+                        </Picker.Items>
+                    </Picker>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Quantity Selector -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Quantity"
+                       FontSize="13"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalTextAlignment="Center" />
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="20"
+                      HorizontalOptions="Center"
+                      WidthRequest="260">
+                    <Button x:Name="MinusBtn"
+                            Text="−"
+                            Clicked="OnMinusClicked"
+                            FontSize="24"
+                            WidthRequest="56"
+                            HeightRequest="56"
+                            CornerRadius="28"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                    <Label x:Name="QuantityLabel"
+                           Grid.Column="1"
+                           Text="1"
+                           FontSize="36"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+                    <Button Grid.Column="2"
+                            Text="+"
+                            Clicked="OnPlusClicked"
+                            FontSize="24"
+                            WidthRequest="56"
+                            HeightRequest="56"
+                            CornerRadius="28"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                </Grid>
+            </VerticalStackLayout>
+
+            <!-- Actions -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,6,0,0">
+                <Button Text="Cancel"
+                        Clicked="OnCancelClicked"
+                        HeightRequest="52"
+                        StyleClass="OutlinedButton" />
+                <Button Grid.Column="1"
+                        Text="Add to Deck"
+                        Clicked="OnConfirmClicked"
+                        HeightRequest="52"
+                        FontAttributes="Bold"
+                        StyleClass="FilledButton" />
+            </Grid>
+
+        </VerticalStackLayout>
+    </Border>
+
+</ContentPage>

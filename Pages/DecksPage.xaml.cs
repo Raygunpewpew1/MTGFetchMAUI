@@ -43,6 +43,21 @@ public partial class DecksPage : ContentPage
         }
     }
 
+    private async void OnRenameSwipeInvoked(object? sender, EventArgs e)
+    {
+        if (sender is SwipeItem swipe && swipe.BindingContext is DeckEntity deck)
+        {
+            string? newName = await DisplayPromptAsync(
+                "Rename Deck",
+                "Enter a new name:",
+                initialValue: deck.Name,
+                maxLength: 80);
+
+            if (!string.IsNullOrWhiteSpace(newName) && newName != deck.Name)
+                await _viewModel.RenameDeckAsync(deck, newName.Trim());
+        }
+    }
+
     private async void OnDeleteSwipeInvoked(object? sender, EventArgs e)
     {
         if (sender is SwipeItem swipe && swipe.BindingContext is DeckEntity deck)

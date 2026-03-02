@@ -68,4 +68,10 @@ public partial class DecksViewModel : BaseViewModel
     {
         return await _deckService.CreateDeckAsync(name, format, description);
     }
+
+    public async Task RenameDeckAsync(DeckEntity deck, string newName)
+    {
+        await _deckService.UpdateDeckNameAsync(deck.Id, newName);
+        await LoadDecksAsync();
+    }
 }
