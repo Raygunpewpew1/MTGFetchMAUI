@@ -60,8 +60,9 @@ public class CardPriceSQLiteSync
         var connStr = new SqliteConnectionStringBuilder
         {
             DataSource = dbPath,
-            Mode = SqliteOpenMode.ReadWriteCreate
-        }.ToString();
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false
+        }.ConnectionString;
 
         await using var conn = new SqliteConnection(connStr);
         await conn.OpenAsync();
