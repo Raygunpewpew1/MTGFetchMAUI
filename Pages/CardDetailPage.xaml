@@ -212,7 +212,7 @@
         <Grid Grid.Row="1"
               BackgroundColor="{StaticResource Surface}"
               Padding="12,8"
-              ColumnDefinitions="*,Auto,Auto"
+              ColumnDefinitions="*,Auto,Auto,Auto"
               ColumnSpacing="8">
             <Grid.GestureRecognizers>
                 <SwipeGestureRecognizer Direction="Left" Swiped="OnSwipedLeft" />
@@ -227,6 +227,15 @@
                     StyleClass="FilledButton" />
 
             <Button Grid.Column="1"
+                    Text="+ Deck"
+                    Clicked="OnAddToDeckClicked"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    TextColor="{StaticResource Accent}"
+                    HeightRequest="40"
+                    FontSize="13"
+                    Padding="12,0" />
+
+            <Button Grid.Column="2"
                     x:Name="RemoveBtn"
                     Text="Remove"
                     Clicked="OnRemoveClicked"
@@ -236,7 +245,7 @@
                     Padding="12,0"
                     IsVisible="False" />
 
-            <Button Grid.Column="2"
+            <Button Grid.Column="3"
                     x:Name="FlipBtn"
                     Text="Flip"
                     Clicked="OnFlipClicked"

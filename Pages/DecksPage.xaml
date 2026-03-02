@@ -56,6 +56,13 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:DeckEntity">
                         <SwipeView>
+                            <SwipeView.LeftItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Rename"
+                                               BackgroundColor="{StaticResource Primary}"
+                                               Invoked="OnRenameSwipeInvoked" />
+                                </SwipeItems>
+                            </SwipeView.LeftItems>
                             <SwipeView.RightItems>
                                 <SwipeItems>
                                     <SwipeItem Text="Delete"
