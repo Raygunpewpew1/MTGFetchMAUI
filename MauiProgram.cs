@@ -85,7 +85,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<CollectionViewModel>();
         builder.Services.AddSingleton<StatsViewModel>();
         builder.Services.AddSingleton<DecksViewModel>();
-        builder.Services.AddSingleton<TradeViewModel>();
         builder.Services.AddTransient<CardDetailViewModel>();
         builder.Services.AddTransient<DeckDetailViewModel>();
         builder.Services.AddTransient<LoadingViewModel>();
@@ -98,7 +97,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<CollectionPage>();
         builder.Services.AddSingleton<StatsPage>();
         builder.Services.AddSingleton<DecksPage>();
-        builder.Services.AddSingleton<TradePage>();
         builder.Services.AddTransient<CardDetailPage>();
         builder.Services.AddTransient<DeckDetailPage>();
         builder.Services.AddTransient<SearchFiltersPage>();

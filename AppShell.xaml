@@ -27,11 +27,6 @@
             x:Name="DecksTab"
             Title="Decks"
             Icon="icon_decks.png" />
-
-        <ShellContent
-            x:Name="TradeTab"
-            Title="Trade"
-            Icon="icon_trade.png" />
     </TabBar>
 
     <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>
