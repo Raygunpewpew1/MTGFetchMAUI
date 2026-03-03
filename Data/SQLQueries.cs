@@ -329,6 +329,9 @@ public static class SQLQueries
     public const string DeckGetCards =
         "SELECT * FROM DeckCards WHERE DeckId = @DeckId";
 
+    public const string DeckGetCardCount =
+        "SELECT COALESCE(SUM(Quantity), 0) FROM DeckCards WHERE DeckId = @DeckId";
+
     // ============================================================================
     // SEARCH HELPER FRAGMENTS
     // ============================================================================

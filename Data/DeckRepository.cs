@@ -258,6 +258,25 @@ public class DeckRepository : IDeckRepository
         }
     }
 
+    public async Task<int> GetDeckCardCountAsync(int deckId)
+    {
+        if (!_databaseManager.IsConnected) return 0;
+
+        await _databaseManager.ConnectionLock.WaitAsync();
+        try
+        {
+            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
+            cmd.CommandText = SQLQueries.DeckGetCardCount;
+            cmd.Parameters.AddWithValue("@DeckId", deckId);
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result ?? 0);
+        }
+        finally
+        {
+            _databaseManager.ConnectionLock.Release();
+        }
+    }
+
     private static DeckEntity MapDeck(SqliteDataReader reader)
     {
         var createdStr = reader.IsDBNull(reader.GetOrdinal("DateCreated")) ? null : reader.GetString(reader.GetOrdinal("DateCreated"));

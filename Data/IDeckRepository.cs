@@ -14,4 +14,5 @@ public interface IDeckRepository
     Task RemoveCardFromDeckAsync(int deckId, string cardId, string section);
     Task UpdateCardQuantityAsync(int deckId, string cardId, string section, int quantity);
     Task<List<DeckCardEntity>> GetDeckCardsAsync(int deckId);
+    Task<int> GetDeckCardCountAsync(int deckId);
 }

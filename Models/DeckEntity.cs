@@ -21,6 +21,9 @@ public class DeckEntity
     public string PartnerId { get; set; } = "";
     public string ColorIdentity { get; set; } = "";
 
+    // Not persisted — populated at runtime
+    public int CardCount { get; set; }
+
     public bool HasCommander => !string.IsNullOrEmpty(CommanderName);
     public string CommanderDisplay => HasCommander ? $"☆ {CommanderName}" : "";
     public string FormatDisplay => EnumExtensions.ParseDeckFormat(Format).ToDisplayName();
