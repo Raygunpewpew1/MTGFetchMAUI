@@ -1,5 +1,5 @@
 using AetherVault.Models;
-using Microsoft.Data.Sqlite;
+using Dapper;
 
 namespace AetherVault.Data;
 
@@ -22,28 +22,24 @@ public class DeckRepository : IDeckRepository
         {
             using var transaction = _databaseManager.CollectionConnection.BeginTransaction();
 
-            using (var insertCmd = _databaseManager.CollectionConnection.CreateCommand())
-            {
-                insertCmd.Transaction = transaction;
-                insertCmd.CommandText = SQLQueries.DeckInsert;
-                insertCmd.Parameters.AddWithValue("@Name", deck.Name);
-                insertCmd.Parameters.AddWithValue("@Format", deck.Format);
-                insertCmd.Parameters.AddWithValue("@Description", deck.Description);
-                insertCmd.Parameters.AddWithValue("@CoverCardId", deck.CoverCardId ?? "");
-                insertCmd.Parameters.AddWithValue("@CommanderId", deck.CommanderId ?? "");
-                insertCmd.Parameters.AddWithValue("@CommanderName", deck.CommanderName ?? "");
-                insertCmd.Parameters.AddWithValue("@PartnerId", deck.PartnerId ?? "");
-                insertCmd.Parameters.AddWithValue("@ColorIdentity", deck.ColorIdentity ?? "");
-                await insertCmd.ExecuteNonQueryAsync();
-            }
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckInsert,
+                new
+                {
+                    deck.Name,
+                    deck.Format,
+                    deck.Description,
+                    CoverCardId = deck.CoverCardId ?? "",
+                    CommanderId = deck.CommanderId ?? "",
+                    CommanderName = deck.CommanderName ?? "",
+                    PartnerId = deck.PartnerId ?? "",
+                    ColorIdentity = deck.ColorIdentity ?? ""
+                },
+                transaction);
 
-            long newId;
-            using (var idCmd = _databaseManager.CollectionConnection.CreateCommand())
-            {
-                idCmd.Transaction = transaction;
-                idCmd.CommandText = SQLQueries.DeckGetLastId;
-                newId = (long)(await idCmd.ExecuteScalarAsync() ?? 0);
-            }
+            var newId = await _databaseManager.CollectionConnection.QuerySingleAsync<long>(
+                SQLQueries.DeckGetLastId,
+                transaction: transaction);
 
             transaction.Commit();
             return (int)newId;
@@ -61,17 +57,19 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckUpdate;
-            cmd.Parameters.AddWithValue("@Name", deck.Name);
-            cmd.Parameters.AddWithValue("@Description", deck.Description);
-            cmd.Parameters.AddWithValue("@CoverCardId", deck.CoverCardId ?? "");
-            cmd.Parameters.AddWithValue("@CommanderId", deck.CommanderId ?? "");
-            cmd.Parameters.AddWithValue("@CommanderName", deck.CommanderName ?? "");
-            cmd.Parameters.AddWithValue("@PartnerId", deck.PartnerId ?? "");
-            cmd.Parameters.AddWithValue("@ColorIdentity", deck.ColorIdentity ?? "");
-            cmd.Parameters.AddWithValue("@Id", deck.Id);
-            await cmd.ExecuteNonQueryAsync();
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckUpdate,
+                new
+                {
+                    deck.Name,
+                    deck.Description,
+                    CoverCardId = deck.CoverCardId ?? "",
+                    CommanderId = deck.CommanderId ?? "",
+                    CommanderName = deck.CommanderName ?? "",
+                    PartnerId = deck.PartnerId ?? "",
+                    ColorIdentity = deck.ColorIdentity ?? "",
+                    deck.Id
+                });
         }
         finally
         {
@@ -89,21 +87,15 @@ public class DeckRepository : IDeckRepository
             // Transaction for deletion
             using var transaction = _databaseManager.CollectionConnection.BeginTransaction();
 
-            using (var cmdCards = _databaseManager.CollectionConnection.CreateCommand())
-            {
-                cmdCards.Transaction = transaction;
-                cmdCards.CommandText = SQLQueries.DeckDeleteCards;
-                cmdCards.Parameters.AddWithValue("@Id", deckId);
-                await cmdCards.ExecuteNonQueryAsync();
-            }
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckDeleteCards,
+                new { Id = deckId },
+                transaction);
 
-            using (var cmdDeck = _databaseManager.CollectionConnection.CreateCommand())
-            {
-                cmdDeck.Transaction = transaction;
-                cmdDeck.CommandText = SQLQueries.DeckDelete;
-                cmdDeck.Parameters.AddWithValue("@Id", deckId);
-                await cmdDeck.ExecuteNonQueryAsync();
-            }
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckDelete,
+                new { Id = deckId },
+                transaction);
 
             transaction.Commit();
         }
@@ -120,16 +112,9 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckGet;
-            cmd.Parameters.AddWithValue("@Id", deckId);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return MapDeck(reader);
-            }
-            return null;
+            return await _databaseManager.CollectionConnection.QueryFirstOrDefaultAsync<DeckEntity>(
+                SQLQueries.DeckGet,
+                new { Id = deckId });
         }
         finally
         {
@@ -139,21 +124,13 @@ public class DeckRepository : IDeckRepository
 
     public async Task<List<DeckEntity>> GetAllDecksAsync()
     {
-        var result = new List<DeckEntity>();
-        if (!_databaseManager.IsConnected) return result;
+        if (!_databaseManager.IsConnected) return new List<DeckEntity>();
 
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckGetAll;
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                result.Add(MapDeck(reader));
-            }
-            return result;
+            var result = await _databaseManager.CollectionConnection.QueryAsync<DeckEntity>(SQLQueries.DeckGetAll);
+            return result.ToList();
         }
         finally
         {
@@ -168,14 +145,16 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckAddCard;
-            cmd.Parameters.AddWithValue("@DeckId", card.DeckId);
-            cmd.Parameters.AddWithValue("@CardId", card.CardId);
-            cmd.Parameters.AddWithValue("@Quantity", card.Quantity);
-            cmd.Parameters.AddWithValue("@Section", card.Section);
-            cmd.Parameters.AddWithValue("@DateAdded", card.DateAdded);
-            await cmd.ExecuteNonQueryAsync();
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckAddCard,
+                new
+                {
+                    card.DeckId,
+                    card.CardId,
+                    card.Quantity,
+                    card.Section,
+                    DateAdded = card.DateAdded.ToString("yyyy-MM-dd HH:mm:ss")
+                });
         }
         finally
         {
@@ -190,12 +169,14 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckRemoveCard;
-            cmd.Parameters.AddWithValue("@DeckId", deckId);
-            cmd.Parameters.AddWithValue("@CardId", cardId);
-            cmd.Parameters.AddWithValue("@Section", section);
-            await cmd.ExecuteNonQueryAsync();
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckRemoveCard,
+                new
+                {
+                    DeckId = deckId,
+                    CardId = cardId,
+                    Section = section
+                });
         }
         finally
         {
@@ -210,13 +191,15 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckUpdateCardQuantity;
-            cmd.Parameters.AddWithValue("@DeckId", deckId);
-            cmd.Parameters.AddWithValue("@CardId", cardId);
-            cmd.Parameters.AddWithValue("@Section", section);
-            cmd.Parameters.AddWithValue("@Quantity", quantity);
-            await cmd.ExecuteNonQueryAsync();
+            await _databaseManager.CollectionConnection.ExecuteAsync(
+                SQLQueries.DeckUpdateCardQuantity,
+                new
+                {
+                    DeckId = deckId,
+                    CardId = cardId,
+                    Section = section,
+                    Quantity = quantity
+                });
         }
         finally
         {
@@ -226,31 +209,15 @@ public class DeckRepository : IDeckRepository
 
     public async Task<List<DeckCardEntity>> GetDeckCardsAsync(int deckId)
     {
-        var result = new List<DeckCardEntity>();
-        if (!_databaseManager.IsConnected) return result;
+        if (!_databaseManager.IsConnected) return new List<DeckCardEntity>();
 
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckGetCards;
-            cmd.Parameters.AddWithValue("@DeckId", deckId);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                DateTime.TryParse(reader.GetString(reader.GetOrdinal("DateAdded")), out var dateAdded);
-
-                result.Add(new DeckCardEntity
-                {
-                    DeckId = reader.GetInt32(reader.GetOrdinal("DeckId")),
-                    CardId = reader.GetString(reader.GetOrdinal("CardId")),
-                    Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
-                    Section = reader.GetString(reader.GetOrdinal("Section")),
-                    DateAdded = dateAdded
-                });
-            }
-            return result;
+            var result = await _databaseManager.CollectionConnection.QueryAsync<DeckCardEntity>(
+                SQLQueries.DeckGetCards,
+                new { DeckId = deckId });
+            return result.ToList();
         }
         finally
         {

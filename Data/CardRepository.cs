@@ -1,6 +1,8 @@
 using AetherVault.Core;
 using AetherVault.Models;
+using Dapper;
 using Microsoft.Data.Sqlite;
+using System.Data.Common;
 
 namespace AetherVault.Data;
 
@@ -24,7 +26,7 @@ public class CardRepository : ICardRepository
     {
         return await WithMTGReaderAsync(
             SQLQueries.SelectFullCard + SQLQueries.WhereUuidEquals,
-            cmd => cmd.Parameters.AddWithValue("@uuid", uuid),
+            new { uuid },
             async reader =>
             {
                 var o = new CardMapper.CardOrdinals(reader);
@@ -58,11 +60,7 @@ public class CardRepository : ICardRepository
     {
         return await WithMTGReaderAsync(
             SQLQueries.SelectFullCard + " WHERE c.faceName = @fname AND c.setCode = @set LIMIT 1",
-            cmd =>
-            {
-                cmd.Parameters.AddWithValue("@fname", faceName);
-                cmd.Parameters.AddWithValue("@set", setCode);
-            },
+            new { fname = faceName, set = setCode },
             async reader =>
             {
                 var o = new CardMapper.CardOrdinals(reader);
@@ -72,43 +70,61 @@ public class CardRepository : ICardRepository
 
     public async Task<string> GetScryfallIdAsync(string cardUUID)
     {
-        return await WithMTGReaderAsync(
-            SQLQueries.SelectScryfallId,
-            cmd => cmd.Parameters.AddWithValue("@uuid", cardUUID),
-            async reader => await reader.ReadAsync() ? reader.GetString(0) : "");
+        await _lock.WaitAsync();
+        try
+        {
+            var result = await _db.MTGConnection.QueryFirstOrDefaultAsync<string>(
+                SQLQueries.SelectScryfallId, new { uuid = cardUUID });
+            return result ?? "";
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private class CardRulingRow
+    {
+        public string date { get; set; } = "";
+        public string text { get; set; } = "";
     }
 
     public async Task<CardRuling[]> GetCardRulingsAsync(string uuid)
     {
-        var rulings = new List<CardRuling>();
+        await _lock.WaitAsync();
+        try
+        {
+            var rows = await _db.MTGConnection.QueryAsync<CardRulingRow>(
+                SQLQueries.SelectRulings, new { uuid });
 
-        await WithMTGReaderAsync(
-            SQLQueries.SelectRulings,
-            cmd => cmd.Parameters.AddWithValue("@uuid", uuid),
-            async reader =>
+            var rulings = new List<CardRuling>();
+            foreach (var row in rows)
             {
-                while (await reader.ReadAsync())
-                {
-                    DateTime.TryParse(reader.GetString(0), out var date);
-                    rulings.Add(new CardRuling(date, reader.GetString(1)));
-                }
-                return 0;
-            });
+                DateTime.TryParse(row.date, out var date);
+                rulings.Add(new CardRuling(date, row.text));
+            }
 
-        return [.. rulings];
+            return [.. rulings];
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<string[]> GetOtherFaceIdsAsync(string uuid)
     {
-        return await WithMTGReaderAsync(
-            SQLQueries.SelectOtherFaces,
-            cmd => cmd.Parameters.AddWithValue("@uuid", uuid),
-            async reader =>
-            {
-                if (!await reader.ReadAsync()) return [];
-                var raw = reader.IsDBNull(0) ? "" : reader.GetString(0);
-                return CardMapper.ParseOtherFaceIds(raw);
-            });
+        await _lock.WaitAsync();
+        try
+        {
+            var raw = await _db.MTGConnection.QueryFirstOrDefaultAsync<string>(
+                SQLQueries.SelectOtherFaces, new { uuid });
+            return CardMapper.ParseOtherFaceIds(raw ?? "");
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<Card[]> GetCardWithOtherFacesAsync(string uuid)
@@ -159,12 +175,14 @@ public class CardRepository : ICardRepository
             var paramNames = chunk.Select((_, idx) => $"@u{idx}").ToArray();
             var sql = SQLQueries.SelectFullCard + " WHERE c.uuid IN (" + string.Join(",", paramNames) + ")";
 
+            var dynamicParams = new DynamicParameters();
+            for (int j = 0; j < chunk.Length; j++)
+            {
+                dynamicParams.Add(paramNames[j], chunk[j]);
+            }
+
             await WithMTGReaderAsync(sql,
-                cmd =>
-                {
-                    for (int j = 0; j < chunk.Length; j++)
-                        cmd.Parameters.AddWithValue(paramNames[j], chunk[j]);
-                },
+                dynamicParams,
                 async reader =>
                 {
                     var o = new CardMapper.CardOrdinals(reader);
@@ -196,12 +214,14 @@ public class CardRepository : ICardRepository
         var cards = new List<Card>();
         var (sql, parameters) = searchHelper.Build();
 
+        var dynamicParams = new DynamicParameters();
+        foreach (var (name, value) in parameters)
+        {
+            dynamicParams.Add(name, value);
+        }
+
         await WithMTGReaderAsync(sql,
-            cmd =>
-            {
-                foreach (var (name, value) in parameters)
-                    cmd.Parameters.AddWithValue(name, value);
-            },
+            dynamicParams,
             async reader =>
             {
                 var o = new CardMapper.CardOrdinals(reader);
@@ -217,13 +237,21 @@ public class CardRepository : ICardRepository
     {
         var (sql, parameters) = searchHelper.BuildCount();
 
-        return await WithMTGReaderAsync(sql,
-            cmd =>
+        await _lock.WaitAsync();
+        try
+        {
+            var dynamicParams = new DynamicParameters();
+            foreach (var (name, value) in parameters)
             {
-                foreach (var (name, value) in parameters)
-                    cmd.Parameters.AddWithValue(name, value);
-            },
-            async reader => await reader.ReadAsync() ? reader.GetInt32(0) : 0);
+                dynamicParams.Add(name, value);
+            }
+
+            return await _db.MTGConnection.ExecuteScalarAsync<int>(sql, dynamicParams);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public MTGSearchHelper CreateSearchHelper() => new();
@@ -233,16 +261,14 @@ public class CardRepository : ICardRepository
     private async Task<Card[]> GetMeldPartCardsAsync(string[] cardParts, string setCode, string mainUUID)
     {
         var cards = new List<Card>();
-        var parameters = new List<(string name, object value)>
-        {
-            ("@set", setCode),
-            ("@mainUUID", mainUUID)
-        };
+        var dynamicParams = new DynamicParameters();
+        dynamicParams.Add("@set", setCode);
+        dynamicParams.Add("@mainUUID", mainUUID);
 
         var conditions = new List<string>();
         for (int i = 0; i < cardParts.Length; i++)
         {
-            parameters.Add(($"@n{i}", cardParts[i].Trim()));
+            dynamicParams.Add($"@n{i}", cardParts[i].Trim());
             conditions.Add($"(c.faceName = @n{i} OR c.name = @n{i})");
         }
 
@@ -250,11 +276,7 @@ public class CardRepository : ICardRepository
             $" WHERE c.setCode = @set AND ({string.Join(" OR ", conditions)}) AND c.uuid <> @mainUUID";
 
         await WithMTGReaderAsync(sql,
-            cmd =>
-            {
-                foreach (var (name, value) in parameters)
-                    cmd.Parameters.AddWithValue(name, value);
-            },
+            dynamicParams,
             async reader =>
             {
                 var o = new CardMapper.CardOrdinals(reader);
@@ -272,20 +294,18 @@ public class CardRepository : ICardRepository
     /// <summary>
     /// Executes a query against the MTG database and processes results with an async reader.
     /// Uses SemaphoreSlim for non-blocking thread safety.
+    /// Uses Dapper ExecuteReaderAsync underneath.
     /// </summary>
     private async Task<T> WithMTGReaderAsync<T>(
         string sql,
-        Action<SqliteCommand> configureParams,
-        Func<SqliteDataReader, Task<T>> readFunc)
+        object? param,
+        Func<DbDataReader, Task<T>> readFunc)
     {
         await _lock.WaitAsync();
         try
         {
-            using var cmd = _db.MTGConnection.CreateCommand();
-            cmd.CommandText = sql;
-            configureParams(cmd);
-            using var reader = await cmd.ExecuteReaderAsync() as SqliteDataReader
-                ?? throw new InvalidOperationException("Failed to create SqliteDataReader.");
+            using var reader = await _db.MTGConnection.ExecuteReaderAsync(sql, param) as DbDataReader
+                ?? throw new InvalidOperationException("Failed to create DbDataReader.");
             return await readFunc(reader);
         }
         finally

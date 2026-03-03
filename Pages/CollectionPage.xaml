@@ -7,7 +7,25 @@
              Title="Collection"
              BackgroundColor="{StaticResource Background}">
 
-    <ContentPage.ToolbarItems>
+        <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Import"
+                     Command="{Binding ImportCollectionCommand}">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.FileImport}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <ToolbarItem Text="Export"
+                     Command="{Binding ExportCollectionCommand}">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.FileExport}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
         <ToolbarItem Text="Refresh"
                      Command="{Binding RefreshCommand}">
             <ToolbarItem.IconImageSource>

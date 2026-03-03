@@ -1,3 +1,4 @@
+using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace AetherVault.Data;
@@ -135,11 +136,13 @@ public sealed class DatabaseManager : IDisposable
         if (!IsConnected)
             throw new InvalidOperationException("Database not connected.");
 
-        using var cmd = _collectionConnection!.CreateCommand();
-        cmd.CommandText = sql;
+        var dynamicParams = new DynamicParameters();
         foreach (var (name, value) in parameters)
-            cmd.Parameters.AddWithValue(name, value);
-        await cmd.ExecuteNonQueryAsync();
+        {
+            dynamicParams.Add(name, value);
+        }
+
+        await _collectionConnection!.ExecuteAsync(sql, dynamicParams);
     }
 
     /// <summary>
@@ -161,16 +164,14 @@ public sealed class DatabaseManager : IDisposable
     private static async Task ConfigureConnectionAsync(SqliteConnection connection)
     {
         // Match the Delphi performance pragmas
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText =
+        await connection.ExecuteAsync(
             $"""
             PRAGMA busy_timeout = {BusyTimeoutMs};
             PRAGMA locking_mode = NORMAL;
             PRAGMA synchronous = OFF;
             PRAGMA temp_store = MEMORY;
             PRAGMA journal_mode = MEMORY;
-            """;
-        await cmd.ExecuteNonQueryAsync();
+            """);
     }
 
     private async Task InitializeCollectionAsync(string collectionDbPath)
@@ -189,76 +190,59 @@ public sealed class DatabaseManager : IDisposable
         await MigrateCollectionSchemaAsync(_collectionConnection);
     }
 
+    private class PragmaTableInfo
+    {
+        public string name { get; set; } = "";
+    }
+
     private static async Task MigrateCollectionSchemaAsync(SqliteConnection conn)
     {
         bool hasSortOrder = false;
         bool hasIsFoil = false;
         bool hasIsEtched = false;
 
-        using (var pragma = conn.CreateCommand())
+        var columns = await conn.QueryAsync<PragmaTableInfo>(SQLQueries.CollectionTableInfo);
+        foreach (var col in columns)
         {
-            pragma.CommandText = SQLQueries.CollectionTableInfo;
-            using var reader = await pragma.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var colName = reader.GetString(1);
-                if (colName == "sort_order") hasSortOrder = true;
-                if (colName == "is_foil") hasIsFoil = true;
-                if (colName == "is_etched") hasIsEtched = true;
-            }
+            if (col.name == "sort_order") hasSortOrder = true;
+            if (col.name == "is_foil") hasIsFoil = true;
+            if (col.name == "is_etched") hasIsEtched = true;
         }
 
         if (!hasSortOrder)
         {
-            using var alter = conn.CreateCommand();
-            alter.CommandText = SQLQueries.CollectionAddSortOrder;
-            await alter.ExecuteNonQueryAsync();
-
-            using var seed = conn.CreateCommand();
-            seed.CommandText = SQLQueries.CollectionSeedSortOrder;
-            await seed.ExecuteNonQueryAsync();
+            await ExecuteNonQueryAsync(conn, SQLQueries.CollectionAddSortOrder);
+            await ExecuteNonQueryAsync(conn, SQLQueries.CollectionSeedSortOrder);
         }
 
         if (!hasIsFoil)
         {
-            using var alter = conn.CreateCommand();
-            alter.CommandText = SQLQueries.CollectionAddIsFoil;
-            await alter.ExecuteNonQueryAsync();
+            await ExecuteNonQueryAsync(conn, SQLQueries.CollectionAddIsFoil);
         }
 
         if (!hasIsEtched)
         {
-            using var alter = conn.CreateCommand();
-            alter.CommandText = SQLQueries.CollectionAddIsEtched;
-            await alter.ExecuteNonQueryAsync();
+            await ExecuteNonQueryAsync(conn, SQLQueries.CollectionAddIsEtched);
         }
 
         // Migrate Decks table — add CommanderName if missing
         bool hasCommanderName = false;
-        using (var pragma = conn.CreateCommand())
+        var deckColumns = await conn.QueryAsync<PragmaTableInfo>(SQLQueries.DecksTableInfo);
+        foreach (var col in deckColumns)
         {
-            pragma.CommandText = SQLQueries.DecksTableInfo;
-            using var reader = await pragma.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                if (reader.GetString(1) == "CommanderName")
-                    hasCommanderName = true;
-            }
+            if (col.name == "CommanderName")
+                hasCommanderName = true;
         }
 
         if (!hasCommanderName)
         {
-            using var alter = conn.CreateCommand();
-            alter.CommandText = SQLQueries.DecksAddCommanderName;
-            await alter.ExecuteNonQueryAsync();
+            await ExecuteNonQueryAsync(conn, SQLQueries.DecksAddCommanderName);
         }
     }
 
     private static async Task ExecuteNonQueryAsync(SqliteConnection connection, string sql)
     {
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = sql;
-        await cmd.ExecuteNonQueryAsync();
+        await connection.ExecuteAsync(sql);
     }
 
     private void DisconnectInternal()

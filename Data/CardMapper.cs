@@ -1,6 +1,7 @@
 using AetherVault.Core;
 using AetherVault.Models;
 using Microsoft.Data.Sqlite;
+using System.Data.Common;
 using System.Text.Json;
 
 namespace AetherVault.Data;
@@ -37,7 +38,7 @@ public static class CardMapper
         public readonly int Cardmarket, Tcgplayer, TcgplayerEtched;
         public readonly Dictionary<DeckFormat, int> Legalities;
 
-        public CardOrdinals(SqliteDataReader reader)
+        public CardOrdinals(DbDataReader reader)
         {
             UUID = Ord(reader, "uuid");
             ScryfallId = Ord(reader, "scryfallId");
@@ -122,7 +123,7 @@ public static class CardMapper
                 Legalities[fmt] = Ord(reader, fmt.ToDbField());
         }
 
-        private static int Ord(SqliteDataReader reader, string col)
+        private static int Ord(DbDataReader reader, string col)
         {
             try { return reader.GetOrdinal(col); }
             catch (ArgumentOutOfRangeException) { return -1; }
@@ -135,7 +136,7 @@ public static class CardMapper
     /// Populates a Card from the current reader row using pre-resolved ordinals.
     /// Call new CardOrdinals(reader) once before your read loop, then pass it here.
     /// </summary>
-    public static Card MapCard(SqliteDataReader reader, CardOrdinals o)
+    public static Card MapCard(DbDataReader reader, CardOrdinals o)
     {
         var card = new Card();
 
@@ -258,10 +259,10 @@ public static class CardMapper
 
     // ── Safe field accessors (ordinal-based, no string lookup) ──────
 
-    private static string Str(SqliteDataReader r, int ord) =>
+    private static string Str(DbDataReader r, int ord) =>
         ord < 0 || r.IsDBNull(ord) ? "" : r.GetString(ord);
 
-    private static double Dbl(SqliteDataReader r, int ord)
+    private static double Dbl(DbDataReader r, int ord)
     {
         if (ord < 0 || r.IsDBNull(ord)) return 0.0;
         try { return r.GetDouble(ord); }
@@ -272,7 +273,7 @@ public static class CardMapper
         }
     }
 
-    private static int Int(SqliteDataReader r, int ord)
+    private static int Int(DbDataReader r, int ord)
     {
         if (ord < 0 || r.IsDBNull(ord)) return 0;
         try { return r.GetInt32(ord); }
