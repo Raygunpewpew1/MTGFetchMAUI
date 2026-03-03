@@ -1,0 +1,58 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D214D" />
+      <stop offset="100%" stop-color="#140A26" />
+    </linearGradient>
+
+    <!-- Glowing aether effect -->
+    <radialGradient id="aetherCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00ffff" stop-opacity="1" />
+      <stop offset="30%" stop-color="#A57CF0" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#2D214D" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Bronze / Gold Metal -->
+    <linearGradient id="bronze" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F3E5AB" />
+      <stop offset="50%" stop-color="#CD7F32" />
+      <stop offset="100%" stop-color="#8B4513" />
+    </linearGradient>
+
+    <filter id="shadow">
+      <feDropShadow dx="8" dy="16" stdDeviation="12" flood-color="#000" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bgGrad)" />
+
+  <circle cx="512" cy="512" r="600" fill="url(#aetherCore)" />
+
+  <g filter="url(#shadow)" transform="rotate(-45, 512, 512)">
+    <!-- Key Shaft -->
+    <rect x="472" y="300" width="80" height="500" rx="20" fill="url(#bronze)" stroke="#5C4033" stroke-width="4" />
+
+    <!-- Key Teeth (Shaped like card silhouettes) -->
+    <path d="M552 680 h120 v-80 h-40 v-40 h-80 z" fill="url(#bronze)" stroke="#5C4033" stroke-width="4" />
+    <path d="M552 520 h80 v-60 h-80 z" fill="url(#bronze)" stroke="#5C4033" stroke-width="4" />
+
+    <!-- Key Bow (The Head) -->
+    <circle cx="512" cy="240" r="140" fill="url(#bronze)" stroke="#5C4033" stroke-width="4" />
+    <circle cx="512" cy="240" r="80" fill="#140A26" stroke="#CD7F32" stroke-width="8" />
+
+    <!-- Inner Key Decoration (Hexagon) -->
+    <polygon points="512,180 564,210 564,270 512,300 460,270 460,210" fill="none" stroke="#CD7F32" stroke-width="12" />
+
+    <!-- Glowing Gems Embedded in the Bow (WUBRG) -->
+    <!-- White -->
+    <circle cx="512" cy="120" r="18" fill="#FFFFFF" stroke="#CD7F32" stroke-width="4" />
+    <!-- Blue -->
+    <circle cx="626" cy="200" r="18" fill="#0E68AB" stroke="#CD7F32" stroke-width="4" />
+    <!-- Black -->
+    <circle cx="584" cy="326" r="18" fill="#1A1A1A" stroke="#CD7F32" stroke-width="4" />
+    <!-- Red -->
+    <circle cx="440" cy="326" r="18" fill="#D3202A" stroke="#CD7F32" stroke-width="4" />
+    <!-- Green -->
+    <circle cx="398" cy="200" r="18" fill="#00733E" stroke="#CD7F32" stroke-width="4" />
+  </g>
+</svg>

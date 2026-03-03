@@ -1,0 +1,70 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14111E"/>
+      <stop offset="100%" stop-color="#0F0C16"/>
+    </linearGradient>
+
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A57CF0"/>
+      <stop offset="100%" stop-color="#00FFFF"/>
+    </linearGradient>
+
+    <!-- Base Card Gradient -->
+    <linearGradient id="cardBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D244D"/>
+      <stop offset="100%" stop-color="#1E1A2D"/>
+    </linearGradient>
+
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000" flood-opacity="0.8"/>
+    </filter>
+
+    <filter id="neonGlow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)" />
+
+  <!-- Background Abstract Aether Rings -->
+  <circle cx="512" cy="512" r="380" fill="none" stroke="#2A243A" stroke-width="6" opacity="0.6"/>
+  <circle cx="512" cy="512" r="300" fill="none" stroke="#A57CF0" stroke-width="2" opacity="0.4"/>
+
+  <g filter="url(#shadow)">
+    <!-- Back Left Card -->
+    <g transform="translate(512, 512) rotate(-20) translate(-512, -512)">
+      <rect x="240" y="320" width="220" height="320" rx="16" fill="url(#cardBase)" stroke="#4A3182" stroke-width="4"/>
+      <!-- Inner Border -->
+      <rect x="256" y="336" width="188" height="288" rx="8" fill="none" stroke="#3A216A" stroke-width="2"/>
+    </g>
+
+    <!-- Back Right Card -->
+    <g transform="translate(512, 512) rotate(20) translate(-512, -512)">
+      <rect x="564" y="320" width="220" height="320" rx="16" fill="url(#cardBase)" stroke="#4A3182" stroke-width="4"/>
+      <!-- Inner Border -->
+      <rect x="580" y="336" width="188" height="288" rx="8" fill="none" stroke="#3A216A" stroke-width="2"/>
+    </g>
+
+    <!-- Foreground Center Card (The "Vault") -->
+    <g transform="translate(512, 512) scale(1.15) translate(-512, -512)">
+      <rect x="402" y="280" width="220" height="320" rx="16" fill="#140A26" stroke="url(#glowGrad)" stroke-width="6"/>
+      <rect x="418" y="296" width="188" height="288" rx="8" fill="none" stroke="#A57CF0" stroke-width="2" opacity="0.8"/>
+
+      <!-- Vault Center Pattern on Front Card -->
+      <path d="M512 360 L570 418 L512 476 L454 418 Z" fill="none" stroke="#00FFFF" stroke-width="4" filter="url(#neonGlow)"/>
+      <circle cx="512" cy="418" r="16" fill="#00FFFF" filter="url(#neonGlow)"/>
+
+      <!-- Abstract WUBRG Dots on Front Card Bottom -->
+      <circle cx="452" cy="540" r="10" fill="#FFFFFF" />
+      <circle cx="482" cy="540" r="10" fill="#0E68AB" />
+      <circle cx="512" cy="540" r="10" fill="#1A1A1A" stroke="#444" stroke-width="2"/>
+      <circle cx="542" cy="540" r="10" fill="#D3202A" />
+      <circle cx="572" cy="540" r="10" fill="#00733E" />
+    </g>
+  </g>
+</svg>
