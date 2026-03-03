@@ -17,4 +17,5 @@ public interface ICollectionRepository
     Task<bool> IsInCollectionAsync(string cardUUID);
     Task<int> GetQuantityAsync(string cardUUID);
     Task ReorderAsync(IList<string> orderedUuids);
+    Task ClearCollectionAsync();
 }

@@ -68,6 +68,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICardRepository>(sp =>
             new CardRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
+        builder.Services.AddSingleton<IBinderRepository>(sp =>
+            new BinderRepository(
+                sp.GetRequiredService<CardManager>().DatabaseManager,
+                sp.GetRequiredService<ICardRepository>()));
         builder.Services.AddSingleton<IDeckRepository>(sp =>
             new DeckRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<DeckValidator>();
@@ -86,6 +90,8 @@ public static class MauiProgram
         // ── ViewModels ──────────────────────────────────────────────
         builder.Services.AddSingleton<SearchViewModel>();
         builder.Services.AddSingleton<CollectionViewModel>();
+        builder.Services.AddSingleton<BindersViewModel>();
+        builder.Services.AddTransient<BinderDetailViewModel>();
         builder.Services.AddSingleton<StatsViewModel>();
         builder.Services.AddSingleton<DecksViewModel>();
         builder.Services.AddTransient<CardDetailViewModel>();
@@ -104,6 +110,8 @@ public static class MauiProgram
         builder.Services.AddTransient<DeckDetailPage>();
         builder.Services.AddTransient<SearchFiltersPage>();
         builder.Services.AddTransient<CardSearchPickerPage>();
+        builder.Services.AddTransient<BindersPage>();
+        builder.Services.AddTransient<BinderDetailPage>();
 
         return builder.Build();
     }

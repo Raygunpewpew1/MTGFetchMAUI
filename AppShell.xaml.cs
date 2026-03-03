@@ -17,5 +17,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("carddetail", typeof(CardDetailPage));
         Routing.RegisterRoute("searchfilters", typeof(SearchFiltersPage));
         Routing.RegisterRoute("deckdetail", typeof(DeckDetailPage));
+        Routing.RegisterRoute("binders", typeof(BindersPage));
+        Routing.RegisterRoute("binderdetail", typeof(BinderDetailPage));
     }
 }

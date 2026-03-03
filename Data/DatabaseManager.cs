@@ -66,6 +66,8 @@ public sealed class DatabaseManager : IDisposable
                     //      await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDecksTable);
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDeckCardsTable);
+                    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateBindersTable);
+                    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateBinderCardsTable);
                     //    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
                     //     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
                     await MigrateCollectionSchemaAsync(_collectionConnection);
@@ -185,6 +187,8 @@ public sealed class DatabaseManager : IDisposable
         //      await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDecksTable);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDeckCardsTable);
+        await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateBindersTable);
+        await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateBinderCardsTable);
         //    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
         //     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
         await MigrateCollectionSchemaAsync(_collectionConnection);

@@ -1,6 +1,7 @@
 using AetherVault.Controls;
 using AetherVault.Core;
 using AetherVault.Core.Layout;
+using AetherVault.Data;
 using AetherVault.Models;
 using AetherVault.Services;
 using AetherVault.Services.ImportExport;
@@ -17,6 +18,7 @@ namespace AetherVault.ViewModels;
 public partial class CollectionViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
+    private readonly IBinderRepository _binderRepository;
     private readonly CollectionImporter _importer;
     private readonly CollectionExporter _exporter;
     private readonly IToastService _toastService;
@@ -52,9 +54,10 @@ public partial class CollectionViewModel : BaseViewModel
 
     public event Action? CollectionLoaded;
 
-    public CollectionViewModel(CardManager cardManager, CollectionImporter importer, CollectionExporter exporter, IToastService toastService)
+    public CollectionViewModel(CardManager cardManager, IBinderRepository binderRepository, CollectionImporter importer, CollectionExporter exporter, IToastService toastService)
     {
         _cardManager = cardManager;
+        _binderRepository = binderRepository;
         _importer = importer;
         _exporter = exporter;
         _toastService = toastService;
@@ -264,6 +267,45 @@ public partial class CollectionViewModel : BaseViewModel
                 }
             }
         });
+    }
+
+    public async Task ClearCollectionAsync()
+    {
+        try
+        {
+            await _cardManager.ClearCollectionAsync();
+            await LoadCollectionAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to clear collection: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    // ── Binder helpers (called from CollectionPage code-behind) ──────
+
+    public async Task<BinderEntity[]> GetAllBindersAsync()
+    {
+        try
+        {
+            return await _binderRepository.GetAllBindersAsync();
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    public async Task AddCardToBinderAsync(int binderId, string cardUuid)
+    {
+        try
+        {
+            await _binderRepository.AddCardToBinderAsync(binderId, cardUuid);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to add card to binder: {ex.Message}", LogLevel.Error);
+        }
     }
 
     [RelayCommand]

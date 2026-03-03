@@ -9,6 +9,15 @@
              BackgroundColor="{StaticResource Background}">
 
         <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Binders"
+                     Clicked="OnBindersClicked">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.LayerGroup}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
         <ToolbarItem Text="Import"
                      Command="{Binding ImportCollectionCommand}">
             <ToolbarItem.IconImageSource>
@@ -23,6 +32,15 @@
             <ToolbarItem.IconImageSource>
                 <FontImageSource FontFamily="FASolid"
                                  Glyph="{x:Static fa:Solid.FileExport}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <ToolbarItem Text="Clear Collection"
+                     Clicked="OnClearCollectionClicked">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.Trash}"
                                  Size="24"
                                  Color="{StaticResource TextPrimary}" />
             </ToolbarItem.IconImageSource>

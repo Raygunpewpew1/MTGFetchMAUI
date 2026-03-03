@@ -82,25 +82,69 @@ public partial class CollectionPage : ContentPage
         var card = await _viewModel.GetCardDetailsAsync(uuid);
         if (card == null) return;
 
-        int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
+        string? action = await DisplayActionSheet(card.Name, "Cancel", null, "Edit Quantity", "Add to Binder...");
 
-        var page = new CollectionAddPage(
-            card.Name,
-            $"{card.SetCode} #{card.Number}",
-            currentQty);
-
-        await Navigation.PushModalAsync(page);
-        var result = await page.WaitForResultAsync();
-
-        if (result is CollectionAddResult r)
+        if (action == "Edit Quantity")
         {
-            await _viewModel.UpdateCollectionAsync(uuid, r.NewQuantity, r.IsFoil, r.IsEtched);
-            if (r.NewQuantity > 0)
-                _toastService.Show($"{r.NewQuantity}x {card.Name} in collection");
-            else
-                _toastService.Show($"{card.Name} removed from collection");
-            await _viewModel.LoadCollectionAsync();
+            int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
+            var page = new CollectionAddPage(card.Name, $"{card.SetCode} #{card.Number}", currentQty);
+            await Navigation.PushModalAsync(page);
+            var result = await page.WaitForResultAsync();
+            if (result is CollectionAddResult r)
+            {
+                await _viewModel.UpdateCollectionAsync(uuid, r.NewQuantity, r.IsFoil, r.IsEtched);
+                if (r.NewQuantity > 0)
+                    _toastService.Show($"{r.NewQuantity}x {card.Name} in collection");
+                else
+                    _toastService.Show($"{card.Name} removed from collection");
+                await _viewModel.LoadCollectionAsync();
+            }
         }
+        else if (action == "Add to Binder...")
+        {
+            await OnAddToBinderAsync(uuid, card.Name);
+        }
+    }
+
+    private async Task OnAddToBinderAsync(string uuid, string cardName)
+    {
+        var binders = await _viewModel.GetAllBindersAsync();
+        if (binders.Length == 0)
+        {
+            await DisplayAlert("No Binders", "Create a binder first by tapping the binders button.", "OK");
+            return;
+        }
+
+        var binderNames = binders.Select(b => b.Name).ToArray();
+        string? selected = await DisplayActionSheet("Add to Binder", "Cancel", null, binderNames);
+        if (string.IsNullOrEmpty(selected) || selected == "Cancel") return;
+
+        var binder = binders.First(b => b.Name == selected);
+        await _viewModel.AddCardToBinderAsync(binder.Id, uuid);
+        _toastService.Show($"{cardName} added to \"{binder.Name}\"");
+    }
+
+    private async void OnClearCollectionClicked(object? sender, EventArgs e)
+    {
+        int total = _viewModel.TotalCards;
+        string message = total > 0
+            ? $"This will permanently remove all {total} cards from your collection. This cannot be undone."
+            : "Your collection is already empty.";
+
+        if (total == 0)
+        {
+            await DisplayAlert("Collection Empty", message, "OK");
+            return;
+        }
+
+        bool confirmed = await DisplayAlert("Clear Collection", message, "Clear", "Cancel");
+        if (confirmed)
+            await _viewModel.ClearCollectionAsync();
+    }
+
+    private async void OnBindersClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("binders");
     }
 
     private async void OnCardReorderRequested(int fromIndex, int toIndex)

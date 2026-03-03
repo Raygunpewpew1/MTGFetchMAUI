@@ -264,6 +264,19 @@ public class CollectionRepository : ICollectionRepository
         });
     }
 
+    public async Task ClearCollectionAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            await _db.CollectionConnection.ExecuteAsync(SQLQueries.CollectionClearAll);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     // ── Private helpers ─────────────────────────────────────────────
 
     private Task<int> GetQuantityInternalAsync(SqliteConnection conn, string cardUUID, SqliteTransaction? trans = null)

@@ -14,6 +14,7 @@ public class CardManager : IDisposable
     private readonly DatabaseManager _databaseManager;
     private readonly ICardRepository _cardRepository;
     private readonly ICollectionRepository _collectionRepository;
+    private readonly IBinderRepository _binderRepository;
 
     private readonly ImageDownloadService _imageService;
     private CardPriceManager? _priceManager;
@@ -57,6 +58,7 @@ public class CardManager : IDisposable
         _databaseManager = new DatabaseManager();
         _cardRepository = new CardRepository(_databaseManager);
         _collectionRepository = new CollectionRepository(_databaseManager, _cardRepository);
+        _binderRepository = new BinderRepository(_databaseManager, _cardRepository);
     }
 
     // ── Initialization ───────────────────────────────────────────────
@@ -332,6 +334,37 @@ public class CardManager : IDisposable
     {
         await _collectionRepository.ReorderAsync(orderedUuids);
     }
+
+    public async Task ClearCollectionAsync()
+    {
+        await _collectionRepository.ClearCollectionAsync();
+    }
+
+    // ── Binder Methods ───────────────────────────────────────────────
+
+    public async Task<BinderEntity[]> GetAllBindersAsync() =>
+        await _binderRepository.GetAllBindersAsync();
+
+    public async Task<int> CreateBinderAsync(string name) =>
+        await _binderRepository.CreateBinderAsync(name);
+
+    public async Task DeleteBinderAsync(int binderId) =>
+        await _binderRepository.DeleteBinderAsync(binderId);
+
+    public async Task RenameBinderAsync(int binderId, string newName) =>
+        await _binderRepository.RenameBinderAsync(binderId, newName);
+
+    public async Task AddCardToBinderAsync(int binderId, string cardUuid) =>
+        await _binderRepository.AddCardToBinderAsync(binderId, cardUuid);
+
+    public async Task RemoveCardFromBinderAsync(int binderId, string cardUuid) =>
+        await _binderRepository.RemoveCardFromBinderAsync(binderId, cardUuid);
+
+    public async Task<CollectionItem[]> GetBinderCardsAsync(int binderId) =>
+        await _binderRepository.GetBinderCardsAsync(binderId);
+
+    public async Task<int[]> GetCardBinderIdsAsync(string cardUuid) =>
+        await _binderRepository.GetCardBinderIdsAsync(cardUuid);
 
     // ── Image Methods ────────────────────────────────────────────────
 

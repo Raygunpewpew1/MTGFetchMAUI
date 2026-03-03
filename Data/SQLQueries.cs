@@ -21,6 +21,28 @@ public static class SQLQueries
         )
         """;
 
+    public const string CreateBindersTable =
+        """
+        CREATE TABLE IF NOT EXISTS Binders (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Name TEXT NOT NULL,
+            Description TEXT DEFAULT '',
+            DateCreated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            DateModified DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """;
+
+    public const string CreateBinderCardsTable =
+        """
+        CREATE TABLE IF NOT EXISTS BinderCards (
+            BinderId INTEGER NOT NULL,
+            CardUUID TEXT NOT NULL,
+            DateAdded DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (BinderId, CardUUID),
+            FOREIGN KEY (BinderId) REFERENCES Binders(Id) ON DELETE CASCADE
+        )
+        """;
+
     public const string CreateDecksTable =
         """
         CREATE TABLE IF NOT EXISTS Decks (
@@ -293,6 +315,48 @@ public static class SQLQueries
 
     public const string CollectionCheckExists =
         "SELECT 1 FROM my_collection WHERE card_uuid = @uuid";
+
+    public const string CollectionClearAll =
+        "DELETE FROM my_collection";
+
+    // ============================================================================
+    // BINDER QUERIES
+    // ============================================================================
+
+    public const string BinderGetAll =
+        """
+        SELECT b.Id, b.Name, b.Description, b.DateCreated, b.DateModified,
+               (SELECT COUNT(*) FROM BinderCards bc WHERE bc.BinderId = b.Id) AS CardCount
+        FROM Binders b
+        ORDER BY b.DateModified DESC
+        """;
+
+    public const string BinderInsert =
+        "INSERT INTO Binders (Name, Description) VALUES (@Name, @Description)";
+
+    public const string BinderDelete =
+        "DELETE FROM Binders WHERE Id = @Id";
+
+    public const string BinderRename =
+        "UPDATE Binders SET Name = @Name, DateModified = CURRENT_TIMESTAMP WHERE Id = @Id";
+
+    public const string BinderCardAdd =
+        "INSERT OR IGNORE INTO BinderCards (BinderId, CardUUID) VALUES (@BinderId, @CardUUID)";
+
+    public const string BinderCardRemove =
+        "DELETE FROM BinderCards WHERE BinderId = @BinderId AND CardUUID = @CardUUID";
+
+    public const string BinderCardGetAll =
+        """
+        SELECT mc.card_uuid, mc.quantity, mc.date_added, mc.sort_order, mc.is_foil, mc.is_etched
+        FROM BinderCards bc
+        JOIN my_collection mc ON bc.CardUUID = mc.card_uuid
+        WHERE bc.BinderId = @BinderId
+        ORDER BY bc.DateAdded DESC
+        """;
+
+    public const string BinderCardGetBinderIds =
+        "SELECT BinderId FROM BinderCards WHERE CardUUID = @CardUUID";
 
     // ============================================================================
     // DECK QUERIES

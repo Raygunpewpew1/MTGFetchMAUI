@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
+             x:Class="AetherVault.Pages.BinderDetailPage"
+             BackgroundColor="{StaticResource Background}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Delete Binder"
+                     Clicked="OnDeleteBinderClicked">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.Trash}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
+            <VerticalStackLayout>
+                <Label Text="{Binding BinderName}"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}" />
+                <Label Text="{Binding StatusDisplayText}"
+                       FontSize="12"
+                       TextColor="{Binding StatusTextColor}" />
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                <ActivityIndicator x:Name="BinderLoading"
+                                   IsRunning="False"
+                                   IsVisible="False"
+                                   HeightRequest="20"
+                                   WidthRequest="20"
+                                   Color="{StaticResource Primary}" />
+                <Button Text="{Binding ViewModeButtonText}"
+                        Command="{Binding ToggleViewModeCommand}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        HeightRequest="36"
+                        WidthRequest="36"
+                        Padding="0"
+                        FontSize="18"
+                        StyleClass="ElevatedButton" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Card Grid -->
+        <controls:CardGrid Grid.Row="1"
+                           x:Name="BinderGrid" />
+
+        <!-- Empty State -->
+        <VerticalStackLayout Grid.Row="1"
+                             IsVisible="{Binding IsEmpty}"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="8">
+            <Label Text="&#x1F4D2;"
+                   FontSize="48"
+                   HorizontalOptions="Center" />
+            <Label Text="This binder is empty"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalOptions="Center" />
+            <Label Text="Long-press a card in your collection to add it here"
+                   FontSize="13"
+                   TextColor="{StaticResource TextSecondary}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>
