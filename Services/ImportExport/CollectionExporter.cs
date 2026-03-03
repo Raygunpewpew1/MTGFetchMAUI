@@ -59,7 +59,7 @@ public class CollectionExporter
             csv.WriteField(item.Card.SetCode);
             csv.WriteField("Near Mint");
             csv.WriteField("English");
-            csv.WriteField(item.IsFoil || item.IsEtched ? "foil" : "");
+            csv.WriteField(item.IsEtched ? "etched" : (item.IsFoil ? "foil" : ""));
             csv.WriteField("");
             csv.WriteField("");
             csv.WriteField(item.Card.Number ?? "");

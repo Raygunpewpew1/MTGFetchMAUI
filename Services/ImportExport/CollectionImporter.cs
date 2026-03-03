@@ -33,6 +33,7 @@ public class CollectionImporter
     {
         var result = new ImportResult();
         var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
+        var seenUuids = new Dictionary<string, int>(); // uuid → index in cardsToAdd, to deduplicate
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -143,12 +144,13 @@ public class CollectionImporter
             }
 
             bool isFoil = false;
+            bool isEtched = false;
             int foilQuantity = 0;
             if (foilIdx != -1)
             {
                 var foilVal = csv.GetField(foilIdx)?.Trim().ToLowerInvariant() ?? "";
 
-                // Decked Builder separation
+                // Decked Builder: "foil qty" is a numeric column for foil copies
                 if (lowerHeaders[foilIdx] == "foil qty")
                 {
                     if (int.TryParse(foilVal, out foilQuantity) && foilQuantity > 0)
@@ -158,11 +160,15 @@ public class CollectionImporter
                 }
                 else if (lowerHeaders[foilIdx] == "printing")
                 {
+                    // TCGplayer / ManaBox: "foil" or "etched"
                     isFoil = foilVal == "foil";
+                    isEtched = foilVal == "etched";
                 }
                 else
                 {
-                    isFoil = foilVal == "true" || foilVal == "yes" || foilVal == "1" || foilVal == "foil";
+                    // Moxfield and others: "foil", "etched", "true", "yes", "1"
+                    isEtched = foilVal == "etched";
+                    isFoil = !isEtched && (foilVal == "true" || foilVal == "yes" || foilVal == "1" || foilVal == "foil");
                 }
             }
 
@@ -195,7 +201,8 @@ public class CollectionImporter
                 var helper = _cardRepo.CreateSearchHelper();
                 helper.SearchCards()
                       .WhereNameEquals(name)
-                      .WherePrimarySideOnly();
+                      .WherePrimarySideOnly()
+                      .Limit(100);
 
                 var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
                 card = matches.FirstOrDefault(c =>
@@ -242,24 +249,25 @@ public class CollectionImporter
 
             if (card != null && !string.IsNullOrEmpty(card.UUID))
             {
-                if (foilQuantity > 0)
-                {
-                    cardsToAdd.Add((card.UUID, foilQuantity, true, false));
-                    result.SuccessCount++;
-                    result.TotalCards += foilQuantity;
+                // The collection schema has card_uuid as PRIMARY KEY, so only one entry per UUID.
+                // When Decked Builder provides separate foil and non-foil quantities, combine them.
+                int totalQty = foilQuantity > 0 ? foilQuantity + (quantity > 0 ? quantity : 0) : quantity;
+                bool cardIsFoil = foilQuantity > 0 ? true : isFoil;
+                bool cardIsEtched = isEtched;
 
-                    if (quantity > 0)
-                    {
-                        cardsToAdd.Add((card.UUID, quantity, false, false));
-                        result.SuccessCount++;
-                        result.TotalCards += quantity;
-                    }
+                if (seenUuids.TryGetValue(card.UUID, out int existingIdx))
+                {
+                    // UUID already queued — accumulate quantity
+                    var existing = cardsToAdd[existingIdx];
+                    cardsToAdd[existingIdx] = (existing.uuid, existing.quantity + totalQty, existing.isFoil || cardIsFoil, existing.isEtched || cardIsEtched);
+                    result.TotalCards += totalQty;
                 }
                 else
                 {
-                    cardsToAdd.Add((card.UUID, quantity, isFoil, false));
+                    seenUuids[card.UUID] = cardsToAdd.Count;
+                    cardsToAdd.Add((card.UUID, totalQty, cardIsFoil, cardIsEtched));
                     result.SuccessCount++;
-                    result.TotalCards += quantity;
+                    result.TotalCards += totalQty;
                 }
             }
             else

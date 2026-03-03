@@ -317,6 +317,7 @@ public partial class CollectionViewModel : BaseViewModel
 
                 _toastService.Show($"Imported {importResult.SuccessCount} lines ({importResult.TotalCards} cards).");
 
+                IsBusy = false;
                 await LoadCollectionAsync();
             }
         }
@@ -367,7 +368,7 @@ public partial class CollectionViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
-            StatusMessage = "";
+            ApplyFilterAndSort();
         }
     }
 }
