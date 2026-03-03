@@ -1,4 +1,5 @@
 using AetherVault.Data;
+using Dapper;
 using Microsoft.Data.Sqlite;
 using System.IO.Compression;
 
@@ -172,14 +173,15 @@ public class CardPriceSQLiteSync
         }
 
         // Report row count from the now-updated local table
-        using var countCmd = conn.CreateCommand();
-        countCmd.CommandText = SQLQueries.PricesCount;
-        var count = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
+        var count = await conn.ExecuteScalarAsync<long>(SQLQueries.PricesCount);
 
         OnProgress?.Invoke("Sync complete.", 100);
         OnComplete?.Invoke(true, (int)count, "");
         Logger.LogStuff($"Price sync complete: {count} rows in card_prices.", LogLevel.Info);
     }
+
+    private class TableInfo { public string name { get; set; } = ""; }
+    private class ColumnInfo { public string name { get; set; } = ""; }
 
     /// <summary>
     /// Probes the attached MTGJSON database and logs its table names, column names, and row count.
@@ -187,31 +189,19 @@ public class CardPriceSQLiteSync
     /// </summary>
     private static async Task DiagnoseAttachedDbAsync(SqliteConnection conn)
     {
-        var tables = new List<string>();
-        using (var cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = "SELECT name FROM today.sqlite_master WHERE type='table' ORDER BY name";
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-                tables.Add(reader.GetString(0));
-        }
+        var tables = (await conn.QueryAsync<TableInfo>(
+            "SELECT name FROM today.sqlite_master WHERE type='table' ORDER BY name"
+        )).Select(t => t.name).ToList();
+
         Logger.LogStuff($"[PriceSync] Attached DB tables: {string.Join(", ", tables)}", LogLevel.Info);
 
         if (tables.Contains("prices"))
         {
-            var cols = new List<string>();
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "PRAGMA today.table_info('prices')";
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                    cols.Add(reader.GetString(reader.GetOrdinal("name")));
-            }
+            var cols = (await conn.QueryAsync<ColumnInfo>("PRAGMA today.table_info('prices')"))
+                .Select(c => c.name).ToList();
             Logger.LogStuff($"[PriceSync] today.prices columns: {string.Join(", ", cols)}", LogLevel.Info);
 
-            using var countCmd = conn.CreateCommand();
-            countCmd.CommandText = "SELECT COUNT(*) FROM today.prices";
-            var count = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
+            var count = await conn.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM today.prices");
             Logger.LogStuff($"[PriceSync] today.prices row count: {count}", LogLevel.Info);
         }
         else
@@ -226,9 +216,7 @@ public class CardPriceSQLiteSync
     /// </summary>
     private static async Task MigrateIfNeededAsync(SqliteConnection conn)
     {
-        using var checkCmd = conn.CreateCommand();
-        checkCmd.CommandText = SQLQueries.PricesSchemaCheck;
-        var oldColumnCount = (long)(await checkCmd.ExecuteScalarAsync() ?? 0L);
+        var oldColumnCount = await conn.ExecuteScalarAsync<long>(SQLQueries.PricesSchemaCheck);
 
         if (oldColumnCount > 0)
         {
@@ -240,16 +228,11 @@ public class CardPriceSQLiteSync
 
     private static async Task ExecuteAsync(SqliteConnection conn, string sql)
     {
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        await cmd.ExecuteNonQueryAsync();
+        await conn.ExecuteAsync(sql);
     }
 
     private static async Task ExecuteTransactedAsync(SqliteConnection conn, SqliteTransaction trans, string sql)
     {
-        using var cmd = conn.CreateCommand();
-        cmd.Transaction = trans;
-        cmd.CommandText = sql;
-        await cmd.ExecuteNonQueryAsync();
+        await conn.ExecuteAsync(sql, transaction: trans);
     }
 }

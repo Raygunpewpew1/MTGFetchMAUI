@@ -1,4 +1,5 @@
 using AetherVault.Data;
+using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace AetherVault.Services;
@@ -56,27 +57,13 @@ public class CardPriceDatabase : IDisposable
         {
             if (!IsConnected) return (false, CardPriceData.Empty);
 
-            var currentRows = new List<PriceRow>();
-            using (var cmd = _connection!.CreateCommand())
-            {
-                cmd.CommandText = SQLQueries.PricesGetByUuid;
-                cmd.Parameters.AddWithValue("@uuid", uuid);
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                    currentRows.Add(ReadPriceRow(reader));
-            }
+            var currentRows = (await _connection!.QueryAsync<PriceRow>(
+                SQLQueries.PricesGetByUuid, new { uuid })).ToList();
 
             if (currentRows.Count == 0) return (false, CardPriceData.Empty);
 
-            var historyRows = new List<HistoryRow>();
-            using (var histCmd = _connection!.CreateCommand())
-            {
-                histCmd.CommandText = SQLQueries.PricesGetHistoryByUuid;
-                histCmd.Parameters.AddWithValue("@uuid", uuid);
-                using var reader = await histCmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                    historyRows.Add(ReadHistoryRow(reader));
-            }
+            var historyRows = (await _connection!.QueryAsync<HistoryRow>(
+                SQLQueries.PricesGetHistoryByUuid, new { uuid })).ToList();
 
             return (true, new CardPriceData
             {
@@ -94,6 +81,11 @@ public class CardPriceDatabase : IDisposable
         {
             _lock.Release();
         }
+    }
+
+    public class BulkPriceRow : PriceRow
+    {
+        public string uuid { get; set; } = "";
     }
 
     /// <summary>
@@ -114,38 +106,28 @@ public class CardPriceDatabase : IDisposable
             for (int i = 0; i < uuidList.Count; i += chunkSize)
             {
                 var chunk = uuidList.Skip(i).Take(chunkSize).ToList();
-                using var cmd = _connection!.CreateCommand();
 
+                var dynamicParams = new DynamicParameters();
                 var paramNames = new List<string>(chunk.Count);
                 for (int j = 0; j < chunk.Count; j++)
                 {
                     var p = $"@p{j}";
-                    cmd.Parameters.AddWithValue(p, chunk[j]);
+                    dynamicParams.Add(p, chunk[j]);
                     paramNames.Add(p);
                 }
 
-                cmd.CommandText = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramNames));
+                var sql = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramNames));
 
-                // Collect rows grouped by UUID, then pivot each group into CardPriceData
-                var rowsByUuid = new Dictionary<string, List<PriceRow>>();
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    var rowUuid = reader.GetString(reader.GetOrdinal("uuid"));
-                    if (!rowsByUuid.TryGetValue(rowUuid, out var list))
-                    {
-                        list = [];
-                        rowsByUuid[rowUuid] = list;
-                    }
-                    list.Add(ReadPriceRow(reader));
-                }
+                var rows = await _connection!.QueryAsync<BulkPriceRow>(sql, dynamicParams);
 
-                foreach (var (rowUuid, rows) in rowsByUuid)
+                var rowsByUuid = rows.GroupBy(r => r.uuid).ToDictionary(g => g.Key, g => g.Cast<PriceRow>().ToList());
+
+                foreach (var (rowUuid, rowList) in rowsByUuid)
                 {
                     result[rowUuid] = new CardPriceData
                     {
                         UUID = rowUuid,
-                        Paper = BuildPaperPlatform(rows, []),
+                        Paper = BuildPaperPlatform(rowList, []),
                         LastUpdated = DateTime.Now
                     };
                 }
@@ -173,10 +155,8 @@ public class CardPriceDatabase : IDisposable
         try
         {
             if (!IsConnected) return false;
-            using var cmd = _connection!.CreateCommand();
-            cmd.CommandText = SQLQueries.PricesCount;
-            var result = await cmd.ExecuteScalarAsync();
-            return result is long count && count > 0;
+            var result = await _connection!.ExecuteScalarAsync<long>(SQLQueries.PricesCount);
+            return result > 0;
         }
         catch
         {
@@ -216,24 +196,23 @@ public class CardPriceDatabase : IDisposable
 
     // ── Private Row Types ─────────────────────────────────────────────
 
-    private record PriceRow(string Provider, string PriceType, string Finish, string Currency, double Price);
-    private record HistoryRow(string Provider, string PriceType, string Finish, string Date, double Price);
+    public class PriceRow
+    {
+        public string provider { get; set; } = "";
+        public string price_type { get; set; } = "";
+        public string finish { get; set; } = "";
+        public string currency { get; set; } = "";
+        public double price { get; set; }
+    }
 
-    // ── Read Helpers ──────────────────────────────────────────────────
-
-    private static PriceRow ReadPriceRow(SqliteDataReader r) => new(
-        r.GetString(r.GetOrdinal("provider")),
-        r.GetString(r.GetOrdinal("price_type")),
-        r.GetString(r.GetOrdinal("finish")),
-        r.GetString(r.GetOrdinal("currency")),
-        r.GetDouble(r.GetOrdinal("price")));
-
-    private static HistoryRow ReadHistoryRow(SqliteDataReader r) => new(
-        r.GetString(r.GetOrdinal("provider")),
-        r.GetString(r.GetOrdinal("price_type")),
-        r.GetString(r.GetOrdinal("finish")),
-        r.GetString(r.GetOrdinal("date")),
-        r.GetDouble(r.GetOrdinal("price")));
+    public class HistoryRow
+    {
+        public string provider { get; set; } = "";
+        public string price_type { get; set; } = "";
+        public string finish { get; set; } = "";
+        public string date { get; set; } = "";
+        public double price { get; set; }
+    }
 
     // ── Pivot Helpers ─────────────────────────────────────────────────
 
@@ -247,11 +226,11 @@ public class CardPriceDatabase : IDisposable
 
     private static VendorPrices BuildVendorPrices(List<PriceRow> rows, List<HistoryRow> history, string provider)
     {
-        var vendorRows = rows.Where(r => r.Provider == provider).ToList();
+        var vendorRows = rows.Where(r => r.provider == provider).ToList();
         if (vendorRows.Count == 0) return VendorPrices.Empty;
 
         double Get(string priceType, string finish) =>
-            vendorRows.FirstOrDefault(r => r.PriceType == priceType && r.Finish == finish)?.Price ?? 0;
+            vendorRows.FirstOrDefault(r => r.price_type == priceType && r.finish == finish)?.price ?? 0;
 
         return new VendorPrices
         {
@@ -260,7 +239,7 @@ public class CardPriceDatabase : IDisposable
             RetailEtched = new PriceEntry(DateTime.Now, Get("retail", "etched")),
             BuylistNormal = new PriceEntry(DateTime.Now, Get("buylist", "normal")),
             BuylistEtched = new PriceEntry(DateTime.Now, Get("buylist", "etched")),
-            Currency = ParseCurrency(vendorRows[0].Currency),
+            Currency = ParseCurrency(vendorRows[0].currency),
             RetailNormalHistory = BuildHistoryList(history, provider, "retail", "normal"),
             RetailFoilHistory = BuildHistoryList(history, provider, "retail", "foil"),
             RetailEtchedHistory = BuildHistoryList(history, provider, "retail", "etched"),
@@ -272,16 +251,14 @@ public class CardPriceDatabase : IDisposable
     private static List<PriceEntry> BuildHistoryList(
         List<HistoryRow> history, string provider, string priceType, string finish) =>
         [.. history
-            .Where(h => h.Provider == provider && h.PriceType == priceType && h.Finish == finish)
-            .Select(h => new PriceEntry(PriceDateParser.ParseISO8601Date(h.Date), h.Price))];
+            .Where(h => h.provider == provider && h.price_type == priceType && h.finish == finish)
+            .Select(h => new PriceEntry(PriceDateParser.ParseISO8601Date(h.date), h.price))];
 
     private static PriceCurrency ParseCurrency(string s) =>
         s.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? PriceCurrency.EUR : PriceCurrency.USD;
 
     private async Task ExecuteAsync(string sql)
     {
-        using var cmd = _connection!.CreateCommand();
-        cmd.CommandText = sql;
-        await cmd.ExecuteNonQueryAsync();
+        await _connection!.ExecuteAsync(sql);
     }
 }

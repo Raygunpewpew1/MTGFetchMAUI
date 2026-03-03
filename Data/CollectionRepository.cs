@@ -1,5 +1,6 @@
 using AetherVault.Core;
 using AetherVault.Models;
+using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace AetherVault.Data;
@@ -10,6 +11,16 @@ namespace AetherVault.Data;
 /// </summary>
 public class CollectionRepository : ICollectionRepository
 {
+    private class CollectionRow
+    {
+        public string card_uuid { get; set; } = "";
+        public int quantity { get; set; }
+        public string date_added { get; set; } = "";
+        public int? sort_order { get; set; }
+        public int? is_foil { get; set; }
+        public int? is_etched { get; set; }
+    }
+
     private readonly DatabaseManager _db;
     private readonly ICardRepository _cardRepo;
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -22,37 +33,38 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task AddCardAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false)
     {
-        await WithCollectionTransactionAsync(async conn =>
+        await WithCollectionTransactionAsync(async (conn, trans) =>
         {
-            var currentQty = await GetQuantityInternalAsync(conn, cardUUID);
+            var currentQty = await GetQuantityInternalAsync(conn, cardUUID, trans);
 
             if (currentQty > 0)
             {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = SQLQueries.CollectionUpdateQuantity;
-                cmd.Parameters.AddWithValue("@qty", currentQty + quantity);
-                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
-                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
-                cmd.Parameters.AddWithValue("@uuid", cardUUID);
-                await cmd.ExecuteNonQueryAsync();
+                await conn.ExecuteAsync(
+                    SQLQueries.CollectionUpdateQuantity,
+                    new { qty = currentQty + quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0, uuid = cardUUID },
+                    trans);
             }
             else
             {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = SQLQueries.CollectionInsertCard;
-                cmd.Parameters.AddWithValue("@uuid", cardUUID);
-                cmd.Parameters.AddWithValue("@qty", quantity);
-                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
-                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
-                await cmd.ExecuteNonQueryAsync();
+                await conn.ExecuteAsync(
+                    SQLQueries.CollectionInsertCard,
+                    new { uuid = cardUUID, qty = quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0 },
+                    trans);
             }
         });
     }
 
     public async Task RemoveCardAsync(string cardUUID)
     {
-        await WithCollectionCommandAsync(SQLQueries.CollectionDeleteCard, cmd =>
-            cmd.Parameters.AddWithValue("@uuid", cardUUID));
+        await _lock.WaitAsync();
+        try
+        {
+            await _db.CollectionConnection.ExecuteAsync(SQLQueries.CollectionDeleteCard, new { uuid = cardUUID });
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false)
@@ -63,29 +75,23 @@ public class CollectionRepository : ICollectionRepository
             return;
         }
 
-        await WithCollectionTransactionAsync(async conn =>
+        await WithCollectionTransactionAsync(async (conn, trans) =>
         {
-            var currentQty = await GetQuantityInternalAsync(conn, cardUUID);
+            var currentQty = await GetQuantityInternalAsync(conn, cardUUID, trans);
 
             if (currentQty > 0)
             {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = SQLQueries.CollectionUpdateQuantity;
-                cmd.Parameters.AddWithValue("@qty", quantity);
-                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
-                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
-                cmd.Parameters.AddWithValue("@uuid", cardUUID);
-                await cmd.ExecuteNonQueryAsync();
+                await conn.ExecuteAsync(
+                    SQLQueries.CollectionUpdateQuantity,
+                    new { qty = quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0, uuid = cardUUID },
+                    trans);
             }
             else
             {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = SQLQueries.CollectionInsertCard;
-                cmd.Parameters.AddWithValue("@uuid", cardUUID);
-                cmd.Parameters.AddWithValue("@qty", quantity);
-                cmd.Parameters.AddWithValue("@isFoil", isFoil ? 1 : 0);
-                cmd.Parameters.AddWithValue("@isEtched", isEtched ? 1 : 0);
-                await cmd.ExecuteNonQueryAsync();
+                await conn.ExecuteAsync(
+                    SQLQueries.CollectionInsertCard,
+                    new { uuid = cardUUID, qty = quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0 },
+                    trans);
             }
         });
     }
@@ -93,57 +99,46 @@ public class CollectionRepository : ICollectionRepository
     public async Task<CollectionItem[]> GetCollectionAsync()
     {
         var items = new List<CollectionItem>();
-        var uuids = new List<string>();
-        var entries = new List<(string uuid, int qty, DateTime dateAdded, int sortOrder, bool isFoil, bool isEtched)>();
+        IEnumerable<CollectionRow> entries;
 
         await _lock.WaitAsync();
         try
         {
-            using var cmd = _db.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.CollectionGetAll;
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                var uuid = reader.GetString(0);
-                var qty = reader.GetInt32(1);
-                var dateAdded = DateTime.TryParse(reader.GetString(2), out var d) ? d : DateTime.Now;
-                var sortOrder = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
-                var isFoil = !reader.IsDBNull(4) && reader.GetInt32(4) != 0;
-                var isEtched = !reader.IsDBNull(5) && reader.GetInt32(5) != 0;
-                uuids.Add(uuid);
-                entries.Add((uuid, qty, dateAdded, sortOrder, isFoil, isEtched));
-            }
+            entries = await _db.CollectionConnection.QueryAsync<CollectionRow>(SQLQueries.CollectionGetAll);
         }
         finally
         {
             _lock.Release();
         }
 
-        // Batch-load card details from MTG database
-        if (uuids.Count > 0)
-        {
-            var cardCache = await _cardRepo.GetCardsByUUIDsAsync(uuids.ToArray());
+        var entryList = entries.ToList();
+        var uuids = entryList.Select(e => e.card_uuid).ToArray();
 
-            foreach (var (uuid, qty, dateAdded, sortOrder, isFoil, isEtched) in entries)
+        // Batch-load card details from MTG database
+        if (uuids.Length > 0)
+        {
+            var cardCache = await _cardRepo.GetCardsByUUIDsAsync(uuids);
+
+            foreach (var row in entryList)
             {
-                if (cardCache.TryGetValue(uuid, out var card))
+                if (cardCache.TryGetValue(row.card_uuid, out var card))
                 {
+                    DateTime dateAdded = DateTime.TryParse(row.date_added, out var d) ? d : DateTime.Now;
                     items.Add(new CollectionItem
                     {
-                        CardUUID = uuid,
-                        Quantity = qty,
-                        IsFoil = isFoil,
-                        IsEtched = isEtched,
+                        CardUUID = row.card_uuid,
+                        Quantity = row.quantity,
+                        IsFoil = row.is_foil.HasValue && row.is_foil.Value != 0,
+                        IsEtched = row.is_etched.HasValue && row.is_etched.Value != 0,
                         DateAdded = dateAdded,
-                        SortOrder = sortOrder,
+                        SortOrder = row.sort_order ?? 0,
                         Card = card
                     });
                 }
             }
         }
 
-        return items.ToArray();
+        return [.. items];
     }
 
     public async Task<CollectionStats> GetCollectionStatsAsync()
@@ -206,11 +201,9 @@ public class CollectionRepository : ICollectionRepository
         await _lock.WaitAsync();
         try
         {
-            using var cmd = _db.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.CollectionCheckExists;
-            cmd.Parameters.AddWithValue("@uuid", cardUUID);
-            using var reader = await cmd.ExecuteReaderAsync();
-            return await reader.ReadAsync();
+            var result = await _db.CollectionConnection.QueryFirstOrDefaultAsync<int?>(
+                SQLQueries.CollectionCheckExists, new { uuid = cardUUID });
+            return result.HasValue;
         }
         finally
         {
@@ -220,44 +213,10 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task<int> GetQuantityAsync(string cardUUID)
     {
-        return await GetQuantityInternalAsync(_db.CollectionConnection, cardUUID);
-    }
-
-    public async Task ReorderAsync(IList<string> orderedUuids)
-    {
-        await WithCollectionTransactionAsync(async conn =>
-        {
-            for (int i = 0; i < orderedUuids.Count; i++)
-            {
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = SQLQueries.CollectionReorderItem;
-                cmd.Parameters.AddWithValue("@sortOrder", i);
-                cmd.Parameters.AddWithValue("@uuid", orderedUuids[i]);
-                await cmd.ExecuteNonQueryAsync();
-            }
-        });
-    }
-
-    // ── Private helpers ─────────────────────────────────────────────
-
-    private async Task<int> GetQuantityInternalAsync(SqliteConnection conn, string cardUUID)
-    {
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = SQLQueries.CollectionGetQuantity;
-        cmd.Parameters.AddWithValue("@uuid", cardUUID);
-        using var reader = await cmd.ExecuteReaderAsync();
-        return await reader.ReadAsync() ? reader.GetInt32(0) : 0;
-    }
-
-    private async Task WithCollectionCommandAsync(string sql, Action<SqliteCommand> configureParams)
-    {
         await _lock.WaitAsync();
         try
         {
-            using var cmd = _db.CollectionConnection.CreateCommand();
-            cmd.CommandText = sql;
-            configureParams(cmd);
-            await cmd.ExecuteNonQueryAsync();
+            return await GetQuantityInternalAsync(_db.CollectionConnection, cardUUID);
         }
         finally
         {
@@ -265,7 +224,31 @@ public class CollectionRepository : ICollectionRepository
         }
     }
 
-    private async Task WithCollectionTransactionAsync(Func<SqliteConnection, Task> action)
+    public async Task ReorderAsync(IList<string> orderedUuids)
+    {
+        await WithCollectionTransactionAsync(async (conn, trans) =>
+        {
+            for (int i = 0; i < orderedUuids.Count; i++)
+            {
+                await conn.ExecuteAsync(
+                    SQLQueries.CollectionReorderItem,
+                    new { sortOrder = i, uuid = orderedUuids[i] },
+                    trans);
+            }
+        });
+    }
+
+    // ── Private helpers ─────────────────────────────────────────────
+
+    private Task<int> GetQuantityInternalAsync(SqliteConnection conn, string cardUUID, SqliteTransaction? trans = null)
+    {
+        return conn.QueryFirstOrDefaultAsync<int>(
+            SQLQueries.CollectionGetQuantity,
+            new { uuid = cardUUID },
+            trans);
+    }
+
+    private async Task WithCollectionTransactionAsync(Func<SqliteConnection, SqliteTransaction, Task> action)
     {
         await _lock.WaitAsync();
         try
@@ -274,7 +257,7 @@ public class CollectionRepository : ICollectionRepository
             using var transaction = conn.BeginTransaction();
             try
             {
-                await action(conn);
+                await action(conn, transaction);
                 transaction.Commit();
             }
             catch
