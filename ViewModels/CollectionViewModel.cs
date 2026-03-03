@@ -291,8 +291,16 @@ public partial class CollectionViewModel : BaseViewModel
                 StatusMessage = "Importing collection...";
                 StatusIsError = false;
 
+                void OnProgress(string message, int progress)
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        StatusMessage = message;
+                    });
+                }
+
                 using var stream = await result.OpenReadAsync();
-                var importResult = await _importer.ImportCsvAsync(stream);
+                var importResult = await _importer.ImportCsvAsync(stream, OnProgress);
 
                 if (importResult.Errors.Any())
                 {

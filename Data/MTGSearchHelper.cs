@@ -108,6 +108,14 @@ public class MTGSearchHelper
         return this;
     }
 
+    public MTGSearchHelper WhereNameEquals(string name)
+    {
+        var param = NextParam("NameEq");
+        _whereConditions.Add($"(c.name = @{param} OR c.faceName = @{param})");
+        _params.Add(param, name);
+        return this;
+    }
+
     public MTGSearchHelper WhereTextContains(string text)
     {
         var param = NextParam("Text");
@@ -214,6 +222,22 @@ public class MTGSearchHelper
     // ════════════════════════════════════════════════════════════════
     // Attribute Filters
     // ════════════════════════════════════════════════════════════════
+
+    public MTGSearchHelper WhereScryfallId(string scryfallId)
+    {
+        var param = NextParam("ScryfallId");
+        _whereConditions.Add($"ci.scryfallId = @{param}");
+        _params.Add(param, scryfallId);
+        return this;
+    }
+
+    public MTGSearchHelper WhereNumber(string number)
+    {
+        var param = NextParam("Number");
+        _whereConditions.Add($"c.number = @{param}");
+        _params.Add(param, number);
+        return this;
+    }
 
     public MTGSearchHelper WhereColors(string colors)
     {
