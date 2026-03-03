@@ -5,36 +5,46 @@
              BackgroundColor="{StaticResource Background}">
 
     <Border BackgroundColor="{StaticResource Surface}"
-            StrokeThickness="0"
+            StrokeThickness="1"
+            Stroke="{StaticResource Accent}"
             StrokeShape="RoundRectangle 24"
-            Padding="20,24,20,32"
+            Padding="24,32,24,32"
             VerticalOptions="Center"
             HorizontalOptions="Center">
         <Border.Shadow>
             <Shadow Brush="Black" Offset="0,4" Radius="20" Opacity="0.4" />
         </Border.Shadow>
 
-        <VerticalStackLayout Spacing="20" WidthRequest="300">
+        <VerticalStackLayout Spacing="24" WidthRequest="320">
 
             <!-- Card Name Header -->
-            <Label x:Name="TitleLabel"
-                   FontSize="18"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"
-                   TextColor="{StaticResource TextPrimary}"
-                   LineBreakMode="TailTruncation" />
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Add to Deck"
+                       FontSize="14"
+                       TextColor="{StaticResource Accent}"
+                       HorizontalOptions="Center"
+                       FontAttributes="Bold" />
+                <Label x:Name="TitleLabel"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource TextPrimary}"
+                       LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
 
             <!-- Deck Picker -->
-            <VerticalStackLayout Spacing="4">
-                <Label Text="Deck"
-                       FontSize="13"
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Select Deck"
+                       FontSize="14"
+                       FontAttributes="Bold"
                        TextColor="{StaticResource TextSecondary}" />
                 <Border BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="4,0">
+                        StrokeShape="RoundRectangle 12"
+                        Padding="8,4">
                     <Picker x:Name="DeckPicker"
-                            Title="Select a deck"
+                            Title="Choose a deck..."
+                            FontSize="16"
                             TextColor="{StaticResource TextPrimary}"
                             TitleColor="{StaticResource TextSecondary}"
                             BackgroundColor="Transparent" />
@@ -42,15 +52,17 @@
             </VerticalStackLayout>
 
             <!-- Section Picker -->
-            <VerticalStackLayout Spacing="4">
+            <VerticalStackLayout Spacing="8">
                 <Label Text="Section"
-                       FontSize="13"
+                       FontSize="14"
+                       FontAttributes="Bold"
                        TextColor="{StaticResource TextSecondary}" />
                 <Border BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
-                        StrokeShape="RoundRectangle 8"
-                        Padding="4,0">
+                        StrokeShape="RoundRectangle 12"
+                        Padding="8,4">
                     <Picker x:Name="SectionPicker"
+                            FontSize="16"
                             TextColor="{StaticResource TextPrimary}"
                             BackgroundColor="Transparent">
                         <Picker.Items>
@@ -63,28 +75,30 @@
             </VerticalStackLayout>
 
             <!-- Quantity Selector -->
-            <VerticalStackLayout Spacing="6">
+            <VerticalStackLayout Spacing="8">
                 <Label Text="Quantity"
-                       FontSize="13"
+                       FontSize="14"
+                       FontAttributes="Bold"
                        TextColor="{StaticResource TextSecondary}"
                        HorizontalTextAlignment="Center" />
                 <Grid ColumnDefinitions="Auto,*,Auto"
-                      ColumnSpacing="20"
+                      ColumnSpacing="24"
                       HorizontalOptions="Center"
-                      WidthRequest="260">
+                      WidthRequest="280">
                     <Button x:Name="MinusBtn"
                             Text="−"
                             Clicked="OnMinusClicked"
-                            FontSize="24"
-                            WidthRequest="56"
-                            HeightRequest="56"
-                            CornerRadius="28"
+                            FontSize="28"
+                            FontAttributes="Bold"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            CornerRadius="32"
                             BackgroundColor="{StaticResource CardBackground}"
                             TextColor="{StaticResource TextPrimary}" />
                     <Label x:Name="QuantityLabel"
                            Grid.Column="1"
                            Text="1"
-                           FontSize="36"
+                           FontSize="42"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}"
                            HorizontalTextAlignment="Center"
@@ -92,25 +106,28 @@
                     <Button Grid.Column="2"
                             Text="+"
                             Clicked="OnPlusClicked"
-                            FontSize="24"
-                            WidthRequest="56"
-                            HeightRequest="56"
-                            CornerRadius="28"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
+                            FontSize="28"
+                            FontAttributes="Bold"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            CornerRadius="32"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="Black" />
                 </Grid>
             </VerticalStackLayout>
 
             <!-- Actions -->
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,6,0,0">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,12,0,0">
                 <Button Text="Cancel"
                         Clicked="OnCancelClicked"
-                        HeightRequest="52"
+                        HeightRequest="56"
+                        FontSize="16"
                         StyleClass="OutlinedButton" />
                 <Button Grid.Column="1"
-                        Text="Add to Deck"
+                        Text="Confirm"
                         Clicked="OnConfirmClicked"
-                        HeightRequest="52"
+                        HeightRequest="56"
+                        FontSize="16"
                         FontAttributes="Bold"
                         StyleClass="FilledButton" />
             </Grid>
