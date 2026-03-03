@@ -62,24 +62,24 @@ public class CollectionImporter
 
         // Find column indices
         int nameIdx = Array.IndexOf(lowerHeaders, "name");
-        if (nameIdx == -1) nameIdx = Array.IndexOf(lowerHeaders, "card name"); // MTGO, Deckbox
+        if (nameIdx == -1) nameIdx = Array.IndexOf(lowerHeaders, "card name"); // MTGO, Deckbox?
 
-        int countIdx = Array.IndexOf(lowerHeaders, "count"); // Deckbox, Moxfield, Decked Builder
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "quantity"); // MTGO, TCGplayer, ManaBox
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "qty"); // MTG Studio, Helvault
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "amount"); // Deckstats
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "reg qty"); // Decked Builder
+        int countIdx = Array.IndexOf(lowerHeaders, "count"); // Deckbox, Moxfield, Decked Builder???
+        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "quantity"); // MTGO, TCGplayer, ManaBox??
+        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "qty"); // MTG Studio, Helvault??
+        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "amount"); // Deckstats??
+        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "reg qty"); // Decked Builder???
 
-        int setIdx = Array.IndexOf(lowerHeaders, "edition"); // Deckbox, MTG Studio
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set"); // MTGO, Decked Builder, Moxfield
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set code"); // Helvault, CardSphere
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition code"); // ManaBox
+        int setIdx = Array.IndexOf(lowerHeaders, "edition"); // Deckbox, MTG Studio???
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set"); // MTGO, Decked Builder, Moxfield? <--
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set code"); // Helvault, CardSphere??
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition code"); // ManaBox???
 
-        int foilIdx = Array.IndexOf(lowerHeaders, "foil"); // Deckbox, MTG Studio, Moxfield
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "is foil"); // Helvault
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "premium"); // MTGO
+        int foilIdx = Array.IndexOf(lowerHeaders, "foil"); // Deckbox, MTG Studio, Moxfield <--
+        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "is foil"); // Helvault??
+        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "premium"); // MTGO??
         if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "foil qty"); // Decked Builder
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "printing"); // TCGplayer, ManaBox
+        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "printing"); // TCGplayer, ManaBox <--
 
         // Ensure Name column is found
         if (nameIdx == -1)
@@ -93,11 +93,11 @@ public class CollectionImporter
         {
             lineNumber++;
 
-            string name = csv.GetField(nameIdx)?.Trim();
+            string? name = csv.GetField(nameIdx)?.Trim();
             if (string.IsNullOrWhiteSpace(name)) continue;
 
             // Handle Deckstats inline set abbr (e.g. "Abrupt Decay [RTR]")
-            string extractedSet = null;
+            string? extractedSet = null;
             if (setIdx == -1 && name.EndsWith("]"))
             {
                 int openBracket = name.LastIndexOf('[');
@@ -119,7 +119,7 @@ public class CollectionImporter
             }
             if (quantity <= 0) continue;
 
-            string set = extractedSet;
+            string? set = extractedSet;
             if (setIdx != -1)
             {
                 var setStr = csv.GetField(setIdx)?.Trim();
