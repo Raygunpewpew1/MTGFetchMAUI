@@ -10,8 +10,22 @@
     <ContentPage.Resources>
         <ResourceDictionary>
             <OnIdiom x:Key="HeaderFontSize" x:TypeArguments="x:Double" Phone="16" Tablet="20" Desktop="20" />
-            <OnIdiom x:Key="BodyFontSize" x:TypeArguments="x:Double" Phone="14" Tablet="18" Desktop="18" />
-            <OnIdiom x:Key="SmallFontSize" x:TypeArguments="x:Double" Phone="12" Tablet="16" Desktop="16" />
+            <OnIdiom x:Key="BodyFontSize"   x:TypeArguments="x:Double" Phone="14" Tablet="18" Desktop="18" />
+            <OnIdiom x:Key="SmallFontSize"  x:TypeArguments="x:Double" Phone="12" Tablet="16" Desktop="16" />
+
+            <!-- Styles for the plain Label + Border + Picker used in the Format Legality section -->
+            <Style x:Key="FormInputLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                <Setter Property="FontSize"  Value="{StaticResource BodyFontSize}" />
+                <Setter Property="Margin"    Value="0,0,0,4" />
+            </Style>
+
+            <Style x:Key="FormInputContainer" TargetType="Border">
+                <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+                <Setter Property="Stroke"          Value="{StaticResource TextSecondary}" />
+                <Setter Property="StrokeShape"     Value="RoundRectangle 4" />
+                <Setter Property="Padding"         Value="12,4" />
+            </Style>
         </ResourceDictionary>
     </ContentPage.Resources>
 
