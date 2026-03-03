@@ -2,6 +2,7 @@ using AetherVault.Core;
 using AetherVault.Models;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using System.Data.Common;
 
 namespace AetherVault.Data;
 
@@ -298,13 +299,13 @@ public class CardRepository : ICardRepository
     private async Task<T> WithMTGReaderAsync<T>(
         string sql,
         object? param,
-        Func<SqliteDataReader, Task<T>> readFunc)
+        Func<DbDataReader, Task<T>> readFunc)
     {
         await _lock.WaitAsync();
         try
         {
-            using var reader = await _db.MTGConnection.ExecuteReaderAsync(sql, param) as SqliteDataReader
-                ?? throw new InvalidOperationException("Failed to create SqliteDataReader.");
+            using var reader = await _db.MTGConnection.ExecuteReaderAsync(sql, param) as DbDataReader
+                ?? throw new InvalidOperationException("Failed to create DbDataReader.");
             return await readFunc(reader);
         }
         finally
