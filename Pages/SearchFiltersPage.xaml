@@ -72,12 +72,12 @@
                 <!-- Rarity -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" />
-                    <FlexLayout Wrap="Wrap" JustifyContent="Start">
-                        <material:CheckBox x:Name="ChkCommon" Text="Common" Color="{StaticResource Primary}" Margin="0,0,12,4" />
-                        <material:CheckBox x:Name="ChkUncommon" Text="Uncommon" Color="{StaticResource Primary}" Margin="0,0,12,4" />
-                        <material:CheckBox x:Name="ChkRare" Text="Rare" Color="{StaticResource Primary}" Margin="0,0,12,4" />
-                        <material:CheckBox x:Name="ChkMythic" Text="Mythic" Color="{StaticResource Primary}" Margin="0,0,12,4" />
-                    </FlexLayout>
+                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+                        <material:CheckBox Grid.Row="0" Grid.Column="0" x:Name="ChkCommon" Text="Common" Color="{StaticResource Primary}" />
+                        <material:CheckBox Grid.Row="0" Grid.Column="1" x:Name="ChkUncommon" Text="Uncommon" Color="{StaticResource Primary}" />
+                        <material:CheckBox Grid.Row="1" Grid.Column="0" x:Name="ChkRare" Text="Rare" Color="{StaticResource Primary}" />
+                        <material:CheckBox Grid.Row="1" Grid.Column="1" x:Name="ChkMythic" Text="Mythic" Color="{StaticResource Primary}" />
+                    </Grid>
                 </VerticalStackLayout>
 
                 <!-- CMC Range -->
