@@ -12,20 +12,6 @@
             <OnIdiom x:Key="HeaderFontSize" x:TypeArguments="x:Double" Phone="16" Tablet="20" Desktop="20" />
             <OnIdiom x:Key="BodyFontSize"   x:TypeArguments="x:Double" Phone="14" Tablet="18" Desktop="18" />
             <OnIdiom x:Key="SmallFontSize"  x:TypeArguments="x:Double" Phone="12" Tablet="16" Desktop="16" />
-
-            <!-- Styles for the plain Label + Border + Picker used in the Format Legality section -->
-            <Style x:Key="FormInputLabel" TargetType="Label">
-                <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
-                <Setter Property="FontSize"  Value="{StaticResource BodyFontSize}" />
-                <Setter Property="Margin"    Value="0,0,0,4" />
-            </Style>
-
-            <Style x:Key="FormInputContainer" TargetType="Border">
-                <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
-                <Setter Property="Stroke"          Value="{StaticResource TextSecondary}" />
-                <Setter Property="StrokeShape"     Value="RoundRectangle 4" />
-                <Setter Property="Padding"         Value="12,4" />
-            </Style>
         </ResourceDictionary>
     </ContentPage.Resources>
 
@@ -97,25 +83,12 @@
                 <!-- CMC Range -->
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Mana Value (CMC)" FontSize="{StaticResource BodyFontSize}" />
-                    <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
-                        <VerticalStackLayout>
-                            <Label x:Name="CMCMinLabel" Text="Min: 0" FontSize="{StaticResource SmallFontSize}"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Slider x:Name="CMCMinSlider" Minimum="0" Maximum="16"
-                                    ValueChanged="OnCMCChanged"
-                                    ThumbColor="{StaticResource Primary}"
-                                    MinimumTrackColor="{StaticResource Primary}" />
-                        </VerticalStackLayout>
-                        <Label Grid.Column="1" Text="to" VerticalOptions="End" Margin="0,0,0,8" FontSize="{StaticResource BodyFontSize}" />
-                        <VerticalStackLayout Grid.Column="2">
-                            <Label x:Name="CMCMaxLabel" Text="Max: 16+" FontSize="{StaticResource SmallFontSize}"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Slider x:Name="CMCMaxSlider" Minimum="0" Maximum="16" Value="16"
-                                    ValueChanged="OnCMCChanged"
-                                    ThumbColor="{StaticResource Primary}"
-                                    MinimumTrackColor="{StaticResource Primary}" />
-                        </VerticalStackLayout>
-                    </Grid>
+                    <Label x:Name="CMCRangeLabel" Text="0 – 16+"
+                           FontSize="{StaticResource SmallFontSize}"
+                           TextColor="{StaticResource TextSecondary}" />
+                    <material:RangeSlider x:Name="CMCRangeSlider"
+                                          MinimumValue="0" MaximumValue="16"
+                                          LowerValue="0" UpperValue="16" />
                 </VerticalStackLayout>
 
                 <!-- Power / Toughness -->
@@ -131,12 +104,11 @@
                 </Grid>
 
                 <!-- Format Legality -->
-                <VerticalStackLayout Spacing="0">
-                    <Label Text="Format" Style="{StaticResource FormInputLabel}" />
-                    <Border Style="{StaticResource FormInputContainer}">
-                        <Picker x:Name="FormatPicker" Title="Format" TextColor="{StaticResource TextPrimary}" BackgroundColor="Transparent" />
-                    </Border>
-                </VerticalStackLayout>
+                <material:PickerField x:Name="FormatPicker"
+                                      Title="Format"
+                                      TextColor="{StaticResource TextPrimary}"
+                                      TitleColor="{StaticResource TextSecondary}"
+                                      AccentColor="{StaticResource Primary}" />
 
                 <!-- Set Code -->
                 <material:TextField x:Name="SetEntry" Title="Set Code"

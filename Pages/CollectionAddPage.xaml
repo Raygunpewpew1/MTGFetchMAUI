@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="AetherVault.Pages.CollectionAddPage"
              BackgroundColor="{StaticResource Background}">
 
@@ -83,26 +84,12 @@
 
             <!-- Finish Toggles -->
             <VerticalStackLayout Spacing="10">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <CheckBox x:Name="FoilCheckBox"
-                              Color="{StaticResource Primary}"
-                              VerticalOptions="Center" />
-                    <Label Grid.Column="1"
-                           Text="Foil"
-                           FontSize="15"
-                           TextColor="{StaticResource TextPrimary}"
-                           VerticalOptions="Center" />
-                </Grid>
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <CheckBox x:Name="EtchedCheckBox"
-                              Color="{StaticResource Primary}"
-                              VerticalOptions="Center" />
-                    <Label Grid.Column="1"
-                           Text="Etched"
-                           FontSize="15"
-                           TextColor="{StaticResource TextPrimary}"
-                           VerticalOptions="Center" />
-                </Grid>
+                <material:CheckBox x:Name="FoilCheckBox"
+                                   Text="Foil"
+                                   Color="{StaticResource Primary}" />
+                <material:CheckBox x:Name="EtchedCheckBox"
+                                   Text="Etched"
+                                   Color="{StaticResource Primary}" />
             </VerticalStackLayout>
 
             <!-- Actions -->
