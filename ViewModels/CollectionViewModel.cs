@@ -58,6 +58,14 @@ public partial class CollectionViewModel : BaseViewModel
         _importer = importer;
         _exporter = exporter;
         _toastService = toastService;
+
+        _cardManager.OnPriceSyncProgress += (msg, pct) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsImportingPrices = pct < 100;
+            });
+        };
     }
 
     public void AttachGrid(CardGrid grid)

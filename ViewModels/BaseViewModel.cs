@@ -28,6 +28,9 @@ public abstract partial class BaseViewModel : ObservableObject
     public string StatusDisplayText => StatusIsError ? $"⚠ {StatusMessage}" : StatusMessage;
 
     [ObservableProperty]
+    public partial bool IsImportingPrices { get; set; }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ViewModeButtonText))]
     public partial ViewMode ViewMode { get; set; } = ViewMode.Grid;
 

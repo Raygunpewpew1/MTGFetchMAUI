@@ -58,6 +58,13 @@ public partial class SearchViewModel : BaseViewModel
         {
             MainThread.BeginInvokeOnMainThread(() => StatusMessage = msg);
         };
+        _cardManager.OnPriceSyncProgress += (msg, pct) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsImportingPrices = pct < 100;
+            });
+        };
         _cardManager.OnDatabaseReady += () =>
         {
             MainThread.BeginInvokeOnMainThread(() => StatusMessage = "Database ready");

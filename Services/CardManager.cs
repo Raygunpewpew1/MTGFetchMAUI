@@ -25,6 +25,9 @@ public class CardManager : IDisposable
     /// <summary>Progress callback for downloads: (message, percent).</summary>
     public event Action<string, int>? OnProgress;
 
+    /// <summary>Progress callback for price syncs: (message, percent).</summary>
+    public event Action<string, int>? OnPriceSyncProgress;
+
     /// <summary>Fired when the database is ready after download/connect.</summary>
     public event Action? OnDatabaseReady;
 
@@ -171,7 +174,7 @@ public class CardManager : IDisposable
             _priceManager = new CardPriceManager();
             await _priceManager.InitializeAsync();
 
-            _priceManager.OnProgress = (msg, pct) => OnProgress?.Invoke(msg, pct);
+            _priceManager.OnProgress = (msg, pct) => OnPriceSyncProgress?.Invoke(msg, pct);
             _priceManager.OnDatabaseUpdateAvailable = version => OnDatabaseUpdateAvailable?.Invoke(version);
             _priceManager.OnLoadComplete = (success, message) =>
             {

@@ -48,16 +48,27 @@
                        FontSize="18"
                        FontAttributes="Bold"
                        TextColor="{StaticResource TextPrimary}" />
-                <Label x:Name="CollectionStatus"
-                       Text="{Binding StatusDisplayText}"
-                       FontSize="12"
-                       TextColor="{Binding StatusTextColor}" />
+                <HorizontalStackLayout Spacing="8">
+                    <Label x:Name="CollectionStatus"
+                           Text="{Binding StatusDisplayText}"
+                           FontSize="12"
+                           VerticalOptions="Center"
+                           TextColor="{Binding StatusTextColor}" />
+                    <HorizontalStackLayout IsVisible="{Binding IsImportingPrices}" Spacing="4" VerticalOptions="Center">
+                        <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
+                                           HeightRequest="12" WidthRequest="12"
+                                           Color="{StaticResource TextSecondary}" />
+                        <Label Text="Syncing Prices..."
+                               FontSize="10" TextColor="{StaticResource TextSecondary}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </HorizontalStackLayout>
             </VerticalStackLayout>
 
             <HorizontalStackLayout Grid.Column="1" Spacing="8">
                 <ActivityIndicator x:Name="CollectionLoading"
-                                   IsRunning="False"
-                                   IsVisible="False"
+                                   IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
                                    HeightRequest="20"
                                    WidthRequest="20"
                                    Color="{StaticResource Primary}" />
