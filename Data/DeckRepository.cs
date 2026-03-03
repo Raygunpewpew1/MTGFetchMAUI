@@ -224,4 +224,47 @@ public class DeckRepository : IDeckRepository
             _databaseManager.ConnectionLock.Release();
         }
     }
+
+    public async Task<int> GetDeckCardCountAsync(int deckId)
+    {
+        if (!_databaseManager.IsConnected) return 0;
+
+        await _databaseManager.ConnectionLock.WaitAsync();
+        try
+        {
+            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
+            cmd.CommandText = SQLQueries.DeckGetCardCount;
+            cmd.Parameters.AddWithValue("@DeckId", deckId);
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result ?? 0);
+        }
+        finally
+        {
+            _databaseManager.ConnectionLock.Release();
+        }
+    }
+
+    private static DeckEntity MapDeck(SqliteDataReader reader)
+    {
+        var createdStr = reader.IsDBNull(reader.GetOrdinal("DateCreated")) ? null : reader.GetString(reader.GetOrdinal("DateCreated"));
+        var modifiedStr = reader.IsDBNull(reader.GetOrdinal("DateModified")) ? null : reader.GetString(reader.GetOrdinal("DateModified"));
+
+        DateTime.TryParse(createdStr, out var created);
+        DateTime.TryParse(modifiedStr, out var modified);
+
+        return new DeckEntity
+        {
+            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+            Name = reader.GetString(reader.GetOrdinal("Name")),
+            Format = reader.GetString(reader.GetOrdinal("Format")),
+            Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? "" : reader.GetString(reader.GetOrdinal("Description")),
+            CoverCardId = reader.IsDBNull(reader.GetOrdinal("CoverCardId")) ? "" : reader.GetString(reader.GetOrdinal("CoverCardId")),
+            DateCreated = created,
+            DateModified = modified,
+            CommanderId = reader.IsDBNull(reader.GetOrdinal("CommanderId")) ? "" : reader.GetString(reader.GetOrdinal("CommanderId")),
+            CommanderName = reader.IsDBNull(reader.GetOrdinal("CommanderName")) ? "" : reader.GetString(reader.GetOrdinal("CommanderName")),
+            PartnerId = reader.IsDBNull(reader.GetOrdinal("PartnerId")) ? "" : reader.GetString(reader.GetOrdinal("PartnerId")),
+            ColorIdentity = reader.IsDBNull(reader.GetOrdinal("ColorIdentity")) ? "" : reader.GetString(reader.GetOrdinal("ColorIdentity"))
+        };
+    }
 }

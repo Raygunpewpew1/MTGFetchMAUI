@@ -34,6 +34,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
 {
     private readonly DeckBuilderService _deckService = deckService;
     private readonly ICardRepository _cardRepository = cardRepository;
+    private int _deckId;
 
     [ObservableProperty]
     public partial DeckEntity? Deck { get; set; }
@@ -91,8 +92,11 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     [RelayCommand]
     private void SelectStats() => SelectedSectionIndex = 3;
 
+    public async Task ReloadAsync() => await LoadAsync(_deckId);
+
     public async Task LoadAsync(int deckId)
     {
+        _deckId = deckId;
         if (IsBusy) return;
         IsBusy = true;
         StatusIsError = false;
@@ -165,10 +169,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, item.Entity.Quantity + 1, item.Entity.Section);
         if (result.IsSuccess)
-        {
-            item.Entity.Quantity++;
-            TotalCardCount++;
-        }
+            await ReloadAsync();
     }
 
     [RelayCommand]
@@ -179,13 +180,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, newQty, item.Entity.Section);
         if (result.IsSuccess)
-        {
-            TotalCardCount--;
-            if (newQty <= 0)
-                RemoveItemFromCollections(item);
-            else
-                item.Entity.Quantity = newQty;
-        }
+            await ReloadAsync();
     }
 
     [RelayCommand]
@@ -193,45 +188,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     {
         if (Deck == null) return;
         await _deckService.RemoveCardAsync(Deck.Id, item.Entity.CardId, item.Entity.Section);
-        TotalCardCount -= item.Entity.Quantity;
-        RemoveItemFromCollections(item);
-    }
-
-    private void RemoveItemFromCollections(DeckCardDisplayItem item)
-    {
-        switch (item.Entity.Section)
-        {
-            case "Commander":
-                CommanderCards.Remove(item);
-                OnPropertyChanged(nameof(HasNoCommander));
-                break;
-            case "Sideboard":
-                SideboardCards.Remove(item);
-                break;
-            default:
-                foreach (var g in MainDeckGroups)
-                    if (g.Remove(item)) break;
-                break;
-        }
-        RefreshStats();
-    }
-
-    private void RefreshStats()
-    {
-        var allEntities = new List<DeckCardEntity>();
-        var cardMap = new Dictionary<string, Card>();
-
-        void Collect(DeckCardDisplayItem i)
-        {
-            allEntities.Add(i.Entity);
-            if (i.Card != null) cardMap[i.Entity.CardId] = i.Card;
-        }
-
-        foreach (var i in CommanderCards) Collect(i);
-        foreach (var i in SideboardCards) Collect(i);
-        foreach (var g in MainDeckGroups) foreach (var i in g) Collect(i);
-
-        Stats = ComputeStats(allEntities, cardMap);
+        await ReloadAsync();
     }
 
     private static ObservableCollection<DeckCardGroup> BuildGroups(List<DeckCardDisplayItem> items)

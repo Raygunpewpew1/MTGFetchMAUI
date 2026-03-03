@@ -26,9 +26,19 @@ public partial class AddToDeckPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await LoadDecksAsync();
+    }
+
+    private async Task LoadDecksAsync()
+    {
         _decks = await _deckService.GetDecksAsync();
-        DeckPicker.ItemsSource = _decks.Select(d => d.Name).ToList();
-        if (_decks.Count > 0)
+
+        bool hasDecks = _decks.Count > 0;
+        NoDeckPanel.IsVisible = !hasDecks;
+        DeckPickerPanel.IsVisible = hasDecks;
+
+        DeckPicker.ItemsSource = _decks.Select(d => $"{d.Name} ({d.FormatDisplay})").ToList();
+        if (hasDecks)
             DeckPicker.SelectedIndex = 0;
     }
 
@@ -55,6 +65,15 @@ public partial class AddToDeckPage : ContentPage
     {
         _quantity++;
         UpdateQuantityUI();
+    }
+
+    private async void OnCreateDeckClicked(object? sender, EventArgs e)
+    {
+        var modal = new CreateDeckPage(_deckService);
+        await Navigation.PushModalAsync(modal);
+        int? newId = await modal.WaitForResultAsync();
+        if (newId.HasValue)
+            await LoadDecksAsync();
     }
 
     private async void OnConfirmClicked(object? sender, EventArgs e)
