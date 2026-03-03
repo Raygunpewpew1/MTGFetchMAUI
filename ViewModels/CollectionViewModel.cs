@@ -102,6 +102,18 @@ public partial class CollectionViewModel : BaseViewModel
         IsCollectionEmpty = _allItems.Length == 0;
 
         StatusMessage = _allItems.Length == 0 ? "" : $"{displayedTotal} cards ({displayedUnique} unique)";
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_grid != null)
+            {
+                var (start, end) = _grid.GetVisibleRange();
+                if (end >= start && start >= 0)
+                {
+                    LoadVisiblePrices(start, end);
+                }
+            }
+        });
     }
 
     [RelayCommand]
