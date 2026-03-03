@@ -1,3 +1,5 @@
+using AetherVault.Services;
+using AetherVault.Services.DeckBuilder;
 using AetherVault.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
@@ -8,6 +10,9 @@ namespace AetherVault.Pages;
 public partial class DeckDetailPage : ContentPage
 {
     private readonly DeckDetailViewModel _viewModel;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly DeckBuilderService _deckService;
+    private readonly IToastService _toastService;
 
     public string DeckId
     {
@@ -18,10 +23,17 @@ public partial class DeckDetailPage : ContentPage
         }
     }
 
-    public DeckDetailPage(DeckDetailViewModel viewModel)
+    public DeckDetailPage(
+        DeckDetailViewModel viewModel,
+        IServiceProvider serviceProvider,
+        DeckBuilderService deckService,
+        IToastService toastService)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _serviceProvider = serviceProvider;
+        _deckService = deckService;
+        _toastService = toastService;
         BindingContext = viewModel;
 
         _viewModel.PropertyChanged += (_, e) =>
@@ -32,6 +44,39 @@ public partial class DeckDetailPage : ContentPage
                 CommanderArtCanvas?.InvalidateSurface();
             }
         };
+    }
+
+    private async void OnAddCardClicked(object? sender, EventArgs e)
+    {
+        if (_viewModel.Deck == null) return;
+
+        var pickerPage = _serviceProvider.GetRequiredService<CardSearchPickerPage>();
+        await Navigation.PushModalAsync(new NavigationPage(pickerPage));
+        var card = await pickerPage.WaitForResultAsync();
+
+        if (card == null) return;
+
+        int sectionIndex = _viewModel.SelectedSectionIndex;
+
+        if (sectionIndex == 0) // Commander tab
+        {
+            var result = await _deckService.SetCommanderAsync(_viewModel.Deck.Id, card.UUID);
+            if (result.IsError)
+                _toastService.Show(result.Message ?? "Could not set commander.");
+            else
+                _toastService.Show($"{card.Name} set as commander.");
+        }
+        else
+        {
+            string section = sectionIndex == 2 ? "Sideboard" : "Main";
+            var result = await _deckService.AddCardAsync(_viewModel.Deck.Id, card.UUID, 1, section);
+            if (result.IsError)
+                _toastService.Show(result.Message ?? "Could not add card.");
+            else
+                _toastService.Show($"{card.Name} added to {section}.");
+        }
+
+        await _viewModel.ReloadAsync();
     }
 
     private void OnCommanderArtPaint(object? sender, SKPaintSurfaceEventArgs e)

@@ -32,8 +32,29 @@
                        LineBreakMode="TailTruncation" />
             </VerticalStackLayout>
 
+            <!-- No decks empty state -->
+            <VerticalStackLayout x:Name="NoDeckPanel"
+                                  IsVisible="False"
+                                  Spacing="12"
+                                  HorizontalOptions="Center">
+                <Label Text="No decks yet"
+                       FontSize="15"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalOptions="Center" />
+                <Button Text="Create Deck"
+                        Clicked="OnCreateDeckClicked"
+                        BackgroundColor="{StaticResource Accent}"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        HeightRequest="44"
+                        Padding="20,0"
+                        FontSize="14"
+                        HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
             <!-- Deck Picker -->
-            <VerticalStackLayout Spacing="8">
+            <VerticalStackLayout x:Name="DeckPickerPanel" Spacing="8">
                 <Label Text="Select Deck"
                        FontSize="14"
                        FontAttributes="Bold"

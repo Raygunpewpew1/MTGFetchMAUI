@@ -1,3 +1,4 @@
+using AetherVault.Data;
 using AetherVault.Models;
 using AetherVault.Services.DeckBuilder;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,6 +10,7 @@ namespace AetherVault.ViewModels;
 public partial class DecksViewModel : BaseViewModel
 {
     private readonly DeckBuilderService _deckService;
+    private readonly IDeckRepository _deckRepository;
 
     [ObservableProperty]
     public partial ObservableCollection<DeckEntity> Decks { get; set; } = [];
@@ -16,9 +18,10 @@ public partial class DecksViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
-    public DecksViewModel(DeckBuilderService deckService)
+    public DecksViewModel(DeckBuilderService deckService, IDeckRepository deckRepository)
     {
         _deckService = deckService;
+        _deckRepository = deckRepository;
     }
 
     [RelayCommand]
@@ -32,6 +35,10 @@ public partial class DecksViewModel : BaseViewModel
         try
         {
             var list = await _deckService.GetDecksAsync();
+
+            foreach (var deck in list)
+                deck.CardCount = await _deckRepository.GetDeckCardCountAsync(deck.Id);
+
             Decks = new ObservableCollection<DeckEntity>(list);
             IsEmpty = Decks.Count == 0;
             StatusMessage = Decks.Count == 0 ? "" : $"{Decks.Count} deck{(Decks.Count == 1 ? "" : "s")}";

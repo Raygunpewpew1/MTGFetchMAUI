@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
              xmlns:controls="clr-namespace:AetherVault.Controls"
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
@@ -85,7 +86,7 @@
                     Padding="0" />
         </Grid>
 
-        <!-- Row 3: Content Panels (overlapping, one visible at a time) -->
+        <!-- Row 3: Content Panels + FAB overlay -->
         <Grid Grid.Row="3">
 
             <!-- Commander Tab -->
@@ -102,7 +103,7 @@
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextPrimary}"
                                HorizontalOptions="Center" />
-                        <Label Text="Search for a legendary creature and add it to the Commander section"
+                        <Label Text="Tap + to search for a legendary creature"
                                FontSize="13"
                                TextColor="{StaticResource TextSecondary}"
                                HorizontalOptions="Center"
@@ -181,7 +182,7 @@
                                 </SwipeItems>
                             </SwipeView.RightItems>
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
-                                  Padding="12,5"
+                                  Padding="12,8"
                                   ColumnSpacing="6"
                                   BackgroundColor="{StaticResource Background}">
                                 <Border BackgroundColor="{StaticResource Surface}"
@@ -206,15 +207,16 @@
                                        FontSize="11"
                                        VerticalOptions="Center" />
                                 <Button Grid.Column="3"
-                                        Text="−"
+                                        Text="&#x2212;"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                         CommandParameter="{Binding .}"
                                         BackgroundColor="{StaticResource Surface}"
                                         TextColor="{StaticResource TextPrimary}"
-                                        WidthRequest="32"
-                                        HeightRequest="32"
+                                        WidthRequest="44"
+                                        HeightRequest="44"
                                         Padding="0"
-                                        FontSize="16"
+                                        Margin="2,0"
+                                        FontSize="18"
                                         CornerRadius="4" />
                                 <Button Grid.Column="4"
                                         Text="+"
@@ -222,10 +224,11 @@
                                         CommandParameter="{Binding .}"
                                         BackgroundColor="{StaticResource Accent}"
                                         TextColor="Black"
-                                        WidthRequest="32"
-                                        HeightRequest="32"
+                                        WidthRequest="44"
+                                        HeightRequest="44"
                                         Padding="0"
-                                        FontSize="16"
+                                        Margin="2,0"
+                                        FontSize="18"
                                         CornerRadius="4" />
                             </Grid>
                         </SwipeView>
@@ -256,7 +259,7 @@
                                 </SwipeItems>
                             </SwipeView.RightItems>
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
-                                  Padding="12,5"
+                                  Padding="12,8"
                                   ColumnSpacing="6"
                                   BackgroundColor="{StaticResource Background}">
                                 <Border BackgroundColor="{StaticResource Surface}"
@@ -281,15 +284,16 @@
                                        FontSize="11"
                                        VerticalOptions="Center" />
                                 <Button Grid.Column="3"
-                                        Text="−"
+                                        Text="&#x2212;"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                         CommandParameter="{Binding .}"
                                         BackgroundColor="{StaticResource Surface}"
                                         TextColor="{StaticResource TextPrimary}"
-                                        WidthRequest="32"
-                                        HeightRequest="32"
+                                        WidthRequest="44"
+                                        HeightRequest="44"
                                         Padding="0"
-                                        FontSize="16"
+                                        Margin="2,0"
+                                        FontSize="18"
                                         CornerRadius="4" />
                                 <Button Grid.Column="4"
                                         Text="+"
@@ -297,10 +301,11 @@
                                         CommandParameter="{Binding .}"
                                         BackgroundColor="{StaticResource Accent}"
                                         TextColor="Black"
-                                        WidthRequest="32"
-                                        HeightRequest="32"
+                                        WidthRequest="44"
+                                        HeightRequest="44"
                                         Padding="0"
-                                        FontSize="16"
+                                        Margin="2,0"
+                                        FontSize="18"
                                         CornerRadius="4" />
                             </Grid>
                         </SwipeView>
@@ -397,6 +402,27 @@
                 </VerticalStackLayout>
             </ScrollView>
 
+            <!-- FAB: Add Card (visible on Commander, Main, Sideboard tabs) -->
+            <Button x:Name="AddCardFab"
+                    Text="+"
+                    Clicked="OnAddCardClicked"
+                    IsVisible="{Binding IsStatsTab, Converter={StaticResource InvertBool}}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="Black"
+                    FontSize="24"
+                    FontAttributes="Bold"
+                    WidthRequest="56"
+                    HeightRequest="56"
+                    CornerRadius="28"
+                    HorizontalOptions="End"
+                    VerticalOptions="End"
+                    Margin="0,0,16,16"
+                    ZIndex="10">
+                <Button.Shadow>
+                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.4" />
+                </Button.Shadow>
+            </Button>
+
         </Grid>
 
         <!-- Row 4: Footer -->
@@ -411,5 +437,11 @@
         </Grid>
 
     </Grid>
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:InvertedBoolConverter x:Key="InvertBool" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
 
 </ContentPage>

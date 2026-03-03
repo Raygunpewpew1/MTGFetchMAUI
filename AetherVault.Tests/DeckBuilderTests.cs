@@ -468,6 +468,11 @@ public class MockDeckRepository : IDeckRepository
     {
         return Task.FromResult(_deckCards.Where(c => c.DeckId == deckId).ToList());
     }
+
+    public Task<int> GetDeckCardCountAsync(int deckId)
+    {
+        return Task.FromResult(_deckCards.Where(c => c.DeckId == deckId).Sum(c => c.Quantity));
+    }
 }
 
 public class MockCardRepository : ICardRepository
