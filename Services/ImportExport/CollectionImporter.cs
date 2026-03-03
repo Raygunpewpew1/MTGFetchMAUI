@@ -29,9 +29,10 @@ public class CollectionImporter
         _cardRepo = cardRepo;
     }
 
-    public async Task<ImportResult> ImportCsvAsync(Stream csvStream)
+    public async Task<ImportResult> ImportCsvAsync(Stream csvStream, Action<string, int>? onProgress = null)
     {
         var result = new ImportResult();
+        var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -81,10 +82,16 @@ public class CollectionImporter
         if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "foil qty"); // Decked Builder
         if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "printing"); // TCGplayer, ManaBox <--
 
-        // Ensure Name column is found
-        if (nameIdx == -1)
+        int scryfallIdx = Array.IndexOf(lowerHeaders, "scryfall id"); // Moxfield
+        if (scryfallIdx == -1) scryfallIdx = Array.IndexOf(lowerHeaders, "scryfall_id");
+
+        int numberIdx = Array.IndexOf(lowerHeaders, "collector number"); // Moxfield
+        if (numberIdx == -1) numberIdx = Array.IndexOf(lowerHeaders, "card number"); // TCGplayer
+
+        // Ensure Name or Scryfall ID column is found
+        if (nameIdx == -1 && scryfallIdx == -1)
         {
-            result.Errors.Add("Could not find 'Name' column in CSV header. Supported formats include Moxfield, Archidekt, CardSphere, Deckbox, Decked Builder, Deckstats, Helvault, ManaBox, TappedOut.");
+            result.Errors.Add("Could not find 'Name' or 'Scryfall ID' column in CSV header. Supported formats include Moxfield, Archidekt, CardSphere, Deckbox, Decked Builder, Deckstats, Helvault, ManaBox, TappedOut.");
             return result;
         }
 
@@ -93,12 +100,18 @@ public class CollectionImporter
         {
             lineNumber++;
 
-            string? name = csv.GetField(nameIdx)?.Trim();
-            if (string.IsNullOrWhiteSpace(name)) continue;
+            if (lineNumber % 100 == 0)
+                onProgress?.Invoke($"Parsing row {lineNumber}...", lineNumber);
+
+            string? scryfallId = scryfallIdx != -1 ? csv.GetField(scryfallIdx)?.Trim() : null;
+            string? name = nameIdx != -1 ? csv.GetField(nameIdx)?.Trim() : null;
+            string? number = numberIdx != -1 ? csv.GetField(numberIdx)?.Trim() : null;
+
+            if (string.IsNullOrWhiteSpace(scryfallId) && string.IsNullOrWhiteSpace(name)) continue;
 
             // Handle Deckstats inline set abbr (e.g. "Abrupt Decay [RTR]")
             string? extractedSet = null;
-            if (setIdx == -1 && name.EndsWith("]"))
+            if (setIdx == -1 && !string.IsNullOrWhiteSpace(name) && name.EndsWith("]"))
             {
                 int openBracket = name.LastIndexOf('[');
                 if (openBracket != -1)
@@ -155,69 +168,96 @@ public class CollectionImporter
 
             Card? card = null;
 
-            // Match Logic: Name + Set Code match
-            if (!string.IsNullOrWhiteSpace(set))
+            // Strategy 1: Scryfall ID (exact)
+            if (!string.IsNullOrWhiteSpace(scryfallId))
             {
                 var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards()
-                      .WhereNameContains(name)
-                      .WherePrimarySideOnly()
-                      .Limit(50);
-
-                var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
-
-                var exactMatches = candidates.Where(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList();
-
-                if (exactMatches.Count > 0)
-                {
-                    // Match by 3-letter set code or full set name
-                    card = exactMatches.FirstOrDefault(c =>
-                        c.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
-                        (c.SetName != null && c.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)));
-
-                    if (card == null)
-                        card = exactMatches.First();
-                }
-                else if (candidates.Length > 0)
-                {
-                    card = candidates.First();
-                }
+                helper.SearchCards().WhereScryfallId(scryfallId).Limit(1);
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                if (matches.Length > 0) card = matches[0];
             }
 
-            // Match Logic: Name only fallback
-            if (card == null)
+            // Strategy 2: Set Code + Collector Number (exact)
+            if (card == null && !string.IsNullOrWhiteSpace(set) && !string.IsNullOrWhiteSpace(number))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards()
+                      .WhereSet(set)
+                      .WhereNumber(number)
+                      .Limit(1);
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                if (matches.Length > 0) card = matches[0];
+            }
+
+            // Strategy 3: Name + Set (exact name, primary face)
+            if (card == null && !string.IsNullOrWhiteSpace(set) && !string.IsNullOrWhiteSpace(name))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards()
+                      .WhereNameEquals(name)
+                      .WherePrimarySideOnly();
+
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                card = matches.FirstOrDefault(c =>
+                    c.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
+                    (c.SetName != null && c.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)));
+
+                // If no exact set match, pick the first exact name match found in any set
+                if (card == null && matches.Length > 0)
+                    card = matches.First();
+            }
+
+            // Strategy 4: Name only fallback (exact name)
+            if (card == null && !string.IsNullOrWhiteSpace(name))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards()
+                      .WhereNameEquals(name)
+                      .WherePrimarySideOnly()
+                      .Limit(1);
+
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                if (matches.Length > 0) card = matches[0];
+            }
+
+            // Strategy 5: Name partial fallback (contains, careful with this)
+            if (card == null && !string.IsNullOrWhiteSpace(name))
             {
                 var helper = _cardRepo.CreateSearchHelper();
                 helper.SearchCards()
                       .WhereNameContains(name)
                       .WherePrimarySideOnly()
-                      .Limit(50);
+                      .Limit(50); // Get a bunch to try and find an exact match programmatically
 
                 var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
                 card = candidates.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
                 if (card == null && candidates.Length > 0)
+                {
+                    // As an absolute last resort, just take the first candidate
                     card = candidates.First();
+                }
             }
+
 
             if (card != null && !string.IsNullOrEmpty(card.UUID))
             {
                 if (foilQuantity > 0)
                 {
-                    await _cardManager.AddCardToCollectionAsync(card.UUID, foilQuantity, true, false);
+                    cardsToAdd.Add((card.UUID, foilQuantity, true, false));
                     result.SuccessCount++;
                     result.TotalCards += foilQuantity;
 
                     if (quantity > 0)
                     {
-                        await _cardManager.AddCardToCollectionAsync(card.UUID, quantity, false, false);
+                        cardsToAdd.Add((card.UUID, quantity, false, false));
                         result.SuccessCount++;
                         result.TotalCards += quantity;
                     }
                 }
                 else
                 {
-                    await _cardManager.AddCardToCollectionAsync(card.UUID, quantity, isFoil, false);
+                    cardsToAdd.Add((card.UUID, quantity, isFoil, false));
                     result.SuccessCount++;
                     result.TotalCards += quantity;
                 }
@@ -226,6 +266,14 @@ public class CollectionImporter
             {
                 result.Errors.Add($"Line {lineNumber}: Could not find card '{name}'" + (string.IsNullOrEmpty(set) ? "" : $" in set '{set}'"));
             }
+        }
+
+        onProgress?.Invoke("Saving to database...", 0);
+
+        // Add all cards using the bulk method
+        if (cardsToAdd.Count > 0)
+        {
+            await _cardManager.AddCardsToCollectionBulkAsync(cardsToAdd);
         }
 
         return result;

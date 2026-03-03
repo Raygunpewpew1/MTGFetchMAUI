@@ -293,6 +293,11 @@ public class CardManager : IDisposable
         await _collectionRepository.AddCardAsync(cardUUID, quantity, isFoil, isEtched);
     }
 
+    public async Task AddCardsToCollectionBulkAsync(IEnumerable<(string cardUUID, int quantity, bool isFoil, bool isEtched)> cards)
+    {
+        await _collectionRepository.AddCardsBulkAsync(cards);
+    }
+
     public async Task RemoveCardFromCollectionAsync(string cardUUID)
     {
         await _collectionRepository.RemoveCardAsync(cardUUID);

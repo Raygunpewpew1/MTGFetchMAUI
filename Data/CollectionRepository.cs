@@ -54,6 +54,32 @@ public class CollectionRepository : ICollectionRepository
         });
     }
 
+    public async Task AddCardsBulkAsync(IEnumerable<(string cardUUID, int quantity, bool isFoil, bool isEtched)> cards)
+    {
+        await WithCollectionTransactionAsync(async (conn, trans) =>
+        {
+            foreach (var card in cards)
+            {
+                var currentQty = await GetQuantityInternalAsync(conn, card.cardUUID, trans);
+
+                if (currentQty > 0)
+                {
+                    await conn.ExecuteAsync(
+                        SQLQueries.CollectionUpdateQuantity,
+                        new { qty = currentQty + card.quantity, isFoil = card.isFoil ? 1 : 0, isEtched = card.isEtched ? 1 : 0, uuid = card.cardUUID },
+                        trans);
+                }
+                else
+                {
+                    await conn.ExecuteAsync(
+                        SQLQueries.CollectionInsertCard,
+                        new { uuid = card.cardUUID, qty = card.quantity, isFoil = card.isFoil ? 1 : 0, isEtched = card.isEtched ? 1 : 0 },
+                        trans);
+                }
+            }
+        });
+    }
+
     public async Task RemoveCardAsync(string cardUUID)
     {
         await _lock.WaitAsync();
