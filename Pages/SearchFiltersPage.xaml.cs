@@ -19,16 +19,6 @@ public partial class SearchFiltersPage : ContentPage
         BuildColorButtons();
         BuildFormatPicker();
 
-        CMCRangeSlider.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName is nameof(CMCRangeSlider.LowerValue) or nameof(CMCRangeSlider.UpperValue))
-            {
-                int lo = (int)CMCRangeSlider.LowerValue;
-                int hi = (int)CMCRangeSlider.UpperValue;
-                CMCRangeLabel.Text = hi >= 16 ? $"{lo} – 16+" : $"{lo} – {hi}";
-            }
-        };
-
         LoadFromOptions(_searchViewModel.CurrentOptions);
     }
 
@@ -87,6 +77,22 @@ public partial class SearchFiltersPage : ContentPage
         FormatPicker.SelectedIndex = 0;
     }
 
+    private void OnCMCChanged(object? sender, ValueChangedEventArgs e)
+    {
+        int min = (int)CMCMinSlider.Value;
+        int max = (int)CMCMaxSlider.Value;
+
+        if (min > max)
+        {
+            if (sender == CMCMinSlider) CMCMinSlider.Value = max;
+            else CMCMaxSlider.Value = min;
+            return;
+        }
+
+        CMCMinLabel.Text = $"Min: {min}";
+        CMCMaxLabel.Text = max >= 16 ? "Max: 16+" : $"Max: {max}";
+    }
+
     private SearchOptions BuildSearchOptions()
     {
         var options = new SearchOptions();
@@ -113,8 +119,8 @@ public partial class SearchFiltersPage : ContentPage
         if (ChkMythic.IsChecked) options.RarityFilter.Add(CardRarity.Mythic);
 
         // CMC
-        int cmcMin = (int)CMCRangeSlider.LowerValue;
-        int cmcMax = (int)CMCRangeSlider.UpperValue;
+        int cmcMin = (int)CMCMinSlider.Value;
+        int cmcMax = (int)CMCMaxSlider.Value;
         if (cmcMin > 0 || cmcMax < 16)
         {
             options.UseCMCRange = true;
@@ -216,18 +222,18 @@ public partial class SearchFiltersPage : ContentPage
         // CMC
         if (options.UseCMCRange)
         {
-            CMCRangeSlider.LowerValue = options.CMCMin;
-            CMCRangeSlider.UpperValue = options.CMCMax;
+            CMCMinSlider.Value = options.CMCMin;
+            CMCMaxSlider.Value = options.CMCMax;
         }
         else if (options.UseCMCExact)
         {
-            CMCRangeSlider.LowerValue = options.CMCExact;
-            CMCRangeSlider.UpperValue = options.CMCExact;
+            CMCMinSlider.Value = options.CMCExact;
+            CMCMaxSlider.Value = options.CMCExact;
         }
         else
         {
-            CMCRangeSlider.LowerValue = 0;
-            CMCRangeSlider.UpperValue = 16;
+            CMCMinSlider.Value = 0;
+            CMCMaxSlider.Value = 16;
         }
 
         // Power/Toughness
