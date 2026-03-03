@@ -299,7 +299,7 @@ public partial class CollectionViewModel : BaseViewModel
                     Logger.LogStuff($"Import completed with {importResult.Errors.Count} errors. First error: {importResult.Errors.First()}", LogLevel.Warning);
                 }
 
-                _toastService.ShowToast($"Imported {importResult.SuccessCount} lines ({importResult.TotalCards} cards).");
+                _toastService.Show($"Imported {importResult.SuccessCount} lines ({importResult.TotalCards} cards).");
 
                 await LoadCollectionAsync();
             }
@@ -307,7 +307,7 @@ public partial class CollectionViewModel : BaseViewModel
         catch (Exception ex)
         {
             Logger.LogStuff($"Failed to import collection: {ex.Message}", LogLevel.Error);
-            _toastService.ShowToast("Failed to import collection.");
+            _toastService.Show("Failed to import collection.");
         }
         finally
         {
@@ -322,7 +322,7 @@ public partial class CollectionViewModel : BaseViewModel
         {
             if (_allItems.Length == 0)
             {
-                _toastService.ShowToast("Collection is empty.");
+                _toastService.Show("Collection is empty.");
                 return;
             }
 
@@ -341,12 +341,12 @@ public partial class CollectionViewModel : BaseViewModel
                 File = new ShareFile(cacheFile)
             });
 
-            _toastService.ShowToast("Collection exported successfully.");
+            _toastService.Show("Collection exported successfully.");
         }
         catch (Exception ex)
         {
             Logger.LogStuff($"Failed to export collection: {ex.Message}", LogLevel.Error);
-            _toastService.ShowToast("Failed to export collection.");
+            _toastService.Show("Failed to export collection.");
         }
         finally
         {
