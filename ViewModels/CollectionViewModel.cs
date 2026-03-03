@@ -308,7 +308,7 @@ public partial class CollectionViewModel : BaseViewModel
                 }
 
                 using var stream = await result.OpenReadAsync();
-                var importResult = await _importer.ImportCsvAsync(stream, OnProgress);
+                var importResult = await Task.Run(async () => await _importer.ImportCsvAsync(stream, OnProgress));
 
                 if (importResult.Errors.Any())
                 {
