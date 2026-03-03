@@ -3,6 +3,8 @@ using AetherVault.Core;
 using AetherVault.Core.Layout;
 using AetherVault.Models;
 using AetherVault.Services;
+using AetherVault.Services.ImportExport;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -15,6 +17,9 @@ namespace AetherVault.ViewModels;
 public partial class CollectionViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
+    private readonly CollectionImporter _importer;
+    private readonly CollectionExporter _exporter;
+    private readonly IToastService _toastService;
     private CardGrid? _grid;
     private CollectionItem[] _allItems = [];
 
@@ -47,9 +52,12 @@ public partial class CollectionViewModel : BaseViewModel
 
     public event Action? CollectionLoaded;
 
-    public CollectionViewModel(CardManager cardManager)
+    public CollectionViewModel(CardManager cardManager, CollectionImporter importer, CollectionExporter exporter, IToastService toastService)
     {
         _cardManager = cardManager;
+        _importer = importer;
+        _exporter = exporter;
+        _toastService = toastService;
     }
 
     public void AttachGrid(CardGrid grid)
@@ -256,5 +264,94 @@ public partial class CollectionViewModel : BaseViewModel
                 }
             }
         });
+    }
+
+    [RelayCommand]
+    private async Task ImportCollectionAsync()
+    {
+        try
+        {
+            var customFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
+                { DevicePlatform.Android, new[] { "text/csv" } },
+                { DevicePlatform.WinUI, new[] { ".csv" } },
+                { DevicePlatform.macOS, new[] { "public.comma-separated-values-text" } },
+            });
+
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select a CSV file to import",
+                FileTypes = customFileType,
+            });
+
+            if (result != null)
+            {
+                IsBusy = true;
+                StatusMessage = "Importing collection...";
+                StatusIsError = false;
+
+                using var stream = await result.OpenReadAsync();
+                var importResult = await _importer.ImportCsvAsync(stream);
+
+                if (importResult.Errors.Any())
+                {
+                    Logger.LogStuff($"Import completed with {importResult.Errors.Count} errors. First error: {importResult.Errors.First()}", LogLevel.Warning);
+                }
+
+                _toastService.ShowToast($"Imported {importResult.SuccessCount} lines ({importResult.TotalCards} cards).");
+
+                await LoadCollectionAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to import collection: {ex.Message}", LogLevel.Error);
+            _toastService.ShowToast("Failed to import collection.");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportCollectionAsync()
+    {
+        try
+        {
+            if (_allItems.Length == 0)
+            {
+                _toastService.ShowToast("Collection is empty.");
+                return;
+            }
+
+            IsBusy = true;
+            StatusMessage = "Exporting collection...";
+            StatusIsError = false;
+
+            var csvText = await _exporter.ExportToCsvAsync();
+
+            var cacheFile = Path.Combine(FileSystem.CacheDirectory, "collection_export.csv");
+            await File.WriteAllTextAsync(cacheFile, csvText, Encoding.UTF8);
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = "Export Collection",
+                File = new ShareFile(cacheFile)
+            });
+
+            _toastService.ShowToast("Collection exported successfully.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to export collection: {ex.Message}", LogLevel.Error);
+            _toastService.ShowToast("Failed to export collection.");
+        }
+        finally
+        {
+            IsBusy = false;
+            StatusMessage = "";
+        }
     }
 }
