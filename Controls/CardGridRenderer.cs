@@ -36,6 +36,10 @@ internal sealed class CardGridRenderer : IDisposable
     private SKPaint? _secondaryTextPaint;
     private SKFont? _secondaryTextFont;
     private SKPaint? _separatorPaint;
+    private SKPaint? _dimPaint;
+    private SKPaint? _shadowPaint;
+    private SKPaint? _borderPaint;
+    private SKPaint? _chipBgPaint;
 
     // List view thumbnail dimensions
     private const float ListImgWidth = 55f;
@@ -64,6 +68,10 @@ internal sealed class CardGridRenderer : IDisposable
         _secondaryTextPaint ??= new SKPaint { Color = new SKColor(160, 160, 160), IsAntialias = true };
         _secondaryTextFont ??= new SKFont(SKTypeface.FromFamilyName("CrimsonText-Regular", SKFontStyle.Normal), 11f) { Subpixel = true };
         _separatorPaint ??= new SKPaint { Color = new SKColor(50, 50, 50) };
+        _dimPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 160) };
+        _shadowPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 140), MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10f) };
+        _borderPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(100, 200, 255, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 3f };
+        _chipBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 185) };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
     }
@@ -98,6 +106,10 @@ internal sealed class CardGridRenderer : IDisposable
         _secondaryTextPaint?.Dispose(); _secondaryTextPaint = null;
         _secondaryTextFont?.Dispose(); _secondaryTextFont = null;
         _separatorPaint?.Dispose(); _separatorPaint = null;
+        _dimPaint?.Dispose(); _dimPaint = null;
+        _shadowPaint?.Dispose(); _shadowPaint = null;
+        _borderPaint?.Dispose(); _borderPaint = null;
+        _chipBgPaint?.Dispose(); _chipBgPaint = null;
         _cardRoundRect?.Dispose(); _cardRoundRect = null;
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
@@ -140,9 +152,8 @@ internal sealed class CardGridRenderer : IDisposable
                 // Dim the source card slot so the floating drag card stands out
                 if (isSource)
                 {
-                    using var dimPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 160) };
                     _cardRoundRect!.SetRect(draw.Rect, 8f, 8f);
-                    canvas.DrawRoundRect(_cardRoundRect, dimPaint);
+                    canvas.DrawRoundRect(_cardRoundRect, _dimPaint);
                 }
 
                 // Highlight the drop target slot with an accent border
@@ -161,13 +172,7 @@ internal sealed class CardGridRenderer : IDisposable
             var dragRect = new SKRect(dx, dy, dx + cw, dy + ch);
 
             // Drop shadow
-            using var shadowPaint = new SKPaint
-            {
-                IsAntialias = true,
-                Color = new SKColor(0, 0, 0, 140),
-                MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10f)
-            };
-            canvas.DrawRoundRect(dragRect, 8f, 8f, shadowPaint);
+            canvas.DrawRoundRect(dragRect, 8f, 8f, _shadowPaint);
 
             // Render card at drag position (match the active view mode)
             var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
@@ -182,14 +187,7 @@ internal sealed class CardGridRenderer : IDisposable
 
     private void DrawTargetHighlight(SKCanvas canvas, SKRect rect)
     {
-        using var borderPaint = new SKPaint
-        {
-            IsAntialias = true,
-            Color = new SKColor(100, 200, 255, 220),
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = 3f
-        };
-        canvas.DrawRoundRect(rect, 8f, 8f, borderPaint);
+        canvas.DrawRoundRect(rect, 8f, 8f, _borderPaint);
     }
 
     private void RenderCard(SKCanvas canvas, DrawCardCommand cmd)
@@ -254,8 +252,7 @@ internal sealed class CardGridRenderer : IDisposable
             float chipX = imageRect.Left + chipMargin;
             var chipRect = new SKRect(chipX, chipY, chipX + chipW, chipY + chipH);
 
-            using var chipBgPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 185) };
-            canvas.DrawRoundRect(chipRect, chipRadius, chipRadius, chipBgPaint);
+            canvas.DrawRoundRect(chipRect, chipRadius, chipRadius, _chipBgPaint);
             canvas.DrawText(card.CachedDisplayPrice, chipRect.Left + chipPadX, chipRect.Bottom - chipPadY - 1f,
                 SKTextAlign.Left, _priceFont, _pricePaint);
         }
