@@ -6,6 +6,9 @@ namespace AetherVault.Core;
 /// </summary>
 public struct ColorIdentity : IEquatable<ColorIdentity>
 {
+    private static readonly MtgColor[] AllMtgColors = Enum.GetValues<MtgColor>();
+    private static readonly string[] ColorStrings = ["W", "U", "B", "R", "G"];
+
     private HashSet<MtgColor> _colors;
 
     private HashSet<MtgColor> Colors => _colors ??= [];
@@ -42,24 +45,29 @@ public struct ColorIdentity : IEquatable<ColorIdentity>
 
     public string AsString()
     {
-        var result = "";
-        foreach (MtgColor c in Enum.GetValues<MtgColor>())
+        if (Count == 0) return string.Empty;
+        return string.Create(Count, this, (span, state) =>
         {
-            if (Colors.Contains(c))
-                result += c.ToChar();
-        }
-        return result;
+            int i = 0;
+            foreach (MtgColor c in AllMtgColors)
+            {
+                if (state.Colors.Contains(c))
+                    span[i++] = c.ToChar();
+            }
+        });
     }
 
     public string[] ToColorArray()
     {
-        var list = new List<string>();
-        foreach (MtgColor c in Enum.GetValues<MtgColor>())
+        if (Count == 0) return [];
+        var result = new string[Count];
+        int i = 0;
+        foreach (MtgColor c in AllMtgColors)
         {
             if (Colors.Contains(c))
-                list.Add(c.ToChar().ToString());
+                result[i++] = ColorStrings[(int)c];
         }
-        return list.ToArray();
+        return result;
     }
 
     public int Count => Colors.Count;
@@ -81,13 +89,13 @@ public struct ColorIdentity : IEquatable<ColorIdentity>
 
     public string[] GetMissingColors(ColorIdentity desired)
     {
-        var missing = new List<string>();
-        foreach (MtgColor c in Enum.GetValues<MtgColor>())
+        var missing = new List<string>(5);
+        foreach (MtgColor c in AllMtgColors)
         {
             if (desired.Colors.Contains(c) && !Colors.Contains(c))
-                missing.Add(c.ToChar().ToString());
+                missing.Add(ColorStrings[(int)c]);
         }
-        return missing.ToArray();
+        return [.. missing];
     }
 
     public void Clear() => _colors?.Clear();
@@ -100,7 +108,7 @@ public struct ColorIdentity : IEquatable<ColorIdentity>
         foreach (char c in colors)
         {
             char upper = char.ToUpper(c);
-            foreach (MtgColor color in Enum.GetValues<MtgColor>())
+            foreach (MtgColor color in AllMtgColors)
             {
                 if (color.ToChar() == upper)
                 {
@@ -119,7 +127,7 @@ public struct ColorIdentity : IEquatable<ColorIdentity>
         get
         {
             var result = new ColorIdentity();
-            foreach (MtgColor c in Enum.GetValues<MtgColor>())
+            foreach (MtgColor c in AllMtgColors)
                 result.Colors.Add(c);
             return result;
         }
