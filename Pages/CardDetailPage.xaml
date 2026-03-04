@@ -6,6 +6,8 @@
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              xmlns:models="clr-namespace:AetherVault.Models"
+             xmlns:core="clr-namespace:AetherVault.Core"
+             xmlns:services="clr-namespace:AetherVault.Services"
              xmlns:viewmodels="clr-namespace:AetherVault.ViewModels"
              x:Class="AetherVault.Pages.CardDetailPage"
              x:Name="DetailScreen"
@@ -149,7 +151,7 @@
                                         <Label Text="{Binding Label}" FontSize="13" FontAttributes="Bold" Margin="0,4,0,2" />
                                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding Points}">
                                             <BindableLayout.ItemTemplate>
-                                                <DataTemplate x:DataType="models:PriceEntry">
+                                                <DataTemplate x:DataType="services:PriceEntry">
                                                     <Grid ColumnDefinitions="*,Auto">
                                                         <Label Text="{Binding Date, StringFormat='{0:d}'}" FontSize="12" TextColor="#A0A0A0" />
                                                         <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12" HorizontalTextAlignment="End" Grid.Column="1" />
@@ -274,7 +276,7 @@
                         </uranium:ExpanderView.Header>
                         <VerticalStackLayout x:Name="RulingsStack" Spacing="8" Padding="0,8,0,0" BindableLayout.ItemsSource="{Binding Card.Rulings}">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:CardRuling">
+                                <DataTemplate x:DataType="core:CardRuling">
                                     <VerticalStackLayout Spacing="2">
                                         <Label Text="{Binding Date, StringFormat='{0:d}'}" FontSize="11" TextColor="#888888" />
                                         <controls:CardTextView CardText="{Binding Text}"
