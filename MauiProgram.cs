@@ -67,6 +67,8 @@ public static class MauiProgram
         // ICardRepository and IDeckRepository use CardManager's internal connected DatabaseManager
         builder.Services.AddSingleton<ICardRepository>(sp =>
             new CardRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
+        builder.Services.AddSingleton<ITokenRepository>(sp =>
+            new TokenRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
         builder.Services.AddSingleton<IDeckRepository>(sp =>
             new DeckRepository(sp.GetRequiredService<CardManager>().DatabaseManager));

@@ -19,6 +19,11 @@ public sealed class DatabaseManager : IDisposable
     private const int MaxConnectionRetries = 3;
     private const int BusyTimeoutMs = 5000;
 
+    static DatabaseManager()
+    {
+        SqlMapper.AddTypeHandler(new JsonArrayTypeHandler());
+    }
+
     /// <summary>
     /// Connects to both the MTG and Collection SQLite databases.
     /// Creates collection tables if they don't exist.

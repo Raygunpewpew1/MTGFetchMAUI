@@ -50,6 +50,7 @@
     <Compile Include="..\Data\ICollectionRepository.cs" Link="Data\ICollectionRepository.cs" />
     <Compile Include="..\Data\CollectionRepository.cs" Link="Data\CollectionRepository.cs" />
     <Compile Include="..\Data\DatabaseManager.cs" Link="Data\DatabaseManager.cs" />
+    <Compile Include="..\Data\DapperTypeHandlers.cs" Link="Data\DapperTypeHandlers.cs" />
     <Compile Include="..\Services\DeckBuilder\DeckValidator.cs" Link="Services\DeckBuilder\DeckValidator.cs" />
     <Compile Include="..\Services\DeckBuilder\DeckBuilderService.cs" Link="Services\DeckBuilder\DeckBuilderService.cs" />
   </ItemGroup>

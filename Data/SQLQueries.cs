@@ -54,6 +54,37 @@ public static class SQLQueries
         )
         """;
 
+    public const string SelectTokenFields =
+        """
+        SELECT
+            artist, artistIds, asciiName, attractionLights, availability, boosterTypes,
+            borderColor, colorIdentity, colorIndicator, colors, edhrecSaltiness,
+            faceName, finishes, flavorName, flavorText, frameEffects, frameVersion,
+            isFullArt, isFunny, isOversized, isPromo, isReprint, isTextless,
+            keywords, language, layout, manaCost, name, number, orientation,
+            originalText, otherFaceIds, power, printedType, producedMana,
+            promoTypes, relatedCards, securityStamp, setCode, side, signature,
+            sourceProducts, subtypes, supertypes, text, toughness, type, types,
+            uuid, watermark
+        FROM tokens
+        """;
+
+    public const string SelectTokenIdentifierFields =
+        """
+        SELECT
+            uuid, scryfallId, scryfallOracleId, scryfallIllustrationId, scryfallCardBackId,
+            mcmId, mcmMetaId, mtgArenaId, mtgoId, mtgoFoilId, multiverseId,
+            tcgplayerProductId, tcgplayerEtchedProductId, tcgplayerAlternativeFoilProductId,
+            cardKingdomId, cardKingdomFoilId, cardKingdomEtchedId, cardsphereId,
+            cardsphereFoilId, deckboxId, mtgjsonFoilVersionId, mtgjsonNonFoilVersionId,
+            mtgjsonV4Id
+        FROM tokenIdentifiers
+        """;
+
+    public const string SelectTokenByUuid = SelectTokenFields + " WHERE uuid = @uuid";
+    public const string SelectTokensBySetCode = SelectTokenFields + " WHERE setCode = @setCode";
+    public const string SelectTokenIdentifierByUuid = SelectTokenIdentifierFields + " WHERE uuid = @uuid";
+
     // ============================================================================
     // THUMBNAIL CACHE SCHEMA
     // ============================================================================

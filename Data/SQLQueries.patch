@@ -1,0 +1,94 @@
+--- Data/SQLQueries.cs
++++ Data/SQLQueries.cs
+@@ -49,6 +49,61 @@
+             FOREIGN KEY (DeckId) REFERENCES Decks(Id) ON DELETE CASCADE
+         )
+         """;
++
++    public const string CreateTokensTable =
++        """
++        CREATE TABLE IF NOT EXISTS tokens (
++            artist           TEXT,
++            artistIds        TEXT,
++            asciiName        TEXT,
++            attractionLights TEXT,
++            availability     TEXT,
++            boosterTypes     TEXT,
++            borderColor      TEXT,
++            colorIdentity    TEXT,
++            colorIndicator   TEXT,
++            colors           TEXT,
++            edhrecSaltiness  REAL,
++            faceName         TEXT,
++            finishes         TEXT,
++            flavorName       TEXT,
++            flavorText       TEXT,
++            frameEffects     TEXT,
++            frameVersion     TEXT,
++            isFullArt        BOOLEAN,
++            isFunny          BOOLEAN,
++            isOversized      BOOLEAN,
++            isPromo          BOOLEAN,
++            isReprint        BOOLEAN,
++            isTextless       BOOLEAN,
++            keywords         TEXT,
++            language         TEXT,
++            layout           TEXT,
++            manaCost         TEXT,
++            name             TEXT,
++            number           TEXT,
++            orientation      TEXT,
++            originalText     TEXT,
++            otherFaceIds     TEXT,
++            power            TEXT,
++            printedType      TEXT,
++            producedMana     TEXT,
++            promoTypes       TEXT,
++            relatedCards     TEXT,
++            securityStamp    TEXT,
++            setCode          TEXT,
++            side             TEXT,
++            signature        TEXT,
++            sourceProducts   TEXT,
++            subtypes         TEXT,
++            supertypes       TEXT,
++            text             TEXT,
++            toughness        TEXT,
++            type             TEXT,
++            types            TEXT,
++            uuid             TEXT,
++            watermark        TEXT
++        )
++        """;
++
++    public const string CreateTokenIdentifiersTable =
++        """
++        CREATE TABLE IF NOT EXISTS tokenIdentifiers (
++            uuid                              TEXT,
++            scryfallId                        TEXT,
++            scryfallOracleId                  TEXT,
++            scryfallIllustrationId            TEXT,
++            scryfallCardBackId                TEXT,
++            mcmId                             TEXT,
++            mcmMetaId                         TEXT,
++            mtgArenaId                        TEXT,
++            mtgoId                            TEXT,
++            mtgoFoilId                        TEXT,
++            multiverseId                      TEXT,
++            tcgplayerProductId                TEXT,
++            tcgplayerEtchedProductId          TEXT,
++            tcgplayerAlternativeFoilProductId TEXT,
++            cardKingdomId                     TEXT,
++            cardKingdomFoilId                 TEXT,
++            cardKingdomEtchedId               TEXT,
++            cardsphereId                      TEXT,
++            cardsphereFoilId                  TEXT,
++            deckboxId                         TEXT,
++            mtgjsonFoilVersionId              TEXT,
++            mtgjsonNonFoilVersionId           TEXT,
++            mtgjsonV4Id                       TEXT
++        )
++        """;
+
+     // ============================================================================
+     // THUMBNAIL CACHE SCHEMA
