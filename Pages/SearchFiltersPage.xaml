@@ -139,6 +139,7 @@
                 <VerticalStackLayout Spacing="4">
                     <material:CheckBox x:Name="ChkPrimarySide" Text="Primary side only" IsChecked="True" Color="{StaticResource Primary}" Margin="0,0,0,8" />
                     <material:CheckBox x:Name="ChkNoVariations" Text="Exclude variations" Color="{StaticResource Primary}" Margin="0,0,0,8" />
+                    <material:CheckBox x:Name="ChkIncludeTokens" Text="Include tokens" Color="{StaticResource Primary}" Margin="0,0,0,8" />
                 </VerticalStackLayout>
 
             </VerticalStackLayout>
