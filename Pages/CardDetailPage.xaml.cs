@@ -172,7 +172,7 @@ public partial class CardDetailPage : ContentPage
     private void OnSwipedRight(object? sender, SwipedEventArgs e)
         => _viewModel.NavigatePreviousCardCommand.Execute(null);
 
-    private void CardImageView_Touch(object sender, SKTouchEventArgs e)
+    private void CardImageView_Touch(object? sender, SKTouchEventArgs e)
     {
         if (e.ActionType == SKTouchAction.Released)
         {

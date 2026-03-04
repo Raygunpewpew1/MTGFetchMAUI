@@ -214,7 +214,7 @@
                                            TextColor="#6CB4E4"
                                            TextDecorations="Underline">
                                         <Label.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding BindingContext.OpenLinkCommand, Source={x:Reference DetailScreen}}" CommandParameter="{Binding Url}" />
+                                            <TapGestureRecognizer Command="{Binding OpenLinkCommand, Source={RelativeSource AncestorType={x:Type viewmodels:CardDetailViewModel}}}" CommandParameter="{Binding Url}" />
                                         </Label.GestureRecognizers>
                                     </Label>
                                 </DataTemplate>
