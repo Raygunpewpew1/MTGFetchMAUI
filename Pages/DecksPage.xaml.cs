@@ -35,10 +35,13 @@ public partial class DecksPage : ContentPage
         }
     }
 
-    private async void OnDeckTapped(object? sender, TappedEventArgs e)
+    private async void OnDeckSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (sender is BindableObject bindable && bindable.BindingContext is DeckEntity deck)
+        if (e.CurrentSelection.FirstOrDefault() is DeckEntity deck)
         {
+            if (sender is CollectionView cv)
+                cv.SelectedItem = null; // Clear selection visual
+
             await Shell.Current.GoToAsync($"deckdetail?deckId={deck.Id}");
         }
     }

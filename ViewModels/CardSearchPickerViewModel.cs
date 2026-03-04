@@ -18,6 +18,9 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     public partial string SearchText { get; set; } = "";
 
     [ObservableProperty]
+    public partial bool SearchCollectionOnly { get; set; }
+
+    [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
     public event Action? SearchCompleted;
@@ -35,6 +38,17 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     protected override void OnViewModeUpdated(ViewMode value)
     {
         if (_grid != null) _grid.ViewMode = value;
+    }
+
+    [RelayCommand]
+    private void ToggleCollectionOnly()
+    {
+        SearchCollectionOnly = !SearchCollectionOnly;
+    }
+
+    partial void OnSearchCollectionOnlyChanged(bool value)
+    {
+        _ = ExecuteSearchAsync();
     }
 
     partial void OnSearchTextChanged(string value)
@@ -67,7 +81,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel
 
         try
         {
-            if (string.IsNullOrEmpty(query))
+            if (string.IsNullOrEmpty(query) && !SearchCollectionOnly)
             {
                 _allCards = [];
                 _grid?.SetCards(_allCards);
@@ -76,7 +90,14 @@ public partial class CardSearchPickerViewModel : BaseViewModel
                 return;
             }
 
-            _allCards = await _cardManager.SearchCardsAsync(query, 100);
+            if (SearchCollectionOnly)
+            {
+                _allCards = await _cardManager.SearchInCollectionAsync(query);
+            }
+            else
+            {
+                _allCards = await _cardManager.SearchCardsAsync(query, 100);
+            }
 
             _grid?.SetCards(_allCards);
             IsEmpty = _allCards.Length == 0;

@@ -17,29 +17,44 @@
     <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Search Bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto"
-              Padding="8,8,8,4" ColumnSpacing="8">
-            <material:TextField x:Name="SearchEntry"
-                   Title="Search cards..."
-                   Text="{Binding SearchText, Mode=TwoWay}"
-                   ReturnCommand="{Binding SearchCommand}"
-                   BackgroundColor="{StaticResource Surface}"
-                   TextColor="{StaticResource TextPrimary}"
-                   TitleColor="{StaticResource TextSecondary}"
-                   AccentColor="{StaticResource Primary}"
-                   AllowClear="True">
-            </material:TextField>
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="8,8,8,4">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <material:TextField x:Name="SearchEntry"
+                       Title="Search cards..."
+                       Text="{Binding SearchText, Mode=TwoWay}"
+                       ReturnCommand="{Binding SearchCommand}"
+                       BackgroundColor="{StaticResource Surface}"
+                       TextColor="{StaticResource TextPrimary}"
+                       TitleColor="{StaticResource TextSecondary}"
+                       AccentColor="{StaticResource Primary}"
+                       AllowClear="True">
+                </material:TextField>
 
-            <Button Grid.Column="1"
-                    Text="{Binding ViewModeButtonText}"
-                    Command="{Binding ToggleViewModeCommand}"
-                    BackgroundColor="{StaticResource CardBackground}"
-                    HeightRequest="44"
-                    WidthRequest="44"
-                    Padding="0"
-                    FontSize="18"
-                    StyleClass="ElevatedButton" />
-        </Grid>
+                <Button Grid.Column="1"
+                        Text="{Binding ViewModeButtonText}"
+                        Command="{Binding ToggleViewModeCommand}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        HeightRequest="44"
+                        WidthRequest="44"
+                        Padding="0"
+                        FontSize="18"
+                        StyleClass="ElevatedButton" />
+            </Grid>
+
+            <HorizontalStackLayout Spacing="8" Margin="4,0,0,0" VerticalOptions="Center">
+                <CheckBox IsChecked="{Binding SearchCollectionOnly}"
+                          Color="{StaticResource Primary}"
+                          VerticalOptions="Center" />
+                <Label Text="Search my collection only"
+                       FontSize="13"
+                       TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ToggleCollectionOnlyCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
 
         <!-- Status Bar -->
         <Grid Grid.Row="1" Padding="8,0,8,4">

@@ -142,14 +142,20 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
                 }
             }
 
-            CommanderCards = new ObservableCollection<DeckCardDisplayItem>(commander);
-            SideboardCards = new ObservableCollection<DeckCardDisplayItem>(sideboard);
-            MainDeckGroups = BuildGroups(main);
-            TotalCardCount = cardEntities.Sum(c => c.Quantity);
-            Stats = ComputeStats(cardEntities, cardMap);
-            OnPropertyChanged(nameof(HasNoCommander));
+            var mainDeckGroups = BuildGroups(main);
+            var totalCardCount = cardEntities.Sum(c => c.Quantity);
+            var stats = ComputeStats(cardEntities, cardMap);
 
-            StatusMessage = $"{TotalCardCount} cards";
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CommanderCards = new ObservableCollection<DeckCardDisplayItem>(commander);
+                SideboardCards = new ObservableCollection<DeckCardDisplayItem>(sideboard);
+                MainDeckGroups = mainDeckGroups;
+                TotalCardCount = totalCardCount;
+                Stats = stats;
+                OnPropertyChanged(nameof(HasNoCommander));
+                StatusMessage = $"{TotalCardCount} cards";
+            });
         }
         catch (Exception ex)
         {
