@@ -418,11 +418,11 @@ public class MTGSearchHelper
         return this;
     }
 
-    public MTGSearchHelper WhereCustom(string condition)
-    {
-        _whereConditions.Add("(" + condition + ")");
-        return this;
-    }
+    //public MTGSearchHelper WhereCustom(string condition)
+    //{
+    //    _whereConditions.Add("(" + condition + ")");
+    //    return this;
+    //}
 
     // ════════════════════════════════════════════════════════════════
     // Internal SQL building
