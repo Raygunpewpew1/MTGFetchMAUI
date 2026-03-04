@@ -12,7 +12,7 @@ public interface ICollectionRepository
     Task AddCardsBulkAsync(IEnumerable<(string cardUUID, int quantity, bool isFoil, bool isEtched)> cards);
     Task RemoveCardAsync(string cardUUID);
     Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false);
-    Task<CollectionItem[]> GetCollectionAsync(string filterText = "", Core.CollectionSortMode sortMode = Core.CollectionSortMode.Manual);
+    Task<CollectionItem[]> GetCollectionAsync();
     Task<CollectionStats> GetCollectionStatsAsync();
     Task<bool> IsInCollectionAsync(string cardUUID);
     Task<int> GetQuantityAsync(string cardUUID);

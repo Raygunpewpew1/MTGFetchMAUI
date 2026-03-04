@@ -122,96 +122,46 @@ public class CollectionRepository : ICollectionRepository
         });
     }
 
-    public async Task<CollectionItem[]> GetCollectionAsync(string filterText = "", CollectionSortMode sortMode = CollectionSortMode.Manual)
+    public async Task<CollectionItem[]> GetCollectionAsync()
     {
         var items = new List<CollectionItem>();
-
-        var helper = _cardRepo.CreateSearchHelper();
-        helper.SearchMyCollection();
-
-        if (!string.IsNullOrEmpty(filterText))
-        {
-            helper.WhereNameContains(filterText);
-        }
-
-        switch (sortMode)
-        {
-            case CollectionSortMode.Name:
-                helper.OrderBy("c.name ASC");
-                break;
-            case CollectionSortMode.CMC:
-                helper.OrderBy("c.faceManaValue ASC, c.name ASC");
-                break;
-            case CollectionSortMode.Rarity:
-                helper.OrderBy(@"CASE c.rarity
-                                 WHEN 'mythic' THEN 4
-                                 WHEN 'rare' THEN 3
-                                 WHEN 'uncommon' THEN 2
-                                 WHEN 'common' THEN 1
-                                 ELSE 0 END DESC, c.name ASC");
-                break;
-            case CollectionSortMode.Color:
-                helper.OrderBy("LENGTH(c.colorIdentity) ASC, c.colorIdentity ASC, c.name ASC");
-                break;
-            default:
-                helper.OrderBy("mc.sort_order ASC, mc.date_added DESC");
-                break;
-        }
-
-        // We use the advanced search which returns cards, but we actually need CollectionItems.
-        // The SearchCardsAdvancedAsync method just maps cards and drops the collection info (quantity etc).
-        // Let's implement our own execution here to get the CollectionItem data alongside the card.
-
-        var (sql, parameters) = helper.Build();
+        IEnumerable<CollectionRow> entries;
 
         await _lock.WaitAsync();
         try
         {
-            var dynamicParams = new DynamicParameters();
-            foreach (var (name, value) in parameters)
-            {
-                dynamicParams.Add(name, value);
-            }
-
-            using var reader = await _db.MTGConnection.ExecuteReaderAsync(sql, dynamicParams) as System.Data.Common.DbDataReader
-                ?? throw new InvalidOperationException("Failed to create DbDataReader.");
-
-            var cardOrdinals = new CardMapper.CardOrdinals(reader);
-
-            // Resolve ordinals for collection specific columns manually
-            int qtyOrd = reader.GetOrdinal("quantity");
-            int dateOrd = reader.GetOrdinal("date_added");
-            int sortOrd = reader.GetOrdinal("sort_order");
-            int isFoilOrd = reader.GetOrdinal("is_foil");
-            int isEtchedOrd = reader.GetOrdinal("is_etched");
-
-            while (await reader.ReadAsync())
-            {
-                var card = CardMapper.MapCard(reader, cardOrdinals);
-
-                int qty = reader.GetInt32(qtyOrd);
-                string dateStr = reader.IsDBNull(dateOrd) ? "" : reader.GetString(dateOrd);
-                int sortOrder = reader.IsDBNull(sortOrd) ? 0 : reader.GetInt32(sortOrd);
-                bool isFoil = !reader.IsDBNull(isFoilOrd) && reader.GetInt32(isFoilOrd) != 0;
-                bool isEtched = !reader.IsDBNull(isEtchedOrd) && reader.GetInt32(isEtchedOrd) != 0;
-
-                DateTime dateAdded = DateTime.TryParse(dateStr, out var d) ? d : DateTime.Now;
-
-                items.Add(new CollectionItem
-                {
-                    CardUUID = card.UUID,
-                    Quantity = qty,
-                    IsFoil = isFoil,
-                    IsEtched = isEtched,
-                    DateAdded = dateAdded,
-                    SortOrder = sortOrder,
-                    Card = card
-                });
-            }
+            entries = await _db.CollectionConnection.QueryAsync<CollectionRow>(SQLQueries.CollectionGetAll);
         }
         finally
         {
             _lock.Release();
+        }
+
+        var entryList = entries.ToList();
+        var uuids = entryList.Select(e => e.card_uuid).ToArray();
+
+        // Batch-load card details from MTG database
+        if (uuids.Length > 0)
+        {
+            var cardCache = await _cardRepo.GetCardsByUUIDsAsync(uuids);
+
+            foreach (var row in entryList)
+            {
+                if (cardCache.TryGetValue(row.card_uuid, out var card))
+                {
+                    DateTime dateAdded = DateTime.TryParse(row.date_added, out var d) ? d : DateTime.Now;
+                    items.Add(new CollectionItem
+                    {
+                        CardUUID = row.card_uuid,
+                        Quantity = row.quantity,
+                        IsFoil = row.is_foil.HasValue && row.is_foil.Value != 0,
+                        IsEtched = row.is_etched.HasValue && row.is_etched.Value != 0,
+                        DateAdded = dateAdded,
+                        SortOrder = row.sort_order ?? 0,
+                        Card = card
+                    });
+                }
+            }
         }
 
         return [.. items];
