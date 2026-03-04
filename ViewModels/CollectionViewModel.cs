@@ -79,66 +79,92 @@ public partial class CollectionViewModel : BaseViewModel
         if (_grid != null) _grid.ViewMode = value;
     }
 
+    private CancellationTokenSource? _filterCts;
+
     partial void OnSortModeChanged(CollectionSortMode value)
     {
         OnPropertyChanged(nameof(SortModeIndex));
-        ApplyFilterAndSort();
+        _ = ApplyFilterAndSortAsync();
     }
 
-    partial void OnFilterTextChanged(string value) => ApplyFilterAndSort();
+    partial void OnFilterTextChanged(string value) => _ = ApplyFilterAndSortAsync();
 
-    private void ApplyFilterAndSort()
+    private async Task ApplyFilterAndSortAsync()
     {
+        _filterCts?.Cancel();
+        _filterCts = new CancellationTokenSource();
+        var token = _filterCts.Token;
+
         // Always update empty state — the old early-return left IsCollectionEmpty=false
         // and StatusMessage stuck at "Loading collection..." when the collection was empty.
         IsCollectionEmpty = _allItems.Length == 0;
 
         if (_allItems.Length == 0)
         {
-            _grid?.SetCollection([]);
+            if (_grid != null) await _grid.SetCollectionAsync([]);
             TotalCards = 0;
             UniqueCards = 0;
             StatusMessage = "";
             return;
         }
 
-        IEnumerable<CollectionItem> result = _allItems;
-
-        // Filter by name
-        var filter = FilterText?.Trim();
-        if (!string.IsNullOrEmpty(filter))
-            result = result.Where(i => i.Card.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
-
-        // Sort
-        result = SortMode switch
+        try
         {
-            CollectionSortMode.Name => result.OrderBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
-            CollectionSortMode.CMC => result.OrderBy(i => i.Card.FaceManaValue).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
-            CollectionSortMode.Rarity => result.OrderByDescending(i => i.Card.Rarity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
-            CollectionSortMode.Color => result.OrderBy(i => i.Card.ColorIdentity.Length).ThenBy(i => i.Card.ColorIdentity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
-            _ => result // Manual: keep loaded order
-        };
-
-        var filtered = result.ToArray();
-        _grid?.SetCollection(filtered);
-
-        var displayedTotal = filtered.Sum(i => i.Quantity);
-        var displayedUnique = filtered.Length;
-        TotalCards = displayedTotal;
-        UniqueCards = displayedUnique;
-        StatusMessage = $"{displayedTotal} cards ({displayedUnique} unique)";
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (_grid != null)
+            var (filtered, displayedTotal, displayedUnique) = await Task.Run(() =>
             {
-                var (start, end) = _grid.GetVisibleRange();
-                if (end >= start && start >= 0)
+                if (token.IsCancellationRequested) return ([], 0, 0);
+
+                IEnumerable<CollectionItem> result = _allItems;
+
+                // Filter by name
+                var filter = FilterText?.Trim();
+                if (!string.IsNullOrEmpty(filter))
+                    result = result.Where(i => i.Card.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+                // Sort
+                if (token.IsCancellationRequested) return ([], 0, 0);
+
+                result = SortMode switch
                 {
-                    LoadVisiblePrices(start, end);
+                    CollectionSortMode.Name => result.OrderBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    CollectionSortMode.CMC => result.OrderBy(i => i.Card.FaceManaValue).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    CollectionSortMode.Rarity => result.OrderByDescending(i => i.Card.Rarity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    CollectionSortMode.Color => result.OrderBy(i => i.Card.ColorIdentity.Length).ThenBy(i => i.Card.ColorIdentity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    _ => result // Manual: keep loaded order
+                };
+
+                var arr = result.ToArray();
+                var total = arr.Sum(i => i.Quantity);
+                var unique = arr.Length;
+
+                return (arr, total, unique);
+            }, token);
+
+            if (token.IsCancellationRequested) return;
+
+            if (_grid != null) await _grid.SetCollectionAsync(filtered);
+
+            if (token.IsCancellationRequested) return;
+
+            TotalCards = displayedTotal;
+            UniqueCards = displayedUnique;
+            StatusMessage = $"{displayedTotal} cards ({displayedUnique} unique)";
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (token.IsCancellationRequested) return;
+
+                if (_grid != null)
+                {
+                    var (start, end) = _grid.GetVisibleRange();
+                    if (end >= start && start >= 0)
+                    {
+                        LoadVisiblePrices(start, end);
+                    }
                 }
-            }
-        });
+            });
+        }
+        catch (OperationCanceledException) { }
     }
 
     [RelayCommand]
@@ -220,9 +246,9 @@ public partial class CollectionViewModel : BaseViewModel
 
         try
         {
-            _allItems = await _cardManager.GetCollectionAsync();
+            _allItems = await Task.Run(() => _cardManager.GetCollectionAsync());
 
-            ApplyFilterAndSort();
+            await ApplyFilterAndSortAsync();
             CollectionLoaded?.Invoke();
         }
         catch (Exception ex)
@@ -382,7 +408,7 @@ public partial class CollectionViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
-            ApplyFilterAndSort();
+            _ = ApplyFilterAndSortAsync();
         }
     }
 }
