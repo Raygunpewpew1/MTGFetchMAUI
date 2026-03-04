@@ -206,6 +206,12 @@ public class CardGrid : ContentView
         UpdateState(s => s with { Cards = cardStates });
     }
 
+    public async Task SetCollectionAsync(IEnumerable<CollectionItem> items)
+    {
+        var cardStates = await Task.Run(() => items.Select(i => CardState.FromCard(i.Card, i.Quantity)).ToImmutableArray());
+        UpdateState(s => s with { Cards = cardStates });
+    }
+
     public void AddCards(Card[] cards)
     {
         var newStates = cards.Select(c => CardState.FromCard(c));
