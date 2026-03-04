@@ -58,7 +58,7 @@ public static class AppDataManager
     public static string GetLocalDatabaseVersion()
     {
         var path = GetVersionFilePath();
-        return File.Exists(path) ? File.ReadAllText(path).Trim() : string.Empty;
+        try { return File.ReadAllText(path).Trim(); } catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException) { return string.Empty; }
     }
 
     private static void SetLocalDatabaseVersion(string version)
