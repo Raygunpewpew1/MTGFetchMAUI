@@ -32,6 +32,8 @@
                         <Grid>
                             <skia:SKCanvasView x:Name="CardImageView"
                                                PaintSurface="OnCardImagePaint"
+                                               EnableTouchEvents="True"
+                                               Touch="CardImageView_Touch"
                                                HeightRequest="380"
                                                WidthRequest="272" />
                             <ActivityIndicator x:Name="ImageLoading"
