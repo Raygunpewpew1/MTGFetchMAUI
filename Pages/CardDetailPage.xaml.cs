@@ -43,6 +43,7 @@ public partial class CardDetailPage : ContentPage
         SwipeContainer.SwipedRight += () => _viewModel.NavigatePreviousCardCommand.Execute(null);
 
         Unloaded += (s, e) => _viewModel.Dispose();
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
     }
 
     private async Task LoadCard()
