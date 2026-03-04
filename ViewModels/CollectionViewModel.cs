@@ -89,7 +89,18 @@ public partial class CollectionViewModel : BaseViewModel
 
     private void ApplyFilterAndSort()
     {
-        if (_allItems.Length == 0) return;
+        // Always update empty state — the old early-return left IsCollectionEmpty=false
+        // and StatusMessage stuck at "Loading collection..." when the collection was empty.
+        IsCollectionEmpty = _allItems.Length == 0;
+
+        if (_allItems.Length == 0)
+        {
+            _grid?.SetCollection([]);
+            TotalCards = 0;
+            UniqueCards = 0;
+            StatusMessage = "";
+            return;
+        }
 
         IEnumerable<CollectionItem> result = _allItems;
 
@@ -115,9 +126,7 @@ public partial class CollectionViewModel : BaseViewModel
         var displayedUnique = filtered.Length;
         TotalCards = displayedTotal;
         UniqueCards = displayedUnique;
-        IsCollectionEmpty = _allItems.Length == 0;
-
-        StatusMessage = _allItems.Length == 0 ? "" : $"{displayedTotal} cards ({displayedUnique} unique)";
+        StatusMessage = $"{displayedTotal} cards ({displayedUnique} unique)";
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -317,6 +326,7 @@ public partial class CollectionViewModel : BaseViewModel
 
                 _toastService.Show($"Imported {importResult.SuccessCount} lines ({importResult.TotalCards} cards).");
 
+                IsBusy = false;
                 await LoadCollectionAsync();
             }
         }
@@ -367,7 +377,7 @@ public partial class CollectionViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
-            StatusMessage = "";
+            ApplyFilterAndSort();
         }
     }
 }

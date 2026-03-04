@@ -33,6 +33,7 @@ public class CollectionImporter
     {
         var result = new ImportResult();
         var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
+        var seenUuids = new Dictionary<string, int>(); // uuid → index in cardsToAdd, to deduplicate
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -71,22 +72,25 @@ public class CollectionImporter
         if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "amount"); // Deckstats??
         if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "reg qty"); // Decked Builder???
 
-        int setIdx = Array.IndexOf(lowerHeaders, "edition"); // Deckbox, MTG Studio???
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set"); // MTGO, Decked Builder, Moxfield? <--
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set code"); // Helvault, CardSphere??
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition code"); // ManaBox???
+        int setIdx = Array.IndexOf(lowerHeaders, "edition"); // Deckbox, MTG Studio, Archidekt (short)
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition (printing)"); // Archidekt full header
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set"); // MTGO, Decked Builder, Moxfield, TappedOut
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set code"); // Helvault, CardSphere, Dragon Shield
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set name"); // Dragon Shield fallback
+        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition code"); // ManaBox
 
         int foilIdx = Array.IndexOf(lowerHeaders, "foil"); // Deckbox, MTG Studio, Moxfield <--
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "is foil"); // Helvault??
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "premium"); // MTGO??
+        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "is foil"); // Helvault
+        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "premium"); // MTGO
         if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "foil qty"); // Decked Builder
         if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "printing"); // TCGplayer, ManaBox <--
 
         int scryfallIdx = Array.IndexOf(lowerHeaders, "scryfall id"); // Moxfield
         if (scryfallIdx == -1) scryfallIdx = Array.IndexOf(lowerHeaders, "scryfall_id");
 
-        int numberIdx = Array.IndexOf(lowerHeaders, "collector number"); // Moxfield
+        int numberIdx = Array.IndexOf(lowerHeaders, "collector number"); // Moxfield, Archidekt
         if (numberIdx == -1) numberIdx = Array.IndexOf(lowerHeaders, "card number"); // TCGplayer
+        if (numberIdx == -1) numberIdx = Array.IndexOf(lowerHeaders, "number"); // Dragon Shield
 
         // Ensure Name or Scryfall ID column is found
         if (nameIdx == -1 && scryfallIdx == -1)
@@ -143,12 +147,13 @@ public class CollectionImporter
             }
 
             bool isFoil = false;
+            bool isEtched = false;
             int foilQuantity = 0;
             if (foilIdx != -1)
             {
                 var foilVal = csv.GetField(foilIdx)?.Trim().ToLowerInvariant() ?? "";
 
-                // Decked Builder separation
+                // Decked Builder: "foil qty" is a numeric column for foil copies
                 if (lowerHeaders[foilIdx] == "foil qty")
                 {
                     if (int.TryParse(foilVal, out foilQuantity) && foilQuantity > 0)
@@ -158,11 +163,15 @@ public class CollectionImporter
                 }
                 else if (lowerHeaders[foilIdx] == "printing")
                 {
+                    // TCGplayer / ManaBox: "foil" or "etched"
                     isFoil = foilVal == "foil";
+                    isEtched = foilVal == "etched";
                 }
                 else
                 {
-                    isFoil = foilVal == "true" || foilVal == "yes" || foilVal == "1" || foilVal == "foil";
+                    // Moxfield and others: "foil", "etched", "true", "yes", "1"
+                    isEtched = foilVal == "etched";
+                    isFoil = !isEtched && (foilVal == "true" || foilVal == "yes" || foilVal == "1" || foilVal == "foil");
                 }
             }
 
@@ -195,7 +204,8 @@ public class CollectionImporter
                 var helper = _cardRepo.CreateSearchHelper();
                 helper.SearchCards()
                       .WhereNameEquals(name)
-                      .WherePrimarySideOnly();
+                      .WherePrimarySideOnly()
+                      .Limit(100);
 
                 var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
                 card = matches.FirstOrDefault(c =>
@@ -242,24 +252,25 @@ public class CollectionImporter
 
             if (card != null && !string.IsNullOrEmpty(card.UUID))
             {
-                if (foilQuantity > 0)
-                {
-                    cardsToAdd.Add((card.UUID, foilQuantity, true, false));
-                    result.SuccessCount++;
-                    result.TotalCards += foilQuantity;
+                // The collection schema has card_uuid as PRIMARY KEY, so only one entry per UUID.
+                // When Decked Builder provides separate foil and non-foil quantities, combine them.
+                int totalQty = foilQuantity > 0 ? foilQuantity + (quantity > 0 ? quantity : 0) : quantity;
+                bool cardIsFoil = foilQuantity > 0 ? true : isFoil;
+                bool cardIsEtched = isEtched;
 
-                    if (quantity > 0)
-                    {
-                        cardsToAdd.Add((card.UUID, quantity, false, false));
-                        result.SuccessCount++;
-                        result.TotalCards += quantity;
-                    }
+                if (seenUuids.TryGetValue(card.UUID, out int existingIdx))
+                {
+                    // UUID already queued — accumulate quantity
+                    var existing = cardsToAdd[existingIdx];
+                    cardsToAdd[existingIdx] = (existing.uuid, existing.quantity + totalQty, existing.isFoil || cardIsFoil, existing.isEtched || cardIsEtched);
+                    result.TotalCards += totalQty;
                 }
                 else
                 {
-                    cardsToAdd.Add((card.UUID, quantity, isFoil, false));
+                    seenUuids[card.UUID] = cardsToAdd.Count;
+                    cardsToAdd.Add((card.UUID, totalQty, cardIsFoil, cardIsEtched));
                     result.SuccessCount++;
-                    result.TotalCards += quantity;
+                    result.TotalCards += totalQty;
                 }
             }
             else
