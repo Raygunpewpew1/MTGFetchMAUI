@@ -49,9 +49,9 @@ public class MTGSearchHelper
     // Base Query Selection
     // ════════════════════════════════════════════════════════════════
 
-    public MTGSearchHelper SearchCards()
+    public MTGSearchHelper SearchCards(bool includeTokens = false)
     {
-        _baseSQL = SQLQueries.BaseCards;
+        _baseSQL = includeTokens ? SQLQueries.BaseCardsAndTokens : SQLQueries.BaseCards;
         return this;
     }
 

@@ -177,7 +177,7 @@ public partial class SearchViewModel : BaseViewModel
         try
         {
             var helper = _cardManager.CreateSearchHelper();
-            helper.SearchCards();
+            helper.SearchCards(CurrentOptions.IncludeTokens);
             ApplySearchOptions(helper, CurrentOptions);
             helper.OrderBy("c.name").Limit(PageSize).Offset(0);
 
@@ -192,7 +192,7 @@ public partial class SearchViewModel : BaseViewModel
             {
                 // Get total count
                 var countHelper = _cardManager.CreateSearchHelper();
-                countHelper.SearchCards();
+                countHelper.SearchCards(CurrentOptions.IncludeTokens);
                 ApplySearchOptions(countHelper, CurrentOptions);
                 TotalResults = await _cardManager.GetCountAdvancedAsync(countHelper);
                 HasMorePages = TotalResults > results.Length;
@@ -263,7 +263,7 @@ public partial class SearchViewModel : BaseViewModel
         try
         {
             var helper = _cardManager.CreateSearchHelper();
-            helper.SearchCards();
+            helper.SearchCards(CurrentOptions.IncludeTokens);
             ApplySearchOptions(helper, CurrentOptions);
             helper.OrderBy("c.name")
                   .Limit(PageSize)

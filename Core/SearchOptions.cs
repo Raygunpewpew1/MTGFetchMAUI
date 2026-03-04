@@ -40,6 +40,7 @@ public class SearchOptions
     public bool PrimarySideOnly { get; set; } = true;
     public bool NoVariations { get; set; }
     public bool IncludeAllFaces { get; set; }
+    public bool IncludeTokens { get; set; }
 
     public void Clear()
     {
@@ -65,6 +66,7 @@ public class SearchOptions
         PrimarySideOnly = true;
         NoVariations = false;
         IncludeAllFaces = false;
+        IncludeTokens = false;
     }
 
     public int ActiveFilterCount
@@ -84,6 +86,7 @@ public class SearchOptions
             if (!string.IsNullOrEmpty(ToughnessFilter)) count++;
             if (UseLegalFormat) count++;
             if (!string.IsNullOrEmpty(ArtistFilter)) count++;
+            if (IncludeTokens) count++;
             return count;
         }
     }
@@ -103,7 +106,8 @@ public class SearchOptions
         UseCMCExact ||
         !string.IsNullOrEmpty(PowerFilter) ||
         !string.IsNullOrEmpty(ToughnessFilter) ||
-        UseLegalFormat;
+        UseLegalFormat ||
+        IncludeTokens;
 
     public static SearchOptions Default() => new();
 }

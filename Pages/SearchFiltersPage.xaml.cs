@@ -146,6 +146,7 @@ public partial class SearchFiltersPage : ContentPage
         // Special
         options.PrimarySideOnly = ChkPrimarySide.IsChecked;
         options.NoVariations = ChkNoVariations.IsChecked;
+        options.IncludeTokens = ChkIncludeTokens.IsChecked;
 
         return options;
     }
@@ -250,6 +251,7 @@ public partial class SearchFiltersPage : ContentPage
         // Special
         ChkPrimarySide.IsChecked = options.PrimarySideOnly;
         ChkNoVariations.IsChecked = options.NoVariations;
+        ChkIncludeTokens.IsChecked = options.IncludeTokens;
     }
 
     private async void OnCancelClicked(object? sender, EventArgs e)
