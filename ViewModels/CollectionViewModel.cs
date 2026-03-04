@@ -21,6 +21,8 @@ public partial class CollectionViewModel : BaseViewModel
     private readonly CollectionExporter _exporter;
     private readonly IToastService _toastService;
     private CardGrid? _grid;
+    private CollectionItem[] _allItems = [];
+
     [ObservableProperty]
     public partial int TotalCards { get; set; }
 
@@ -93,19 +95,45 @@ public partial class CollectionViewModel : BaseViewModel
         _filterCts = new CancellationTokenSource();
         var token = _filterCts.Token;
 
+        // Always update empty state — the old early-return left IsCollectionEmpty=false
+        // and StatusMessage stuck at "Loading collection..." when the collection was empty.
+        IsCollectionEmpty = _allItems.Length == 0;
+
+        if (_allItems.Length == 0)
+        {
+            if (_grid != null) await _grid.SetCollectionAsync([]);
+            TotalCards = 0;
+            UniqueCards = 0;
+            StatusMessage = "";
+            return;
+        }
+
         try
         {
-            var (filtered, displayedTotal, displayedUnique) = await Task.Run(async () =>
+            var (filtered, displayedTotal, displayedUnique) = await Task.Run(() =>
             {
                 if (token.IsCancellationRequested) return ([], 0, 0);
 
-                var filter = FilterText?.Trim() ?? "";
+                IEnumerable<CollectionItem> result = _allItems;
 
-                // Query SQLite for sorting and filtering
-                var arr = await _cardManager.GetCollectionAsync(filter, SortMode);
+                // Filter by name
+                var filter = FilterText?.Trim();
+                if (!string.IsNullOrEmpty(filter))
+                    result = result.Where(i => i.Card.Name.Contains(filter, StringComparison.OrdinalIgnoreCase));
 
+                // Sort
                 if (token.IsCancellationRequested) return ([], 0, 0);
 
+                result = SortMode switch
+                {
+                    CollectionSortMode.Name => result.OrderBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    CollectionSortMode.CMC => result.OrderBy(i => i.Card.FaceManaValue).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    CollectionSortMode.Rarity => result.OrderByDescending(i => i.Card.Rarity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    CollectionSortMode.Color => result.OrderBy(i => i.Card.ColorIdentity.Length).ThenBy(i => i.Card.ColorIdentity).ThenBy(i => i.Card.Name, StringComparer.OrdinalIgnoreCase),
+                    _ => result // Manual: keep loaded order
+                };
+
+                var arr = result.ToArray();
                 var total = arr.Sum(i => i.Quantity);
                 var unique = arr.Length;
 
@@ -118,10 +146,9 @@ public partial class CollectionViewModel : BaseViewModel
 
             if (token.IsCancellationRequested) return;
 
-            IsCollectionEmpty = displayedUnique == 0 && string.IsNullOrEmpty(FilterText);
             TotalCards = displayedTotal;
             UniqueCards = displayedUnique;
-            StatusMessage = displayedUnique == 0 ? "" : $"{displayedTotal} cards ({displayedUnique} unique)";
+            StatusMessage = $"{displayedTotal} cards ({displayedUnique} unique)";
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -219,6 +246,8 @@ public partial class CollectionViewModel : BaseViewModel
 
         try
         {
+            _allItems = await Task.Run(() => _cardManager.GetCollectionAsync());
+
             await ApplyFilterAndSortAsync();
             CollectionLoaded?.Invoke();
         }
@@ -348,8 +377,7 @@ public partial class CollectionViewModel : BaseViewModel
     {
         try
         {
-            var items = await _cardManager.GetCollectionAsync();
-            if (items.Length == 0)
+            if (_allItems.Length == 0)
             {
                 _toastService.Show("Collection is empty.");
                 return;
