@@ -92,6 +92,7 @@ public class Card
     public CardLegalities Legalities { get; set; } = new();
     public List<CardRuling> Rulings { get; set; } = [];
     public string ImageUrl { get; set; } = "";
+    public string[] RelatedCards { get; set; } = [];
 
     public string Finishes { get; set; } = "";
     public string Availability { get; set; } = "";
