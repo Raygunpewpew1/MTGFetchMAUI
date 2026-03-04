@@ -54,6 +54,10 @@ public sealed class DatabaseManager : IDisposable
                         _mtgConnection = CreateConnection(mtgDbPath, readOnly: true);
                         await _mtgConnection.OpenAsync();
                         await ConfigureConnectionAsync(_mtgConnection);
+
+                        // Attach collection database so MTG queries can join collection tables
+                        var escapedCollPath = collectionDbPath.Replace("'", "''");
+                        await ExecuteNonQueryAsync(_mtgConnection, $"ATTACH DATABASE '{escapedCollPath}' AS col");
                     }
 
                     // Connect Collection database (read-write)

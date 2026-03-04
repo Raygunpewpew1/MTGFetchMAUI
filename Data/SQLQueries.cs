@@ -379,7 +379,7 @@ public static class SQLQueries
         """;
 
     public const string BaseCollection =
-        "SELECT c.*, mc.quantity FROM cards c INNER JOIN my_collection mc ON c.uuid = mc.card_uuid";
+        "SELECT c.*, mc.quantity FROM cards c INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid";
 
     public const string BaseSets = "SELECT * FROM sets";
 
@@ -394,7 +394,7 @@ public static class SQLQueries
     public const string CondPower = "c.power = @";
     public const string CondToughness = "c.toughness = @";
     public const string CondArtist = "c.artist LIKE @";
-    public const string CondInCollection = "EXISTS (SELECT 1 FROM my_collection WHERE card_uuid = c.uuid)";
+    public const string CondInCollection = "EXISTS (SELECT 1 FROM col.my_collection WHERE card_uuid = c.uuid)";
     public const string CondSidePrimary = "(c.side = 'a' OR c.side IS NULL)";
     public const string CondNoVariations = "(c.variations IS NULL OR c.variations = '' OR c.variations = '[]')";
 }
