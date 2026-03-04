@@ -74,18 +74,20 @@ public class SearchOptions
         get
         {
             int count = 0;
-            if (!string.IsNullOrEmpty(ColorFilter)) count++;
-            if (!string.IsNullOrEmpty(TextFilter)) count++;
-            if (!string.IsNullOrEmpty(TypeFilter) && !TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase)) count++;
-            if (!string.IsNullOrEmpty(SubtypeFilter)) count++;
-            if (!string.IsNullOrEmpty(SupertypeFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(NameFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(TextFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(TypeFilter) && !TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase)) count++;
+            if (!string.IsNullOrWhiteSpace(SubtypeFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(SupertypeFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(ColorFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(ColorIdentityFilter)) count++;
             if (RarityFilter.Count > 0) count++;
-            if (!string.IsNullOrEmpty(SetFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(SetFilter)) count++;
             if (UseCMCRange || UseCMCExact) count++;
-            if (!string.IsNullOrEmpty(PowerFilter)) count++;
-            if (!string.IsNullOrEmpty(ToughnessFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(PowerFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(ToughnessFilter)) count++;
             if (UseLegalFormat) count++;
-            if (!string.IsNullOrEmpty(ArtistFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(ArtistFilter)) count++;
             if (IncludeTokens) count++;
             return count;
         }

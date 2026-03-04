@@ -34,6 +34,7 @@
     <Compile Include="..\Data\MTGSearchHelper.cs" Link="Data\MTGSearchHelper.cs" />
     <Compile Include="..\Data\SQLQueries.cs" Link="Data\SQLQueries.cs" />
     <Compile Include="..\Core\Enums.cs" Link="Core\Enums.cs" />
+    <Compile Include="..\Core\SearchOptions.cs" Link="Core\SearchOptions.cs" />
     <Compile Include="..\Core\Layout\GridLayoutEngine.cs" Link="Core\Layout\GridLayoutEngine.cs" />
     <Compile Include="..\Core\Layout\GridState.cs" Link="Core\Layout\GridState.cs" />
     <Compile Include="..\Services\CardPriceTypes.cs" Link="Services\CardPriceTypes.cs" />
