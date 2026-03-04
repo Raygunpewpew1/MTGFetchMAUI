@@ -393,6 +393,43 @@ public static class SQLQueries
         LEFT JOIN cardPurchaseUrls cp ON c.uuid = cp.uuid
         """;
 
+    public const string BaseTokens =
+        """
+        SELECT c.artist, c.artistIds, c.asciiName, c.attractionLights, c.availability, c.boosterTypes,
+        c.borderColor, NULL AS cardParts, c.colorIdentity, c.colorIndicator, c.colors, NULL AS defense,
+        NULL AS duelDeck, NULL AS edhrecRank, c.edhrecSaltiness, NULL AS faceConvertedManaCost,
+        NULL AS faceFlavorName, NULL AS faceManaValue, c.faceName, NULL AS facePrintedName, c.finishes,
+        c.flavorName, c.flavorText, c.frameEffects, c.frameVersion, NULL AS hand, NULL AS hasAlternativeDeckLimit,
+        NULL AS hasContentWarning, NULL AS isAlternative, c.isFullArt, c.isFunny, NULL AS isGameChanger,
+        NULL AS isOnlineOnly, c.isOversized, c.isPromo, NULL AS isRebalanced, c.isReprint, NULL AS isReserved,
+        NULL AS isStorySpotlight, c.isTextless, NULL AS isTimeshifted, c.keywords, c.language, c.layout,
+        NULL AS leadershipSkills, NULL AS life, NULL AS loyalty, c.manaCost, NULL AS manaValue, c.name, c.number,
+        NULL AS originalPrintings, NULL AS originalReleaseDate, c.originalText, c.otherFaceIds, c.power,
+        NULL AS printedName, NULL AS printedText, c.printedType, NULL AS printings, c.producedMana, c.promoTypes,
+        NULL AS rarity, NULL AS rebalancedPrintings, c.relatedCards, c.securityStamp, c.setCode, c.side,
+        c.signature, c.sourceProducts, NULL AS subsets, c.subtypes, c.supertypes, c.text, c.toughness, c.type,
+        c.types, c.uuid, NULL AS variations, c.watermark,
+        ci.scryfallId, s.name as setName,
+        NULL as alchemy, NULL as brawl, NULL as commander, NULL as duel, NULL as future, NULL as gladiator,
+        NULL as historic, NULL as legacy, NULL as modern, NULL as oathbreaker, NULL as oldschool,
+        NULL as pauper, NULL as paupercommander, NULL as penny, NULL as pioneer, NULL as predh,
+        NULL as premodern, NULL as standard, NULL as standardbrawl, NULL as timeless, NULL as vintage,
+        NULL as cardKingdom, NULL as cardKingdomFoil, NULL as cardKingdomEtched,
+        NULL as cardmarket, NULL as tcgplayer, NULL as tcgplayerEtched
+        FROM tokens c
+        LEFT JOIN tokenIdentifiers ci ON c.uuid = ci.uuid
+        LEFT JOIN sets s ON c.setCode = s.code
+        """;
+
+    public const string BaseCardsAndTokens =
+        $"""
+        SELECT * FROM (
+            {BaseCards}
+            UNION ALL
+            {BaseTokens}
+        ) c
+        """;
+
     public const string BaseCollection =
         "SELECT c.*, mc.quantity FROM cards c INNER JOIN my_collection mc ON c.uuid = mc.card_uuid";
 
