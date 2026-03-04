@@ -321,9 +321,9 @@ public class CardManager : IDisposable
         return await _collectionRepository.GetQuantityAsync(cardUUID);
     }
 
-    public async Task<CollectionItem[]> GetCollectionAsync()
+    public async Task<CollectionItem[]> GetCollectionAsync(string filterText = "", Core.CollectionSortMode sortMode = Core.CollectionSortMode.Manual)
     {
-        return await _collectionRepository.GetCollectionAsync();
+        return await _collectionRepository.GetCollectionAsync(filterText, sortMode);
     }
 
     public async Task<CollectionStats> GetCollectionStatsAsync()

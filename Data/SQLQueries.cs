@@ -379,7 +379,7 @@ public static class SQLQueries
         """;
 
     public const string BaseCollection =
-        "SELECT c.*, mc.quantity FROM cards c INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid";
+        "SELECT c.*, mc.quantity, mc.date_added, mc.sort_order, mc.is_foil, mc.is_etched FROM cards c INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid";
 
     public const string BaseSets = "SELECT * FROM sets";
 

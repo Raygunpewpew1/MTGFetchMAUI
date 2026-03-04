@@ -85,8 +85,12 @@ public class MTGSearchHelper
 
     public MTGSearchHelper OrderBy(string field, bool desc = false)
     {
+        // Ignore desc if field already specifies ASC/DESC to support manual raw sorts
+        var alreadyHasDirection = field.EndsWith(" ASC", StringComparison.OrdinalIgnoreCase) ||
+                                  field.EndsWith(" DESC", StringComparison.OrdinalIgnoreCase);
+
         _orderByClause = SQLQueries.SqlOrderBy + field;
-        if (desc) _orderByClause += SQLQueries.SqlDesc;
+        if (desc && !alreadyHasDirection) _orderByClause += SQLQueries.SqlDesc;
         return this;
     }
 
