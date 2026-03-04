@@ -4,8 +4,22 @@ using AetherVault.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
+using System.Windows.Input;
 
 namespace AetherVault.ViewModels;
+
+public record PriceHistoryPoint(string Label, List<PriceEntry> Points);
+public record PurchaseLink(string Label, string Url);
+public record LegalityItem(string Format, LegalityStatus Status)
+{
+    public string StatusText => Status switch
+    {
+        LegalityStatus.Legal => "Legal",
+        LegalityStatus.Banned => "Banned",
+        LegalityStatus.Restricted => "Restricted",
+        _ => "Not Legal"
+    };
+}
 
 /// <summary>
 /// ViewModel for card detail page.
@@ -33,10 +47,14 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     public partial int CurrentFaceIndex { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsImageLoading))]
     public partial SKImage? CardImage { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsImageLoading))]
     public partial bool CardImageLoadFailed { get; set; }
+
+    public bool IsImageLoading => CardImage == null && !CardImageLoadFailed;
 
     [ObservableProperty]
     public partial bool IsInCollection { get; set; }
@@ -45,25 +63,65 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     public partial string PriceDisplay { get; set; } = "";
 
     [ObservableProperty]
+    public partial bool IsPriceVisible { get; set; }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasPriceHistory))]
     public partial CardPriceData PriceData { get; set; } = CardPriceData.Empty;
 
     [ObservableProperty]
     public partial string CardPosition { get; set; } = "";
 
-    public bool HasPriceHistory => PriceData != CardPriceData.Empty &&
-                                   (PriceData.Paper.TCGPlayer.RetailNormalHistory.Count > 0 ||
-                                    PriceData.Paper.Cardmarket.RetailNormalHistory.Count > 0);
+    [ObservableProperty]
+    public partial Color RarityColor { get; set; } = Colors.Transparent;
+
+    [ObservableProperty]
+    public partial string CombinedText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsTextVisible { get; set; }
+
+    [ObservableProperty]
+    public partial string PTText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsPTVisible { get; set; }
+
+    [ObservableProperty]
+    public partial string SetInfoText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsSetSymbolVisible { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsArtistVisible { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsFlavorVisible { get; set; }
+
+    [ObservableProperty]
+    public partial List<PriceHistoryPoint> DisplayPriceHistory { get; set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPurchaseLinks))]
+    public partial List<PurchaseLink> PurchaseLinks { get; set; } = [];
+
+    [ObservableProperty]
+    public partial List<LegalityItem> Legalities { get; set; } = [];
+
+    public ICommand OpenLinkCommand => new Command<string>(async (url) =>
+    {
+        if (!string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            await Launcher.OpenAsync(uri);
+        }
+    });
+
+    public bool HasPriceHistory => DisplayPriceHistory.Count > 0;
 
     public bool HasRulings => Card?.Rulings != null && Card.Rulings.Count > 0;
 
-    public bool HasPurchaseLinks => Card != null &&
-        (!string.IsNullOrEmpty(Card.cardKingdom) ||
-         !string.IsNullOrEmpty(Card.cardKingdomFoil) ||
-         !string.IsNullOrEmpty(Card.cardKingdomEtched) ||
-         !string.IsNullOrEmpty(Card.cardmarket) ||
-         !string.IsNullOrEmpty(Card.tcgplayer) ||
-         !string.IsNullOrEmpty(Card.tcgplayerEtched));
+    public bool HasPurchaseLinks => PurchaseLinks.Count > 0;
 
     public bool HasMultipleFaces => Faces.Length > 1;
 
@@ -90,6 +148,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 OnPropertyChanged(nameof(CurrentFace)); // Triggers UI update
+                UpdateCardDetails();
             });
         }
     }
@@ -181,6 +240,8 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             // Load price
             await LoadPriceAsync();
 
+            UpdateCardDetails();
+
             UpdateGalleryState();
         }
         catch (Exception ex)
@@ -192,6 +253,90 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             IsBusy = false;
         }
     }
+
+    private void UpdateCardDetails()
+    {
+        if (CurrentFace == null) return;
+
+        // Rarity color
+        RarityColor = CurrentFace.Rarity switch
+        {
+            CardRarity.Common => Color.FromArgb("#C0C0C0"),
+            CardRarity.Uncommon => Color.FromArgb("#B0C4DE"),
+            CardRarity.Rare => Color.FromArgb("#FFD700"),
+            CardRarity.Mythic => Color.FromArgb("#FF8C00"),
+            _ => Color.FromArgb("#A0A0A0")
+        };
+
+        // Text
+        CombinedText = GetCombinedText();
+        IsTextVisible = !string.IsNullOrEmpty(CombinedText);
+
+        // P/T
+        var pt = CurrentFace.GetPowerToughness();
+        if (!string.IsNullOrEmpty(pt))
+        {
+            PTText = pt;
+            IsPTVisible = true;
+        }
+        else if (!string.IsNullOrEmpty(CurrentFace.Loyalty))
+        {
+            PTText = $"Loyalty: {CurrentFace.Loyalty}";
+            IsPTVisible = true;
+        }
+        else if (!string.IsNullOrEmpty(CurrentFace.Defense))
+        {
+            PTText = $"Defense: {CurrentFace.Defense}";
+            IsPTVisible = true;
+        }
+        else
+        {
+            PTText = "";
+            IsPTVisible = false;
+        }
+
+        // Set Info
+        SetInfoText = CurrentFace.GetSetAndNumber() + "\n" + CurrentFace.SetName;
+        IsSetSymbolVisible = !string.IsNullOrEmpty(CurrentFace.SetCode) && SetSvgCache.GetSymbol(CurrentFace.SetCode) != null;
+
+        // Flavor
+        IsFlavorVisible = !string.IsNullOrEmpty(CurrentFace.FlavorText);
+
+        // Artist
+        IsArtistVisible = !string.IsNullOrEmpty(CurrentFace.Artist);
+
+        // Purchase Links
+        PurchaseLinks = GetPurchaseLinks();
+
+        // Legalities
+        Legalities = GetLegalityList();
+
+        // Price History
+        PopulateHistory();
+    }
+
+    private void PopulateHistory()
+    {
+        var points = new List<PriceHistoryPoint>();
+        if (PriceData == CardPriceData.Empty)
+        {
+            DisplayPriceHistory = points;
+            return;
+        }
+
+        var tcgHistory = PriceData.Paper.TCGPlayer.RetailNormalHistory;
+        var cmHistory = PriceData.Paper.Cardmarket.RetailNormalHistory;
+
+        if (tcgHistory.Count > 0)
+            points.Add(new PriceHistoryPoint("TCGPlayer Retail", tcgHistory.Skip(Math.Max(0, tcgHistory.Count - 5)).ToList()));
+
+        if (cmHistory.Count > 0)
+            points.Add(new PriceHistoryPoint("Cardmarket Retail", cmHistory.Skip(Math.Max(0, cmHistory.Count - 5)).ToList()));
+
+        DisplayPriceHistory = points;
+        OnPropertyChanged(nameof(HasPriceHistory));
+    }
+
 
     private void UpdateGalleryState()
     {
@@ -242,17 +387,18 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     private async Task LoadPriceAsync()
     {
         var (found, prices) = await _cardManager.GetCardPricesAsync(Card.UUID);
-        if (!found) { PriceDisplay = ""; PriceData = CardPriceData.Empty; return; }
+        if (!found) { PriceDisplay = ""; PriceData = CardPriceData.Empty; IsPriceVisible = false; return; }
 
         PriceData = prices;
 
         VendorPrices[] vendors = [prices.Paper.TCGPlayer, prices.Paper.Cardmarket, prices.Paper.CardKingdom];
         foreach (var v in vendors)
         {
-            if (v.RetailNormal.Price > 0) { PriceDisplay = $"${v.RetailNormal.Price:F2}"; return; }
-            if (v.RetailFoil.Price > 0) { PriceDisplay = $"${v.RetailFoil.Price:F2} (Foil)"; return; }
+            if (v.RetailNormal.Price > 0) { PriceDisplay = $"${v.RetailNormal.Price:F2}"; IsPriceVisible = true; return; }
+            if (v.RetailFoil.Price > 0) { PriceDisplay = $"${v.RetailFoil.Price:F2} (Foil)"; IsPriceVisible = true; return; }
         }
         PriceDisplay = "";
+        IsPriceVisible = false;
     }
 
     partial void OnCardImageChanging(SKImage? value)
@@ -284,6 +430,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         if (Faces.Length <= 1) return;
         CurrentFaceIndex = (CurrentFaceIndex + 1) % Faces.Length;
         _ = LoadCardImageAsync();
+        UpdateCardDetails();
     }
 
     [RelayCommand]
@@ -308,25 +455,29 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         IsInCollection = false;
     }
 
-    public List<(string label, string url)> GetPurchaseLinks()
+    public List<PurchaseLink> GetPurchaseLinks()
     {
-        var links = new List<(string, string)>();
-        if (!string.IsNullOrEmpty(Card.tcgplayer)) links.Add(("TCGPlayer", Card.tcgplayer));
-        if (!string.IsNullOrEmpty(Card.tcgplayerEtched)) links.Add(("TCGPlayer \u2014 Etched", Card.tcgplayerEtched));
-        if (!string.IsNullOrEmpty(Card.cardmarket)) links.Add(("Cardmarket", Card.cardmarket));
-        if (!string.IsNullOrEmpty(Card.cardKingdom)) links.Add(("Card Kingdom", Card.cardKingdom));
-        if (!string.IsNullOrEmpty(Card.cardKingdomFoil)) links.Add(("Card Kingdom \u2014 Foil", Card.cardKingdomFoil));
-        if (!string.IsNullOrEmpty(Card.cardKingdomEtched)) links.Add(("Card Kingdom \u2014 Etched", Card.cardKingdomEtched));
+        var links = new List<PurchaseLink>();
+        if (Card == null) return links;
+
+        if (!string.IsNullOrEmpty(Card.tcgplayer)) links.Add(new PurchaseLink("TCGPlayer", Card.tcgplayer));
+        if (!string.IsNullOrEmpty(Card.tcgplayerEtched)) links.Add(new PurchaseLink("TCGPlayer \u2014 Etched", Card.tcgplayerEtched));
+        if (!string.IsNullOrEmpty(Card.cardmarket)) links.Add(new PurchaseLink("Cardmarket", Card.cardmarket));
+        if (!string.IsNullOrEmpty(Card.cardKingdom)) links.Add(new PurchaseLink("Card Kingdom", Card.cardKingdom));
+        if (!string.IsNullOrEmpty(Card.cardKingdomFoil)) links.Add(new PurchaseLink("Card Kingdom \u2014 Foil", Card.cardKingdomFoil));
+        if (!string.IsNullOrEmpty(Card.cardKingdomEtched)) links.Add(new PurchaseLink("Card Kingdom \u2014 Etched", Card.cardKingdomEtched));
         return links;
     }
 
-    public List<(string format, LegalityStatus status)> GetLegalityList()
+    public List<LegalityItem> GetLegalityList()
     {
-        var list = new List<(string, LegalityStatus)>();
+        var list = new List<LegalityItem>();
+        if (Card == null) return list;
+
         foreach (DeckFormat fmt in Enum.GetValues<DeckFormat>())
         {
             var status = Card.Legalities[fmt];
-            list.Add((fmt.ToDisplayName(), status));
+            list.Add(new LegalityItem(fmt.ToDisplayName(), status));
         }
         return list;
     }

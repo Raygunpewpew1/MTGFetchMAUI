@@ -5,6 +5,8 @@
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+             xmlns:models="clr-namespace:AetherVault.Models"
+             xmlns:viewmodels="clr-namespace:AetherVault.ViewModels"
              x:Class="AetherVault.Pages.CardDetailPage"
              x:Name="DetailScreen"
              Title="Card Details"
@@ -37,13 +39,13 @@
                                                HeightRequest="380"
                                                WidthRequest="272" />
                             <ActivityIndicator x:Name="ImageLoading"
-                                               IsRunning="True"
-                                               IsVisible="True"
+                                               IsRunning="{Binding IsImageLoading}"
+                                               IsVisible="{Binding IsImageLoading}"
                                                VerticalOptions="Center"
                                                HorizontalOptions="Center"
                                                Color="{StaticResource Primary}" />
                             <VerticalStackLayout x:Name="ImageFallback"
-                                                 IsVisible="False"
+                                                 IsVisible="{Binding CardImageLoadFailed}"
                                                  VerticalOptions="Center"
                                                  HorizontalOptions="Center"
                                                  Spacing="6">
@@ -73,23 +75,26 @@
 
                 <Label x:Name="FlipHint"
                        Text="Tap image to flip"
-                       IsVisible="False"
+                       IsVisible="{Binding HasMultipleFaces}"
                        HorizontalOptions="Center"
                        FontSize="11"
                        TextColor="{StaticResource TextSecondary}" />
 
                 <Grid ColumnDefinitions="*,Auto" Padding="0,4,0,0">
                     <Label x:Name="CardNameLabel"
+                           Text="{Binding CurrentFace.Name}"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}"
                            LineBreakMode="WordWrap" FontAutoScalingEnabled="True" />
                     <controls:ManaCostView x:Name="ManaCost"
+                                           ManaText="{Binding CurrentFace.ManaCost}"
                                            Grid.Column="1"
                                            VerticalOptions="Center" />
                 </Grid>
 
                 <Label x:Name="TypeLineLabel"
+                       Text="{Binding CurrentFace.CardType}"
                        FontSize="14"
                        TextColor="{StaticResource TextSecondary}" />
 
@@ -98,41 +103,64 @@
                                        HeightRequest="24"
                                        WidthRequest="24"
                                        PaintSurface="OnSetSymbolPaint"
-                                       IsVisible="False" />
+                                       IsVisible="{Binding IsSetSymbolVisible}" />
                     <Label x:Name="SetInfoLabel"
+                           Text="{Binding SetInfoText}"
                            VerticalOptions="Center"
                            FontSize="12"
                            LineBreakMode ="WordWrap"
                            TextColor="{StaticResource TextSecondary}" />
                     <Label x:Name="RarityLabel"
+                           Text="{Binding CurrentFace.Rarity}"
+                           TextColor="{Binding RarityColor}"
                            VerticalOptions="Center"
                            FontSize="12"
                            FontAttributes="Bold" />
                 </HorizontalStackLayout>
 
                 <Label x:Name="PriceLabel"
+                       Text="{Binding PriceDisplay}"
                        FontSize="14"
                        FontAttributes="Bold"
                        TextColor="{StaticResource Accent}"
-                       IsVisible="False" />
+                       IsVisible="{Binding IsPriceVisible}" />
 
                 <Label x:Name="PTLabel"
+                       Text="{Binding PTText}"
                        FontSize="14"
                        TextColor="{StaticResource TextPrimary}"
-                       IsVisible="False" />
+                       IsVisible="{Binding IsPTVisible}" />
 
                 <Border StrokeShape="RoundRectangle 8"
                         BackgroundColor="{StaticResource CardBackground}"
                         StrokeThickness="0"
                         Padding="12"
                         x:Name="PriceHistoryBorder"
-                        IsVisible="False">
+                        IsVisible="{Binding HasPriceHistory}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Price Trend (Last 90 Days)"
                                FontSize="16"
                                FontAttributes="Bold"
                                Margin="0,0,0,4" />
-                        <VerticalStackLayout x:Name="HistoryStack" Spacing="4" />
+                        <VerticalStackLayout x:Name="HistoryStack" Spacing="4" BindableLayout.ItemsSource="{Binding DisplayPriceHistory}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewmodels:PriceHistoryPoint">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding Label}" FontSize="13" FontAttributes="Bold" Margin="0,4,0,2" />
+                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Points}">
+                                            <BindableLayout.ItemTemplate>
+                                                <DataTemplate x:DataType="models:PriceEntry">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <Label Text="{Binding Date, StringFormat='{0:d}'}" FontSize="12" TextColor="#A0A0A0" />
+                                                        <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12" HorizontalTextAlignment="End" Grid.Column="1" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </BindableLayout.ItemTemplate>
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
@@ -141,8 +169,9 @@
                         StrokeThickness="0"
                         Padding="12"
                         x:Name="TextBorder"
-                        IsVisible="False">
+                        IsVisible="{Binding IsTextVisible}">
                     <controls:CardTextView x:Name="CardTextView"
+                                           CardText="{Binding CombinedText}"
                                            HorizontalOptions="Fill"
                                            TextColor="{StaticResource TextPrimary}" />
                 </Border>
@@ -152,8 +181,9 @@
                         StrokeThickness="0"
                         Padding="12"
                         x:Name="FlavorBorder"
-                        IsVisible="False">
+                        IsVisible="{Binding IsFlavorVisible}">
                     <Label x:Name="FlavorTextLabel"
+                           Text="{Binding CurrentFace.FlavorText}"
                            FontSize="13"
                            FontFamily="SerifFontItalic"
                            TextColor="{StaticResource TextSecondary}"
@@ -161,9 +191,10 @@
                 </Border>
 
                 <Label x:Name="ArtistLabel"
+                       Text="{Binding CurrentFace.Artist, StringFormat='Illustrated by {0}'}"
                        FontSize="11"
                        TextColor="{StaticResource TextSecondary}"
-                       IsVisible="False" />
+                       IsVisible="{Binding IsArtistVisible}" />
 
                 <Border StrokeShape="RoundRectangle 8"
                         BackgroundColor="{StaticResource CardBackground}"
@@ -174,7 +205,21 @@
                         <Label Text="Buy Online"
                                FontSize="16"
                                FontAttributes="Bold" />
-                        <VerticalStackLayout x:Name="PurchaseLinksStack" Spacing="6" Padding="0,4,0,0" />
+                        <VerticalStackLayout x:Name="PurchaseLinksStack" Spacing="6" Padding="0,4,0,0" BindableLayout.ItemsSource="{Binding PurchaseLinks}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewmodels:PurchaseLink">
+                                    <Label TextType="Html"
+                                           Text="{Binding Label}"
+                                           FontSize="14"
+                                           TextColor="#6CB4E4"
+                                           TextDecorations="Underline">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding BindingContext.OpenLinkCommand, Source={x:Reference DetailScreen}}" CommandParameter="{Binding Url}" />
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
@@ -188,7 +233,31 @@
                                    FontSize="16"
                                    FontAttributes="Bold" />
                         </uranium:ExpanderView.Header>
-                        <VerticalStackLayout x:Name="LegalitiesStack" Spacing="2" Padding="0,8,0,0" />
+                        <VerticalStackLayout x:Name="LegalitiesStack" Spacing="2" Padding="0,8,0,0" BindableLayout.ItemsSource="{Binding Legalities}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewmodels:LegalityItem">
+                                    <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                        <Label Text="{Binding Format}" FontSize="13" TextColor="#A0A0A0" />
+                                        <Label Text="{Binding StatusText}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="End" Grid.Column="1">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="Legal">
+                                                    <Setter Property="TextColor" Value="#4CAF50" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="Banned">
+                                                    <Setter Property="TextColor" Value="#F44336" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="Restricted">
+                                                    <Setter Property="TextColor" Value="#FFC107" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="NotLegal">
+                                                    <Setter Property="TextColor" Value="#666666" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </uranium:ExpanderView>
                 </Border>
 
@@ -203,7 +272,21 @@
                                    FontSize="16"
                                    FontAttributes="Bold" />
                         </uranium:ExpanderView.Header>
-                        <VerticalStackLayout x:Name="RulingsStack" Spacing="8" Padding="0,8,0,0" />
+                        <VerticalStackLayout x:Name="RulingsStack" Spacing="8" Padding="0,8,0,0" BindableLayout.ItemsSource="{Binding Card.Rulings}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:CardRuling">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Date, StringFormat='{0:d}'}" FontSize="11" TextColor="#888888" />
+                                        <controls:CardTextView CardText="{Binding Text}"
+                                                               TextSize="13"
+                                                               TextColor="#E0E0E0"
+                                                               SymbolSize="14"
+                                                               BackgroundColor="Transparent"
+                                                               HorizontalOptions="Fill" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </uranium:ExpanderView>
                 </Border>
 
@@ -245,7 +328,7 @@
                     HeightRequest="40"
                     FontSize="13"
                     Padding="12,0"
-                    IsVisible="False" />
+                    IsVisible="{Binding IsInCollection}" />
 
             <Button Grid.Column="3"
                     x:Name="FlipBtn"
@@ -255,7 +338,7 @@
                     HeightRequest="40"
                     FontSize="13"
                     Padding="12,0"
-                    IsVisible="False"
+                    IsVisible="{Binding HasMultipleFaces}"
                     StyleClass="ElevatedButton" />
         </Grid>
 
