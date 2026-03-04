@@ -36,6 +36,7 @@ public static class CardMapper
         public readonly int Rarity, Layout, Side;
         public readonly int CardKingdom, CardKingdomFoil, CardKingdomEtched;
         public readonly int Cardmarket, Tcgplayer, TcgplayerEtched;
+        public readonly int RelatedCards;
         public readonly Dictionary<DeckFormat, int> Legalities;
 
         public CardOrdinals(DbDataReader reader)
@@ -117,6 +118,7 @@ public static class CardMapper
             Cardmarket = Ord(reader, "cardmarket");
             Tcgplayer = Ord(reader, "tcgplayer");
             TcgplayerEtched = Ord(reader, "tcgplayerEtched");
+            RelatedCards = Ord(reader, "relatedCards");
 
             Legalities = [];
             foreach (DeckFormat fmt in Enum.GetValues<DeckFormat>())
@@ -167,6 +169,9 @@ public static class CardMapper
         card.Finishes = CleanJsonArray(Str(reader, o.Finishes));
         card.Availability = CleanJsonArray(Str(reader, o.Availability));
         card.AttractionLights = CleanJsonArray(Str(reader, o.AttractionLights));
+
+        // Extract related cards (tokens, etc.)
+        card.RelatedCards = ParseRelatedCards(Str(reader, o.RelatedCards));
 
         // CardParts kept as raw JSON (card names can contain commas)
         card.CardParts = Str(reader, o.CardParts);
@@ -359,5 +364,45 @@ public static class CardMapper
         }
 
         return [];
+    }
+
+    /// <summary>
+    /// Parses relatedCards JSON. It typically looks like:
+    /// {"tokens":["uuid1", "uuid2"]}
+    /// Extract all UUIDs into a string array.
+    /// </summary>
+    public static string[] ParseRelatedCards(string? jsonString)
+    {
+        if (string.IsNullOrEmpty(jsonString) || jsonString == "{}")
+            return [];
+
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonString);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                return [];
+
+            var uuids = new List<string>();
+
+            // It's possible there are other categories like "spellbook", so iterate properties
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                if (prop.Value.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in prop.Value.EnumerateArray())
+                    {
+                        var s = item.GetString();
+                        if (!string.IsNullOrEmpty(s))
+                            uuids.Add(s);
+                    }
+                }
+            }
+
+            return uuids.Distinct().ToArray();
+        }
+        catch
+        {
+            return [];
+        }
     }
 }

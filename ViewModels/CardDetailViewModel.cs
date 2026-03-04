@@ -65,7 +65,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
          !string.IsNullOrEmpty(Card.tcgplayer) ||
          !string.IsNullOrEmpty(Card.tcgplayerEtched));
 
-    public bool HasMultipleFaces => Faces.Length > 1 && Card.Layout.IsDoubleFaced();
+    public bool HasMultipleFaces => Faces.Length > 1;
 
     public bool ShowGalleryNavigation => _galleryContext.HasContext;
 

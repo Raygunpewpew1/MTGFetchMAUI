@@ -25,7 +25,7 @@ public class CardRepository : ICardRepository
     public async Task<Card> GetCardWithLegalitiesAsync(string uuid)
     {
         return await WithMTGReaderAsync(
-            SQLQueries.SelectFullCard + SQLQueries.WhereUuidEquals,
+            SQLQueries.BaseCardsAndTokens + SQLQueries.WhereUuidEquals,
             new { uuid },
             async reader =>
             {
@@ -160,6 +160,20 @@ public class CardRepository : ICardRepository
             }
         }
 
+        // Include tokens/related cards
+        if (mainCard.RelatedCards != null && mainCard.RelatedCards.Length > 0)
+        {
+            var dict = await GetCardsByUUIDsAsync(mainCard.RelatedCards);
+            foreach(var kvp in dict)
+            {
+                // Ensure we don't duplicate (e.g. if a related card was already included)
+                if (!cards.Any(c => c.UUID == kvp.Key))
+                {
+                    cards.Add(kvp.Value);
+                }
+            }
+        }
+
         return SortCardsBySide([.. cards]);
     }
 
@@ -173,7 +187,7 @@ public class CardRepository : ICardRepository
         {
             var chunk = uuids.Skip(i).Take(chunkSize).ToArray();
             var paramNames = chunk.Select((_, idx) => $"@u{idx}").ToArray();
-            var sql = SQLQueries.SelectFullCard + " WHERE c.uuid IN (" + string.Join(",", paramNames) + ")";
+            var sql = SQLQueries.BaseCardsAndTokens + " WHERE c.uuid IN (" + string.Join(",", paramNames) + ")";
 
             var dynamicParams = new DynamicParameters();
             for (int j = 0; j < chunk.Length; j++)
