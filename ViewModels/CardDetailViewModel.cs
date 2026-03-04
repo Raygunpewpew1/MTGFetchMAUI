@@ -146,12 +146,23 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
                     package = [.. filtered];
                 }
 
-                // Filter: show primary face first, then others
-                Faces = package;
+                // FILTER: Remove logic-only faces that don't have separate physical images
+                // e.g. Adventure and Split cards. But KEEP tokens!
+                // Tokens usually have layout == Token or their ScryfallId differs.
+                // We keep a face if it's the main face, OR if its ScryfallId is different, OR if it's explicitly a Token, OR if it's a double-faced layout (Transform, MDFC).
+                var filteredFaces = package.Where(face =>
+                    face.UUID == uuid ||
+                    face.Layout.IsDoubleFaced() ||
+                    face.Layout == CardLayout.Token ||
+                    face.ScryfallId != mainCard.ScryfallId
+                ).ToArray();
+
+                // Show primary face first, then others
+                Faces = filteredFaces;
                 CurrentFaceIndex = 0;
-                for (int i = 0; i < package.Length; i++)
+                for (int i = 0; i < filteredFaces.Length; i++)
                 {
-                    if (package[i].UUID == uuid) { CurrentFaceIndex = i; break; }
+                    if (filteredFaces[i].UUID == uuid) { CurrentFaceIndex = i; break; }
                 }
             }
             else
