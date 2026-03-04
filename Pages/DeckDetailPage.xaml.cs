@@ -87,8 +87,12 @@ public partial class DeckDetailPage : ContentPage
         float w = e.Info.Width;
         float h = e.Info.Height;
 
-        // Background gradient using deck color identity colors
-        var colorIdentity = _viewModel.Deck?.ColorIdentity ?? "";
+        if (w <= 0 || h <= 0) return;
+
+        try
+        {
+            // Background gradient using deck color identity colors
+            var colorIdentity = _viewModel.Deck?.ColorIdentity ?? "";
         var (topColor, bottomColor) = GetGradientColors(colorIdentity);
 
         using var gradPaint = new SKPaint();
@@ -108,17 +112,23 @@ public partial class DeckDetailPage : ContentPage
             SKShaderTileMode.Clamp);
         canvas.DrawRect(0, 0, w, h, overlayPaint);
 
-        // Commander name or deck name text
-        string headline = _viewModel.Deck?.CommanderName is { Length: > 0 } cn
-            ? cn
-            : (_viewModel.Deck?.Name ?? "");
+            // Commander name or deck name text
+            string headline = _viewModel.Deck?.CommanderName is { Length: > 0 } cn
+                ? cn
+                : (_viewModel.Deck?.Name ?? "");
 
-        if (!string.IsNullOrEmpty(headline))
+            if (!string.IsNullOrEmpty(headline))
+            {
+                using var typeface = SKTypeface.FromFamilyName("sans-serif");
+                using var textFont = new SKFont(typeface) { Size = Math.Min(h * 0.2f, 28f), Embolden = true, Subpixel = true };
+                using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+                float textY = h - textFont.Size * 0.5f;
+                canvas.DrawText(headline, 16f, textY, SKTextAlign.Left, textFont, textPaint);
+            }
+        }
+        catch (Exception ex)
         {
-            using var textFont = new SKFont { Size = Math.Min(h * 0.2f, 28f), Embolden = true };
-            using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
-            float textY = h - textFont.Size * 0.5f;
-            canvas.DrawText(headline, 16f, textY, SKTextAlign.Left, textFont, textPaint);
+            System.Diagnostics.Debug.WriteLine($"Error drawing commander art: {ex}");
         }
     }
 

@@ -60,7 +60,8 @@
             <!-- Deck List -->
             <CollectionView ItemsSource="{Binding Decks}"
                             IsVisible="{Binding IsEmpty, Converter={x:StaticResource InvertedBoolConverter}}"
-                            SelectionMode="None">
+                            SelectionMode="Single"
+                            SelectionChanged="OnDeckSelectionChanged">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:DeckEntity">
                         <SwipeView>
@@ -126,9 +127,6 @@
                                     </VerticalStackLayout>
                                 </Grid>
 
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnDeckTapped" />
-                                </Border.GestureRecognizers>
                             </Border>
                         </SwipeView>
                     </DataTemplate>
