@@ -265,20 +265,25 @@ public partial class CollectionViewModel : BaseViewModel
 
         _ = Task.Run(async () =>
         {
+            var uuidsToFetch = new List<string>();
             for (int i = start; i <= end; i++)
             {
                 var card = _grid.GetCardStateAt(i);
-                if (card == null || card.PriceData != null) continue;
-
-                var (found, prices) = await _cardManager.GetCardPricesAsync(card.Id.Value);
-                if (found)
+                if (card != null && card.PriceData == null)
                 {
-                    string uuid = card.Id.Value;
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        _grid?.UpdateCardPrices(uuid, prices);
-                    });
+                    uuidsToFetch.Add(card.Id.Value);
                 }
+            }
+
+            if (uuidsToFetch.Count == 0) return;
+
+            var pricesMap = await _cardManager.GetCardPricesBulkAsync(uuidsToFetch);
+            if (pricesMap.Count > 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    _grid?.UpdateCardPricesBulk(pricesMap);
+                });
             }
         });
     }
