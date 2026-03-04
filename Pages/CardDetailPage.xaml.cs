@@ -453,6 +453,13 @@ public partial class CardDetailPage : ContentPage
 
     private void CardImageView_Touch(object sender, SKTouchEventArgs e)
     {
-
+        if (e.ActionType == SKTouchAction.Released)
+        {
+            if (_viewModel.HasMultipleFaces)
+            {
+                _viewModel.FlipFaceCommand.Execute(null);
+            }
+        }
+        e.Handled = true;
     }
 }
