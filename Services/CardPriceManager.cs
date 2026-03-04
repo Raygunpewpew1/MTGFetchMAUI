@@ -305,7 +305,7 @@ public class CardPriceManager : IDisposable
     private static string GetLocalMetaDate()
     {
         var path = Path.Combine(AppDataManager.GetAppDataPath(), MetaDateFile);
-        return File.Exists(path) ? File.ReadAllText(path).Trim() : "";
+        try { return File.ReadAllText(path).Trim(); } catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException) { return ""; }
     }
 
     private static void SaveLocalMetaDate(string date)
@@ -317,7 +317,7 @@ public class CardPriceManager : IDisposable
     private static string GetLocalDbVersion()
     {
         var path = Path.Combine(AppDataManager.GetAppDataPath(), DbVersionFile);
-        return File.Exists(path) ? File.ReadAllText(path).Trim() : "";
+        try { return File.ReadAllText(path).Trim(); } catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException) { return ""; }
     }
 
     private static void SaveLocalDbVersion(string version)
