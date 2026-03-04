@@ -1,6 +1,6 @@
+using Dapper;
 using System.Data;
 using System.Text.Json;
-using Dapper;
 
 namespace AetherVault.Data;
 

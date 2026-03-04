@@ -81,7 +81,7 @@ public static class MauiProgram
         });
         builder.Services.AddSingleton<ImageCacheService>();
         builder.Services.AddSingleton<ImageDownloadService>();
-                builder.Services.AddSingleton<CollectionImporter>();
+        builder.Services.AddSingleton<CollectionImporter>();
         builder.Services.AddSingleton<CollectionExporter>();
         builder.Services.AddSingleton<CardGalleryContext>();
 

@@ -1,7 +1,6 @@
 using AetherVault.Core;
 using AetherVault.Models;
 using Dapper;
-using Microsoft.Data.Sqlite;
 using System.Data.Common;
 
 namespace AetherVault.Data;

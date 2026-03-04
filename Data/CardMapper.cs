@@ -1,6 +1,5 @@
 using AetherVault.Core;
 using AetherVault.Models;
-using Microsoft.Data.Sqlite;
 using System.Data.Common;
 using System.Text.Json;
 
