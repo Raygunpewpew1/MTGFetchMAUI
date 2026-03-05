@@ -40,66 +40,103 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
-            <VerticalStackLayout>
-                <Label x:Name="CollectionTitle"
-                       Text="My Collection"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}" />
-                <HorizontalStackLayout Spacing="8">
-                    <Label x:Name="CollectionStatus"
-                           Text="{Binding StatusDisplayText}"
-                           FontSize="12"
-                           VerticalOptions="Center"
-                           TextColor="{Binding StatusTextColor}" />
-                    <HorizontalStackLayout IsVisible="{Binding IsImportingPrices}" Spacing="4" VerticalOptions="Center">
-                        <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
-                                           HeightRequest="12" WidthRequest="12"
-                                           Color="{StaticResource TextSecondary}" />
-                        <Label Text="Syncing Prices..."
-                               FontSize="10" TextColor="{StaticResource TextSecondary}"
-                               VerticalOptions="Center" />
-                    </HorizontalStackLayout>
-                </HorizontalStackLayout>
-            </VerticalStackLayout>
+        <!-- Header + summary card -->
+        <Border Grid.Row="0"
+                Style="{StaticResource CardStyle}"
+                Margin="8,8,8,4">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12">
+                <VerticalStackLayout Spacing="4">
+                    <Label x:Name="CollectionTitle"
+                           Text="My Collection"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
 
-            <HorizontalStackLayout Grid.Column="1" Spacing="8">
-                <ActivityIndicator x:Name="CollectionLoading"
-                                   IsRunning="{Binding IsBusy}"
-                                   IsVisible="{Binding IsBusy}"
-                                   HeightRequest="20"
-                                   WidthRequest="20"
-                                   Color="{StaticResource Primary}" />
-                <Button Text="{Binding ViewModeButtonText}"
-                        Command="{Binding ToggleViewModeCommand}"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        HeightRequest="36"
-                        WidthRequest="36"
-                        Padding="0"
-                        FontSize="18"
-                        StyleClass="ElevatedButton" />
-            </HorizontalStackLayout>
-        </Grid>
+                    <HorizontalStackLayout Spacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Total cards"
+                                   FontSize="11"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="{Binding TotalCards}"
+                                   FontSize="15"
+                                   FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Unique"
+                                   FontSize="11"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="{Binding UniqueCards}"
+                                   FontSize="15"
+                                   FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Label x:Name="CollectionStatus"
+                               Text="{Binding StatusDisplayText}"
+                               FontSize="12"
+                               VerticalOptions="Center"
+                               TextColor="{Binding StatusTextColor}" />
+                        <HorizontalStackLayout IsVisible="{Binding IsImportingPrices}"
+                                               Spacing="4"
+                                               VerticalOptions="Center">
+                            <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
+                                               HeightRequest="12"
+                                               WidthRequest="12"
+                                               Color="{StaticResource TextSecondary}" />
+                            <Label Text="Syncing Prices..."
+                                   FontSize="10"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="8"
+                                     HorizontalOptions="End"
+                                     VerticalOptions="Center">
+                    <ActivityIndicator x:Name="CollectionLoading"
+                                       IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       HeightRequest="20"
+                                       WidthRequest="20"
+                                       Color="{StaticResource Primary}" />
+                    <Button Text="{Binding ViewModeButtonText}"
+                            Command="{Binding ToggleViewModeCommand}"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            HeightRequest="36"
+                            WidthRequest="36"
+                            Padding="0"
+                            FontSize="18"
+                            StyleClass="ElevatedButton" />
+                </VerticalStackLayout>
+            </Grid>
+        </Border>
 
         <!-- Filter + Sort Row -->
-        <Grid Grid.Row="1" Padding="8,0,8,6" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <material:TextField Title="Filter collection..."
-                                Text="{Binding FilterText, Mode=TwoWay}"
-                                
-                                TitleColor="{StaticResource TextSecondary}"
-                                AccentColor="{StaticResource Primary}"
-                                AllowClear="True" />
-            <material:PickerField Grid.Column="1"
-                                  Title="Sort"
-                                  ItemsSource="{Binding SortModeOptions}"
-                                  SelectedIndex="{Binding SortModeIndex, Mode=TwoWay}"
-                                  TextColor="{StaticResource TextPrimary}"
-                                  TitleColor="{StaticResource TextSecondary}"
-                                  AccentColor="{StaticResource Primary}"
-                                  WidthRequest="130" />
-        </Grid>
+        <Border Grid.Row="1"
+                Style="{StaticResource CardStyle}"
+                Margin="8,0,8,4">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8">
+                <material:TextField Title="Filter collection..."
+                                    Text="{Binding FilterText, Mode=TwoWay}"
+                                    TitleColor="{StaticResource TextSecondary}"
+                                    AccentColor="{StaticResource Primary}"
+                                    AllowClear="True" />
+                <material:PickerField Grid.Column="1"
+                                      Title="Sort"
+                                      ItemsSource="{Binding SortModeOptions}"
+                                      SelectedIndex="{Binding SortModeIndex, Mode=TwoWay}"
+                                      TextColor="{StaticResource TextPrimary}"
+                                      TitleColor="{StaticResource TextSecondary}"
+                                      AccentColor="{StaticResource Primary}"
+                                      WidthRequest="130" />
+            </Grid>
+        </Border>
 
         <!-- Card Grid -->
         <controls:CardGrid Grid.Row="2"
