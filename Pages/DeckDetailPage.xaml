@@ -47,43 +47,40 @@
         <!-- Row 2: Section Tab Bar -->
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*,*,*"
-              BackgroundColor="{StaticResource Surface}">
-            <Button Grid.Column="0"
-                    Text="Commander"
-                    Command="{Binding SelectCommanderCommand}"
-                    BackgroundColor="{Binding Tab0Color}"
-                    TextColor="{StaticResource TextPrimary}"
-                    FontSize="11"
-                    HeightRequest="40"
-                    CornerRadius="0"
-                    Padding="0" />
-            <Button Grid.Column="1"
-                    Text="Main"
-                    Command="{Binding SelectMainCommand}"
-                    BackgroundColor="{Binding Tab1Color}"
-                    TextColor="{StaticResource TextPrimary}"
-                    FontSize="11"
-                    HeightRequest="40"
-                    CornerRadius="0"
-                    Padding="0" />
-            <Button Grid.Column="2"
-                    Text="Sideboard"
-                    Command="{Binding SelectSideboardCommand}"
-                    BackgroundColor="{Binding Tab2Color}"
-                    TextColor="{StaticResource TextPrimary}"
-                    FontSize="11"
-                    HeightRequest="40"
-                    CornerRadius="0"
-                    Padding="0" />
-            <Button Grid.Column="3"
-                    Text="Stats"
-                    Command="{Binding SelectStatsCommand}"
-                    BackgroundColor="{Binding Tab3Color}"
-                    TextColor="{StaticResource TextPrimary}"
-                    FontSize="11"
-                    HeightRequest="40"
-                    CornerRadius="0"
-                    Padding="0" />
+              BackgroundColor="{StaticResource Surface}"
+              HeightRequest="44">
+            <!-- Commander Tab -->
+            <Grid Grid.Column="0">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectCommanderCommand}" />
+                </Grid.GestureRecognizers>
+                <Label Text="Commander" FontSize="12" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" VerticalOptions="Center" />
+                <BoxView HeightRequest="3" Color="{Binding Tab0Color}" Opacity="{Binding Tab0Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
+            </Grid>
+            <!-- Main Tab -->
+            <Grid Grid.Column="1">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectMainCommand}" />
+                </Grid.GestureRecognizers>
+                <Label Text="Main" FontSize="12" FontAttributes="{Binding Tab1Font}" TextColor="{Binding Tab1Color}" HorizontalOptions="Center" VerticalOptions="Center" />
+                <BoxView HeightRequest="3" Color="{Binding Tab1Color}" Opacity="{Binding Tab1Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
+            </Grid>
+            <!-- Sideboard Tab -->
+            <Grid Grid.Column="2">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectSideboardCommand}" />
+                </Grid.GestureRecognizers>
+                <Label Text="Sideboard" FontSize="12" FontAttributes="{Binding Tab2Font}" TextColor="{Binding Tab2Color}" HorizontalOptions="Center" VerticalOptions="Center" />
+                <BoxView HeightRequest="3" Color="{Binding Tab2Color}" Opacity="{Binding Tab2Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
+            </Grid>
+            <!-- Stats Tab -->
+            <Grid Grid.Column="3">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SelectStatsCommand}" />
+                </Grid.GestureRecognizers>
+                <Label Text="Stats" FontSize="12" FontAttributes="{Binding Tab3Font}" TextColor="{Binding Tab3Color}" HorizontalOptions="Center" VerticalOptions="Center" />
+                <BoxView HeightRequest="3" Color="{Binding Tab3Color}" Opacity="{Binding Tab3Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
+            </Grid>
         </Grid>
 
         <!-- Row 3: Content Panels + FAB overlay -->
@@ -142,10 +139,9 @@
                                                TextColor="{StaticResource TextPrimary}"
                                                FontSize="14"
                                                VerticalOptions="Center" />
-                                        <Label Grid.Column="2"
-                                               Text="{Binding ManaCostText}"
-                                               TextColor="{StaticResource TextSecondary}"
-                                               FontSize="12"
+                                        <controls:ManaCostView Grid.Column="2"
+                                               ManaText="{Binding ManaCostText}"
+                                               SymbolSize="12"
                                                VerticalOptions="Center" />
                                     </Grid>
                                 </SwipeView>
@@ -201,10 +197,9 @@
                                        FontSize="14"
                                        VerticalOptions="Center"
                                        LineBreakMode="TailTruncation" />
-                                <Label Grid.Column="2"
-                                       Text="{Binding ManaCostText}"
-                                       TextColor="{StaticResource TextSecondary}"
-                                       FontSize="11"
+                                <controls:ManaCostView Grid.Column="2"
+                                       ManaText="{Binding ManaCostText}"
+                                       SymbolSize="11"
                                        VerticalOptions="Center" />
                                 <Button Grid.Column="3"
                                         Text="&#x2212;"
@@ -278,10 +273,9 @@
                                        FontSize="14"
                                        VerticalOptions="Center"
                                        LineBreakMode="TailTruncation" />
-                                <Label Grid.Column="2"
-                                       Text="{Binding ManaCostText}"
-                                       TextColor="{StaticResource TextSecondary}"
-                                       FontSize="11"
+                                <controls:ManaCostView Grid.Column="2"
+                                       ManaText="{Binding ManaCostText}"
+                                       SymbolSize="11"
                                        VerticalOptions="Center" />
                                 <Button Grid.Column="3"
                                         Text="&#x2212;"

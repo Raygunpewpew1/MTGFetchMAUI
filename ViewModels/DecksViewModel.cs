@@ -81,4 +81,10 @@ public partial class DecksViewModel : BaseViewModel
         await _deckService.UpdateDeckNameAsync(deck.Id, newName);
         await LoadDecksAsync();
     }
+
+    [RelayCommand]
+    private async Task DeckTappedAsync(DeckEntity deck)
+    {
+        await Shell.Current.GoToAsync($"deckdetail?deckId={deck.Id}");
+    }
 }

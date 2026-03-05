@@ -5,12 +5,13 @@ using AetherVault.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using System.Collections.ObjectModel;
+
 namespace AetherVault.ViewModels;
 
 public partial class CardSearchPickerViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
-    private CardGrid? _grid;
     private Card[] _allCards = [];
     private CancellationTokenSource? _searchCts;
 
@@ -23,21 +24,14 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
-    public event Action? SearchCompleted;
+    [ObservableProperty]
+    public partial ObservableCollection<Card> SearchResults { get; set; } = [];
+
+    public event Action<Card>? CardSelected;
 
     public CardSearchPickerViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
-    }
-
-    public void AttachGrid(CardGrid grid)
-    {
-        _grid = grid;
-    }
-
-    protected override void OnViewModeUpdated(ViewMode value)
-    {
-        if (_grid != null) _grid.ViewMode = value;
     }
 
     [RelayCommand]
@@ -48,7 +42,17 @@ public partial class CardSearchPickerViewModel : BaseViewModel
 
     partial void OnSearchCollectionOnlyChanged(bool value)
     {
-        _ = ExecuteSearchAsync();
+        // Don't auto-search if text is empty when toggling collection only
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            _ = ExecuteSearchAsync();
+        }
+        else
+        {
+            SearchResults.Clear();
+            IsEmpty = true;
+            StatusMessage = "Enter a search term";
+        }
     }
 
     partial void OnSearchTextChanged(string value)
@@ -67,6 +71,16 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task SelectCardAsync(Card card)
+    {
+        var fullCard = await GetCardDetailsAsync(card.Id.Value);
+        if (fullCard != null)
+        {
+            CardSelected?.Invoke(fullCard);
+        }
+    }
+
+    [RelayCommand]
     private async Task SearchAsync() => await ExecuteSearchAsync();
 
     private async Task ExecuteSearchAsync()
@@ -81,10 +95,10 @@ public partial class CardSearchPickerViewModel : BaseViewModel
 
         try
         {
-            if (string.IsNullOrEmpty(query) && !SearchCollectionOnly)
+            if (string.IsNullOrEmpty(query))
             {
                 _allCards = [];
-                _grid?.SetCards(_allCards);
+                SearchResults.Clear();
                 IsEmpty = true;
                 StatusMessage = "Enter a search term";
                 return;
@@ -99,7 +113,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel
                 _allCards = await _cardManager.SearchCardsAsync(query, 100);
             }
 
-            _grid?.SetCards(_allCards);
+            SearchResults = new ObservableCollection<Card>(_allCards);
             IsEmpty = _allCards.Length == 0;
 
             if (IsEmpty)
@@ -111,7 +125,6 @@ public partial class CardSearchPickerViewModel : BaseViewModel
                 StatusMessage = $"Found {_allCards.Length} cards";
             }
 
-            SearchCompleted?.Invoke();
         }
         catch (Exception ex)
         {
@@ -135,10 +148,5 @@ public partial class CardSearchPickerViewModel : BaseViewModel
         {
             return null;
         }
-    }
-
-    public void OnScrollChanged(float scrollY, float viewportHeight, float contentHeight)
-    {
-        // For pagination if needed
     }
 }

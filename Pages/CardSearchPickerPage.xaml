@@ -71,11 +71,31 @@
                                Color="{StaticResource Primary}" />
         </Grid>
 
-        <!-- Card Grid -->
-        <controls:CardGrid Grid.Row="2"
-                           x:Name="CardGrid"
-                           Scrolled="OnGridScrolled"
-                           IsDragEnabled="False" />
+        <!-- Card List -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding SearchResults}"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Card">
+                    <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" BackgroundColor="{StaticResource Background}">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CardSearchPickerViewModel}}, Path=SelectCardCommand}" CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+
+                        <Border Grid.Column="0" WidthRequest="40" HeightRequest="56" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 4">
+                            <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Label Text="{Binding Name}" TextColor="{StaticResource TextPrimary}" FontSize="15" FontAttributes="Bold" LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding TypeLine}" TextColor="{StaticResource TextSecondary}" FontSize="12" LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+
+                        <controls:ManaCostView Grid.Column="2" ManaText="{Binding ManaCost}" SymbolSize="12" VerticalOptions="Center" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
         <!-- Empty State -->
         <VerticalStackLayout Grid.Row="2"

@@ -35,17 +35,6 @@ public partial class DecksPage : ContentPage
         }
     }
 
-    private async void OnDeckSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (e.CurrentSelection.FirstOrDefault() is DeckEntity deck)
-        {
-            if (sender is CollectionView cv)
-                cv.SelectedItem = null; // Clear selection visual
-
-            await Shell.Current.GoToAsync($"deckdetail?deckId={deck.Id}");
-        }
-    }
-
     private async void OnRenameSwipeInvoked(object? sender, EventArgs e)
     {
         if (sender is SwipeItem swipe && swipe.BindingContext is DeckEntity deck)
