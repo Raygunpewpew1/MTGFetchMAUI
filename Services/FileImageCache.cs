@@ -215,7 +215,12 @@ public class FileImageCache : IDisposable
     public string GetCacheStats()
     {
         if (_currentCacheSize < 0)
+        {
             InitializeCacheStats();
+            Logger.LogStuff(
+                $"Initialized image file cache stats: {_fileCount} images, {_currentCacheSize / (1024.0 * 1024.0):F1}/{MaxCacheSizeMB} MB.",
+                LogLevel.Info);
+        }
 
         var sizeMB = _currentCacheSize / (1024.0 * 1024.0);
         return $"File Cache: {_fileCount} images, {sizeMB:F1}/{MaxCacheSizeMB} MB";

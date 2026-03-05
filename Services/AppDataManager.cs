@@ -104,7 +104,7 @@ public static class AppDataManager
                 var result = resultObj?.ToString() ?? string.Empty;
                 if (!result.Equals("ok", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine($"[ERROR] MTG DB integrity_check failed with result: '{result}'.");
+                    Logger.LogStuff($"MTG DB integrity_check failed with result: '{result}'.", LogLevel.Error);
                     return false;
                 }
             }
@@ -117,11 +117,12 @@ public static class AppDataManager
                 var name = nameObj?.ToString();
                 if (!string.Equals(name, "cards", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("[ERROR] MTG DB sanity check failed: 'cards' table not found.");
+                    Logger.LogStuff("MTG DB sanity check failed: 'cards' table not found.", LogLevel.Error);
                     return false;
                 }
             }
 
+            Logger.LogStuff("MTG DB integrity and sanity checks passed.", LogLevel.Info);
             return true;
         }
         catch (OperationCanceledException)
@@ -130,7 +131,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ERROR] MTG DB integrity check threw: {ex.Message}");
+            Logger.LogStuff($"MTG DB integrity check threw: {ex.Message}", LogLevel.Error);
             return false;
         }
     }
@@ -195,7 +196,10 @@ public static class AppDataManager
             }
 
             if (string.IsNullOrEmpty(tag))
+            {
+                Logger.LogStuff("Remote database version check did not return a release tag.", LogLevel.Warning);
                 return string.Empty;
+            }
 
             // 2. Get the Last-Modified header from the ACTUAL file location (following redirects)
             // GitHub releases/download/TAG/file.zip -> redirects to Amazon S3 / Azure Blob
@@ -213,27 +217,24 @@ public static class AppDataManager
                 using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
                 using var response = await client.SendAsync(request);
 
-                if (response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode && response.Content.Headers.LastModified.HasValue)
                 {
-                    if (response.Content.Headers.LastModified.HasValue)
-                    {
-                        lastModified = response.Content.Headers.LastModified.Value.UtcDateTime.ToString("O");
-                    }
+                    lastModified = response.Content.Headers.LastModified.Value.UtcDateTime.ToString("O");
                 }
             }
 
             // Return composite key: TAG + LastModified
             // If LastModified is missing (unlikely), fallback to just TAG
-            if (!string.IsNullOrEmpty(lastModified))
-            {
-                return $"{tag}|{lastModified}";
-            }
+            var composite = !string.IsNullOrEmpty(lastModified)
+                ? $"{tag}|{lastModified}"
+                : tag;
 
-            return tag;
+            Logger.LogStuff($"Remote database version resolved to '{composite}'.", LogLevel.Info);
+            return composite;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[WARNING] Failed to check remote version: {ex.Message}");
+            Logger.LogStuff($"Failed to check remote database version: {ex.Message}", LogLevel.Warning);
             return string.Empty;
         }
     }
@@ -250,6 +251,7 @@ public static class AppDataManager
 
         try
         {
+            Logger.LogStuff("Starting MTG master database download.", LogLevel.Info);
             UpdateProgress("Checking version...", 0);
             // Try to get version before download to save it later
             remoteVersion = await GetRemoteDatabaseVersionAsync();
@@ -315,7 +317,7 @@ public static class AppDataManager
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[WARNING] Failed to delete corrupted MTG DB: {ex.Message}");
+                    Logger.LogStuff($"Failed to delete corrupted MTG DB after failed validation: {ex.Message}", LogLevel.Warning);
                 }
 
                 return false;
@@ -328,7 +330,14 @@ public static class AppDataManager
                 SetLocalDatabaseVersion(remoteVersion);
             }
 
-            return MTGDatabaseExists();
+            var exists = MTGDatabaseExists();
+            if (exists)
+            {
+                var dbSize = new FileInfo(GetMTGDatabasePath()).Length / (1024.0 * 1024.0);
+                Logger.LogStuff($"MTG master database download completed successfully ({dbSize:F1} MB).", LogLevel.Info);
+            }
+
+            return exists;
         }
         catch (OperationCanceledException)
         {
@@ -337,8 +346,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            // Logger.LogStuff($"Database download failed: {ex.Message}", LogLevel.Error);
-            Console.WriteLine($"[ERROR] Database download failed: {ex.Message}");
+            Logger.LogStuff($"Database download failed: {ex.Message}", LogLevel.Error);
             UpdateProgress($"Download failed: {ex.Message}", 0);
             return false;
         }

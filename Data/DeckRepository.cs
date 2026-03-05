@@ -18,12 +18,9 @@ public class DeckRepository : IDeckRepository
         if (!_databaseManager.IsConnected)
             throw new InvalidOperationException("Database not connected.");
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        return await WithDeckTransactionAsync(async (conn, transaction) =>
         {
-            using var transaction = _databaseManager.CollectionConnection.BeginTransaction();
-
-            await _databaseManager.CollectionConnection.ExecuteAsync(
+            await conn.ExecuteAsync(
                 SQLQueries.DeckInsert,
                 new
                 {
@@ -38,17 +35,12 @@ public class DeckRepository : IDeckRepository
                 },
                 transaction);
 
-            var newId = await _databaseManager.CollectionConnection.QuerySingleAsync<long>(
+            var newId = await conn.QuerySingleAsync<long>(
                 SQLQueries.DeckGetLastId,
                 transaction: transaction);
 
-            transaction.Commit();
             return (int)newId;
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+        });
     }
 
     public async Task UpdateDeckAsync(DeckEntity deck)
@@ -82,28 +74,18 @@ public class DeckRepository : IDeckRepository
     {
         if (!_databaseManager.IsConnected) return;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        await WithDeckTransactionAsync(async (conn, transaction) =>
         {
-            // Transaction for deletion
-            using var transaction = _databaseManager.CollectionConnection.BeginTransaction();
-
-            await _databaseManager.CollectionConnection.ExecuteAsync(
+            await conn.ExecuteAsync(
                 SQLQueries.DeckDeleteCards,
                 new { Id = deckId },
                 transaction);
 
-            await _databaseManager.CollectionConnection.ExecuteAsync(
+            await conn.ExecuteAsync(
                 SQLQueries.DeckDelete,
                 new { Id = deckId },
                 transaction);
-
-            transaction.Commit();
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+        });
     }
 
     public async Task<DeckEntity?> GetDeckAsync(int deckId)
@@ -143,10 +125,9 @@ public class DeckRepository : IDeckRepository
     {
         if (!_databaseManager.IsConnected) return;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        await WithDeckTransactionAsync(async (conn, transaction) =>
         {
-            await _databaseManager.CollectionConnection.ExecuteAsync(
+            await conn.ExecuteAsync(
                 SQLQueries.DeckAddCard,
                 new
                 {
@@ -155,44 +136,36 @@ public class DeckRepository : IDeckRepository
                     card.Quantity,
                     card.Section,
                     DateAdded = card.DateAdded.ToString("yyyy-MM-dd HH:mm:ss")
-                });
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+                },
+                transaction);
+        });
     }
 
     public async Task RemoveCardFromDeckAsync(int deckId, string cardId, string section)
     {
         if (!_databaseManager.IsConnected) return;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        await WithDeckTransactionAsync(async (conn, transaction) =>
         {
-            await _databaseManager.CollectionConnection.ExecuteAsync(
+            await conn.ExecuteAsync(
                 SQLQueries.DeckRemoveCard,
                 new
                 {
                     DeckId = deckId,
                     CardId = cardId,
                     Section = section
-                });
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+                },
+                transaction);
+        });
     }
 
     public async Task UpdateCardQuantityAsync(int deckId, string cardId, string section, int quantity)
     {
         if (!_databaseManager.IsConnected) return;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        await WithDeckTransactionAsync(async (conn, transaction) =>
         {
-            await _databaseManager.CollectionConnection.ExecuteAsync(
+            await conn.ExecuteAsync(
                 SQLQueries.DeckUpdateCardQuantity,
                 new
                 {
@@ -200,12 +173,9 @@ public class DeckRepository : IDeckRepository
                     CardId = cardId,
                     Section = section,
                     Quantity = quantity
-                });
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+                },
+                transaction);
+        });
     }
 
     public async Task<List<DeckCardEntity>> GetDeckCardsAsync(int deckId)
@@ -244,6 +214,38 @@ public class DeckRepository : IDeckRepository
             _databaseManager.ConnectionLock.Release();
         }
     }
+
+    private async Task<T> WithDeckTransactionAsync<T>(Func<SqliteConnection, SqliteTransaction, Task<T>> action)
+    {
+        await _databaseManager.ConnectionLock.WaitAsync();
+        try
+        {
+            var conn = _databaseManager.CollectionConnection;
+            using var transaction = conn.BeginTransaction();
+            try
+            {
+                var result = await action(conn, transaction);
+                transaction.Commit();
+                return result;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+        finally
+        {
+            _databaseManager.ConnectionLock.Release();
+        }
+    }
+
+    private Task WithDeckTransactionAsync(Func<SqliteConnection, SqliteTransaction, Task> action) =>
+        WithDeckTransactionAsync(async (conn, trans) =>
+        {
+            await action(conn, trans);
+            return true;
+        });
 
     private static DeckEntity MapDeck(SqliteDataReader reader)
     {

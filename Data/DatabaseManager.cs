@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
+using AetherVault.Services;
 
 namespace AetherVault.Data;
 
@@ -53,7 +54,7 @@ public sealed class DatabaseManager : IDisposable
                         _collectionConnection?.Dispose();
                         _collectionConnection = CreateConnection(collectionDbPath, readOnly: false);
                         await _collectionConnection.OpenAsync();
-                        await ConfigureConnectionAsync(_collectionConnection);
+                        await ConfigureConnectionAsync(_collectionConnection, isCollection: true);
                     }
 
                     // Create collection tables
@@ -72,7 +73,7 @@ public sealed class DatabaseManager : IDisposable
                         _mtgConnection?.Dispose();
                         _mtgConnection = CreateConnection(mtgDbPath, readOnly: true);
                         await _mtgConnection.OpenAsync();
-                        await ConfigureConnectionAsync(_mtgConnection);
+                        await ConfigureConnectionAsync(_mtgConnection, isCollection: false);
 
                         // Attach collection database so MTG queries can join collection tables
                         var escapedCollPath = collectionDbPath.Replace("'", "''");
@@ -170,17 +171,36 @@ public sealed class DatabaseManager : IDisposable
         return new SqliteConnection(builder.ConnectionString);
     }
 
-    private static async Task ConfigureConnectionAsync(SqliteConnection connection)
+    private static async Task ConfigureConnectionAsync(SqliteConnection connection, bool isCollection)
     {
-        // Match the Delphi performance pragmas
-        await connection.ExecuteAsync(
-            $"""
-            PRAGMA busy_timeout = {BusyTimeoutMs};
-            PRAGMA locking_mode = NORMAL;
-            PRAGMA synchronous = OFF;
-            PRAGMA temp_store = MEMORY;
-            PRAGMA journal_mode = MEMORY;
-            """);
+        if (isCollection)
+        {
+            // Collection DB holds user-authored data: favor safer durability.
+            await connection.ExecuteAsync(
+                $"""
+                PRAGMA busy_timeout = {BusyTimeoutMs};
+                PRAGMA locking_mode = NORMAL;
+                PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = NORMAL;
+                PRAGMA temp_store = MEMORY;
+                """);
+
+            Logger.LogStuff("Configured collection database PRAGMAs: journal_mode=WAL, synchronous=NORMAL.", LogLevel.Debug);
+        }
+        else
+        {
+            // MTG master DB is a re-downloadable read-only cache: keep aggressive read performance settings.
+            await connection.ExecuteAsync(
+                $"""
+                PRAGMA busy_timeout = {BusyTimeoutMs};
+                PRAGMA locking_mode = NORMAL;
+                PRAGMA synchronous = OFF;
+                PRAGMA temp_store = MEMORY;
+                PRAGMA journal_mode = MEMORY;
+                """);
+
+            Logger.LogStuff("Configured MTG master database PRAGMAs for read-optimized access.", LogLevel.Debug);
+        }
     }
 
     private async Task InitializeCollectionAsync(string collectionDbPath)
@@ -188,7 +208,7 @@ public sealed class DatabaseManager : IDisposable
         _collectionConnection?.Dispose();
         _collectionConnection = CreateConnection(collectionDbPath, readOnly: false);
         await _collectionConnection.OpenAsync();
-        await ConfigureConnectionAsync(_collectionConnection);
+        await ConfigureConnectionAsync(_collectionConnection, isCollection: true);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateCollectionTable);
         //        await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
         //      await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
@@ -206,6 +226,8 @@ public sealed class DatabaseManager : IDisposable
 
     private static async Task MigrateCollectionSchemaAsync(SqliteConnection conn)
     {
+        Logger.LogStuff("Starting collection schema migration check.", LogLevel.Info);
+
         bool hasSortOrder = false;
         bool hasIsFoil = false;
         bool hasIsEtched = false;
@@ -220,17 +242,20 @@ public sealed class DatabaseManager : IDisposable
 
         if (!hasSortOrder)
         {
+            Logger.LogStuff("Migrating collection table: adding sort_order column and seeding values.", LogLevel.Info);
             await ExecuteNonQueryAsync(conn, SQLQueries.CollectionAddSortOrder);
             await ExecuteNonQueryAsync(conn, SQLQueries.CollectionSeedSortOrder);
         }
 
         if (!hasIsFoil)
         {
+            Logger.LogStuff("Migrating collection table: adding is_foil column.", LogLevel.Info);
             await ExecuteNonQueryAsync(conn, SQLQueries.CollectionAddIsFoil);
         }
 
         if (!hasIsEtched)
         {
+            Logger.LogStuff("Migrating collection table: adding is_etched column.", LogLevel.Info);
             await ExecuteNonQueryAsync(conn, SQLQueries.CollectionAddIsEtched);
         }
 
@@ -245,8 +270,11 @@ public sealed class DatabaseManager : IDisposable
 
         if (!hasCommanderName)
         {
+            Logger.LogStuff("Migrating decks table: adding CommanderName column.", LogLevel.Info);
             await ExecuteNonQueryAsync(conn, SQLQueries.DecksAddCommanderName);
         }
+
+        Logger.LogStuff("Collection schema migration check completed.", LogLevel.Info);
     }
 
     private static async Task ExecuteNonQueryAsync(SqliteConnection connection, string sql)
