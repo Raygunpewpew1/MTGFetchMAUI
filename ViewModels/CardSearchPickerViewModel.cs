@@ -81,7 +81,29 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task SearchAsync() => await ExecuteSearchAsync();
+    private async Task SearchAsync()
+    {
+        await ExecuteSearchAsync();
+
+        // If triggered explicitly via the keyboard's Return/Go key,
+        // auto-accept the first result for a fast \"type → Go → pick\" flow.
+        if (!IsEmpty && _allCards.Length > 0)
+        {
+            try
+            {
+                var first = _allCards[0];
+                var full = await GetCardDetailsAsync(first.UUID);
+                if (full != null)
+                {
+                    CardSelected?.Invoke(full);
+                }
+            }
+            catch
+            {
+                // Ignore errors here; failures are already surfaced via status text.
+            }
+        }
+    }
 
     private async Task ExecuteSearchAsync()
     {

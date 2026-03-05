@@ -10,17 +10,29 @@ public partial class AddToDeckPage : ContentPage
     private readonly DeckBuilderService _deckService;
     private int _quantity = 1;
     private List<DeckEntity> _decks = [];
+    private readonly int? _initialDeckId;
+    private readonly string? _initialSection;
     private readonly TaskCompletionSource<AddToDeckResult?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task<AddToDeckResult?> WaitForResultAsync() => _tcs.Task;
 
-    public AddToDeckPage(DeckBuilderService deckService, string cardUuid, string cardName)
+    public AddToDeckPage(
+        DeckBuilderService deckService,
+        string cardUuid,
+        string cardName,
+        int? initialDeckId = null,
+        string? initialSection = null)
     {
         InitializeComponent();
         _deckService = deckService;
+        _initialDeckId = initialDeckId;
+        _initialSection = string.IsNullOrWhiteSpace(initialSection) ? null : initialSection;
         TitleLabel.Text = cardName;
         SectionPicker.SelectedIndex = 0; // "Main"
         UpdateQuantityUI();
+
+        SectionPicker.SelectedIndexChanged += (_, _) => UpdateConfirmText();
+        DeckPicker.SelectedIndexChanged += (_, _) => UpdateConfirmText();
     }
 
     protected override async void OnAppearing()
@@ -38,8 +50,60 @@ public partial class AddToDeckPage : ContentPage
         DeckPickerPanel.IsVisible = hasDecks;
 
         DeckPicker.ItemsSource = _decks.Select(d => $"{d.Name} ({d.FormatDisplay})").ToList();
-        if (hasDecks)
-            DeckPicker.SelectedIndex = 0;
+
+        if (!hasDecks)
+        {
+            UpdateConfirmText();
+            return;
+        }
+
+        int indexToSelect = 0;
+
+        // Prefer explicit deck (e.g., when opened from a specific Deck).
+        if (_initialDeckId.HasValue)
+        {
+            int idx = _decks.FindIndex(d => d.Id == _initialDeckId.Value);
+            if (idx >= 0)
+                indexToSelect = idx;
+        }
+        else
+        {
+            // Fall back to last-used deck if available.
+            var (lastDeckId, _) = _deckService.GetLastSelection();
+            if (lastDeckId.HasValue)
+            {
+                int lastIdx = _decks.FindIndex(d => d.Id == lastDeckId.Value);
+                if (lastIdx >= 0)
+                    indexToSelect = lastIdx;
+            }
+        }
+
+        DeckPicker.SelectedIndex = indexToSelect;
+
+        // Section: explicit initial > last-used > default Main.
+        string? section = _initialSection;
+        if (string.IsNullOrWhiteSpace(section))
+        {
+            var (_, lastSection) = _deckService.GetLastSelection();
+            section = lastSection;
+        }
+
+        if (!string.IsNullOrWhiteSpace(section))
+        {
+            for (int i = 0; i < SectionPicker.Items.Count; i++)
+            {
+                if (string.Equals(SectionPicker.Items[i], section, StringComparison.OrdinalIgnoreCase))
+                {
+                    SectionPicker.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (SectionPicker.SelectedIndex < 0)
+            SectionPicker.SelectedIndex = 0;
+
+        UpdateConfirmText();
     }
 
     protected override void OnDisappearing()
@@ -54,6 +118,16 @@ public partial class AddToDeckPage : ContentPage
         QuantityLabel.Text = _quantity.ToString();
         MinusBtn.IsEnabled = _quantity > 1;
         MinusBtn.Opacity = _quantity > 1 ? 1.0 : 0.4;
+        UpdateConfirmText();
+    }
+
+    private void UpdateConfirmText()
+    {
+        string section = SectionPicker.SelectedIndex >= 0
+            ? SectionPicker.Items[SectionPicker.SelectedIndex]
+            : "Main";
+
+        ConfirmButton.Text = $"Add to {section}";
     }
 
     private void OnMinusClicked(object? sender, EventArgs e)
@@ -65,6 +139,27 @@ public partial class AddToDeckPage : ContentPage
     {
         _quantity++;
         UpdateQuantityUI();
+    }
+
+    private async void OnQuantityTapped(object? sender, TappedEventArgs e)
+    {
+        string current = _quantity.ToString();
+        string? input = await this.DisplayPromptAsync(
+            "Set Quantity",
+            "Enter desired number of copies:",
+            accept: "OK",
+            cancel: "Cancel",
+            keyboard: Keyboard.Numeric,
+            initialValue: current);
+
+        if (string.IsNullOrWhiteSpace(input))
+            return;
+
+        if (int.TryParse(input, out int value) && value > 0)
+        {
+            _quantity = value;
+            UpdateQuantityUI();
+        }
     }
 
     private async void OnCreateDeckClicked(object? sender, EventArgs e)

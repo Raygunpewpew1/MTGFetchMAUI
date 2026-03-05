@@ -62,18 +62,54 @@ public partial class DeckDetailPage : ContentPage
         {
             var result = await _deckService.SetCommanderAsync(_viewModel.Deck.Id, card.UUID);
             if (result.IsError)
+            {
+                _viewModel.StatusIsError = true;
+                _viewModel.StatusMessage = result.Message ?? "Could not set commander.";
                 _toastService.Show(result.Message ?? "Could not set commander.");
+            }
             else
+            {
+                _viewModel.StatusIsError = false;
+                _viewModel.StatusMessage = $"{card.Name} set as commander.";
                 _toastService.Show($"{card.Name} set as commander.");
+            }
         }
         else
         {
             string section = sectionIndex == 2 ? "Sideboard" : "Main";
-            var result = await _deckService.AddCardAsync(_viewModel.Deck.Id, card.UUID, 1, section);
+
+            // Reuse the add-to-deck modal to pick quantity/section with current deck preselected.
+            var addPage = new AddToDeckPage(
+                _deckService,
+                card.UUID,
+                card.Name,
+                _viewModel.Deck.Id,
+                section);
+
+            await Navigation.PushModalAsync(addPage);
+            var addResult = await addPage.WaitForResultAsync();
+
+            if (addResult is null)
+                return;
+
+            var result = await _deckService.AddCardAsync(
+                addResult.DeckId,
+                card.UUID,
+                addResult.Quantity,
+                addResult.Section);
+
             if (result.IsError)
+            {
+                _viewModel.StatusIsError = true;
+                _viewModel.StatusMessage = result.Message ?? "Could not add card.";
                 _toastService.Show(result.Message ?? "Could not add card.");
+            }
             else
-                _toastService.Show($"{card.Name} added to {section}.");
+            {
+                _viewModel.StatusIsError = false;
+                _viewModel.StatusMessage = $"{addResult.Quantity}× {card.Name} added to {addResult.Section}.";
+                _toastService.Show($"{addResult.Quantity}× {card.Name} added to {addResult.Section}.");
+            }
         }
 
         await _viewModel.ReloadAsync(preserveState: true);

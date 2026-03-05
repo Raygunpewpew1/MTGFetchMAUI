@@ -10,11 +10,23 @@ public class DeckBuilderService
     private readonly DeckValidator _validator;
     private readonly ICardRepository _cardRepository;
 
+    // Remember last successful deck/section selection to streamline future adds.
+    private int? _lastDeckId;
+    private string? _lastSection;
+
     public DeckBuilderService(IDeckRepository repository, DeckValidator validator, ICardRepository cardRepository)
     {
         _repository = repository;
         _validator = validator;
         _cardRepository = cardRepository;
+    }
+
+    public (int? deckId, string? section) GetLastSelection() => (_lastDeckId, _lastSection);
+
+    public void SetLastSelection(int deckId, string section)
+    {
+        _lastDeckId = deckId;
+        _lastSection = string.IsNullOrWhiteSpace(section) ? "Main" : section;
     }
 
     public async Task<int> CreateDeckAsync(string name, DeckFormat format, string description = "")
@@ -71,6 +83,9 @@ public class DeckBuilderService
         // Update deck modified date
         deck.DateModified = DateTime.Now;
         await _repository.UpdateDeckAsync(deck);
+
+        // Remember this as the last-used deck/section for future adds.
+        SetLastSelection(deckId, section);
 
         return result;
     }

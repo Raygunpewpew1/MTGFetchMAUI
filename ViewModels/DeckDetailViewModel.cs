@@ -200,7 +200,16 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, item.Entity.Quantity + 1, item.Entity.Section);
         if (result.IsSuccess)
+        {
+            StatusIsError = false;
+            StatusMessage = $"Updated {item.DisplayName} quantity.";
             await ReloadAsync(preserveState: true);
+        }
+        else
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? "Could not update quantity.";
+        }
     }
 
     [RelayCommand]
@@ -211,7 +220,16 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, newQty, item.Entity.Section);
         if (result.IsSuccess)
+        {
+            StatusIsError = false;
+            StatusMessage = $"Updated {item.DisplayName} quantity.";
             await ReloadAsync(preserveState: true);
+        }
+        else
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? "Could not update quantity.";
+        }
     }
 
     [RelayCommand]
