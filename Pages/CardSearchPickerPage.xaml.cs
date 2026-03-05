@@ -25,6 +25,13 @@ public partial class CardSearchPickerPage : ContentPage
         }));
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        // Focus the search entry so the keyboard pops immediately.
+        MainThread.BeginInvokeOnMainThread(() => SearchEntry.Focus());
+    }
+
     public Task<Card?> WaitForResultAsync()
     {
         return _tcs.Task;
