@@ -21,126 +21,185 @@
             <VerticalStackLayout Spacing="16">
 
                 <!-- Colors -->
-                <VerticalStackLayout Spacing="8">
-                    <Label Text="Colors" FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold" />
-                    <FlexLayout x:Name="ColorButtons" Wrap="NoWrap" JustifyContent="Start" />
-                </VerticalStackLayout>
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Colors" FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold" />
+                        <FlexLayout x:Name="ColorButtons" Wrap="NoWrap" JustifyContent="Start" />
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- Card Text / Keywords -->
-                <material:TextField x:Name="KeywordsEntry"
-                       Title="Card Text"
-                       
-                       TitleColor="{StaticResource TextSecondary}"
-                       AccentColor="{StaticResource Primary}" />
+                <Border Style="{StaticResource CardStyle}">
+                    <material:TextField x:Name="KeywordsEntry"
+                                        Title="Card Text"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}" />
+                </Border>
 
-                <!-- Card Type -->
-                <material:PickerField x:Name="TypePicker"
-                        Title="Card Type"
-                        TextColor="{StaticResource TextPrimary}"
-                        TitleColor="{StaticResource TextSecondary}"
-                        AccentColor="{StaticResource Primary}">
-                    <material:PickerField.ItemsSource>
-                        <x:Array Type="{x:Type x:String}">
-                            <x:String>Any</x:String>
-                            <x:String>Artifact</x:String>
-                            <x:String>Battle</x:String>
-                            <x:String>Creature</x:String>
-                            <x:String>Enchantment</x:String>
-                            <x:String>Instant</x:String>
-                            <x:String>Land</x:String>
-                            <x:String>Planeswalker</x:String>
-                            <x:String>Sorcery</x:String>
-                            <x:String>Kindred</x:String>
-                        </x:Array>
-                    </material:PickerField.ItemsSource>
-                </material:PickerField>
+                <!-- Card Type / Subtype / Supertype -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <material:PickerField x:Name="TypePicker"
+                                              Title="Card Type"
+                                              TextColor="{StaticResource TextPrimary}"
+                                              TitleColor="{StaticResource TextSecondary}"
+                                              AccentColor="{StaticResource Primary}">
+                            <material:PickerField.ItemsSource>
+                                <x:Array Type="{x:Type x:String}">
+                                    <x:String>Any</x:String>
+                                    <x:String>Artifact</x:String>
+                                    <x:String>Battle</x:String>
+                                    <x:String>Creature</x:String>
+                                    <x:String>Enchantment</x:String>
+                                    <x:String>Instant</x:String>
+                                    <x:String>Land</x:String>
+                                    <x:String>Planeswalker</x:String>
+                                    <x:String>Sorcery</x:String>
+                                    <x:String>Kindred</x:String>
+                                </x:Array>
+                            </material:PickerField.ItemsSource>
+                        </material:PickerField>
 
-                <!-- Subtype -->
-                <material:TextField x:Name="SubtypeEntry"
-                       Title="Subtype"
-                       
-                       TitleColor="{StaticResource TextSecondary}"
-                       AccentColor="{StaticResource Primary}" />
+                        <material:TextField x:Name="SubtypeEntry"
+                                            Title="Subtype"
+                                            TitleColor="{StaticResource TextSecondary}"
+                                            AccentColor="{StaticResource Primary}" />
 
-                <!-- Supertype -->
-                <material:TextField x:Name="SupertypeEntry"
-                       Title="Supertype"
-                       
-                       TitleColor="{StaticResource TextSecondary}"
-                       AccentColor="{StaticResource Primary}" />
+                        <material:TextField x:Name="SupertypeEntry"
+                                            Title="Supertype"
+                                            TitleColor="{StaticResource TextSecondary}"
+                                            AccentColor="{StaticResource Primary}" />
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- Rarity -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" />
-                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="4">
-                        <material:CheckBox Grid.Row="0" Grid.Column="0" x:Name="ChkCommon" Text="Common" Color="{StaticResource Primary}" />
-                        <material:CheckBox Grid.Row="0" Grid.Column="1" x:Name="ChkUncommon" Text="Uncommon" Color="{StaticResource Primary}" />
-                        <material:CheckBox Grid.Row="1" Grid.Column="0" x:Name="ChkRare" Text="Rare" Color="{StaticResource Primary}" />
-                        <material:CheckBox Grid.Row="1" Grid.Column="1" x:Name="ChkMythic" Text="Mythic" Color="{StaticResource Primary}" />
-                    </Grid>
-                </VerticalStackLayout>
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" />
+                        <Grid RowDefinitions="Auto,Auto"
+                              ColumnDefinitions="Auto,Auto"
+                              ColumnSpacing="12"
+                              RowSpacing="4">
+                            <material:CheckBox Grid.Row="0"
+                                               Grid.Column="0"
+                                               x:Name="ChkCommon"
+                                               Text="Common"
+                                               Color="{StaticResource Primary}" />
+                            <material:CheckBox Grid.Row="0"
+                                               Grid.Column="1"
+                                               x:Name="ChkUncommon"
+                                               Text="Uncommon"
+                                               Color="{StaticResource Primary}" />
+                            <material:CheckBox Grid.Row="1"
+                                               Grid.Column="0"
+                                               x:Name="ChkRare"
+                                               Text="Rare"
+                                               Color="{StaticResource Primary}" />
+                            <material:CheckBox Grid.Row="1"
+                                               Grid.Column="1"
+                                               x:Name="ChkMythic"
+                                               Text="Mythic"
+                                               Color="{StaticResource Primary}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- CMC Range -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Mana Value (CMC)" FontSize="{StaticResource BodyFontSize}" />
-                    <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
-                        <VerticalStackLayout>
-                            <Label x:Name="CMCMinLabel" Text="Min: 0" FontSize="{StaticResource SmallFontSize}"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Slider x:Name="CMCMinSlider" Minimum="0" Maximum="16"
-                                    ValueChanged="OnCMCChanged"
-                                    ThumbColor="{StaticResource Primary}"
-                                    MinimumTrackColor="{StaticResource Primary}" />
-                        </VerticalStackLayout>
-                        <Label Grid.Column="1" Text="to" VerticalOptions="End" Margin="0,0,0,8" FontSize="{StaticResource BodyFontSize}" />
-                        <VerticalStackLayout Grid.Column="2">
-                            <Label x:Name="CMCMaxLabel" Text="Max: 16+" FontSize="{StaticResource SmallFontSize}"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Slider x:Name="CMCMaxSlider" Minimum="0" Maximum="16" Value="16"
-                                    ValueChanged="OnCMCChanged"
-                                    ThumbColor="{StaticResource Primary}"
-                                    MinimumTrackColor="{StaticResource Primary}" />
-                        </VerticalStackLayout>
-                    </Grid>
-                </VerticalStackLayout>
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Mana Value (CMC)" FontSize="{StaticResource BodyFontSize}" />
+                        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
+                            <VerticalStackLayout>
+                                <Label x:Name="CMCMinLabel"
+                                       Text="Min: 0"
+                                       FontSize="{StaticResource SmallFontSize}"
+                                       TextColor="{StaticResource TextSecondary}" />
+                                <Slider x:Name="CMCMinSlider"
+                                        Minimum="0"
+                                        Maximum="16"
+                                        ValueChanged="OnCMCChanged"
+                                        ThumbColor="{StaticResource Primary}"
+                                        MinimumTrackColor="{StaticResource Primary}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="to"
+                                   VerticalOptions="End"
+                                   Margin="0,0,0,8"
+                                   FontSize="{StaticResource BodyFontSize}" />
+                            <VerticalStackLayout Grid.Column="2">
+                                <Label x:Name="CMCMaxLabel"
+                                       Text="Max: 16+"
+                                       FontSize="{StaticResource SmallFontSize}"
+                                       TextColor="{StaticResource TextSecondary}" />
+                                <Slider x:Name="CMCMaxSlider"
+                                        Minimum="0"
+                                        Maximum="16"
+                                        Value="16"
+                                        ValueChanged="OnCMCChanged"
+                                        ThumbColor="{StaticResource Primary}"
+                                        MinimumTrackColor="{StaticResource Primary}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- Power / Toughness -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <material:TextField x:Name="PowerEntry" Title="Power"
-                           Keyboard="Numeric"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                    <material:TextField Grid.Column="1" x:Name="ToughnessEntry" Title="Toughness"
-                           Keyboard="Numeric"
-                           TitleColor="{StaticResource TextSecondary}"
-                           AccentColor="{StaticResource Primary}" />
-                </Grid>
+                <Border Style="{StaticResource CardStyle}">
+                    <Grid ColumnDefinitions="*,*"
+                          ColumnSpacing="12">
+                        <material:TextField x:Name="PowerEntry"
+                                            Title="Power"
+                                            Keyboard="Numeric"
+                                            TitleColor="{StaticResource TextSecondary}"
+                                            AccentColor="{StaticResource Primary}" />
+                        <material:TextField Grid.Column="1"
+                                            x:Name="ToughnessEntry"
+                                            Title="Toughness"
+                                            Keyboard="Numeric"
+                                            TitleColor="{StaticResource TextSecondary}"
+                                            AccentColor="{StaticResource Primary}" />
+                    </Grid>
+                </Border>
 
-                <!-- Format Legality -->
-                <material:PickerField x:Name="FormatPicker"
-                                      Title="Format"
-                                      TextColor="{StaticResource TextPrimary}"
-                                      TitleColor="{StaticResource TextSecondary}"
-                                      AccentColor="{StaticResource Primary}" />
+                <!-- Format / Set / Artist -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="12">
+                        <material:PickerField x:Name="FormatPicker"
+                                              Title="Format"
+                                              TextColor="{StaticResource TextPrimary}"
+                                              TitleColor="{StaticResource TextSecondary}"
+                                              AccentColor="{StaticResource Primary}" />
 
-                <!-- Set Code -->
-                <material:TextField x:Name="SetEntry" Title="Set Code"
-                       
-                       TitleColor="{StaticResource TextSecondary}"
-                       AccentColor="{StaticResource Primary}" />
+                        <material:TextField x:Name="SetEntry"
+                                            Title="Set Code"
+                                            TitleColor="{StaticResource TextSecondary}"
+                                            AccentColor="{StaticResource Primary}" />
 
-                <!-- Artist -->
-                <material:TextField x:Name="ArtistEntry" Title="Artist"
-                       
-                       TitleColor="{StaticResource TextSecondary}"
-                       AccentColor="{StaticResource Primary}" />
+                        <material:TextField x:Name="ArtistEntry"
+                                            Title="Artist"
+                                            TitleColor="{StaticResource TextSecondary}"
+                                            AccentColor="{StaticResource Primary}" />
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- Special Options -->
-                <VerticalStackLayout Spacing="4">
-                    <material:CheckBox x:Name="ChkPrimarySide" Text="Primary side only" IsChecked="True" Color="{StaticResource Primary}" Margin="0,0,0,8" />
-                    <material:CheckBox x:Name="ChkNoVariations" Text="Exclude variations" Color="{StaticResource Primary}" Margin="0,0,0,8" />
-                    <material:CheckBox x:Name="ChkIncludeTokens" Text="Include tokens" Color="{StaticResource Primary}" Margin="0,0,0,8" />
-                </VerticalStackLayout>
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="4">
+                        <material:CheckBox x:Name="ChkPrimarySide"
+                                           Text="Primary side only"
+                                           IsChecked="True"
+                                           Color="{StaticResource Primary}"
+                                           Margin="0,0,0,8" />
+                        <material:CheckBox x:Name="ChkNoVariations"
+                                           Text="Exclude variations"
+                                           Color="{StaticResource Primary}"
+                                           Margin="0,0,0,8" />
+                        <material:CheckBox x:Name="ChkIncludeTokens"
+                                           Text="Include tokens"
+                                           Color="{StaticResource Primary}"
+                                           Margin="0,0,0,8" />
+                    </VerticalStackLayout>
+                </Border>
 
             </VerticalStackLayout>
         </ScrollView>

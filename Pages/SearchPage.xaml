@@ -15,81 +15,94 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,*">
 
-        <!-- Search Bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto"
-              Padding="8,8,8,4" ColumnSpacing="8">
-            <material:TextField x:Name="SearchEntry"
-                   Title="Search cards..."
-                   Text="{Binding SearchText, Mode=TwoWay}"
-                   ReturnCommand="{Binding SearchCommand}"        
-                   TextColor="{StaticResource TextPrimary}"
-                   TitleColor="{StaticResource TextSecondary}"
-                   AccentColor="{StaticResource Primary}"
-                   AllowClear="True">
-            </material:TextField>
+        <!-- Search + Status Card -->
+        <Border Grid.Row="0"
+                Style="{StaticResource CardStyle}"
+                Margin="8,8,8,4">
+            <Grid RowDefinitions="Auto,Auto"
+                  ColumnDefinitions="*,Auto,Auto"
+                  ColumnSpacing="8">
 
-            <Button Grid.Column="1"
-                    Text="{Binding FiltersButtonText}"
-                    Command="{Binding GoToFiltersCommand}"
-                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-                    BackgroundColor="{StaticResource CardBackground}"
-                    HeightRequest="44"
-                    Padding="12,0" StyleClass="ElevatedButton" />
+                <!-- Search Bar -->
+                <material:TextField Grid.Row="0"
+                                    Grid.Column="0"
+                                    x:Name="SearchEntry"
+                                    Title="Search cards..."
+                                    Text="{Binding SearchText, Mode=TwoWay}"
+                                    ReturnCommand="{Binding SearchCommand}"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    TitleColor="{StaticResource TextSecondary}"
+                                    AccentColor="{StaticResource Primary}"
+                                    AllowClear="True" />
 
-            <Button Grid.Column="2"
-                    Text="{Binding ViewModeButtonText}"
-                    Command="{Binding ToggleViewModeCommand}"
-                    BackgroundColor="{StaticResource CardBackground}"
-                    HeightRequest="44"
-                    WidthRequest="44"
-                    Padding="0"
-                    FontSize="18"
-                    StyleClass="ElevatedButton" />
-        </Grid>
+                <Button Grid.Row="0"
+                        Grid.Column="1"
+                        Text="{Binding FiltersButtonText}"
+                        Command="{Binding GoToFiltersCommand}"
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        HeightRequest="44"
+                        Padding="12,0"
+                        StyleClass="ElevatedButton" />
 
-        <!-- Status Bar -->
-        <Grid Grid.Row="1" Padding="8,0,8,4" ColumnDefinitions="*,Auto,Auto">
-            <Label Grid.Column="0"
-                   x:Name="StatusLabel"
-                   Text="{Binding StatusDisplayText}"
-                   TextColor="{Binding StatusTextColor}"
-                   FontSize="12"
-                   VerticalOptions="Center" />
+                <Button Grid.Row="0"
+                        Grid.Column="2"
+                        Text="{Binding ViewModeButtonText}"
+                        Command="{Binding ToggleViewModeCommand}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        HeightRequest="44"
+                        WidthRequest="44"
+                        Padding="0"
+                        FontSize="18"
+                        StyleClass="ElevatedButton" />
 
-            <HorizontalStackLayout Grid.Column="1"
-                                   IsVisible="{Binding IsImportingPrices}"
-                                   Spacing="4"
-                                   VerticalOptions="Center"
-                                   Margin="0,0,8,0">
-                <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
-                                   HeightRequest="12"
-                                   WidthRequest="12"
-                                   Color="{StaticResource TextSecondary}" />
-                <Label Text="Syncing Prices..."
-                       TextColor="{StaticResource TextSecondary}"
-                       FontSize="10"
+                <!-- Status Bar -->
+                <Label Grid.Row="1"
+                       Grid.Column="0"
+                       x:Name="StatusLabel"
+                       Text="{Binding StatusDisplayText}"
+                       TextColor="{Binding StatusTextColor}"
+                       FontSize="12"
                        VerticalOptions="Center" />
-            </HorizontalStackLayout>
 
-            <ActivityIndicator Grid.Column="2"
-                               x:Name="LoadingIndicator"
-                               IsRunning="{Binding IsBusy}"
-                               IsVisible="{Binding IsBusy}"
-                               HeightRequest="20"
-                               WidthRequest="20"
-                               Color="{StaticResource Primary}" />
-        </Grid>
+                <HorizontalStackLayout Grid.Row="1"
+                                       Grid.Column="1"
+                                       IsVisible="{Binding IsImportingPrices}"
+                                       Spacing="4"
+                                       VerticalOptions="Center"
+                                       Margin="0,0,8,0">
+                    <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
+                                       HeightRequest="12"
+                                       WidthRequest="12"
+                                       Color="{StaticResource TextSecondary}" />
+                    <Label Text="Syncing Prices..."
+                           TextColor="{StaticResource TextSecondary}"
+                           FontSize="10"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+
+                <ActivityIndicator Grid.Row="1"
+                                   Grid.Column="2"
+                                   x:Name="LoadingIndicator"
+                                   IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   HeightRequest="20"
+                                   WidthRequest="20"
+                                   Color="{StaticResource Primary}" />
+
+            </Grid>
+        </Border>
 
         <!-- Card Grid -->
-        <controls:CardGrid Grid.Row="2"
+        <controls:CardGrid Grid.Row="1"
                            x:Name="CardGrid"
                            Scrolled="OnGridScrolled"
                            IsDragEnabled="False" />
 
         <!-- Empty State -->
-        <VerticalStackLayout Grid.Row="2"
+        <VerticalStackLayout Grid.Row="1"
                              IsVisible="{Binding IsEmpty}"
                              VerticalOptions="Center"
                              HorizontalOptions="Center"
