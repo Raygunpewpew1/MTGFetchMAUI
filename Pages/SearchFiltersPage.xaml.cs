@@ -36,8 +36,8 @@ public partial class SearchFiltersPage : ContentPage
 
             var container = new Grid
             {
-                WidthRequest = 48,
-                HeightRequest = 48,
+                WidthRequest = 32,
+                HeightRequest = 32,
                 Margin = new Thickness(4),
                 Opacity = 0.5,
                 StyleId = code
