@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="AetherVault.Pages.CollectionAddPage"
              BackgroundColor="{StaticResource Background}">
@@ -40,14 +41,20 @@
                        HorizontalTextAlignment="Center" />
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" HorizontalOptions="Center" WidthRequest="260">
                     <Button x:Name="MinusBtn"
-                            Text="−"
                             Clicked="OnMinusClicked"
                             FontSize="24"
                             WidthRequest="56"
                             HeightRequest="56"
                             CornerRadius="28"
                             BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
+                            TextColor="{StaticResource TextPrimary}">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Minus}"
+                                             Size="18"
+                                             Color="{StaticResource TextPrimary}" />
+                        </Button.ImageSource>
+                    </Button>
 
                     <Label x:Name="QuantityLabel"
                            Grid.Column="1"
@@ -59,14 +66,20 @@
                            VerticalTextAlignment="Center" />
 
                     <Button Grid.Column="2"
-                            Text="+"
                             Clicked="OnPlusClicked"
                             FontSize="24"
                             WidthRequest="56"
                             HeightRequest="56"
                             CornerRadius="28"
                             BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
+                            TextColor="{StaticResource TextPrimary}">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Plus}"
+                                             Size="18"
+                                             Color="{StaticResource TextPrimary}" />
+                        </Button.ImageSource>
+                    </Button>
                 </Grid>
                 <Label x:Name="RemoveWarningLabel"
                        Text="(will remove from collection)"

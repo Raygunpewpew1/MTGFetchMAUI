@@ -149,8 +149,10 @@
                              VerticalOptions="Center"
                              HorizontalOptions="Center"
                              Spacing="8">
-            <Label Text="&#x1F4C2;"
-                   FontSize="48"
+            <Label FontFamily="FASolid"
+                   Text="{x:Static fa:Solid.BoxArchive}"
+                   FontSize="44"
+                   TextColor="{StaticResource TextSecondary}"
                    HorizontalOptions="Center" />
             <Label Text="Your collection is empty"
                    FontSize="18"

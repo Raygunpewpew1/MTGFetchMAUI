@@ -18,10 +18,14 @@ public partial class CardSearchPickerPage : ContentPage
         _viewModel.CardSelected += OnCardSelected;
 
         // Add a close button to toolbar
-        ToolbarItems.Add(new ToolbarItem("Cancel", null, async () =>
+        ToolbarItems.Add(new ToolbarItem("Cancel", null, () =>
         {
-            _tcs.TrySetResult(null);
-            await Navigation.PopModalAsync();
+            if (!_tcs.Task.IsCompleted)
+            {
+                _tcs.TrySetResult(null);
+            }
+
+            _ = Navigation.PopModalAsync();
         }));
     }
 
@@ -41,12 +45,25 @@ public partial class CardSearchPickerPage : ContentPage
     {
         base.OnDisappearing();
         _viewModel.CardSelected -= OnCardSelected;
-        _tcs.TrySetResult(null);
     }
 
     private async void OnCardSelected(Card card)
     {
-        _tcs.TrySetResult(card);
         await Navigation.PopModalAsync();
+
+        if (!_tcs.Task.IsCompleted)
+        {
+            _tcs.TrySetResult(card);
+        }
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (!_tcs.Task.IsCompleted)
+        {
+            _tcs.TrySetResult(null);
+        }
+
+        return base.OnBackButtonPressed();
     }
 }

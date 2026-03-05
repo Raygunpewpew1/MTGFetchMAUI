@@ -4,6 +4,7 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:controls="clr-namespace:AetherVault.Controls"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              x:Class="AetherVault.Pages.SearchPage"
              x:Name="SearchPageRoot"
              Title="Search"
@@ -138,8 +139,10 @@
                              VerticalOptions="Center"
                              HorizontalOptions="Center"
                              Spacing="8">
-            <Label Text="&#x1F50D;"
-                   FontSize="48"
+            <Label FontFamily="FASolid"
+                   Text="{x:Static fa:Solid.MagnifyingGlass}"
+                   FontSize="44"
+                   TextColor="{StaticResource TextSecondary}"
                    HorizontalOptions="Center" />
             <Label Text="No cards found"
                    FontSize="18"
