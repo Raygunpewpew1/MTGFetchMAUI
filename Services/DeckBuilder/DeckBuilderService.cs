@@ -186,6 +186,91 @@ public class DeckBuilderService
         return ValidationResult.Success();
     }
 
+    public async Task<int> AutoSuggestLandsAsync(int deckId)
+    {
+        var deck = await _repository.GetDeckAsync(deckId);
+        if (deck == null) return 0;
+
+        var format = EnumExtensions.ParseDeckFormat(deck.Format);
+        int targetLands = format is DeckFormat.Commander or DeckFormat.Brawl or DeckFormat.Oathbreaker or DeckFormat.StandardBrawl or DeckFormat.PauperCommander or DeckFormat.Duel
+            ? 37
+            : 24;
+
+        var entities = await _repository.GetDeckCardsAsync(deckId);
+        var uuids = entities.Select(e => e.CardId).Distinct().ToArray();
+        Dictionary<string, Card> cardMap = uuids.Length > 0
+            ? await _cardRepository.GetCardsByUUIDsAsync(uuids)
+            : [];
+
+        int currentLands = 0;
+        foreach (var entity in entities)
+        {
+            if (cardMap.TryGetValue(entity.CardId, out var card) &&
+                (card.CardType?.Contains("Land", StringComparison.OrdinalIgnoreCase) ?? false))
+            {
+                currentLands += entity.Quantity;
+            }
+        }
+
+        int delta = targetLands - currentLands;
+        if (delta <= 0) return 0;
+
+        // Determine basic land names based on deck color identity.
+        string identity = deck.ColorIdentity ?? "";
+        var landNames = new List<string>();
+        if (identity.Contains('W')) landNames.Add("Plains");
+        if (identity.Contains('U')) landNames.Add("Island");
+        if (identity.Contains('B')) landNames.Add("Swamp");
+        if (identity.Contains('R')) landNames.Add("Mountain");
+        if (identity.Contains('G')) landNames.Add("Forest");
+
+        if (landNames.Count == 0)
+            landNames.Add("Wastes");
+
+        var allocations = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in landNames)
+            allocations[name] = 0;
+
+        // Distribute suggested lands roughly evenly across colors.
+        for (int i = 0; i < delta; i++)
+        {
+            string name = landNames[i % landNames.Count];
+            allocations[name]++;
+        }
+
+        int added = 0;
+
+        foreach (var kvp in allocations)
+        {
+            if (kvp.Value <= 0) continue;
+
+            Card? landCard = null;
+            try
+            {
+                var candidates = await _cardRepository.SearchCardsAsync(kvp.Key, 8);
+                landCard = candidates
+                    .FirstOrDefault(c =>
+                        string.Equals(c.Name, kvp.Key, StringComparison.OrdinalIgnoreCase) &&
+                        (c.CardType?.Contains("Land", StringComparison.OrdinalIgnoreCase) ?? false))
+                    ?? candidates.FirstOrDefault();
+            }
+            catch
+            {
+                // Ignore search failures for this land name.
+            }
+
+            if (landCard == null) continue;
+
+            var result = await AddCardAsync(deckId, landCard.UUID, kvp.Value, "Main");
+            if (result.IsSuccess)
+            {
+                added += kvp.Value;
+            }
+        }
+
+        return added;
+    }
+
     public async Task<List<DeckEntity>> GetDecksAsync()
     {
         return await _repository.GetAllDecksAsync();

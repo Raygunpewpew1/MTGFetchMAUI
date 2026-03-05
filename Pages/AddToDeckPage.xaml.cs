@@ -141,6 +141,24 @@ public partial class AddToDeckPage : ContentPage
         UpdateQuantityUI();
     }
 
+    private void OnQuickAddOneClicked(object? sender, EventArgs e)
+    {
+        _quantity += 1;
+        UpdateQuantityUI();
+    }
+
+    private void OnQuickAddTwoClicked(object? sender, EventArgs e)
+    {
+        _quantity += 2;
+        UpdateQuantityUI();
+    }
+
+    private void OnQuickAddFourClicked(object? sender, EventArgs e)
+    {
+        _quantity += 4;
+        UpdateQuantityUI();
+    }
+
     private async void OnQuantityTapped(object? sender, TappedEventArgs e)
     {
         string current = _quantity.ToString();
