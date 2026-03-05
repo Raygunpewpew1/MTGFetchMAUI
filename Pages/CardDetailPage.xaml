@@ -82,62 +82,66 @@
                        FontSize="11"
                        TextColor="{StaticResource TextSecondary}" />
 
-                <Grid ColumnDefinitions="*,Auto" Padding="0,4,0,0">
-                    <Label x:Name="CardNameLabel"
-                           Text="{Binding CurrentFace.Name}"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           LineBreakMode="WordWrap" FontAutoScalingEnabled="True" />
-                    <controls:ManaCostView x:Name="ManaCost"
-                                           ManaText="{Binding CurrentFace.ManaCost}"
-                                           Grid.Column="1"
-                                           VerticalOptions="Center" />
-                </Grid>
+                <Border Style="{StaticResource CardStyle}"
+                        Margin="0,8,0,0">
+                    <VerticalStackLayout Spacing="4">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label x:Name="CardNameLabel"
+                                   Text="{Binding CurrentFace.Name}"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   LineBreakMode="WordWrap"
+                                   FontAutoScalingEnabled="True" />
+                            <controls:ManaCostView x:Name="ManaCost"
+                                                   ManaText="{Binding CurrentFace.ManaCost}"
+                                                   Grid.Column="1"
+                                                   VerticalOptions="Center" />
+                        </Grid>
 
-                <Label x:Name="TypeLineLabel"
-                       Text="{Binding CurrentFace.CardType}"
-                       FontSize="14"
-                       TextColor="{StaticResource TextSecondary}" />
+                        <Label x:Name="TypeLineLabel"
+                               Text="{Binding CurrentFace.CardType}"
+                               FontSize="14"
+                               TextColor="{StaticResource TextSecondary}" />
 
-                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                    <skia:SKCanvasView x:Name="SetSymbolView"
-                                       HeightRequest="24"
-                                       WidthRequest="24"
-                                       PaintSurface="OnSetSymbolPaint"
-                                       IsVisible="{Binding IsSetSymbolVisible}" />
-                    <Label x:Name="SetInfoLabel"
-                           Text="{Binding SetInfoText}"
-                           VerticalOptions="Center"
-                           FontSize="12"
-                           LineBreakMode ="WordWrap"
-                           TextColor="{StaticResource TextSecondary}" />
-                    <Label x:Name="RarityLabel"
-                           Text="{Binding CurrentFace.Rarity}"
-                           TextColor="{Binding RarityColor}"
-                           VerticalOptions="Center"
-                           FontSize="12"
-                           FontAttributes="Bold" />
-                </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="8"
+                                               VerticalOptions="Center">
+                            <skia:SKCanvasView x:Name="SetSymbolView"
+                                               HeightRequest="24"
+                                               WidthRequest="24"
+                                               PaintSurface="OnSetSymbolPaint"
+                                               IsVisible="{Binding IsSetSymbolVisible}" />
+                            <Label x:Name="SetInfoLabel"
+                                   Text="{Binding SetInfoText}"
+                                   VerticalOptions="Center"
+                                   FontSize="12"
+                                   LineBreakMode="WordWrap"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Label x:Name="RarityLabel"
+                                   Text="{Binding CurrentFace.Rarity}"
+                                   TextColor="{Binding RarityColor}"
+                                   VerticalOptions="Center"
+                                   FontSize="12"
+                                   FontAttributes="Bold" />
+                        </HorizontalStackLayout>
 
-                <Label x:Name="PriceLabel"
-                       Text="{Binding PriceDisplay}"
-                       FontSize="14"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource Accent}"
-                       IsVisible="{Binding IsPriceVisible}" />
+                        <Label x:Name="PriceLabel"
+                               Text="{Binding PriceDisplay}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Accent}"
+                               IsVisible="{Binding IsPriceVisible}" />
 
-                <Label x:Name="PTLabel"
-                       Text="{Binding PTText}"
-                       FontSize="14"
-                       TextColor="{StaticResource TextPrimary}"
-                       IsVisible="{Binding IsPTVisible}" />
+                        <Label x:Name="PTLabel"
+                               Text="{Binding PTText}"
+                               FontSize="14"
+                               TextColor="{StaticResource TextPrimary}"
+                               IsVisible="{Binding IsPTVisible}" />
+                    </VerticalStackLayout>
+                </Border>
 
-                <Border StrokeShape="RoundRectangle 8"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        StrokeThickness="0"
-                        Padding="12"
-                        x:Name="PriceHistoryBorder"
+                <Border x:Name="PriceHistoryBorder"
+                        Style="{StaticResource CardStyle}"
                         IsVisible="{Binding HasPriceHistory}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Price Trend (Last 90 Days)"
@@ -166,11 +170,8 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Border StrokeShape="RoundRectangle 8"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        StrokeThickness="0"
-                        Padding="12"
-                        x:Name="TextBorder"
+                <Border x:Name="TextBorder"
+                        Style="{StaticResource CardStyle}"
                         IsVisible="{Binding IsTextVisible}">
                     <controls:CardTextView x:Name="CardTextView"
                                            CardText="{Binding CombinedText}"
@@ -178,11 +179,8 @@
                                            TextColor="{StaticResource TextPrimary}" />
                 </Border>
 
-                <Border StrokeShape="RoundRectangle 8"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        StrokeThickness="0"
-                        Padding="12"
-                        x:Name="FlavorBorder"
+                <Border x:Name="FlavorBorder"
+                        Style="{StaticResource CardStyle}"
                         IsVisible="{Binding IsFlavorVisible}">
                     <Label x:Name="FlavorTextLabel"
                            Text="{Binding CurrentFace.FlavorText}"
@@ -198,11 +196,8 @@
                        TextColor="{StaticResource TextSecondary}"
                        IsVisible="{Binding IsArtistVisible}" />
 
-                <Border StrokeShape="RoundRectangle 8"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        StrokeThickness="0"
-                        Padding="12"
-                        IsVisible="{Binding HasPurchaseLinks}">
+                <Border IsVisible="{Binding HasPurchaseLinks}"
+                        Style="{StaticResource CardStyle}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Buy Online"
                                FontSize="16"
@@ -225,10 +220,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Border StrokeShape="RoundRectangle 8"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        StrokeThickness="0"
-                        Padding="12">
+                <Border Style="{StaticResource CardStyle}">
                     <uranium:ExpanderView>
                         <uranium:ExpanderView.Header>
                             <Label Text="Format Legality"
@@ -263,10 +255,7 @@
                     </uranium:ExpanderView>
                 </Border>
 
-                <Border StrokeShape="RoundRectangle 8"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        StrokeThickness="0"
-                        Padding="12"
+                <Border Style="{StaticResource CardStyle}"
                         IsVisible="{Binding HasRulings}">
                     <uranium:ExpanderView>
                         <uranium:ExpanderView.Header>
