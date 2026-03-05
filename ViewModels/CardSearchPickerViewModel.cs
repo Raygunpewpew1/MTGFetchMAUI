@@ -73,7 +73,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     [RelayCommand]
     private async Task SelectCardAsync(Card card)
     {
-        var fullCard = await GetCardDetailsAsync(card.Id.Value);
+        var fullCard = await GetCardDetailsAsync(card.UUID);
         if (fullCard != null)
         {
             CardSelected?.Invoke(fullCard);

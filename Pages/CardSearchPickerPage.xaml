@@ -90,7 +90,7 @@
 
                         <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
                             <Label Text="{Binding Name}" TextColor="{StaticResource TextPrimary}" FontSize="15" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                            <Label Text="{Binding TypeLine}" TextColor="{StaticResource TextSecondary}" FontSize="12" LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding CardType}" TextColor="{StaticResource TextSecondary}" FontSize="12" LineBreakMode="TailTruncation" />
                         </VerticalStackLayout>
 
                         <controls:ManaCostView Grid.Column="2" ManaText="{Binding ManaCost}" SymbolSize="12" VerticalOptions="Center" />
