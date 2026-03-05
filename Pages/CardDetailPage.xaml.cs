@@ -212,7 +212,7 @@ public partial class CardDetailPage : ContentPage
             const uint duration = 140;
 
             // Slide current card slightly in swipe direction.
-            await CardContentRoot.TranslateTo(direction * travel, 0, duration, Easing.CubicOut);
+            await CardContentRoot.TranslateToAsync(direction * travel, 0, duration, Easing.CubicOut);
 
             // Trigger navigation while the content is offset.
             if (isNext)
@@ -224,7 +224,7 @@ public partial class CardDetailPage : ContentPage
             CardContentRoot.TranslationX = -direction * travel;
 
             // Slide new card into place.
-            await CardContentRoot.TranslateTo(0, 0, duration, Easing.CubicIn);
+            await CardContentRoot.TranslateToAsync(0, 0, duration, Easing.CubicIn);
         }
         finally
         {
