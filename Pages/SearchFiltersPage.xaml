@@ -170,10 +170,12 @@
                                               TitleColor="{StaticResource TextSecondary}"
                                               AccentColor="{StaticResource Primary}" />
 
-                        <material:TextField x:Name="SetEntry"
-                                            Title="Set Code"
-                                            TitleColor="{StaticResource TextSecondary}"
-                                            AccentColor="{StaticResource Primary}" />
+                        <material:PickerField x:Name="SetPicker"
+                                              Title="Set"
+                                              TextColor="{StaticResource TextPrimary}"
+                                              TitleColor="{StaticResource TextSecondary}"
+                                              AccentColor="{StaticResource Primary}"
+                                              ItemDisplayBinding="{Binding Name}" />
 
                         <material:TextField x:Name="ArtistEntry"
                                             Title="Artist"

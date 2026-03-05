@@ -504,4 +504,5 @@ public class MockCardRepository : ICardRepository
     public Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
     public Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
     public MTGSearchHelper CreateSearchHelper() => throw new NotImplementedException();
+    public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
 }

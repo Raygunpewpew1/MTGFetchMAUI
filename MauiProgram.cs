@@ -69,7 +69,8 @@ public static class MauiProgram
             new CardRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<ITokenRepository>(sp =>
             new TokenRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
-        builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
+        builder.Services.AddSingleton<ICollectionRepository>(sp =>
+            new CollectionRepository(sp.GetRequiredService<CardManager>().DatabaseManager, sp.GetRequiredService<ICardRepository>()));
         builder.Services.AddSingleton<IDeckRepository>(sp =>
             new DeckRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<DeckValidator>();

@@ -269,6 +269,20 @@ public class CardRepository : ICardRepository
 
     public MTGSearchHelper CreateSearchHelper() => new();
 
+    public async Task<IReadOnlyList<SetInfo>> GetAllSetsAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            var list = await _db.MTGConnection.QueryAsync<SetInfo>(SQLQueries.SelectSetsForFilter);
+            return [.. list];
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     // ── Private helpers ─────────────────────────────────────────────
 
     private async Task<Card[]> GetMeldPartCardsAsync(string[] cardParts, string setCode, string mainUUID)

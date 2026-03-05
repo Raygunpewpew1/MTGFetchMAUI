@@ -27,4 +27,7 @@ public interface ICardRepository
     Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper);
     Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper);
     MTGSearchHelper CreateSearchHelper();
+
+    /// <summary>Returns all sets (code + name) for filter dropdowns, ordered by name.</summary>
+    Task<IReadOnlyList<SetInfo>> GetAllSetsAsync();
 }

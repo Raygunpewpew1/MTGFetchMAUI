@@ -383,6 +383,9 @@ public static class SQLQueries
 
     public const string BaseSets = "SELECT * FROM sets";
 
+    /// <summary>Code and name for set filter dropdown; ordered by name.</summary>
+    public const string SelectSetsForFilter = "SELECT code AS Code, name AS Name FROM sets ORDER BY name";
+
     // Where condition fragments
     public const string CondName = "c.name LIKE @";
     public const string CondText = "c.text LIKE @";

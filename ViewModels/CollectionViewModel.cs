@@ -377,6 +377,12 @@ public partial class CollectionViewModel : BaseViewModel
     {
         try
         {
+            if (!await _cardManager.EnsureInitializedAsync())
+            {
+                _toastService.Show("Database not connected.");
+                return;
+            }
+
             if (_allItems.Length == 0)
             {
                 _toastService.Show("Collection is empty.");

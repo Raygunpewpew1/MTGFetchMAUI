@@ -1,3 +1,4 @@
+using AetherVault.Core;
 using AetherVault.Data;
 using AetherVault.Models;
 using SkiaSharp;
@@ -256,6 +257,9 @@ public class CardManager : IDisposable
     }
 
     public MTGSearchHelper CreateSearchHelper() => _cardRepository.CreateSearchHelper();
+
+    /// <summary>Returns all sets (code + name) for filter dropdowns, ordered by name.</summary>
+    public async Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => await _cardRepository.GetAllSetsAsync();
 
     public async Task<Card[]> ExecuteSearchAsync(MTGSearchHelper searchHelper)
     {

@@ -1,5 +1,6 @@
 using AetherVault.Controls;
 using AetherVault.Core;
+using AetherVault.Services;
 using AetherVault.ViewModels;
 
 namespace AetherVault.Pages;
@@ -7,19 +8,55 @@ namespace AetherVault.Pages;
 public partial class SearchFiltersPage : ContentPage
 {
     private readonly SearchViewModel _searchViewModel;
+    private readonly CardManager _cardManager;
     private readonly HashSet<string> _selectedColors = [];
+    private List<SetInfo> _setList = [];
 
     private static readonly string[] ColorCodes = ["W", "U", "B", "R", "G", "C"];
+    private static readonly SetInfo AnySet = new("", "Any set");
 
-    public SearchFiltersPage(SearchViewModel searchViewModel)
+    public SearchFiltersPage(SearchViewModel searchViewModel, CardManager cardManager)
     {
         InitializeComponent();
         _searchViewModel = searchViewModel;
+        _cardManager = cardManager;
 
         BuildColorButtons();
         BuildFormatPicker();
 
         LoadFromOptions(_searchViewModel.CurrentOptions);
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await LoadSetsAsync();
+    }
+
+    private async Task LoadSetsAsync()
+    {
+        try
+        {
+            var sets = await _cardManager.GetAllSetsAsync();
+            _setList = [AnySet, .. sets];
+            SetPicker.ItemsSource = _setList;
+
+            // Restore selection from current options if we had a set list before
+            var currentSet = _searchViewModel.CurrentOptions.SetFilter;
+            if (string.IsNullOrEmpty(currentSet))
+                SetPicker.SelectedIndex = 0;
+            else
+            {
+                var idx = _setList.FindIndex(s => s.Code.Equals(currentSet, StringComparison.OrdinalIgnoreCase));
+                SetPicker.SelectedIndex = idx >= 0 ? idx : 0;
+            }
+        }
+        catch
+        {
+            _setList = [AnySet];
+            SetPicker.ItemsSource = _setList;
+            SetPicker.SelectedIndex = 0;
+        }
     }
 
     private void BuildColorButtons()
@@ -140,7 +177,7 @@ public partial class SearchFiltersPage : ContentPage
         }
 
         // Set/Artist
-        options.SetFilter = SetEntry.Text ?? "";
+        options.SetFilter = (SetPicker.SelectedItem as SetInfo)?.Code ?? "";
         options.ArtistFilter = ArtistEntry.Text ?? "";
 
         // Special
@@ -245,7 +282,13 @@ public partial class SearchFiltersPage : ContentPage
         FormatPicker.SelectedIndex = options.UseLegalFormat ? (int)options.LegalFormat + 1 : 0;
 
         // Set/Artist
-        SetEntry.Text = options.SetFilter;
+        if (_setList.Count > 0)
+        {
+            var idx = string.IsNullOrEmpty(options.SetFilter)
+                ? 0
+                : _setList.FindIndex(s => s.Code.Equals(options.SetFilter, StringComparison.OrdinalIgnoreCase));
+            SetPicker.SelectedIndex = idx >= 0 ? idx : 0;
+        }
         ArtistEntry.Text = options.ArtistFilter;
 
         // Special
