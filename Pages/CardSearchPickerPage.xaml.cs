@@ -15,11 +15,7 @@ public partial class CardSearchPickerPage : ContentPage
         _viewModel = viewModel;
         BindingContext = _viewModel;
 
-        _viewModel.AttachGrid(CardGrid);
-
-        CardGrid.CardClicked += OnCardClicked;
-
-        _viewModel.SearchCompleted += OnSearchCompleted;
+        _viewModel.CardSelected += OnCardSelected;
 
         // Add a close button to toolbar
         ToolbarItems.Add(new ToolbarItem("Cancel", null, async () =>
@@ -29,45 +25,20 @@ public partial class CardSearchPickerPage : ContentPage
         }));
     }
 
-    private void OnSearchCompleted()
-    {
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            await CardGrid.ScrollToAsync(0, false);
-        });
-    }
-
     public Task<Card?> WaitForResultAsync()
     {
         return _tcs.Task;
     }
 
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-        CardGrid.OnResume();
-    }
-
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        CardGrid.OnSleep();
-        _viewModel.SearchCompleted -= OnSearchCompleted;
-        CardGrid.CardClicked -= OnCardClicked;
+        _viewModel.CardSelected -= OnCardSelected;
         _tcs.TrySetResult(null);
     }
 
-    private void OnGridScrolled(object? sender, ScrolledEventArgs e)
+    private async void OnCardSelected(Card card)
     {
-        float scrollY = (float)e.ScrollY;
-        float viewportHeight = (float)CardGrid.Height;
-        float contentHeight = CardGrid.ContentHeight;
-        _viewModel.OnScrollChanged(scrollY, viewportHeight, contentHeight);
-    }
-
-    private async void OnCardClicked(string uuid)
-    {
-        var card = await _viewModel.GetCardDetailsAsync(uuid);
         _tcs.TrySetResult(card);
         await Navigation.PopModalAsync();
     }

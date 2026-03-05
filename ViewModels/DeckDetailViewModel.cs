@@ -60,6 +60,14 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     [NotifyPropertyChangedFor(nameof(Tab1Color))]
     [NotifyPropertyChangedFor(nameof(Tab2Color))]
     [NotifyPropertyChangedFor(nameof(Tab3Color))]
+    [NotifyPropertyChangedFor(nameof(Tab0Font))]
+    [NotifyPropertyChangedFor(nameof(Tab1Font))]
+    [NotifyPropertyChangedFor(nameof(Tab2Font))]
+    [NotifyPropertyChangedFor(nameof(Tab3Font))]
+    [NotifyPropertyChangedFor(nameof(Tab0Indicator))]
+    [NotifyPropertyChangedFor(nameof(Tab1Indicator))]
+    [NotifyPropertyChangedFor(nameof(Tab2Indicator))]
+    [NotifyPropertyChangedFor(nameof(Tab3Indicator))]
     public partial int SelectedSectionIndex { get; set; } = 1; // Default to Main tab
 
     public bool IsCommanderTab => SelectedSectionIndex == 0;
@@ -67,10 +75,20 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     public bool IsSideboardTab => SelectedSectionIndex == 2;
     public bool IsStatsTab => SelectedSectionIndex == 3;
 
-    public Color Tab0Color => SelectedSectionIndex == 0 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#2C2C2C");
-    public Color Tab1Color => SelectedSectionIndex == 1 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#2C2C2C");
-    public Color Tab2Color => SelectedSectionIndex == 2 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#2C2C2C");
-    public Color Tab3Color => SelectedSectionIndex == 3 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#2C2C2C");
+    public Color Tab0Color => SelectedSectionIndex == 0 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
+    public Color Tab1Color => SelectedSectionIndex == 1 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
+    public Color Tab2Color => SelectedSectionIndex == 2 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
+    public Color Tab3Color => SelectedSectionIndex == 3 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
+
+    public FontAttributes Tab0Font => SelectedSectionIndex == 0 ? FontAttributes.Bold : FontAttributes.None;
+    public FontAttributes Tab1Font => SelectedSectionIndex == 1 ? FontAttributes.Bold : FontAttributes.None;
+    public FontAttributes Tab2Font => SelectedSectionIndex == 2 ? FontAttributes.Bold : FontAttributes.None;
+    public FontAttributes Tab3Font => SelectedSectionIndex == 3 ? FontAttributes.Bold : FontAttributes.None;
+
+    public double Tab0Indicator => SelectedSectionIndex == 0 ? 1 : 0;
+    public double Tab1Indicator => SelectedSectionIndex == 1 ? 1 : 0;
+    public double Tab2Indicator => SelectedSectionIndex == 2 ? 1 : 0;
+    public double Tab3Indicator => SelectedSectionIndex == 3 ? 1 : 0;
 
     [ObservableProperty]
     public partial int TotalCardCount { get; set; }
@@ -92,27 +110,34 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     [RelayCommand]
     private void SelectStats() => SelectedSectionIndex = 3;
 
-    public async Task ReloadAsync() => await LoadAsync(_deckId);
+    public async Task ReloadAsync(bool preserveState = false) => await LoadAsync(_deckId, preserveState);
 
-    public async Task LoadAsync(int deckId)
+    public async Task LoadAsync(int deckId, bool preserveState = false)
     {
         _deckId = deckId;
         if (IsBusy) return;
         IsBusy = true;
         StatusIsError = false;
-        StatusMessage = "Loading deck...";
+
+        if (!preserveState)
+            StatusMessage = "Loading deck...";
 
         try
         {
-            Deck = await _deckService.GetDeckAsync(deckId);
-            if (Deck == null)
+            var newDeck = await _deckService.GetDeckAsync(deckId);
+            if (newDeck == null)
             {
                 StatusIsError = true;
                 StatusMessage = "Deck not found.";
                 return;
             }
 
-            DeckFormat = EnumExtensions.ParseDeckFormat(Deck.Format).ToDisplayName();
+            if (!preserveState)
+            {
+                Deck = newDeck;
+            }
+
+            DeckFormat = EnumExtensions.ParseDeckFormat(newDeck.Format).ToDisplayName();
 
             var cardEntities = await _deckService.GetDeckCardsAsync(deckId);
             var uuids = cardEntities.Select(c => c.CardId).Distinct().ToArray();
@@ -175,7 +200,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, item.Entity.Quantity + 1, item.Entity.Section);
         if (result.IsSuccess)
-            await ReloadAsync();
+            await ReloadAsync(preserveState: true);
     }
 
     [RelayCommand]
@@ -186,7 +211,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, newQty, item.Entity.Section);
         if (result.IsSuccess)
-            await ReloadAsync();
+            await ReloadAsync(preserveState: true);
     }
 
     [RelayCommand]
@@ -194,7 +219,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     {
         if (Deck == null) return;
         await _deckService.RemoveCardAsync(Deck.Id, item.Entity.CardId, item.Entity.Section);
-        await ReloadAsync();
+        await ReloadAsync(preserveState: true);
     }
 
     private static ObservableCollection<DeckCardGroup> BuildGroups(List<DeckCardDisplayItem> items)

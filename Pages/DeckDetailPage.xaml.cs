@@ -76,7 +76,7 @@ public partial class DeckDetailPage : ContentPage
                 _toastService.Show($"{card.Name} added to {section}.");
         }
 
-        await _viewModel.ReloadAsync();
+        await _viewModel.ReloadAsync(preserveState: true);
     }
 
     private void OnCommanderArtPaint(object? sender, SKPaintSurfaceEventArgs e)
