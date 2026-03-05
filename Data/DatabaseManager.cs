@@ -47,19 +47,6 @@ public sealed class DatabaseManager : IDisposable
             {
                 try
                 {
-                    // Connect MTG database (read-only)
-                    if (_mtgConnection is null || _mtgConnection.State != System.Data.ConnectionState.Open)
-                    {
-                        _mtgConnection?.Dispose();
-                        _mtgConnection = CreateConnection(mtgDbPath, readOnly: true);
-                        await _mtgConnection.OpenAsync();
-                        await ConfigureConnectionAsync(_mtgConnection);
-
-                        // Attach collection database so MTG queries can join collection tables
-                        var escapedCollPath = collectionDbPath.Replace("'", "''");
-                        await ExecuteNonQueryAsync(_mtgConnection, $"ATTACH DATABASE '{escapedCollPath}' AS col");
-                    }
-
                     // Connect Collection database (read-write)
                     if (_collectionConnection is null || _collectionConnection.State != System.Data.ConnectionState.Open)
                     {
@@ -78,6 +65,19 @@ public sealed class DatabaseManager : IDisposable
                     //    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
                     //     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
                     await MigrateCollectionSchemaAsync(_collectionConnection);
+
+                    // Connect MTG database (read-only)
+                    if (_mtgConnection is null || _mtgConnection.State != System.Data.ConnectionState.Open)
+                    {
+                        _mtgConnection?.Dispose();
+                        _mtgConnection = CreateConnection(mtgDbPath, readOnly: true);
+                        await _mtgConnection.OpenAsync();
+                        await ConfigureConnectionAsync(_mtgConnection);
+
+                        // Attach collection database so MTG queries can join collection tables
+                        var escapedCollPath = collectionDbPath.Replace("'", "''");
+                        await ExecuteNonQueryAsync(_mtgConnection, $"ATTACH DATABASE '{escapedCollPath}' AS col");
+                    }
 
                     _isConnected = true;
                     return true;
