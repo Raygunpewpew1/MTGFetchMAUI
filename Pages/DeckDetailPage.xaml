@@ -6,6 +6,7 @@
              xmlns:controls="clr-namespace:AetherVault.Controls"
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
              xmlns:pages="clr-namespace:AetherVault.Pages"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              x:Class="AetherVault.Pages.DeckDetailPage"
              Title="{Binding Deck.Name}"
              BackgroundColor="{StaticResource Background}"
@@ -235,7 +236,6 @@
                                            SymbolSize="11"
                                            VerticalOptions="Center" />
                                     <Button Grid.Column="3"
-                                            Text="&#x2212;"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Surface}"
@@ -245,9 +245,15 @@
                                             Padding="0"
                                             Margin="2,0"
                                             FontSize="18"
-                                            CornerRadius="4" />
+                                            CornerRadius="4">
+                                        <Button.ImageSource>
+                                            <FontImageSource FontFamily="FASolid"
+                                                             Glyph="{x:Static fa:Solid.Minus}"
+                                                             Size="16"
+                                                             Color="{StaticResource TextPrimary}" />
+                                        </Button.ImageSource>
+                                    </Button>
                                     <Button Grid.Column="4"
-                                            Text="+"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
@@ -257,7 +263,14 @@
                                             Padding="0"
                                             Margin="2,0"
                                             FontSize="18"
-                                            CornerRadius="4" />
+                                            CornerRadius="4">
+                                        <Button.ImageSource>
+                                            <FontImageSource FontFamily="FASolid"
+                                                             Glyph="{x:Static fa:Solid.Plus}"
+                                                             Size="16"
+                                                             Color="Black" />
+                                        </Button.ImageSource>
+                                    </Button>
                                 </Grid>
                             </Border>
                         </SwipeView>
@@ -313,7 +326,6 @@
                                            SymbolSize="11"
                                            VerticalOptions="Center" />
                                     <Button Grid.Column="3"
-                                            Text="&#x2212;"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Surface}"
@@ -323,9 +335,15 @@
                                             Padding="0"
                                             Margin="2,0"
                                             FontSize="18"
-                                            CornerRadius="4" />
+                                            CornerRadius="4">
+                                        <Button.ImageSource>
+                                            <FontImageSource FontFamily="FASolid"
+                                                             Glyph="{x:Static fa:Solid.Minus}"
+                                                             Size="16"
+                                                             Color="{StaticResource TextPrimary}" />
+                                        </Button.ImageSource>
+                                    </Button>
                                     <Button Grid.Column="4"
-                                            Text="+"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
@@ -335,7 +353,14 @@
                                             Padding="0"
                                             Margin="2,0"
                                             FontSize="18"
-                                            CornerRadius="4" />
+                                            CornerRadius="4">
+                                        <Button.ImageSource>
+                                            <FontImageSource FontFamily="FASolid"
+                                                             Glyph="{x:Static fa:Solid.Plus}"
+                                                             Size="16"
+                                                             Color="Black" />
+                                        </Button.ImageSource>
+                                    </Button>
                                 </Grid>
                             </Border>
                         </SwipeView>
@@ -445,23 +470,16 @@
 
             <!-- FAB: Add Card (visible on Commander, Main, Sideboard tabs) -->
             <Button x:Name="AddCardFab"
-                    Text="+"
                     Clicked="OnAddCardClicked"
                     IsVisible="{Binding IsStatsTab, Converter={StaticResource InvertBool}}"
-                    BackgroundColor="{StaticResource Accent}"
-                    TextColor="Black"
-                    FontSize="24"
-                    FontAttributes="Bold"
-                    WidthRequest="56"
-                    HeightRequest="56"
-                    CornerRadius="28"
-                    HorizontalOptions="End"
-                    VerticalOptions="End"
-                    Margin="0,0,16,16"
+                    Style="{StaticResource FloatingActionButtonStyle}"
                     ZIndex="10">
-                <Button.Shadow>
-                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.4" />
-                </Button.Shadow>
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="FASolid"
+                                     Glyph="{x:Static fa:Solid.Plus}"
+                                     Size="20"
+                                     Color="White" />
+                </Button.ImageSource>
             </Button>
 
         </Grid>

@@ -1,89 +1,110 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Background Gradient -->
+    <!-- Deep cosmic background -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1A1525" />
-      <stop offset="100%" stop-color="#0A0710" />
+      <stop offset="0%" stop-color="#130C24" />
+      <stop offset="50%" stop-color="#1B1035" />
+      <stop offset="100%" stop-color="#05030A" />
     </linearGradient>
 
-    <!-- Metal Gradient for Vault Elements -->
-    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8B9BB4" />
-      <stop offset="50%" stop-color="#4C5870" />
-      <stop offset="100%" stop-color="#2D354A" />
-    </linearGradient>
-
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFE066" />
-      <stop offset="50%" stop-color="#D4AF37" />
-      <stop offset="100%" stop-color="#AA7900" />
-    </linearGradient>
-
-    <!-- Glow for center -->
-    <radialGradient id="aetherGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#4A90E2" stop-opacity="0.8" />
-      <stop offset="60%" stop-color="#9013FE" stop-opacity="0.4" />
-      <stop offset="100%" stop-color="#1A1525" stop-opacity="0" />
+    <!-- Central aether glow -->
+    <radialGradient id="coreGlow" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#4AF2FF" stop-opacity="0.9" />
+      <stop offset="35%" stop-color="#5C6BFF" stop-opacity="0.55" />
+      <stop offset="75%" stop-color="#9E4BFF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
     </radialGradient>
 
-    <!-- WUBRG Colors -->
-    <radialGradient id="gradW" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E8E4C9"/></radialGradient>
-    <radialGradient id="gradU" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#73C2FB"/><stop offset="100%" stop-color="#0066CC"/></radialGradient>
-    <radialGradient id="gradB" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#666666"/><stop offset="100%" stop-color="#1A1A1A"/></radialGradient>
-    <radialGradient id="gradR" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#FF6B6B"/><stop offset="100%" stop-color="#CC0000"/></radialGradient>
-    <radialGradient id="gradG" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="#7CD97C"/><stop offset="100%" stop-color="#008000"/></radialGradient>
+    <!-- Vault ring -->
+    <linearGradient id="ringGrad" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#FFE59D" />
+      <stop offset="45%" stop-color="#FFC857" />
+      <stop offset="100%" stop-color="#D28B26" />
+    </linearGradient>
 
-    <filter id="dropShadow">
-      <feDropShadow dx="0" dy="15" stdDeviation="10" flood-opacity="0.5" flood-color="#000"/>
+    <!-- Inner ring surface -->
+    <linearGradient id="innerRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1F2538" />
+      <stop offset="100%" stop-color="#0F131F" />
+    </linearGradient>
+
+    <!-- Aether arc gradient -->
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4AF2FF" />
+      <stop offset="50%" stop-color="#7C6CFF" />
+      <stop offset="100%" stop-color="#FF6BD5" />
+    </linearGradient>
+
+    <!-- Soft outer shadow -->
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.7" />
     </filter>
   </defs>
 
-  <!-- Background -->
-  <rect width="1024" height="1024" fill="url(#bgGrad)" />
+  <!-- Rounded-rect background (platforms will still mask, but this keeps corners soft in previews) -->
+  <rect x="64" y="64" width="896" height="896" rx="240" ry="240" fill="url(#bgGrad)" />
 
-  <!-- Aether Glow Background -->
-  <circle cx="512" cy="512" r="400" fill="url(#aetherGlow)" />
+  <!-- Subtle vignette to focus toward center -->
+  <rect x="64" y="64" width="896" height="896" rx="240" ry="240" fill="#000000" opacity="0.20" />
 
-  <!-- Outer Vault Frame -->
-  <circle cx="512" cy="512" r="420" fill="none" stroke="url(#metalGrad)" stroke-width="40" filter="url(#dropShadow)" />
-  <circle cx="512" cy="512" r="390" fill="none" stroke="#1A1A1A" stroke-width="8" />
+  <!-- Aether glow behind the vault -->
+  <circle cx="512" cy="480" r="360" fill="url(#coreGlow)" />
 
-  <!-- Gear Teeth / Vault Locking Mechanism -->
-  <g fill="url(#metalGrad)" filter="url(#dropShadow)">
-    <path d="M482 62 h60 v60 h-60 z" />
-    <path d="M482 902 h60 v60 h-60 z" />
-    <path d="M62 482 h60 v60 h-60 z" />
-    <path d="M902 482 h60 v60 h-60 z" />
-
-    <g transform="rotate(45, 512, 512)">
-      <path d="M482 62 h60 v60 h-60 z" />
-      <path d="M482 902 h60 v60 h-60 z" />
-      <path d="M62 482 h60 v60 h-60 z" />
-      <path d="M902 482 h60 v60 h-60 z" />
-    </g>
+  <!-- Vault ring -->
+  <g filter="url(#softShadow)">
+    <circle cx="512" cy="512" r="310" fill="none" stroke="url(#ringGrad)" stroke-width="38" />
+    <circle cx="512" cy="512" r="268" fill="url(#innerRingGrad)" stroke="#090B12" stroke-width="10" />
   </g>
 
-  <!-- Inner Door Segmented Ring (WUBRG representation) -->
-  <circle cx="512" cy="512" r="280" fill="#14111E" stroke="url(#goldGrad)" stroke-width="20" filter="url(#dropShadow)" />
+  <!-- Aether arcs / energy swirl -->
+  <g transform="translate(512 512) rotate(-18)">
+    <!-- Upper-left sweeping arc -->
+    <path
+      d="M -210 0 A 210 210 0 0 1 0 -210"
+      fill="none"
+      stroke="url(#arcGrad)"
+      stroke-width="32"
+      stroke-linecap="round" />
 
-  <!-- Central Emblem / Aether Core -->
-  <path d="M512 332 L668 512 L512 692 L356 512 Z" fill="url(#goldGrad)" filter="url(#dropShadow)" />
-  <path d="M512 360 L635 512 L512 664 L389 512 Z" fill="url(#bgGrad)" />
-  <path d="M512 400 L590 512 L512 624 L434 512 Z" fill="#4A90E2" opacity="0.8" />
+    <!-- Lower-right sweeping arc -->
+    <path
+      d="M 0 210 A 210 210 0 0 1 210 0"
+      fill="none"
+      stroke="url(#arcGrad)"
+      stroke-width="22"
+      stroke-linecap="round"
+      opacity="0.85" />
 
-  <!-- Glowing core center -->
-  <circle cx="512" cy="512" r="40" fill="#FFFFFF" opacity="0.9" />
+    <!-- Dark core -->
+    <circle cx="0" cy="0" r="88" fill="#050813" />
 
-  <!-- 5 WUBRG Orbs inset in the gold ring -->
-  <!-- Top: White -->
-  <circle cx="512" cy="230" r="30" fill="url(#gradW)" stroke="#D4AF37" stroke-width="4" filter="url(#dropShadow)" />
-  <!-- Top Right: Blue -->
-  <circle cx="780" cy="425" r="30" fill="url(#gradU)" stroke="#D4AF37" stroke-width="4" filter="url(#dropShadow)" />
-  <!-- Bottom Right: Black -->
-  <circle cx="678" cy="740" r="30" fill="url(#gradB)" stroke="#D4AF37" stroke-width="4" filter="url(#dropShadow)" />
-  <!-- Bottom Left: Red -->
-  <circle cx="346" cy="740" r="30" fill="url(#gradR)" stroke="#D4AF37" stroke-width="4" filter="url(#dropShadow)" />
-  <!-- Top Left: Green -->
-  <circle cx="244" cy="425" r="30" fill="url(#gradG)" stroke="#D4AF37" stroke-width="4" filter="url(#dropShadow)" />
+    <!-- Inner dashed energy ring -->
+    <circle
+      cx="0"
+      cy="0"
+      r="72"
+      fill="none"
+      stroke="url(#arcGrad)"
+      stroke-width="10"
+      stroke-linecap="round"
+      stroke-dasharray="36 20"
+      opacity="0.8" />
+  </g>
 
+  <!-- Highlights and shadow along the ring to keep shape readable at small sizes -->
+  <path
+    d="M 202 512 A 310 310 0 0 1 512 202"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-opacity="0.22"
+    stroke-width="18"
+    stroke-linecap="round" />
+
+  <path
+    d="M 822 512 A 310 310 0 0 1 512 822"
+    fill="none"
+    stroke="#000000"
+    stroke-opacity="0.35"
+    stroke-width="24"
+    stroke-linecap="round" />
 </svg>

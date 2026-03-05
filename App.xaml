@@ -75,6 +75,28 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="FloatingActionButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                <Setter Property="TextColor" Value="White" />
+                <Setter Property="WidthRequest" Value="56" />
+                <Setter Property="HeightRequest" Value="56" />
+                <Setter Property="CornerRadius" Value="28" />
+                <Setter Property="FontSize" Value="22" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalOptions" Value="End" />
+                <Setter Property="VerticalOptions" Value="End" />
+                <Setter Property="Margin" Value="0,0,16,16" />
+                <Setter Property="Shadow">
+                    <Setter.Value>
+                        <Shadow Brush="Black"
+                                Offset="0,4"
+                                Radius="10"
+                                Opacity="0.45" />
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- UraniumUI ExpanderView Arrow -->
             <Style TargetType="Path" Class="ExpanderView.Arrow">
                 <Setter Property="Fill" Value="{StaticResource TextPrimary}" />

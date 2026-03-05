@@ -6,6 +6,8 @@
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:models="clr-namespace:AetherVault.Models"
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
+             xmlns:pages="clr-namespace:AetherVault.Pages"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              x:Class="AetherVault.Pages.CardSearchPickerPage"
              Title="Select a Card"
              BackgroundColor="{StaticResource Background}">
@@ -81,7 +83,9 @@
                 <DataTemplate x:DataType="models:Card">
                     <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" BackgroundColor="{StaticResource Background}">
                         <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CardSearchPickerViewModel}}, Path=SelectCardCommand}" CommandParameter="{Binding .}" />
+                            <TapGestureRecognizer
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type pages:CardSearchPickerPage}}, Path=BindingContext.SelectCardCommand}"
+                                CommandParameter="{Binding .}" />
                         </Grid.GestureRecognizers>
 
                         <Border Grid.Column="0" WidthRequest="40" HeightRequest="56" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 4">
@@ -105,8 +109,10 @@
                              VerticalOptions="Center"
                              HorizontalOptions="Center"
                              Spacing="8">
-            <Label Text="&#x1F50D;"
-                   FontSize="48"
+            <Label FontFamily="FASolid"
+                   Text="{x:Static fa:Solid.MagnifyingGlass}"
+                   FontSize="44"
+                   TextColor="{StaticResource TextSecondary}"
                    HorizontalOptions="Center" />
             <Label Text="No cards found"
                    FontSize="18"

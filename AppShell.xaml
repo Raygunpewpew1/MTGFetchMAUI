@@ -2,6 +2,7 @@
 <Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
        xmlns:pages="clr-namespace:AetherVault.Pages"
+       xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
        x:Class="AetherVault.AppShell"
        Title="AetherVault"
        Shell.BackgroundColor="{StaticResource Surface}"
@@ -11,22 +12,50 @@
         <ShellContent
             x:Name="SearchTab"
             Title="Search"
-            Icon="icon_search.png" />
+            ContentTemplate="{DataTemplate pages:SearchPage}">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.MagnifyingGlass}"
+                                 Size="20"
+                                 Color="{StaticResource TextPrimary}" />
+            </ShellContent.Icon>
+        </ShellContent>
 
         <ShellContent
             x:Name="CollectionTab"
             Title="Collection"
-            Icon="icon_collection.png" />
+            ContentTemplate="{DataTemplate pages:CollectionPage}">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.BoxArchive}"
+                                 Size="20"
+                                 Color="{StaticResource TextPrimary}" />
+            </ShellContent.Icon>
+        </ShellContent>
 
         <ShellContent
             x:Name="StatsTab"
             Title="Stats"
-            Icon="icon_stats.png" />
+            ContentTemplate="{DataTemplate pages:StatsPage}">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.ChartColumn}"
+                                 Size="20"
+                                 Color="{StaticResource TextPrimary}" />
+            </ShellContent.Icon>
+        </ShellContent>
 
         <ShellContent
             x:Name="DecksTab"
             Title="Decks"
-            Icon="icon_decks.png" />
+            ContentTemplate="{DataTemplate pages:DecksPage}">
+            <ShellContent.Icon>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.LayerGroup}"
+                                 Size="20"
+                                 Color="{StaticResource TextPrimary}" />
+            </ShellContent.Icon>
+        </ShellContent>
     </TabBar>
 
     <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>
