@@ -11,7 +11,7 @@
 
             <!-- Database Status -->
             <Border Style="{StaticResource CardStyle}">
-                <uranium:ExpanderView>
+                <uranium:ExpanderView IsExpanded="True">
                     <uranium:ExpanderView.Header>
                         <Label Text="Database" FontSize="18" FontAttributes="Bold" />
                     </uranium:ExpanderView.Header>
@@ -44,7 +44,7 @@
 
             <!-- Collection Stats -->
             <Border Style="{StaticResource CardStyle}">
-                <uranium:ExpanderView>
+                <uranium:ExpanderView IsExpanded="True">
                     <uranium:ExpanderView.Header>
                         <Label Text="Collection" FontSize="18" FontAttributes="Bold" />
                     </uranium:ExpanderView.Header>
@@ -110,7 +110,7 @@
 
             <!-- Storage Stats -->
             <Border Style="{StaticResource CardStyle}">
-                <uranium:ExpanderView>
+                <uranium:ExpanderView IsExpanded="True">
                     <uranium:ExpanderView.Header>
                         <Label Text="Storage" FontSize="18" FontAttributes="Bold" />
                     </uranium:ExpanderView.Header>
@@ -146,7 +146,7 @@
 
             <!-- App Info -->
             <Border Style="{StaticResource CardStyle}">
-                <uranium:ExpanderView IsExpanded="False">
+                <uranium:ExpanderView IsExpanded="True">
                     <uranium:ExpanderView.Header>
                         <Label Text="App Info" FontSize="18" FontAttributes="Bold" />
                     </uranium:ExpanderView.Header>
