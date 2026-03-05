@@ -7,19 +7,19 @@
       <stop offset="100%" stop-color="#05030A" />
     </linearGradient>
 
-    <!-- Central aether glow -->
+    <!-- Central aether glow (matte, less intense) -->
     <radialGradient id="coreGlow" cx="50%" cy="40%" r="55%">
-      <stop offset="0%" stop-color="#4AF2FF" stop-opacity="0.9" />
-      <stop offset="35%" stop-color="#5C6BFF" stop-opacity="0.55" />
-      <stop offset="75%" stop-color="#9E4BFF" stop-opacity="0.35" />
+      <stop offset="0%" stop-color="#3EC5D4" stop-opacity="0.55" />
+      <stop offset="35%" stop-color="#4A5FB8" stop-opacity="0.32" />
+      <stop offset="75%" stop-color="#7B4BAF" stop-opacity="0.20" />
       <stop offset="100%" stop-color="#000000" stop-opacity="0" />
     </radialGradient>
 
-    <!-- Vault ring -->
+    <!-- Vault ring (muted brass, matte) -->
     <linearGradient id="ringGrad" x1="15%" y1="0%" x2="85%" y2="100%">
-      <stop offset="0%" stop-color="#FFE59D" />
-      <stop offset="45%" stop-color="#FFC857" />
-      <stop offset="100%" stop-color="#D28B26" />
+      <stop offset="0%" stop-color="#D8B674" />
+      <stop offset="50%" stop-color="#B8924E" />
+      <stop offset="100%" stop-color="#8A6B3B" />
     </linearGradient>
 
     <!-- Inner ring surface -->
@@ -28,24 +28,24 @@
       <stop offset="100%" stop-color="#0F131F" />
     </linearGradient>
 
-    <!-- Aether arc gradient -->
+    <!-- Aether arc gradient (more subdued) -->
     <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#4AF2FF" />
-      <stop offset="50%" stop-color="#7C6CFF" />
-      <stop offset="100%" stop-color="#FF6BD5" />
+      <stop offset="0%" stop-color="#4CB1BB" />
+      <stop offset="50%" stop-color="#6663C0" />
+      <stop offset="100%" stop-color="#C05D9D" />
     </linearGradient>
 
-    <!-- Soft outer shadow -->
+    <!-- Soft outer shadow (lighter for matte feel) -->
     <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.7" />
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.45" />
     </filter>
   </defs>
 
   <!-- Rounded-rect background (platforms will still mask, but this keeps corners soft in previews) -->
   <rect x="64" y="64" width="896" height="896" rx="240" ry="240" fill="url(#bgGrad)" />
 
-  <!-- Subtle vignette to focus toward center -->
-  <rect x="64" y="64" width="896" height="896" rx="240" ry="240" fill="#000000" opacity="0.20" />
+  <!-- Subtle vignette to focus toward center (softened) -->
+  <rect x="64" y="64" width="896" height="896" rx="240" ry="240" fill="#000000" opacity="0.14" />
 
   <!-- Aether glow behind the vault -->
   <circle cx="512" cy="480" r="360" fill="url(#coreGlow)" />
@@ -63,7 +63,7 @@
       d="M -210 0 A 210 210 0 0 1 0 -210"
       fill="none"
       stroke="url(#arcGrad)"
-      stroke-width="32"
+      stroke-width="26"
       stroke-linecap="round" />
 
     <!-- Lower-right sweeping arc -->
@@ -71,9 +71,9 @@
       d="M 0 210 A 210 210 0 0 1 210 0"
       fill="none"
       stroke="url(#arcGrad)"
-      stroke-width="22"
+      stroke-width="18"
       stroke-linecap="round"
-      opacity="0.85" />
+      opacity="0.70" />
 
     <!-- Dark core -->
     <circle cx="0" cy="0" r="88" fill="#050813" />
@@ -85,26 +85,26 @@
       r="72"
       fill="none"
       stroke="url(#arcGrad)"
-      stroke-width="10"
+      stroke-width="7"
       stroke-linecap="round"
-      stroke-dasharray="36 20"
-      opacity="0.8" />
+      stroke-dasharray="32 22"
+      opacity="0.55" />
   </g>
 
-  <!-- Highlights and shadow along the ring to keep shape readable at small sizes -->
+  <!-- Very subtle ring accents for readability at small sizes -->
   <path
-    d="M 202 512 A 310 310 0 0 1 512 202"
+    d="M 212 512 A 300 300 0 0 1 512 212"
     fill="none"
     stroke="#FFFFFF"
-    stroke-opacity="0.22"
-    stroke-width="18"
+    stroke-opacity="0.14"
+    stroke-width="14"
     stroke-linecap="round" />
 
   <path
-    d="M 822 512 A 310 310 0 0 1 512 822"
+    d="M 812 512 A 300 300 0 0 1 512 812"
     fill="none"
     stroke="#000000"
-    stroke-opacity="0.35"
-    stroke-width="24"
+    stroke-opacity="0.20"
+    stroke-width="18"
     stroke-linecap="round" />
 </svg>
