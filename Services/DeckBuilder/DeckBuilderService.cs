@@ -104,8 +104,8 @@ public class DeckBuilderService
         var card = await _cardRepository.GetCardDetailsAsync(cardUuid);
         if (card == null) return ValidationResult.Error("Card not found.");
 
-        var result = await _validator.ValidateCommanderAsync(card, format);
-        if (result.IsError) return result;
+        var commanderValidation = await _validator.ValidateCommanderAsync(card, format);
+        if (commanderValidation.IsError) return commanderValidation;
 
         // Remove old commander from "Commander" section if exists
         if (!string.IsNullOrEmpty(deck.CommanderId))
@@ -136,7 +136,13 @@ public class DeckBuilderService
 
         await _repository.UpdateDeckAsync(deck);
 
-        return result;
+        // Soft warning: after commander is set, check existing cards for color identity issues.
+        var currentCards = await _repository.GetDeckCardsAsync(deckId);
+        var colorCheck = await _validator.ValidateDeckColorIdentityAsync(deck, currentCards);
+        if (colorCheck.IsError || colorCheck.IsWarning)
+            return colorCheck;
+
+        return commanderValidation;
     }
 
     public async Task RemoveCardAsync(int deckId, string cardUuid, string section)
@@ -292,5 +298,53 @@ public class DeckBuilderService
         deck.Name = newName;
         deck.DateModified = DateTime.Now;
         await _repository.UpdateDeckAsync(deck);
+    }
+
+    /// <summary>
+    /// Runs non-blocking validation over the full deck and returns soft warnings (or success)
+    /// that can be surfaced in the UI without preventing edits.
+    /// </summary>
+    public async Task<ValidationResult> ValidateDeckAsync(int deckId)
+    {
+        var deck = await _repository.GetDeckAsync(deckId);
+        if (deck == null)
+            return ValidationResult.Error("Deck not found.");
+
+        var cards = await _repository.GetDeckCardsAsync(deckId);
+
+        var sizeResult = _validator.ValidateDeckSize(deck, cards);
+        var colorResult = await _validator.ValidateDeckColorIdentityAsync(deck, cards);
+
+        // Combine messages, preferring warnings over silent success, and errors over warnings.
+        var messages = new List<string>();
+        var level = ValidationLevel.Success;
+
+        void Apply(ValidationResult r)
+        {
+            if (r.Level == ValidationLevel.Success || string.IsNullOrWhiteSpace(r.Message))
+                return;
+
+            if (r.Level == ValidationLevel.Error)
+            {
+                level = ValidationLevel.Error;
+                messages.Add(r.Message);
+            }
+            else if (r.Level == ValidationLevel.Warning && level != ValidationLevel.Error)
+            {
+                level = ValidationLevel.Warning;
+                messages.Add(r.Message);
+            }
+        }
+
+        Apply(sizeResult);
+        Apply(colorResult);
+
+        if (level == ValidationLevel.Success)
+            return ValidationResult.Success();
+
+        var message = string.Join(" ", messages);
+        return level == ValidationLevel.Error
+            ? ValidationResult.Error(message)
+            : ValidationResult.Warning(message);
     }
 }

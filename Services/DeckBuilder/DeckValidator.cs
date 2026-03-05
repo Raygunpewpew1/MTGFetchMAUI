@@ -18,6 +18,7 @@ public class ValidationResult
 
     public bool IsSuccess => Level == ValidationLevel.Success;
     public bool IsError => Level == ValidationLevel.Error;
+    public bool IsWarning => Level == ValidationLevel.Warning;
 
     public static ValidationResult Success() => new() { Level = ValidationLevel.Success };
     public static ValidationResult Error(string message) => new() { Level = ValidationLevel.Error, Message = message };
@@ -141,7 +142,12 @@ public class DeckValidator
     {
         return format switch
         {
-            DeckFormat.Commander or DeckFormat.Brawl or DeckFormat.Oathbreaker or DeckFormat.StandardBrawl => 1,
+            DeckFormat.Commander
+            or DeckFormat.Brawl
+            or DeckFormat.Oathbreaker
+            or DeckFormat.StandardBrawl
+            or DeckFormat.PauperCommander
+            or DeckFormat.Duel => 1,
             _ => 4
         };
     }
@@ -149,5 +155,137 @@ public class DeckValidator
     private bool IsCommanderFormat(DeckFormat format)
     {
         return format is DeckFormat.Commander or DeckFormat.Brawl or DeckFormat.Oathbreaker or DeckFormat.StandardBrawl or DeckFormat.PauperCommander or DeckFormat.Duel;
+    }
+
+    /// <summary>
+    /// Validates overall deck size (main / sideboard / commander slots) for the given format.
+    /// Returns soft warnings only (no hard errors) so the UI can surface guidance without blocking edits.
+    /// </summary>
+    public ValidationResult ValidateDeckSize(DeckEntity deck, List<DeckCardEntity> currentCards)
+    {
+        var format = EnumExtensions.ParseDeckFormat(deck.Format);
+
+        int mainCount = currentCards
+            .Where(c => string.Equals(c.Section, "Main", StringComparison.OrdinalIgnoreCase))
+            .Sum(c => c.Quantity);
+
+        int sideboardCount = currentCards
+            .Where(c => string.Equals(c.Section, "Sideboard", StringComparison.OrdinalIgnoreCase))
+            .Sum(c => c.Quantity);
+
+        int commanderCount = currentCards
+            .Where(c => string.Equals(c.Section, "Commander", StringComparison.OrdinalIgnoreCase))
+            .Sum(c => c.Quantity);
+
+        var issues = new List<string>();
+        string formatName = format.ToDisplayName();
+
+        if (IsCommanderFormat(format))
+        {
+            // For Commander-like formats, total physical cards in main+commander should be close to 100.
+            int total = mainCount + commanderCount;
+            const int target = 100;
+
+            if (total != target)
+            {
+                int diff = total - target;
+                if (diff < 0)
+                {
+                    issues.Add($"{formatName} deck is {-diff} card(s) short of {target} (currently {total}/{target}).");
+                }
+                else
+                {
+                    issues.Add($"{formatName} deck has {diff} extra card(s) over {target} (currently {total}/{target}).");
+                }
+            }
+        }
+        else
+        {
+            // Non-commander formats: only enforce minimum main count and sideboard size.
+            int minMain = format switch
+            {
+                DeckFormat.Standard or DeckFormat.Modern or DeckFormat.Pioneer or DeckFormat.Legacy or DeckFormat.Vintage
+                or DeckFormat.Historic or DeckFormat.Timeless => 60,
+                _ => 0
+            };
+
+            if (minMain > 0 && mainCount < minMain)
+            {
+                issues.Add($"{formatName} deck has only {mainCount} main-deck cards (needs at least {minMain}).");
+            }
+
+            // Standard 15-card sideboard rule applied to traditional 4-of formats.
+            bool usesStandardSideboard =
+                format is DeckFormat.Standard or DeckFormat.Modern or DeckFormat.Pioneer or DeckFormat.Legacy or DeckFormat.Vintage;
+
+            if (usesStandardSideboard && sideboardCount > 15)
+            {
+                issues.Add($"Sideboard has {sideboardCount} cards (maximum is 15).");
+            }
+        }
+
+        if (issues.Count == 0)
+            return ValidationResult.Success();
+
+        return ValidationResult.Warning(string.Join(" ", issues));
+    }
+
+    /// <summary>
+    /// Validates that all cards currently in a commander-style deck obey the commander's color identity.
+    /// Returns a soft warning listing offending cards; does not block changes.
+    /// </summary>
+    public async Task<ValidationResult> ValidateDeckColorIdentityAsync(DeckEntity deck, List<DeckCardEntity> currentCards)
+    {
+        var format = EnumExtensions.ParseDeckFormat(deck.Format);
+        if (!IsCommanderFormat(format))
+            return ValidationResult.Success();
+
+        if (string.IsNullOrEmpty(deck.CommanderId))
+            return ValidationResult.Success();
+
+        ColorIdentity commanderIdentity;
+        if (!string.IsNullOrEmpty(deck.ColorIdentity))
+        {
+            commanderIdentity = ColorIdentity.FromString(deck.ColorIdentity);
+        }
+        else
+        {
+            var commander = await _cardRepository.GetCardDetailsAsync(deck.CommanderId);
+            if (commander == null)
+                return ValidationResult.Warning("Commander not found, skipping color identity check.");
+            commanderIdentity = commander.GetColorIdentity();
+        }
+
+        var offendingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entity in currentCards)
+        {
+            if (string.Equals(entity.Section, "Commander", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (entity.Quantity <= 0)
+                continue;
+
+            var card = await _cardRepository.GetCardDetailsAsync(entity.CardId);
+            if (card == null)
+                continue;
+
+            var cardIdentity = card.GetColorIdentity();
+            if (!commanderIdentity.Contains(cardIdentity))
+            {
+                offendingNames.Add(card.Name);
+            }
+        }
+
+        if (offendingNames.Count == 0)
+            return ValidationResult.Success();
+
+        string commanderColors = commanderIdentity.AsString();
+        string list = string.Join(", ", offendingNames.Take(5));
+        if (offendingNames.Count > 5)
+            list += ", ...";
+
+        string msg = $"Deck has {offendingNames.Count} card(s) outside the commander's color identity ({commanderColors}): {list}.";
+        return ValidationResult.Warning(msg);
     }
 }

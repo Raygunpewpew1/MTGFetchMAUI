@@ -70,8 +70,19 @@ public partial class DeckDetailPage : ContentPage
             else
             {
                 _viewModel.StatusIsError = false;
-                _viewModel.StatusMessage = $"{card.Name} set as commander.";
-                _toastService.Show($"{card.Name} set as commander.");
+                string message;
+                if (result.IsWarning && !string.IsNullOrWhiteSpace(result.Message))
+                {
+                    // Soft warning: commander is set, but deck has color-identity issues.
+                    message = result.Message;
+                }
+                else
+                {
+                    message = $"{card.Name} set as commander.";
+                }
+
+                _viewModel.StatusMessage = message;
+                _toastService.Show(message);
             }
         }
         else

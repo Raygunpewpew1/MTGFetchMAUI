@@ -221,6 +221,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             var mainDeckGroups = BuildGroups(main);
             var totalCardCount = cardEntities.Sum(c => c.Quantity);
             var stats = ComputeStats(cardEntities, cardMap);
+            var validation = await _deckService.ValidateDeckAsync(deckId);
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -230,7 +231,21 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
                 TotalCardCount = totalCardCount;
                 Stats = stats;
                 OnPropertyChanged(nameof(HasNoCommander));
-                StatusMessage = $"{TotalCardCount} cards";
+                StatusIsError = validation.Level == ValidationLevel.Error;
+
+                var baseMessage = $"{TotalCardCount} cards";
+                if (validation.Level == ValidationLevel.Warning && !string.IsNullOrWhiteSpace(validation.Message))
+                {
+                    StatusMessage = $"{baseMessage} • {validation.Message}";
+                }
+                else if (validation.Level == ValidationLevel.Error && !string.IsNullOrWhiteSpace(validation.Message))
+                {
+                    StatusMessage = validation.Message;
+                }
+                else
+                {
+                    StatusMessage = baseMessage;
+                }
             });
         }
         catch (Exception ex)
