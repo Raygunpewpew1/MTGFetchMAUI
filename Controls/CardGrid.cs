@@ -63,6 +63,22 @@ public class CardGrid : ContentView
         set => SetValue(IsDragEnabledProperty, value);
     }
 
+    public static readonly BindableProperty UseCompactGridProperty = BindableProperty.Create(
+        nameof(UseCompactGrid), typeof(bool), typeof(CardGrid), false,
+        propertyChanged: (bindable, oldVal, newVal) =>
+        {
+            if (bindable is CardGrid grid && grid.Width > 0 && grid.Height > 0)
+            {
+                grid.ApplySizing((float)grid.Width, (float)grid.Height);
+            }
+        });
+
+    public bool UseCompactGrid
+    {
+        get => (bool)GetValue(UseCompactGridProperty);
+        set => SetValue(UseCompactGridProperty, value);
+    }
+
     public ViewMode ViewMode
     {
         get => _lastState.Config.ViewMode;
@@ -406,26 +422,29 @@ public class CardGrid : ContentView
         base.OnSizeAllocated(width, height);
         if (width > 0 && height > 0)
         {
-            float w = (float)width;
-            float h = (float)height;
-            bool isLargeScreen = w >= 600;
-
-            UpdateState(s =>
-            {
-                var newConfig = s.Config with
-                {
-                    MinCardWidth = isLargeScreen ? 160f : 85f,
-                    LabelHeight = isLargeScreen ? 52f : 42f
-                };
-                return s with
-                {
-                    Config = newConfig,
-                    Viewport = s.Viewport with { Width = w, Height = h }
-                };
-            });
-
-            MainThread.BeginInvokeOnMainThread(() => _renderer.UpdateSizing(isLargeScreen));
+            ApplySizing((float)width, (float)height);
         }
+    }
+
+    private void ApplySizing(float w, float h)
+    {
+        bool isLargeScreen = w >= 600 && !UseCompactGrid;
+
+        UpdateState(s =>
+        {
+            var newConfig = s.Config with
+            {
+                MinCardWidth = isLargeScreen ? 160f : 85f,
+                LabelHeight = isLargeScreen ? 52f : 42f
+            };
+            return s with
+            {
+                Config = newConfig,
+                Viewport = s.Viewport with { Width = w, Height = h }
+            };
+        });
+
+        MainThread.BeginInvokeOnMainThread(() => _renderer.UpdateSizing(isLargeScreen));
     }
 
     private void OnPaintSurface(object? sender, SkiaSharp.Views.Maui.SKPaintSurfaceEventArgs e)

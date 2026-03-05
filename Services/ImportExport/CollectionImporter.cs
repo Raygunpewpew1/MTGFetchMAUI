@@ -99,8 +99,12 @@ public class CollectionImporter
         {
             lineNumber++;
 
-            if (lineNumber % 100 == 0)
-                onProgress?.Invoke($"Parsing row {lineNumber}...", lineNumber);
+            if (lineNumber % 50 == 0)
+            {
+                onProgress?.Invoke(
+                    $"Importing row {lineNumber}... ({result.SuccessCount} unique cards / {result.TotalCards} total copies found so far)",
+                    lineNumber);
+            }
 
             string? scryfallId = scryfallIdx != -1 ? csv.GetField(scryfallIdx)?.Trim() : null;
             string? name = nameIdx != -1 ? csv.GetField(nameIdx)?.Trim() : null;
@@ -274,13 +278,17 @@ public class CollectionImporter
             }
         }
 
-        onProgress?.Invoke("Saving to database...", 0);
+        onProgress?.Invoke("Saving imported cards to your collection...", 0);
 
         // Add all cards using the bulk method
         if (cardsToAdd.Count > 0)
         {
             await _cardManager.AddCardsToCollectionBulkAsync(cardsToAdd);
         }
+
+        onProgress?.Invoke(
+            $"Import complete. Added {result.SuccessCount} unique cards ({result.TotalCards} total copies) to your collection.",
+            result.TotalCards);
 
         return result;
     }

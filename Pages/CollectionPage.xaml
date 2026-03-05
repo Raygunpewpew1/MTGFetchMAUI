@@ -141,7 +141,8 @@
         <!-- Card Grid -->
         <controls:CardGrid Grid.Row="2"
                            x:Name="CollectionGrid"
-                           Scrolled="OnCollectionScrolled" />
+                           Scrolled="OnCollectionScrolled"
+                           UseCompactGrid="True" />
 
         <!-- Empty State -->
         <VerticalStackLayout Grid.Row="2"
