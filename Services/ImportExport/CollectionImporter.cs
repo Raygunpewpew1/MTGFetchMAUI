@@ -30,6 +30,13 @@ public class CollectionImporter
         var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
         var seenUuids = new Dictionary<string, int>(); // uuid → index in cardsToAdd, to deduplicate
 
+        // Caches to avoid repeating identical database lookups across many CSV rows
+        var scryfallCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
+        var setNumberCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
+        var nameSetCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
+        var nameExactCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
+        var namePartialCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
+
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = true,
@@ -179,72 +186,110 @@ public class CollectionImporter
             // Strategy 1: Scryfall ID (exact)
             if (!string.IsNullOrWhiteSpace(scryfallId))
             {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards().WhereScryfallId(scryfallId).Limit(1);
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                if (matches.Length > 0) card = matches[0];
+                var cacheKey = scryfallId.Trim();
+                if (!scryfallCache.TryGetValue(cacheKey, out card))
+                {
+                    var helper = _cardRepo.CreateSearchHelper();
+                    helper.SearchCards().WhereScryfallId(cacheKey).Limit(1);
+                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                    if (matches.Length > 0)
+                    {
+                        card = matches[0];
+                        scryfallCache[cacheKey] = card;
+                    }
+                }
             }
 
             // Strategy 2: Set Code + Collector Number (exact)
             if (card == null && !string.IsNullOrWhiteSpace(set) && !string.IsNullOrWhiteSpace(number))
             {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards()
-                      .WhereSet(set)
-                      .WhereNumber(number)
-                      .Limit(1);
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                if (matches.Length > 0) card = matches[0];
+                var cacheKey = $"{set.Trim()}|{number.Trim()}";
+                if (!setNumberCache.TryGetValue(cacheKey, out card))
+                {
+                    var helper = _cardRepo.CreateSearchHelper();
+                    helper.SearchCards()
+                          .WhereSet(set)
+                          .WhereNumber(number)
+                          .Limit(1);
+                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                    if (matches.Length > 0)
+                    {
+                        card = matches[0];
+                        setNumberCache[cacheKey] = card;
+                    }
+                }
             }
 
             // Strategy 3: Name + Set (exact name, primary face)
             if (card == null && !string.IsNullOrWhiteSpace(set) && !string.IsNullOrWhiteSpace(name))
             {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards()
-                      .WhereNameEquals(name)
-                      .WherePrimarySideOnly()
-                      .Limit(100);
+                var cacheKey = $"{name.Trim()}|{set.Trim()}";
+                if (!nameSetCache.TryGetValue(cacheKey, out card))
+                {
+                    var helper = _cardRepo.CreateSearchHelper();
+                    helper.SearchCards()
+                          .WhereNameEquals(name)
+                          .WherePrimarySideOnly()
+                          .Limit(100);
 
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                card = matches.FirstOrDefault(c =>
-                    c.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
-                    (c.SetName != null && c.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)));
+                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                    card = matches.FirstOrDefault(c =>
+                        c.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
+                        (c.SetName != null && c.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)));
 
-                // If no exact set match, pick the first exact name match found in any set
-                if (card == null && matches.Length > 0)
-                    card = matches.First();
+                    // If no exact set match, pick the first exact name match found in any set
+                    if (card == null && matches.Length > 0)
+                        card = matches.First();
+
+                    if (card != null)
+                        nameSetCache[cacheKey] = card;
+                }
             }
 
             // Strategy 4: Name only fallback (exact name)
             if (card == null && !string.IsNullOrWhiteSpace(name))
             {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards()
-                      .WhereNameEquals(name)
-                      .WherePrimarySideOnly()
-                      .Limit(1);
+                var cacheKey = name.Trim();
+                if (!nameExactCache.TryGetValue(cacheKey, out card))
+                {
+                    var helper = _cardRepo.CreateSearchHelper();
+                    helper.SearchCards()
+                          .WhereNameEquals(name)
+                          .WherePrimarySideOnly()
+                          .Limit(1);
 
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                if (matches.Length > 0) card = matches[0];
+                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                    if (matches.Length > 0)
+                    {
+                        card = matches[0];
+                        nameExactCache[cacheKey] = card;
+                    }
+                }
             }
 
             // Strategy 5: Name partial fallback (contains, careful with this)
             if (card == null && !string.IsNullOrWhiteSpace(name))
             {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards()
-                      .WhereNameContains(name)
-                      .WherePrimarySideOnly()
-                      .Limit(50); // Get a bunch to try and find an exact match programmatically
-
-                var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                card = candidates.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-
-                if (card == null && candidates.Length > 0)
+                var cacheKey = name.Trim();
+                if (!namePartialCache.TryGetValue(cacheKey, out card))
                 {
-                    // As an absolute last resort, just take the first candidate
-                    card = candidates.First();
+                    var helper = _cardRepo.CreateSearchHelper();
+                    helper.SearchCards()
+                          .WhereNameContains(name)
+                          .WherePrimarySideOnly()
+                          .Limit(50); // Get a bunch to try and find an exact match programmatically
+
+                    var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                    card = candidates.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+                    if (card == null && candidates.Length > 0)
+                    {
+                        // As an absolute last resort, just take the first candidate
+                        card = candidates.First();
+                    }
+
+                    if (card != null)
+                        namePartialCache[cacheKey] = card;
                 }
             }
 
