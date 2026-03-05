@@ -13,31 +13,36 @@
 
     <Grid RowDefinitions="Auto,140,Auto,*,Auto">
 
-        <!-- Row 0: Deck Name + Card Count badge -->
-        <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
-            <VerticalStackLayout>
-                <Label Text="{Binding Deck.Name}"
-                       FontSize="17"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
-                       LineBreakMode="TailTruncation" />
-                <Label Text="{Binding DeckFormat}"
-                       FontSize="12"
-                       TextColor="{StaticResource TextSecondary}" />
-            </VerticalStackLayout>
+        <!-- Row 0: Deck header card -->
+        <Border Grid.Row="0"
+                Style="{StaticResource CardStyle}"
+                Margin="8,8,8,4">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding Deck.Name}"
+                           FontSize="17"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}"
+                           LineBreakMode="TailTruncation" />
+                    <Label Text="{Binding DeckFormat}"
+                           FontSize="12"
+                           TextColor="{StaticResource TextSecondary}" />
+                </VerticalStackLayout>
 
-            <Border Grid.Column="1"
-                    BackgroundColor="{StaticResource Accent}"
-                    Padding="10,5"
-                    StrokeShape="RoundRectangle 14"
-                    Stroke="Transparent"
-                    VerticalOptions="Center">
-                <Label Text="{Binding TotalCardCount}"
-                       TextColor="Black"
-                       FontSize="14"
-                       FontAttributes="Bold" />
-            </Border>
-        </Grid>
+                <Border Grid.Column="1"
+                        BackgroundColor="{StaticResource Accent}"
+                        Padding="10,5"
+                        StrokeShape="RoundRectangle 14"
+                        Stroke="Transparent"
+                        VerticalOptions="Center">
+                    <Label Text="{Binding TotalCardCount}"
+                           TextColor="Black"
+                           FontSize="14"
+                           FontAttributes="Bold" />
+                </Border>
+            </Grid>
+        </Border>
 
         <!-- Row 1: Commander Art Header (gradient placeholder, shows commander name) -->
         <skia:SKCanvasView Grid.Row="1"

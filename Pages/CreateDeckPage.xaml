@@ -17,58 +17,60 @@
 
         <!-- Form -->
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="16">
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="16">
 
-                <!-- Deck Name -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Deck Name"
-                           FontSize="12"
-                           TextColor="{StaticResource TextSecondary}" />
-                    <Entry x:Name="NameEntry"
-                           Placeholder="My Deck"
-                           MaxLength="64"
-                           BackgroundColor="{StaticResource Surface}"
-                           TextColor="{StaticResource TextPrimary}"
-                           PlaceholderColor="{StaticResource TextSecondary}"
-                           HeightRequest="44"
-                           FontSize="15" />
+                    <!-- Deck Name -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Deck Name"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Entry x:Name="NameEntry"
+                               Placeholder="My Deck"
+                               MaxLength="64"
+                               BackgroundColor="{StaticResource Surface}"
+                               TextColor="{StaticResource TextPrimary}"
+                               PlaceholderColor="{StaticResource TextSecondary}"
+                               HeightRequest="44"
+                               FontSize="15" />
+                    </VerticalStackLayout>
+
+                    <!-- Format -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Format"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Picker x:Name="FormatPicker"
+                                BackgroundColor="{StaticResource Surface}"
+                                TextColor="{StaticResource TextPrimary}"
+                                HeightRequest="44"
+                                FontSize="15" />
+                    </VerticalStackLayout>
+
+                    <!-- Description -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Description (optional)"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}" />
+                        <Editor x:Name="DescriptionEntry"
+                                Placeholder="Describe your deck..."
+                                MaxLength="256"
+                                BackgroundColor="{StaticResource Surface}"
+                                TextColor="{StaticResource TextPrimary}"
+                                PlaceholderColor="{StaticResource TextSecondary}"
+                                HeightRequest="90"
+                                FontSize="14" />
+                    </VerticalStackLayout>
+
+                    <!-- Error label -->
+                    <Label x:Name="ErrorLabel"
+                           IsVisible="False"
+                           TextColor="#F44336"
+                           FontSize="13"
+                           HorizontalOptions="Center" />
+
                 </VerticalStackLayout>
-
-                <!-- Format -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Format"
-                           FontSize="12"
-                           TextColor="{StaticResource TextSecondary}" />
-                    <Picker x:Name="FormatPicker"
-                            BackgroundColor="{StaticResource Surface}"
-                            TextColor="{StaticResource TextPrimary}"
-                            HeightRequest="44"
-                            FontSize="15" />
-                </VerticalStackLayout>
-
-                <!-- Description -->
-                <VerticalStackLayout Spacing="4">
-                    <Label Text="Description (optional)"
-                           FontSize="12"
-                           TextColor="{StaticResource TextSecondary}" />
-                    <Editor x:Name="DescriptionEntry"
-                            Placeholder="Describe your deck..."
-                            MaxLength="256"
-                            BackgroundColor="{StaticResource Surface}"
-                            TextColor="{StaticResource TextPrimary}"
-                            PlaceholderColor="{StaticResource TextSecondary}"
-                            HeightRequest="90"
-                            FontSize="14" />
-                </VerticalStackLayout>
-
-                <!-- Error label -->
-                <Label x:Name="ErrorLabel"
-                       IsVisible="False"
-                       TextColor="#F44336"
-                       FontSize="13"
-                       HorizontalOptions="Center" />
-
-            </VerticalStackLayout>
+            </Border>
         </ScrollView>
 
         <!-- Buttons -->

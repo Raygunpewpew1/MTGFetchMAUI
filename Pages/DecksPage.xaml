@@ -19,40 +19,47 @@
     <Grid RowDefinitions="Auto,*">
 
         <!-- Header -->
-        <Grid Grid.Row="0" Padding="12,8" ColumnDefinitions="*,Auto">
-            <VerticalStackLayout>
-                <Label Text="My Decks"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}" />
-                <Label Text="{Binding StatusDisplayText}"
-                       FontSize="12"
-                       TextColor="{Binding StatusTextColor}" />
-            </VerticalStackLayout>
+        <Border Grid.Row="0"
+                Style="{StaticResource CardStyle}"
+                Margin="8,8,8,4">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12">
+                <VerticalStackLayout>
+                    <Label Text="My Decks"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+                    <Label Text="{Binding StatusDisplayText}"
+                           FontSize="12"
+                           TextColor="{Binding StatusTextColor}" />
+                </VerticalStackLayout>
 
-            <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-                <ActivityIndicator IsRunning="{Binding IsBusy}"
-                                   IsVisible="{Binding IsBusy}"
-                                   HeightRequest="20"
-                                   WidthRequest="20"
-                                   Color="{StaticResource Accent}" />
-                <Button Text="New"
-                        Clicked="OnNewDeckClicked"
-                        BackgroundColor="{StaticResource Accent}"
-                        TextColor="Black"
-                        FontAttributes="Bold"
-                        HeightRequest="36"
-                        Padding="12,0"
-                        FontSize="13">
-                    <Button.ImageSource>
-                        <FontImageSource FontFamily="FASolid"
-                                         Glyph="{x:Static fa:Solid.Plus}"
-                                         Size="13"
-                                         Color="Black" />
-                    </Button.ImageSource>
-                </Button>
-            </HorizontalStackLayout>
-        </Grid>
+                <HorizontalStackLayout Grid.Column="1"
+                                       Spacing="8"
+                                       VerticalOptions="Center">
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       HeightRequest="20"
+                                       WidthRequest="20"
+                                       Color="{StaticResource Accent}" />
+                    <Button Text="New"
+                            Clicked="OnNewDeckClicked"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="Black"
+                            FontAttributes="Bold"
+                            HeightRequest="36"
+                            Padding="12,0"
+                            FontSize="13">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Plus}"
+                                             Size="13"
+                                             Color="Black" />
+                        </Button.ImageSource>
+                    </Button>
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
 
         <!-- Content area -->
         <Grid Grid.Row="1">
