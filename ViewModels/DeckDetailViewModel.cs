@@ -36,6 +36,8 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     private readonly ICardRepository _cardRepository = cardRepository;
     private int _deckId;
 
+    private LastAddedInfo? _lastAdded;
+
     [ObservableProperty]
     public partial DeckEntity? Deck { get; set; }
 
@@ -98,6 +100,12 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
 
     public bool HasNoCommander => CommanderCards.Count == 0;
 
+    [ObservableProperty]
+    public partial string LastAddedSummaryText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool HasLastAdded { get; set; }
+
     [RelayCommand]
     private void SelectCommander() => SelectedSectionIndex = 0;
 
@@ -109,6 +117,49 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
 
     [RelayCommand]
     private void SelectStats() => SelectedSectionIndex = 3;
+
+    public void RegisterLastAdded(string cardId, string cardName, string section, int quantity)
+    {
+        _lastAdded = new LastAddedInfo(cardId, section, quantity, cardName);
+        LastAddedSummaryText = $"{quantity}× {cardName} added to {section}.";
+        HasLastAdded = true;
+    }
+
+    [RelayCommand]
+    private async Task UndoLastAddedAsync()
+    {
+        if (Deck == null || _lastAdded is null) return;
+
+        try
+        {
+            var cards = await _deckService.GetDeckCardsAsync(Deck.Id);
+            var existing = cards.FirstOrDefault(c => c.CardId == _lastAdded.CardId && c.Section == _lastAdded.Section);
+            if (existing == null) return;
+
+            int newQty = existing.Quantity - _lastAdded.Quantity;
+            if (newQty < 0) newQty = 0;
+
+            var result = await _deckService.UpdateQuantityAsync(Deck.Id, _lastAdded.CardId, newQty, _lastAdded.Section);
+            if (result.IsSuccess)
+            {
+                StatusIsError = false;
+                StatusMessage = $"Undid last add: removed {_lastAdded.Quantity}× {_lastAdded.CardName} from {_lastAdded.Section}.";
+                HasLastAdded = false;
+                _lastAdded = null;
+                await ReloadAsync(preserveState: true);
+            }
+            else
+            {
+                StatusIsError = true;
+                StatusMessage = result.Message ?? "Could not undo last add.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusIsError = true;
+            StatusMessage = $"Could not undo last add: {ex.Message}";
+        }
+    }
 
     public async Task ReloadAsync(bool preserveState = false) => await LoadAsync(_deckId, preserveState);
 
@@ -240,6 +291,37 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         await ReloadAsync(preserveState: true);
     }
 
+    [RelayCommand]
+    private async Task SuggestLandsAsync()
+    {
+        if (Deck == null) return;
+
+        StatusIsError = false;
+        StatusMessage = "Suggesting lands...";
+
+        try
+        {
+            int added = await _deckService.AutoSuggestLandsAsync(Deck.Id);
+            if (added > 0)
+            {
+                StatusIsError = false;
+                StatusMessage = $"Added {added} basic lands to Main.";
+            }
+            else
+            {
+                StatusIsError = false;
+                StatusMessage = "No lands were added (deck may already have enough lands).";
+            }
+
+            await ReloadAsync(preserveState: true);
+        }
+        catch (Exception ex)
+        {
+            StatusIsError = true;
+            StatusMessage = $"Auto-suggest failed: {ex.Message}";
+        }
+    }
+
     private static ObservableCollection<DeckCardGroup> BuildGroups(List<DeckCardDisplayItem> items)
     {
         string[] order = ["Creatures", "Instants", "Sorceries", "Artifacts", "Enchantments", "Planeswalkers", "Lands", "Other"];
@@ -307,4 +389,6 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         stats.AvgCMC = cmcCount > 0 ? Math.Round(totalCmc / cmcCount, 2) : 0;
         return stats;
     }
+
+    private sealed record LastAddedInfo(string CardId, string Section, int Quantity, string CardName);
 }
