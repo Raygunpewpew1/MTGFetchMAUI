@@ -23,6 +23,9 @@ public partial class SearchViewModel : BaseViewModel
     private CardGrid? _grid;
 
     [ObservableProperty]
+    private string filtersSummaryText = "";
+
+    [ObservableProperty]
     public partial string SearchText { get; set; } = "";
 
     [ObservableProperty]
@@ -42,6 +45,17 @@ public partial class SearchViewModel : BaseViewModel
         {
             int count = CurrentOptions.ActiveFilterCount;
             return count > 0 ? $"Filters ({count})" : "Filters";
+        }
+    }
+
+    public bool HasNonTextFilters
+    {
+        get
+        {
+            var count = CurrentOptions.ActiveFilterCount;
+            if (!string.IsNullOrWhiteSpace(CurrentOptions.NameFilter))
+                count--;
+            return count > 0;
         }
     }
 
@@ -127,7 +141,7 @@ public partial class SearchViewModel : BaseViewModel
         IsEmpty = false;
         StatusIsError = false;
         StatusMessage = "";
-        OnPropertyChanged(nameof(FiltersButtonText));
+        UpdateFilterState();
         SearchCompleted?.Invoke();
     }
 
@@ -170,7 +184,7 @@ public partial class SearchViewModel : BaseViewModel
         {
             CurrentOptions.NameFilter = SearchText;
         }
-        OnPropertyChanged(nameof(FiltersButtonText));
+        UpdateFilterState();
 
         _currentPage = 1;
 
@@ -390,5 +404,68 @@ public partial class SearchViewModel : BaseViewModel
 
         if (options.IncludeAllFaces)
             helper.IncludeAllFaces();
+    }
+
+    private void UpdateFilterState()
+    {
+        FiltersSummaryText = BuildFiltersSummary(CurrentOptions);
+        OnPropertyChanged(nameof(FiltersButtonText));
+        OnPropertyChanged(nameof(HasNonTextFilters));
+    }
+
+    private static string BuildFiltersSummary(SearchOptions options)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(options.TextFilter))
+            parts.Add($"Text: \"{options.TextFilter}\"");
+
+        if (!string.IsNullOrWhiteSpace(options.TypeFilter) &&
+            !options.TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Type: {options.TypeFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.SubtypeFilter))
+            parts.Add($"Subtype: {options.SubtypeFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.SupertypeFilter))
+            parts.Add($"Supertype: {options.SupertypeFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.ColorFilter))
+            parts.Add($"Colors: {options.ColorFilter.Replace(",", "").Replace(" ", "")}");
+
+        if (options.RarityFilter.Count > 0)
+            parts.Add($"Rarity: {string.Join("/", options.RarityFilter)}");
+
+        if (options.UseCMCRange)
+            parts.Add($"CMC: {options.CMCMin}-{options.CMCMax}");
+        else if (options.UseCMCExact)
+            parts.Add($"CMC: {options.CMCExact}");
+
+        if (!string.IsNullOrWhiteSpace(options.PowerFilter))
+            parts.Add($"Power: {options.PowerFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.ToughnessFilter))
+            parts.Add($"Toughness: {options.ToughnessFilter}");
+
+        if (options.UseLegalFormat)
+            parts.Add($"Format: {options.LegalFormat}");
+
+        if (!string.IsNullOrWhiteSpace(options.SetFilter))
+            parts.Add($"Set: {options.SetFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.ArtistFilter))
+            parts.Add($"Artist: {options.ArtistFilter}");
+
+        if (options.NoVariations)
+            parts.Add("No variations");
+
+        if (options.IncludeTokens)
+            parts.Add("Include tokens");
+
+        if (parts.Count == 0)
+            return string.Empty;
+
+        var summary = string.Join(" • ", parts);
+        return summary.Length <= 120 ? summary : summary[..120] + "…";
     }
 }

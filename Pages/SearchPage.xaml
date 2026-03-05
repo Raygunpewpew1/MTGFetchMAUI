@@ -15,13 +15,13 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Search + Status Card -->
         <Border Grid.Row="0"
                 Style="{StaticResource CardStyle}"
                 Margin="8,8,8,4">
-            <Grid RowDefinitions="Auto,Auto"
+            <Grid RowDefinitions="Auto,Auto,Auto"
                   ColumnDefinitions="*,Auto,Auto"
                   ColumnSpacing="8">
 
@@ -92,17 +92,48 @@
                                    WidthRequest="20"
                                    Color="{StaticResource Primary}" />
 
+                <!-- Active Filters Summary -->
+                <Label Grid.Row="2"
+                       Grid.ColumnSpan="3"
+                       Text="{Binding FiltersSummaryText}"
+                       IsVisible="{Binding HasNonTextFilters}"
+                       FontSize="11"
+                       TextColor="{StaticResource TextSecondary}"
+                       Margin="0,4,0,0"
+                       LineBreakMode="TailTruncation" />
+
+            </Grid>
+        </Border>
+
+        <!-- Active filters summary -->
+        <Border Grid.Row="1"
+                Margin="8,0,8,4"
+                Style="{StaticResource CardStyle}"
+                IsVisible="{Binding HasNonTextFilters}">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8">
+                <Label Text="{Binding FiltersSummaryText}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center"
+                       LineBreakMode="TailTruncation" />
+                <Button Grid.Column="1"
+                        Text="Clear filters"
+                        Command="{Binding ClearCommand}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        Padding="12,4"
+                        FontSize="12" />
             </Grid>
         </Border>
 
         <!-- Card Grid -->
-        <controls:CardGrid Grid.Row="1"
+        <controls:CardGrid Grid.Row="2"
                            x:Name="CardGrid"
                            Scrolled="OnGridScrolled"
                            IsDragEnabled="False" />
 
         <!-- Empty State -->
-        <VerticalStackLayout Grid.Row="1"
+        <VerticalStackLayout Grid.Row="2"
                              IsVisible="{Binding IsEmpty}"
                              VerticalOptions="Center"
                              HorizontalOptions="Center"
