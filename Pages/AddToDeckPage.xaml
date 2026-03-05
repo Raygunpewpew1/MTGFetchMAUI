@@ -139,6 +139,36 @@
                             BackgroundColor="{StaticResource Accent}"
                             TextColor="Black" />
                 </Grid>
+
+                <!-- Quick-add presets -->
+                <HorizontalStackLayout Spacing="8"
+                                       HorizontalOptions="Center"
+                                       Margin="0,8,0,0">
+                    <Button Text="+1"
+                            Clicked="OnQuickAddOneClicked"
+                            HeightRequest="32"
+                            FontSize="13"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}"
+                            CornerRadius="16"
+                            Padding="12,0" />
+                    <Button Text="+2"
+                            Clicked="OnQuickAddTwoClicked"
+                            HeightRequest="32"
+                            FontSize="13"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}"
+                            CornerRadius="16"
+                            Padding="12,0" />
+                    <Button Text="+4"
+                            Clicked="OnQuickAddFourClicked"
+                            HeightRequest="32"
+                            FontSize="13"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}"
+                            CornerRadius="16"
+                            Padding="12,0" />
+                </HorizontalStackLayout>
             </VerticalStackLayout>
 
             <!-- Actions -->

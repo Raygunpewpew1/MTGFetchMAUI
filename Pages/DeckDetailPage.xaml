@@ -86,6 +86,30 @@
         <!-- Row 3: Content Panels + FAB overlay -->
         <Grid Grid.Row="3">
 
+            <!-- Last-added history chip -->
+            <Border BackgroundColor="{StaticResource Surface}"
+                    StrokeShape="RoundRectangle 18"
+                    Padding="10,6"
+                    Margin="12,8"
+                    HorizontalOptions="Start"
+                    VerticalOptions="Start"
+                    IsVisible="{Binding HasLastAdded}">
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <Label Text="{Binding LastAddedSummaryText}"
+                           FontSize="11"
+                           TextColor="{StaticResource TextSecondary}"
+                           VerticalOptions="Center" />
+                    <Button Text="Undo"
+                            Command="{Binding UndoLastAddedCommand}"
+                            FontSize="11"
+                            HeightRequest="26"
+                            Padding="10,0"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="Black"
+                            CornerRadius="13" />
+                </HorizontalStackLayout>
+            </Border>
+
             <!-- Commander Tab -->
             <ScrollView IsVisible="{Binding IsCommanderTab}" Padding="16,8">
                 <VerticalStackLayout Spacing="12">
@@ -386,6 +410,17 @@
                             </Border>
                         </Grid>
                     </VerticalStackLayout>
+
+                    <!-- Bulk land helper -->
+                    <Button Text="Auto-suggest lands"
+                            Command="{Binding SuggestLandsCommand}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="Black"
+                            FontSize="13"
+                            HeightRequest="40"
+                            CornerRadius="20"
+                            HorizontalOptions="Center"
+                            Margin="0,8,0,0" />
 
                     <!-- Status message -->
                     <Label Text="{Binding StatusDisplayText}"

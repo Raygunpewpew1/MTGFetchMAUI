@@ -109,6 +109,7 @@ public partial class DeckDetailPage : ContentPage
                 _viewModel.StatusIsError = false;
                 _viewModel.StatusMessage = $"{addResult.Quantity}× {card.Name} added to {addResult.Section}.";
                 _toastService.Show($"{addResult.Quantity}× {card.Name} added to {addResult.Section}.");
+                _viewModel.RegisterLastAdded(card.UUID, card.Name, addResult.Section, addResult.Quantity);
             }
         }
 
