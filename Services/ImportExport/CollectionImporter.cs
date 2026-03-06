@@ -24,18 +24,27 @@ public class CollectionImporter
         _cardRepo = cardRepo;
     }
 
+    private sealed record ImportCandidate(string UUID, string SetCode, string? SetName);
+
+    private sealed class ImportLookupIndex
+    {
+        public Dictionary<string, string> ByScryfallId { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> BySetNumber { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, List<ImportCandidate>> ByName { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<ImportResult> ImportCsvAsync(Stream csvStream, Action<string, int>? onProgress = null)
     {
         var result = new ImportResult();
         var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
         var seenUuids = new Dictionary<string, int>(); // uuid → index in cardsToAdd, to deduplicate
 
-        // Caches to avoid repeating identical database lookups across many CSV rows
-        var scryfallCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
-        var setNumberCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
-        var nameSetCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
-        var nameExactCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
-        var namePartialCache = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
+        // Fallback caches store both hits and misses (null) to avoid repeated misses.
+        var scryfallFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var setNumberFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var nameSetFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var nameExactFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var namePartialFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -101,12 +110,16 @@ public class CollectionImporter
             return result;
         }
 
+        onProgress?.Invoke("Preparing card lookup index...", 0);
+        var lookupRows = await _cardRepo.GetImportLookupRowsAsync();
+        var lookupIndex = BuildLookupIndex(lookupRows);
+
         int lineNumber = 1;
         while (await csv.ReadAsync())
         {
             lineNumber++;
 
-            if (lineNumber % 50 == 0)
+            if (lineNumber % 250 == 0)
             {
                 onProgress?.Invoke(
                     $"Importing row {lineNumber}... ({result.SuccessCount} unique cards / {result.TotalCards} total copies found so far)",
@@ -181,120 +194,22 @@ public class CollectionImporter
                 }
             }
 
-            Card? card = null;
-
-            // Strategy 1: Scryfall ID (exact)
-            if (!string.IsNullOrWhiteSpace(scryfallId))
+            var resolvedUuid = ResolveFromLookup(lookupIndex, scryfallId, set, number, name);
+            if (string.IsNullOrEmpty(resolvedUuid))
             {
-                var cacheKey = scryfallId.Trim();
-                if (!scryfallCache.TryGetValue(cacheKey, out card))
-                {
-                    var helper = _cardRepo.CreateSearchHelper();
-                    helper.SearchCards().WhereScryfallId(cacheKey).Limit(1);
-                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                    if (matches.Length > 0)
-                    {
-                        card = matches[0];
-                        scryfallCache[cacheKey] = card;
-                    }
-                }
+                resolvedUuid = await ResolveFromFallbackAsync(
+                    scryfallId,
+                    set,
+                    number,
+                    name,
+                    scryfallFallbackCache,
+                    setNumberFallbackCache,
+                    nameSetFallbackCache,
+                    nameExactFallbackCache,
+                    namePartialFallbackCache);
             }
 
-            // Strategy 2: Set Code + Collector Number (exact)
-            if (card == null && !string.IsNullOrWhiteSpace(set) && !string.IsNullOrWhiteSpace(number))
-            {
-                var cacheKey = $"{set.Trim()}|{number.Trim()}";
-                if (!setNumberCache.TryGetValue(cacheKey, out card))
-                {
-                    var helper = _cardRepo.CreateSearchHelper();
-                    helper.SearchCards()
-                          .WhereSet(set)
-                          .WhereNumber(number)
-                          .Limit(1);
-                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                    if (matches.Length > 0)
-                    {
-                        card = matches[0];
-                        setNumberCache[cacheKey] = card;
-                    }
-                }
-            }
-
-            // Strategy 3: Name + Set (exact name, primary face)
-            if (card == null && !string.IsNullOrWhiteSpace(set) && !string.IsNullOrWhiteSpace(name))
-            {
-                var cacheKey = $"{name.Trim()}|{set.Trim()}";
-                if (!nameSetCache.TryGetValue(cacheKey, out card))
-                {
-                    var helper = _cardRepo.CreateSearchHelper();
-                    helper.SearchCards()
-                          .WhereNameEquals(name)
-                          .WherePrimarySideOnly()
-                          .Limit(100);
-
-                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                    card = matches.FirstOrDefault(c =>
-                        c.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
-                        (c.SetName != null && c.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)));
-
-                    // If no exact set match, pick the first exact name match found in any set
-                    if (card == null && matches.Length > 0)
-                        card = matches.First();
-
-                    if (card != null)
-                        nameSetCache[cacheKey] = card;
-                }
-            }
-
-            // Strategy 4: Name only fallback (exact name)
-            if (card == null && !string.IsNullOrWhiteSpace(name))
-            {
-                var cacheKey = name.Trim();
-                if (!nameExactCache.TryGetValue(cacheKey, out card))
-                {
-                    var helper = _cardRepo.CreateSearchHelper();
-                    helper.SearchCards()
-                          .WhereNameEquals(name)
-                          .WherePrimarySideOnly()
-                          .Limit(1);
-
-                    var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                    if (matches.Length > 0)
-                    {
-                        card = matches[0];
-                        nameExactCache[cacheKey] = card;
-                    }
-                }
-            }
-
-            // Strategy 5: Name partial fallback (contains, careful with this)
-            if (card == null && !string.IsNullOrWhiteSpace(name))
-            {
-                var cacheKey = name.Trim();
-                if (!namePartialCache.TryGetValue(cacheKey, out card))
-                {
-                    var helper = _cardRepo.CreateSearchHelper();
-                    helper.SearchCards()
-                          .WhereNameContains(name)
-                          .WherePrimarySideOnly()
-                          .Limit(50); // Get a bunch to try and find an exact match programmatically
-
-                    var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                    card = candidates.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-
-                    if (card == null && candidates.Length > 0)
-                    {
-                        // As an absolute last resort, just take the first candidate
-                        card = candidates.First();
-                    }
-
-                    if (card != null)
-                        namePartialCache[cacheKey] = card;
-                }
-            }
-
-
-            if (card != null && !string.IsNullOrEmpty(card.UUID))
+            if (!string.IsNullOrEmpty(resolvedUuid))
             {
                 // The collection schema has card_uuid as PRIMARY KEY, so only one entry per UUID.
                 // When Decked Builder provides separate foil and non-foil quantities, combine them.
@@ -302,7 +217,7 @@ public class CollectionImporter
                 bool cardIsFoil = foilQuantity > 0 ? true : isFoil;
                 bool cardIsEtched = isEtched;
 
-                if (seenUuids.TryGetValue(card.UUID, out int existingIdx))
+                if (seenUuids.TryGetValue(resolvedUuid, out int existingIdx))
                 {
                     // UUID already queued — accumulate quantity
                     var existing = cardsToAdd[existingIdx];
@@ -311,15 +226,16 @@ public class CollectionImporter
                 }
                 else
                 {
-                    seenUuids[card.UUID] = cardsToAdd.Count;
-                    cardsToAdd.Add((card.UUID, totalQty, cardIsFoil, cardIsEtched));
+                    seenUuids[resolvedUuid] = cardsToAdd.Count;
+                    cardsToAdd.Add((resolvedUuid, totalQty, cardIsFoil, cardIsEtched));
                     result.SuccessCount++;
                     result.TotalCards += totalQty;
                 }
             }
             else
             {
-                result.Errors.Add($"Line {lineNumber}: Could not find card '{name}'" + (string.IsNullOrEmpty(set) ? "" : $" in set '{set}'"));
+                var displayName = string.IsNullOrWhiteSpace(name) ? scryfallId ?? "(unknown)" : name;
+                result.Errors.Add($"Line {lineNumber}: Could not find card '{displayName}'" + (string.IsNullOrEmpty(set) ? "" : $" in set '{set}'"));
             }
         }
 
@@ -336,5 +252,258 @@ public class CollectionImporter
             result.TotalCards);
 
         return result;
+    }
+
+    private static ImportLookupIndex BuildLookupIndex(IReadOnlyList<ImportLookupRow> rows)
+    {
+        var index = new ImportLookupIndex();
+
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.UUID))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(row.ScryfallId))
+            {
+                index.ByScryfallId.TryAdd(NormalizeKey(row.ScryfallId), row.UUID);
+            }
+
+            if (!string.IsNullOrWhiteSpace(row.Number))
+            {
+                var setCodeKey = BuildSetNumberKey(row.SetCode, row.Number);
+                if (!string.IsNullOrEmpty(setCodeKey))
+                {
+                    index.BySetNumber.TryAdd(setCodeKey, row.UUID);
+                }
+
+                var setNameKey = BuildSetNumberKey(row.SetName, row.Number);
+                if (!string.IsNullOrEmpty(setNameKey))
+                {
+                    index.BySetNumber.TryAdd(setNameKey, row.UUID);
+                }
+            }
+
+            var candidate = new ImportCandidate(row.UUID, row.SetCode, row.SetName);
+            AddNameCandidate(index.ByName, row.Name, candidate);
+            AddNameCandidate(index.ByName, row.FaceName, candidate);
+        }
+
+        return index;
+    }
+
+    private static void AddNameCandidate(
+        Dictionary<string, List<ImportCandidate>> byName,
+        string? name,
+        ImportCandidate candidate)
+    {
+        var normalized = NormalizeKey(name);
+        if (string.IsNullOrEmpty(normalized))
+        {
+            return;
+        }
+
+        if (!byName.TryGetValue(normalized, out var candidates))
+        {
+            byName[normalized] = [candidate];
+            return;
+        }
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            if (candidates[i].UUID == candidate.UUID)
+            {
+                return;
+            }
+        }
+
+        candidates.Add(candidate);
+    }
+
+    private static string? ResolveFromLookup(
+        ImportLookupIndex index,
+        string? scryfallId,
+        string? set,
+        string? number,
+        string? name)
+    {
+        if (!string.IsNullOrWhiteSpace(scryfallId) &&
+            index.ByScryfallId.TryGetValue(NormalizeKey(scryfallId), out var scryfallUuid))
+        {
+            return scryfallUuid;
+        }
+
+        var setNumberKey = BuildSetNumberKey(set, number);
+        if (!string.IsNullOrEmpty(setNumberKey) &&
+            index.BySetNumber.TryGetValue(setNumberKey, out var setNumberUuid))
+        {
+            return setNumberUuid;
+        }
+
+        var normalizedName = NormalizeKey(name);
+        if (string.IsNullOrEmpty(normalizedName) ||
+            !index.ByName.TryGetValue(normalizedName, out var candidates) ||
+            candidates.Count == 0)
+        {
+            return null;
+        }
+
+        var normalizedSet = NormalizeKey(set);
+        if (!string.IsNullOrEmpty(normalizedSet))
+        {
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                var candidate = candidates[i];
+                if (string.Equals(NormalizeKey(candidate.SetCode), normalizedSet, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(NormalizeKey(candidate.SetName), normalizedSet, StringComparison.OrdinalIgnoreCase))
+                {
+                    return candidate.UUID;
+                }
+            }
+        }
+
+        return candidates[0].UUID;
+    }
+
+    private async Task<string?> ResolveFromFallbackAsync(
+        string? scryfallId,
+        string? set,
+        string? number,
+        string? name,
+        Dictionary<string, string?> scryfallFallbackCache,
+        Dictionary<string, string?> setNumberFallbackCache,
+        Dictionary<string, string?> nameSetFallbackCache,
+        Dictionary<string, string?> nameExactFallbackCache,
+        Dictionary<string, string?> namePartialFallbackCache)
+    {
+        if (!string.IsNullOrWhiteSpace(scryfallId))
+        {
+            var cacheKey = NormalizeKey(scryfallId);
+            if (!scryfallFallbackCache.TryGetValue(cacheKey, out var cachedUuid))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards().WhereScryfallId(cacheKey).Limit(1);
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
+                scryfallFallbackCache[cacheKey] = cachedUuid;
+            }
+
+            if (!string.IsNullOrEmpty(cachedUuid))
+            {
+                return cachedUuid;
+            }
+        }
+
+        var setNumberKey = BuildSetNumberKey(set, number);
+        if (!string.IsNullOrEmpty(setNumberKey))
+        {
+            if (!setNumberFallbackCache.TryGetValue(setNumberKey, out var cachedUuid))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards().WhereSet(set!).WhereNumber(number!).Limit(1);
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
+                setNumberFallbackCache[setNumberKey] = cachedUuid;
+            }
+
+            if (!string.IsNullOrEmpty(cachedUuid))
+            {
+                return cachedUuid;
+            }
+        }
+
+        var normalizedName = NormalizeKey(name);
+        if (!string.IsNullOrEmpty(normalizedName) && !string.IsNullOrWhiteSpace(set))
+        {
+            var nameSetKey = $"{normalizedName}|{NormalizeKey(set)}";
+            if (!nameSetFallbackCache.TryGetValue(nameSetKey, out var cachedUuid))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards().WhereNameEquals(name!).WherePrimarySideOnly().Limit(100);
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+
+                Card? chosen = null;
+                for (int i = 0; i < matches.Length; i++)
+                {
+                    var card = matches[i];
+                    if (card.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrWhiteSpace(card.SetName) && card.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        chosen = card;
+                        break;
+                    }
+                }
+
+                chosen ??= matches.FirstOrDefault();
+                cachedUuid = chosen?.UUID;
+                nameSetFallbackCache[nameSetKey] = cachedUuid;
+            }
+
+            if (!string.IsNullOrEmpty(cachedUuid))
+            {
+                return cachedUuid;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(normalizedName))
+        {
+            if (!nameExactFallbackCache.TryGetValue(normalizedName, out var cachedUuid))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards().WhereNameEquals(name!).WherePrimarySideOnly().Limit(1);
+                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
+                cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
+                nameExactFallbackCache[normalizedName] = cachedUuid;
+            }
+
+            if (!string.IsNullOrEmpty(cachedUuid))
+            {
+                return cachedUuid;
+            }
+
+            if (!namePartialFallbackCache.TryGetValue(normalizedName, out cachedUuid))
+            {
+                var helper = _cardRepo.CreateSearchHelper();
+                helper.SearchCards().WhereNameContains(name!).WherePrimarySideOnly().Limit(50);
+                var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
+
+                Card? chosen = null;
+                for (int i = 0; i < candidates.Length; i++)
+                {
+                    if (candidates[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        chosen = candidates[i];
+                        break;
+                    }
+                }
+
+                chosen ??= candidates.FirstOrDefault();
+                cachedUuid = chosen?.UUID;
+                namePartialFallbackCache[normalizedName] = cachedUuid;
+            }
+
+            if (!string.IsNullOrEmpty(cachedUuid))
+            {
+                return cachedUuid;
+            }
+        }
+
+        return null;
+    }
+
+    private static string NormalizeKey(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
+
+    private static string BuildSetNumberKey(string? set, string? number)
+    {
+        var normalizedSet = NormalizeKey(set);
+        var normalizedNumber = NormalizeKey(number);
+        if (string.IsNullOrEmpty(normalizedSet) || string.IsNullOrEmpty(normalizedNumber))
+        {
+            return "";
+        }
+
+        return $"{normalizedSet}|{normalizedNumber}";
     }
 }
