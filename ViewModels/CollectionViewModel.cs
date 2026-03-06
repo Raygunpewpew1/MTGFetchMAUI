@@ -52,12 +52,24 @@ public partial class CollectionViewModel : BaseViewModel
 
     public event Action? CollectionLoaded;
 
+    /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
+    public IAsyncRelayCommand ImportCollectionCommand { get; }
+
+    /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
+    public IAsyncRelayCommand ExportCollectionCommand { get; }
+
+    /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
+    public IAsyncRelayCommand RefreshCommand { get; }
+
     public CollectionViewModel(CardManager cardManager, CollectionImporter importer, CollectionExporter exporter, IToastService toastService)
     {
         _cardManager = cardManager;
         _importer = importer;
         _exporter = exporter;
         _toastService = toastService;
+        ImportCollectionCommand = new AsyncRelayCommand(ImportCollectionAsync);
+        ExportCollectionCommand = new AsyncRelayCommand(ExportCollectionAsync);
+        RefreshCommand = new AsyncRelayCommand(RefreshAsync);
 
         _cardManager.OnPriceSyncProgress += (msg, pct) =>
         {
@@ -181,7 +193,6 @@ public partial class CollectionViewModel : BaseViewModel
         catch (OperationCanceledException) { }
     }
 
-    [RelayCommand]
     private async Task RefreshAsync()
     {
         await LoadCollectionAsync();
@@ -350,7 +361,6 @@ public partial class CollectionViewModel : BaseViewModel
         });
     }
 
-    [RelayCommand]
     private async Task ImportCollectionAsync()
     {
         try
@@ -410,7 +420,6 @@ public partial class CollectionViewModel : BaseViewModel
         }
     }
 
-    [RelayCommand]
     private async Task ExportCollectionAsync()
     {
         try

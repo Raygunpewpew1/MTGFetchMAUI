@@ -109,6 +109,14 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     [ObservableProperty]
     public partial bool HasLastAdded { get; set; }
 
+    private IAsyncRelayCommand? _undoLastAddedCommand;
+    /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
+    public IAsyncRelayCommand UndoLastAddedCommand => _undoLastAddedCommand ??= new AsyncRelayCommand(UndoLastAddedAsync);
+
+    private IAsyncRelayCommand? _suggestLandsCommand;
+    /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
+    public IAsyncRelayCommand SuggestLandsCommand => _suggestLandsCommand ??= new AsyncRelayCommand(SuggestLandsAsync);
+
     [RelayCommand]
     private void SelectCommander() => SelectedSectionIndex = 0;
 
@@ -128,7 +136,6 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         HasLastAdded = true;
     }
 
-    [RelayCommand]
     private async Task UndoLastAddedAsync()
     {
         if (Deck == null || _lastAdded is null) return;
@@ -310,7 +317,6 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         await ReloadAsync(preserveState: true);
     }
 
-    [RelayCommand]
     private async Task SuggestLandsAsync()
     {
         if (Deck == null) return;
