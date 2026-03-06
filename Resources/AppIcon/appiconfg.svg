@@ -30,36 +30,4 @@
         <circle cx="0" cy="-30" r="10" fill="#1E1B4B" />
         <rect x="-6" y="-30" width="12" height="60" fill="#1E1B4B" />
     </g>
-</svg><svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-        <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#0F172A" />
-            <stop offset="100%" stop-color="#1E1B4B" />
-        </linearGradient>
-        
-        <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur1" />
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur2" />
-            <feMerge>
-                <feMergeNode in="blur1" />
-                <feMergeNode in="blur2" />
-                <feMergeNode in="SourceGraphic" />
-            </feMerge>
-        </filter>
-    </defs>
-
-    <rect width="512" height="512" rx="115" fill="url(#darkBg)" />
-    
-    <path d="M 128 100 L 384 100 L 410 256 L 256 430 L 102 256 Z" 
-          fill="none" stroke="#94A3B8" stroke-width="16" stroke-linejoin="round" />
-          
-    <path d="M 158 130 L 354 130 L 370 256 L 256 380 L 142 256 Z" 
-          fill="none" stroke="#475569" stroke-width="4" stroke-linejoin="round" />
-    
-    <g transform="translate(256, 240)" filter="url(#cyanGlow)">
-        <circle cx="0" cy="-30" r="35" fill="#22D3EE" />
-        <polygon points="-25,-5 25,-5 35,60 -35,60" fill="#22D3EE" />
-        <circle cx="0" cy="-30" r="10" fill="#1E1B4B" />
-        <rect x="-6" y="-30" width="12" height="60" fill="#1E1B4B" />
-    </g>
 </svg>
