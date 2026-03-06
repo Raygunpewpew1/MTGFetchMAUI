@@ -36,6 +36,9 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     private readonly ICardRepository _cardRepository = cardRepository;
     private int _deckId;
 
+    /// <summary>Raised on the main thread after deck data has been reloaded (so the page can force layout/redraw).</summary>
+    public event Action? ReloadCompleted;
+
     private LastAddedInfo? _lastAdded;
 
     [ObservableProperty]
@@ -246,6 +249,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
                 {
                     StatusMessage = baseMessage;
                 }
+                ReloadCompleted?.Invoke();
             });
         }
         catch (Exception ex)

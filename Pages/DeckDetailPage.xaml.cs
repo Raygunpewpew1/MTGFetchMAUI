@@ -44,6 +44,13 @@ public partial class DeckDetailPage : ContentPage
                 CommanderArtCanvas?.InvalidateSurface();
             }
         };
+
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _viewModel.ReloadCompleted += RunDeferredLayoutPass;
     }
 
     private async void OnAddCardClicked(object? sender, EventArgs e)
@@ -125,6 +132,32 @@ public partial class DeckDetailPage : ContentPage
         }
 
         await _viewModel.ReloadAsync(preserveState: true);
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _viewModel.ReloadCompleted -= RunDeferredLayoutPass;
+    }
+
+    private const int DeferredLayoutDelayMs = 120;
+
+    private void RunDeferredLayoutPass()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            DeckDetailRoot.InvalidateMeasure();
+            CommanderArtCanvas.InvalidateSurface();
+        });
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(DeferredLayoutDelayMs);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                DeckDetailRoot.InvalidateMeasure();
+                CommanderArtCanvas.InvalidateSurface();
+            });
+        });
     }
 
     private void OnCommanderArtPaint(object? sender, SKPaintSurfaceEventArgs e)
