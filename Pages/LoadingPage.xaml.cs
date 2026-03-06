@@ -52,17 +52,17 @@ public partial class LoadingPage : ContentPage
 
         await Task.Delay(100);
 
-        await LogoBorder.FadeTo(1, logoDuration, Easing.CubicOut);
-        await LogoBorder.ScaleTo(1, 250, Easing.CubicOut);
+        await LogoBorder.FadeToAsync(1, logoDuration, Easing.CubicOut);
+        await LogoBorder.ScaleToAsync(1, 250, Easing.CubicOut);
 
         await Task.WhenAll(
-            TitleLabel.FadeTo(1, titleDuration, Easing.CubicOut),
-            TitleLabel.TranslateTo(0, 0, titleDuration, Easing.CubicOut)
+            TitleLabel.FadeToAsync(1, titleDuration, Easing.CubicOut),
+            TitleLabel.TranslateToAsync(0, 0, titleDuration, Easing.CubicOut)
         );
 
         await Task.WhenAll(
-            TaglineLabel.FadeTo(1, taglineDuration, Easing.CubicOut),
-            TaglineLabel.TranslateTo(0, 0, taglineDuration, Easing.CubicOut)
+            TaglineLabel.FadeToAsync(1, taglineDuration, Easing.CubicOut),
+            TaglineLabel.TranslateToAsync(0, 0, taglineDuration, Easing.CubicOut)
         );
 
         _entranceDone = true;
@@ -74,6 +74,6 @@ public partial class LoadingPage : ContentPage
     private async Task FadeInProgressSectionAsync()
     {
         ProgressSection.Opacity = 0;
-        await ProgressSection.FadeTo(1, 280, Easing.CubicOut);
+        await ProgressSection.FadeToAsync(1, 280, Easing.CubicOut);
     }
 }

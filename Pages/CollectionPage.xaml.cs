@@ -8,6 +8,7 @@ public partial class CollectionPage : ContentPage
     private readonly CollectionViewModel _viewModel;
     private readonly IToastService _toastService;
     private readonly CardGalleryContext _galleryContext;
+    private bool _skipNextReload;
 
     public CollectionPage(CollectionViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext)
     {
@@ -52,6 +53,13 @@ public partial class CollectionPage : ContentPage
             CollectionGrid.ForceRedraw();
         });
 
+        // Skip full reload when returning from card detail to preserve scroll position and grid state
+        if (_skipNextReload)
+        {
+            _skipNextReload = false;
+            return;
+        }
+
         await _viewModel.LoadCollectionAsync();
     }
 
@@ -69,6 +77,7 @@ public partial class CollectionPage : ContentPage
     private async void OnCardClicked(string uuid)
     {
         _galleryContext.SetContext(CollectionGrid.GetAllUuids(), uuid);
+        _skipNextReload = true; // Avoid full reload when returning from detail
         await Shell.Current.GoToAsync($"carddetail?uuid={uuid}");
     }
 
