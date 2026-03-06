@@ -309,7 +309,6 @@ public partial class CollectionViewModel : BaseViewModel
     {
         await _cardManager.ClearCollectionAsync();
         await LoadCollectionAsync();
-        _toastService.Show("Collection cleared.");
     }
 
     public void OnScrollChanged(float scrollY)
@@ -392,8 +391,6 @@ public partial class CollectionViewModel : BaseViewModel
                     Logger.LogStuff($"Import completed with {importResult.Errors.Count} errors. First error: {importResult.Errors.First()}", LogLevel.Warning);
                 }
 
-                _toastService.Show($"Imported {importResult.SuccessCount} lines ({importResult.TotalCards} cards).");
-
                 IsBusy = false;
                 await LoadCollectionAsync();
                 // Clear filter after reload so the list shows the full collection (avoids showing
@@ -406,7 +403,6 @@ public partial class CollectionViewModel : BaseViewModel
         catch (Exception ex)
         {
             Logger.LogStuff($"Failed to import collection: {ex.Message}", LogLevel.Error);
-            _toastService.Show("Failed to import collection.");
         }
         finally
         {
@@ -420,16 +416,10 @@ public partial class CollectionViewModel : BaseViewModel
         try
         {
             if (!await _cardManager.EnsureInitializedAsync())
-            {
-                _toastService.Show("Database not connected.");
                 return;
-            }
 
             if (_allItems.Length == 0)
-            {
-                _toastService.Show("Collection is empty.");
                 return;
-            }
 
             IsBusy = true;
             StatusMessage = "Exporting collection...";
@@ -445,13 +435,10 @@ public partial class CollectionViewModel : BaseViewModel
                 Title = "Export Collection",
                 File = new ShareFile(cacheFile)
             });
-
-            _toastService.Show("Collection exported successfully.");
         }
         catch (Exception ex)
         {
             Logger.LogStuff($"Failed to export collection: {ex.Message}", LogLevel.Error);
-            _toastService.Show("Failed to export collection.");
         }
         finally
         {

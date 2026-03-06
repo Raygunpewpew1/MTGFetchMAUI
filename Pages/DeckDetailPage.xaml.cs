@@ -72,7 +72,6 @@ public partial class DeckDetailPage : ContentPage
             {
                 _viewModel.StatusIsError = true;
                 _viewModel.StatusMessage = result.Message ?? "Could not set commander.";
-                _toastService.Show(result.Message ?? "Could not set commander.");
             }
             else
             {
@@ -89,7 +88,6 @@ public partial class DeckDetailPage : ContentPage
                 }
 
                 _viewModel.StatusMessage = message;
-                _toastService.Show(message);
             }
         }
         else
@@ -120,13 +118,11 @@ public partial class DeckDetailPage : ContentPage
             {
                 _viewModel.StatusIsError = true;
                 _viewModel.StatusMessage = result.Message ?? "Could not add card.";
-                _toastService.Show(result.Message ?? "Could not add card.");
             }
             else
             {
                 _viewModel.StatusIsError = false;
                 _viewModel.StatusMessage = $"{addResult.Quantity}× {card.Name} added to {addResult.Section}.";
-                _toastService.Show($"{addResult.Quantity}× {card.Name} added to {addResult.Section}.");
                 _viewModel.RegisterLastAdded(card.UUID, card.Name, addResult.Section, addResult.Quantity);
             }
         }

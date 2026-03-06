@@ -38,23 +38,23 @@ public partial class App : Application
     {
         try
         {
-            if (Current?.Windows.Count > 0 && Current.Windows[0].Page is View root)
+            if (Current?.Windows.Count > 0 && Current.Windows[0].Page is VisualElement root)
             {
                 root.InvalidateMeasure();
             }
             var shell = Shell.Current;
-            if (shell is View shellView)
+            if (shell is VisualElement shellElement)
             {
-                shellView.InvalidateMeasure();
+                shellElement.InvalidateMeasure();
             }
             var page = shell?.CurrentPage;
-            if (page is View pageView)
+            if (page is VisualElement pageElement)
             {
-                pageView.InvalidateMeasure();
+                pageElement.InvalidateMeasure();
             }
-            if (page?.Content is View contentView)
+            if (page is ContentPage contentPage && contentPage.Content is VisualElement contentElement)
             {
-                contentView.InvalidateMeasure();
+                contentElement.InvalidateMeasure();
             }
         }
         catch (Exception ex)

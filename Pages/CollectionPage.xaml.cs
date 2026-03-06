@@ -124,10 +124,6 @@ public partial class CollectionPage : ContentPage
         if (result is CollectionAddResult r)
         {
             await _viewModel.UpdateCollectionAsync(uuid, r.NewQuantity, r.IsFoil, r.IsEtched);
-            if (r.NewQuantity > 0)
-                _toastService.Show($"{r.NewQuantity}x {card.Name} in collection");
-            else
-                _toastService.Show($"{card.Name} removed from collection");
             await _viewModel.LoadCollectionAsync();
             RunContentLayoutPass();
         }
