@@ -3,44 +3,106 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
              x:Class="AetherVault.Pages.LoadingPage"
-             BackgroundColor="{StaticResource Background}">
+             x:Name="SplashRoot"
+             NavigationPage.HasNavigationBar="False">
 
-    <VerticalStackLayout Spacing="30" VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <LinearGradientBrush x:Key="SplashGradient" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#0D0B12" Offset="0" />
+                <GradientStop Color="#121212" Offset="0.4" />
+                <GradientStop Color="#1A1628" Offset="1" />
+            </LinearGradientBrush>
+            <Color x:Key="SplashAccent">#03DAC5</Color>
+            <Color x:Key="SplashMuted">#6B6580</Color>
+        </ResourceDictionary>
+    </ContentPage.Resources>
 
-        <Label Text="AetherVault"
-               FontSize="36"
-               FontAttributes="Bold"
-               TextColor="{StaticResource Primary}"
-               HorizontalOptions="Center" />
+    <Grid Background="{StaticResource SplashGradient}" Padding="24">
+        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="0" MaximumWidthRequest="360">
+            <!-- Logo / brand mark -->
+            <Border x:Name="LogoBorder"
+                    WidthRequest="100"
+                    HeightRequest="100"
+                    Stroke="{StaticResource SplashAccent}"
+                    StrokeThickness="2"
+                    StrokeShape="RoundRectangle 24"
+                    BackgroundColor="#1E1A2E"
+                    HorizontalOptions="Center"
+                    Margin="0,0,0,24"
+                    Opacity="0">
+                <Border.Shadow>
+                    <Shadow Brush="#03DAC5" Offset="0,0" Radius="20" Opacity="0.15" />
+                </Border.Shadow>
+                <Label Text="A"
+                       FontFamily="SerifFontBold"
+                       FontSize="48"
+                       TextColor="{StaticResource SplashAccent}"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
 
-        <Label Text="Organize your Magic: The Gathering collection"
-               FontSize="14"
-               TextColor="{StaticResource TextSecondary}"
-               HorizontalOptions="Center"
-               HorizontalTextAlignment="Center"/>
+            <!-- App name -->
+            <Label x:Name="TitleLabel"
+                   Text="AetherVault"
+                   FontFamily="SerifFontBold"
+                   FontSize="42"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,8"
+                   Opacity="0" />
 
-        <ActivityIndicator IsRunning="{Binding IsBusy}"
-                           Color="{StaticResource Accent}"
-                           HeightRequest="50"
-                           WidthRequest="50"
-                           IsVisible="{Binding IsBusy}" />
+            <!-- Tagline -->
+            <Label x:Name="TaglineLabel"
+                   Text="Your Magic: The Gathering collection"
+                   FontSize="15"
+                   TextColor="{StaticResource SplashMuted}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,48"
+                   Opacity="0" />
 
-        <ProgressBar Progress="{Binding Progress}"
-                     ProgressColor="{StaticResource Accent}"
-                     WidthRequest="200"
-                     IsVisible="{Binding IsBusy}" />
+            <!-- Progress section -->
+            <Grid x:Name="ProgressSection" IsVisible="{Binding IsBusy}" Opacity="0" Margin="0,0,0,16" WidthRequest="280" HorizontalOptions="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ProgressBar Grid.Column="0"
+                             Progress="{Binding Progress}"
+                             ProgressColor="{StaticResource SplashAccent}"
+                             HeightRequest="6"
+                             VerticalOptions="Center"
+                             Margin="0,0,12,0" />
+                <Label Grid.Column="1"
+                       Text="{Binding ProgressPercent, StringFormat='{0}%'}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource SplashAccent}"
+                       VerticalOptions="Center"
+                       MinimumWidthRequest="36"
+                       HorizontalTextAlignment="End" />
+            </Grid>
 
-        <Label Text="{Binding StatusMessage}"
-               FontSize="16"
-               TextColor="{StaticResource TextPrimary}"
-               HorizontalOptions="Center"
-               HorizontalTextAlignment="Center" />
+            <!-- Status message -->
+            <Label Text="{Binding StatusDisplayText}"
+                   TextColor="{Binding StatusTextColor}"
+                   FontSize="14"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   MaxLines="2"
+                   LineBreakMode="TailTruncation"
+                   Margin="0,0,0,24" />
 
-        <Button Text="Retry Download"
-                Command="{Binding RetryCommand}"
-                IsVisible="{Binding ShowRetry}"
-                HorizontalOptions="Center"
-                StyleClass="FilledButton" />
-
-    </VerticalStackLayout>
+            <!-- Retry button -->
+            <Button Text="Retry download"
+                    Command="{Binding RetryCommand}"
+                    IsVisible="{Binding ShowRetry}"
+                    HorizontalOptions="Center"
+                    StyleClass="FilledButton"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White" />
+        </VerticalStackLayout>
+    </Grid>
 </ContentPage>

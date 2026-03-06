@@ -10,7 +10,11 @@ public partial class LoadingViewModel : BaseViewModel
     private readonly IServiceProvider _serviceProvider;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ProgressPercent))]
     public partial double Progress { get; set; }
+
+    /// <summary>Progress as 0–100 for display on the splash screen.</summary>
+    public int ProgressPercent => (int)Math.Round(Progress * 100.0);
 
     [ObservableProperty]
     public partial bool ShowRetry { get; set; }
@@ -49,6 +53,7 @@ public partial class LoadingViewModel : BaseViewModel
 
         StatusMessage = "Checking database...";
         ShowRetry = false;
+        StatusIsError = false;
         Progress = 0;
 
         // Ensure disconnected before checking/downloading to avoid locks
@@ -122,6 +127,7 @@ public partial class LoadingViewModel : BaseViewModel
 
                 ShowRetry = true;
                 IsBusy = false;
+                StatusIsError = true;
                 StatusMessage = "Database is corrupted. Please retry the download.";
             }
         }
@@ -134,6 +140,7 @@ public partial class LoadingViewModel : BaseViewModel
     private async Task StartDownloadAsync()
     {
         ShowRetry = false;
+        StatusIsError = false;
         IsBusy = true;
         StatusMessage = "Downloading database...";
         Progress = 0;
@@ -175,6 +182,7 @@ public partial class LoadingViewModel : BaseViewModel
 
             IsBusy = false;
             ShowRetry = true;
+            StatusIsError = true;
             StatusMessage = "Download failed. Please check your internet connection.";
         }
     }
@@ -191,6 +199,7 @@ public partial class LoadingViewModel : BaseViewModel
         {
             StatusMessage = "Failed to open database.";
             ShowRetry = true;
+            StatusIsError = true;
             IsBusy = false;
             return;
         }
