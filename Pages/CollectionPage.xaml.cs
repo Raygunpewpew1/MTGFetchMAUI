@@ -41,7 +41,37 @@ public partial class CollectionPage : ContentPage
                 CollectionLoading.IsRunning = _viewModel.IsBusy;
                 CollectionLoading.IsVisible = _viewModel.IsBusy;
             }
+            else if (e.PropertyName == nameof(CollectionViewModel.IsCollectionEmpty))
+            {
+                // After clear, import, or any reload: force layout so empty state or grid gets measured/drawn (fixes Android black screen).
+                RunContentLayoutPass();
+                ScheduleDeferredContentLayoutPass();
+            }
         };
+    }
+
+    private const int DeferredLayoutDelayMs = 120;
+
+    private void RunContentLayoutPass()
+    {
+        if (!MainThread.IsMainThread)
+        {
+            MainThread.BeginInvokeOnMainThread(RunContentLayoutPass);
+            return;
+        }
+        CollectionContentArea.InvalidateMeasure();
+        CollectionGrid.InvalidateMeasure();
+        if (!_viewModel.IsCollectionEmpty)
+            CollectionGrid.ForceRedraw();
+    }
+
+    private void ScheduleDeferredContentLayoutPass()
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(DeferredLayoutDelayMs);
+            MainThread.BeginInvokeOnMainThread(RunContentLayoutPass);
+        });
     }
 
     protected override async void OnAppearing()
@@ -65,6 +95,10 @@ public partial class CollectionPage : ContentPage
         }
 
         await _viewModel.LoadCollectionAsync();
+
+        // After any reload (clear, import, etc.) run layout pass immediately and again after delay so Android paints (fixes black screen).
+        RunContentLayoutPass();
+        ScheduleDeferredContentLayoutPass();
     }
 
     protected override void OnDisappearing()

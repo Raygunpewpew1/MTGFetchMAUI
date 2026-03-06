@@ -156,13 +156,10 @@
             </Grid>
         </Border>
 
-        <!-- Content area: grid and empty state both in tree; visibility toggled so empty state is always laid out (fixes Android black screen) -->
-        <Grid Grid.Row="2"
+        <!-- Content area: empty state first (bottom), grid second (top) so grid always draws on top when visible (avoids Android covering grid). Both in tree; visibility toggled. -->
+        <Grid x:Name="CollectionContentArea"
+              Grid.Row="2"
               BackgroundColor="{StaticResource Background}">
-            <controls:CardGrid x:Name="CollectionGrid"
-                               Scrolled="OnCollectionScrolled"
-                               UseCompactGrid="True"
-                               IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}" />
             <Grid IsVisible="{Binding IsCollectionEmpty}"
                   BackgroundColor="{StaticResource Background}"
                   VerticalOptions="Fill"
@@ -188,6 +185,10 @@
                            HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Grid>
+            <controls:CardGrid x:Name="CollectionGrid"
+                               Scrolled="OnCollectionScrolled"
+                               UseCompactGrid="True"
+                               IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}" />
         </Grid>
 
     </Grid>

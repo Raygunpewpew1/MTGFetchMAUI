@@ -12,7 +12,7 @@
              BackgroundColor="{StaticResource Background}"
              x:DataType="vm:DeckDetailViewModel">
 
-    <Grid RowDefinitions="Auto,140,Auto,*,Auto">
+    <Grid x:Name="DeckDetailRoot" RowDefinitions="Auto,140,Auto,*,Auto">
 
         <!-- Row 0: Deck header card -->
         <Border Grid.Row="0"
