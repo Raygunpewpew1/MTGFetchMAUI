@@ -71,6 +71,8 @@ public partial class CollectionPage : ContentPage
     }
 
     private const int DeferredLayoutDelayMs = 120;
+    /// <summary>Delay so invalidate runs after WindowManager destroys modal surface and moves focus (logcat: Destroying surface → Changing focus).</summary>
+    private const int PostModalInvalidateDelayMs = 220;
 
     private void RunContentLayoutPass()
     {
@@ -94,6 +96,26 @@ public partial class CollectionPage : ContentPage
         {
             await Task.Delay(DeferredLayoutDelayMs);
             MainThread.BeginInvokeOnMainThread(RunContentLayoutPass);
+        });
+    }
+
+    /// <summary>After a modal/dialog is dismissed, the main window content may not redraw (logcat: Destroying surface, focus change). Invalidate page root after transition.</summary>
+    private void SchedulePostModalInvalidate()
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(PostModalInvalidateDelayMs);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                (Content as View)?.InvalidateMeasure();
+                CollectionContentArea.InvalidateMeasure();
+                CollectionEmptyState.InvalidateMeasure();
+                if (CollectionContentArea.Children.Contains(CollectionGrid))
+                {
+                    CollectionGrid.InvalidateMeasure();
+                    CollectionGrid.ForceRedraw();
+                }
+            });
         });
     }
 
@@ -121,9 +143,9 @@ public partial class CollectionPage : ContentPage
 
         // When empty, remove grid from tree so no Skia view is present; when we have data, ensure grid is in tree.
         UpdateContentHostForEmptyState();
-        // After any reload run layout pass so Android paints (fixes black screen).
         RunContentLayoutPass();
         ScheduleDeferredContentLayoutPass();
+        SchedulePostModalInvalidate();
     }
 
     protected override void OnDisappearing()
@@ -168,6 +190,10 @@ public partial class CollectionPage : ContentPage
             else
                 _toastService.Show($"{card.Name} removed from collection");
             await _viewModel.LoadCollectionAsync();
+            UpdateContentHostForEmptyState();
+            RunContentLayoutPass();
+            ScheduleDeferredContentLayoutPass();
+            SchedulePostModalInvalidate();
         }
     }
 
@@ -184,6 +210,9 @@ public partial class CollectionPage : ContentPage
             "Clear",
             "Cancel");
         if (confirmed)
+        {
             await _viewModel.ClearCollectionAsync();
+            SchedulePostModalInvalidate();
+        }
     }
 }

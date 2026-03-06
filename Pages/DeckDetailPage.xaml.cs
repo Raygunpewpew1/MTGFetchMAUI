@@ -140,12 +140,14 @@ public partial class DeckDetailPage : ContentPage
         _viewModel.ReloadCompleted -= RunDeferredLayoutPass;
     }
 
-    private const int DeferredLayoutDelayMs = 120;
+    /// <summary>Delay so invalidate runs after WindowManager destroys modal surface (logcat: Destroying surface → focus change).</summary>
+    private const int DeferredLayoutDelayMs = 220;
 
     private void RunDeferredLayoutPass()
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            (Content as View)?.InvalidateMeasure();
             DeckDetailRoot.InvalidateMeasure();
             CommanderArtCanvas.InvalidateSurface();
         });
@@ -154,6 +156,7 @@ public partial class DeckDetailPage : ContentPage
             await Task.Delay(DeferredLayoutDelayMs);
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                (Content as View)?.InvalidateMeasure();
                 DeckDetailRoot.InvalidateMeasure();
                 CommanderArtCanvas.InvalidateSurface();
             });
