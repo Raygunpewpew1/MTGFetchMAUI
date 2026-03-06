@@ -97,15 +97,26 @@ public partial class CollectionViewModel : BaseViewModel
 
         if (_allItems.Length == 0)
         {
-            if (_grid != null) await _grid.SetCollectionAsync([]);
-            if (token.IsCancellationRequested) return;
-            MainThread.BeginInvokeOnMainThread(() =>
+            // Set empty state on UI first so the empty-state overlay shows (and grid is hidden) before grid updates
+            if (MainThread.IsMainThread)
             {
                 IsCollectionEmpty = true;
                 TotalCards = 0;
                 UniqueCards = 0;
                 StatusMessage = "";
-            });
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    IsCollectionEmpty = true;
+                    TotalCards = 0;
+                    UniqueCards = 0;
+                    StatusMessage = "";
+                });
+            }
+            if (_grid != null) await _grid.SetCollectionAsync([]);
+            if (token.IsCancellationRequested) return;
             return;
         }
 
