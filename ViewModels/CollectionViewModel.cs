@@ -107,9 +107,9 @@ public partial class CollectionViewModel : BaseViewModel
                 Logger.LogStuff("[CollectionUI] ApplyFilterAndSort: set IsCollectionEmpty=true on main thread", LogLevel.Debug);
             });
             if (token.IsCancellationRequested) return;
-            if (_grid != null) await _grid.SetCollectionAsync([]);
-            Logger.LogStuff("[CollectionUI] ApplyFilterAndSort: empty branch done, SetCollectionAsync([]) called", LogLevel.Debug);
-            if (token.IsCancellationRequested) return;
+            // Do not call SetCollectionAsync([]) when empty: content is already swapped to EmptyState and grid is out of the tree.
+            // Updating grid state can still trigger its pipeline (e.g. on Android) and cause a black frame when grid is re-shown later.
+            Logger.LogStuff("[CollectionUI] ApplyFilterAndSort: empty branch done (skipped SetCollectionAsync)", LogLevel.Debug);
             return;
         }
 
