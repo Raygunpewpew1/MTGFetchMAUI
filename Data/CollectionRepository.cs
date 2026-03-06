@@ -35,22 +35,10 @@ public class CollectionRepository : ICollectionRepository
     {
         await WithCollectionTransactionAsync(async (conn, trans) =>
         {
-            var currentQty = await GetQuantityInternalAsync(conn, cardUUID, trans);
-
-            if (currentQty > 0)
-            {
-                await conn.ExecuteAsync(
-                    SQLQueries.CollectionUpdateQuantity,
-                    new { qty = currentQty + quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0, uuid = cardUUID },
-                    trans);
-            }
-            else
-            {
-                await conn.ExecuteAsync(
-                    SQLQueries.CollectionInsertCard,
-                    new { uuid = cardUUID, qty = quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0 },
-                    trans);
-            }
+            await conn.ExecuteAsync(
+                SQLQueries.CollectionUpsertAddCard,
+                new { uuid = cardUUID, qty = quantity, isFoil = isFoil ? 1 : 0, isEtched = isEtched ? 1 : 0 },
+                trans);
         });
     }
 
@@ -58,25 +46,24 @@ public class CollectionRepository : ICollectionRepository
     {
         await WithCollectionTransactionAsync(async (conn, trans) =>
         {
+            var parameters = new List<object>();
             foreach (var card in cards)
             {
-                var currentQty = await GetQuantityInternalAsync(conn, card.cardUUID, trans);
-
-                if (currentQty > 0)
+                parameters.Add(new
                 {
-                    await conn.ExecuteAsync(
-                        SQLQueries.CollectionUpdateQuantity,
-                        new { qty = currentQty + card.quantity, isFoil = card.isFoil ? 1 : 0, isEtched = card.isEtched ? 1 : 0, uuid = card.cardUUID },
-                        trans);
-                }
-                else
-                {
-                    await conn.ExecuteAsync(
-                        SQLQueries.CollectionInsertCard,
-                        new { uuid = card.cardUUID, qty = card.quantity, isFoil = card.isFoil ? 1 : 0, isEtched = card.isEtched ? 1 : 0 },
-                        trans);
-                }
+                    uuid = card.cardUUID,
+                    qty = card.quantity,
+                    isFoil = card.isFoil ? 1 : 0,
+                    isEtched = card.isEtched ? 1 : 0
+                });
             }
+
+            if (parameters.Count == 0)
+            {
+                return;
+            }
+
+            await conn.ExecuteAsync(SQLQueries.CollectionUpsertAddCard, parameters, trans);
         });
     }
 
