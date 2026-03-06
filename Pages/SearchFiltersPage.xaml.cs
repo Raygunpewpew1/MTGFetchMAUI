@@ -7,7 +7,7 @@ namespace AetherVault.Pages;
 
 public partial class SearchFiltersPage : ContentPage
 {
-    private readonly SearchViewModel _searchViewModel;
+    private readonly ISearchFilterTarget _target;
     private readonly CardManager _cardManager;
     private readonly HashSet<string> _selectedColors = [];
     private List<SetInfo> _setList = [];
@@ -15,16 +15,16 @@ public partial class SearchFiltersPage : ContentPage
     private static readonly string[] ColorCodes = ["W", "U", "B", "R", "G", "C"];
     private static readonly SetInfo AnySet = new("", "Any set");
 
-    public SearchFiltersPage(SearchViewModel searchViewModel, CardManager cardManager)
+    public SearchFiltersPage(ISearchFilterTarget target, CardManager cardManager)
     {
         InitializeComponent();
-        _searchViewModel = searchViewModel;
+        _target = target;
         _cardManager = cardManager;
 
         BuildColorButtons();
         BuildFormatPicker();
 
-        LoadFromOptions(_searchViewModel.CurrentOptions);
+        LoadFromOptions(_target.CurrentOptions);
     }
 
     protected override async void OnAppearing()
@@ -42,7 +42,7 @@ public partial class SearchFiltersPage : ContentPage
             SetPicker.ItemsSource = _setList;
 
             // Restore selection from current options if we had a set list before
-            var currentSet = _searchViewModel.CurrentOptions.SetFilter;
+            var currentSet = _target.CurrentOptions.SetFilter;
             if (string.IsNullOrEmpty(currentSet))
                 SetPicker.SelectedIndex = 0;
             else
@@ -191,11 +191,13 @@ public partial class SearchFiltersPage : ContentPage
     private async void OnApplyClicked(object? sender, EventArgs e)
     {
         var options = BuildSearchOptions();
-        // Preserve the existing name filter from the view model
-        options.NameFilter = _searchViewModel.SearchText;
+        options.NameFilter = _target.SearchText ?? "";
 
-        await Shell.Current.GoToAsync("..");
-        await _searchViewModel.PerformSearchAsync(options);
+        await _target.ApplyFiltersAndSearchAsync(options);
+        if (Navigation.NavigationStack.Count > 1)
+            await Navigation.PopAsync();
+        else
+            await Shell.Current.GoToAsync("..");
     }
 
     private void OnResetClicked(object? sender, EventArgs e)
@@ -299,6 +301,9 @@ public partial class SearchFiltersPage : ContentPage
 
     private async void OnCancelClicked(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
+        if (Navigation.NavigationStack.Count > 1)
+            await Navigation.PopAsync();
+        else
+            await Shell.Current.GoToAsync("..");
     }
 }

@@ -1,5 +1,7 @@
 using AetherVault.Controls;
+using AetherVault.Core;
 using AetherVault.Core.Layout;
+using AetherVault.Data;
 using AetherVault.Models;
 using AetherVault.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,7 +11,7 @@ using System.Collections.ObjectModel;
 
 namespace AetherVault.ViewModels;
 
-public partial class CardSearchPickerViewModel : BaseViewModel
+public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTarget
 {
     private readonly CardManager _cardManager;
     private Card[] _allCards = [];
@@ -27,11 +29,23 @@ public partial class CardSearchPickerViewModel : BaseViewModel
     [ObservableProperty]
     public partial ObservableCollection<Card> SearchResults { get; set; } = [];
 
+    public SearchOptions CurrentOptions { get; set; } = new();
+
+    public string FiltersButtonText =>
+        CurrentOptions.ActiveFilterCount > 0 ? $"Filters ({CurrentOptions.ActiveFilterCount})" : "Filters";
+
     public event Action<Card>? CardSelected;
 
     public CardSearchPickerViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
+    }
+
+    public async Task ApplyFiltersAndSearchAsync(SearchOptions options)
+    {
+        CurrentOptions = options;
+        OnPropertyChanged(nameof(FiltersButtonText));
+        await ExecuteSearchAsync();
     }
 
     [RelayCommand]
@@ -117,36 +131,69 @@ public partial class CardSearchPickerViewModel : BaseViewModel
 
         try
         {
-            if (string.IsNullOrEmpty(query))
+            if (string.IsNullOrEmpty(query) && !CurrentOptions.HasActiveFilters)
             {
                 _allCards = [];
-                SearchResults.Clear();
+                SearchResults = new ObservableCollection<Card>(_allCards);
                 IsEmpty = true;
                 StatusMessage = "Enter a search term";
                 return;
             }
 
-            if (SearchCollectionOnly)
+            if (CurrentOptions.HasActiveFilters)
             {
-                _allCards = await _cardManager.SearchInCollectionAsync(query);
+                var options = new SearchOptions
+                {
+                    NameFilter = query,
+                    TextFilter = CurrentOptions.TextFilter,
+                    TypeFilter = CurrentOptions.TypeFilter,
+                    SubtypeFilter = CurrentOptions.SubtypeFilter,
+                    SupertypeFilter = CurrentOptions.SupertypeFilter,
+                    ColorFilter = CurrentOptions.ColorFilter,
+                    ColorIdentityFilter = CurrentOptions.ColorIdentityFilter,
+                    RarityFilter = [.. CurrentOptions.RarityFilter],
+                    SetFilter = CurrentOptions.SetFilter,
+                    CMCMin = CurrentOptions.CMCMin,
+                    CMCMax = CurrentOptions.CMCMax,
+                    CMCExact = CurrentOptions.CMCExact,
+                    UseCMCRange = CurrentOptions.UseCMCRange,
+                    UseCMCExact = CurrentOptions.UseCMCExact,
+                    PowerFilter = CurrentOptions.PowerFilter,
+                    ToughnessFilter = CurrentOptions.ToughnessFilter,
+                    LegalFormat = CurrentOptions.LegalFormat,
+                    UseLegalFormat = CurrentOptions.UseLegalFormat,
+                    ArtistFilter = CurrentOptions.ArtistFilter,
+                    PrimarySideOnly = CurrentOptions.PrimarySideOnly,
+                    NoVariations = CurrentOptions.NoVariations,
+                    IncludeAllFaces = CurrentOptions.IncludeAllFaces,
+                    IncludeTokens = CurrentOptions.IncludeTokens
+                };
+
+                var helper = _cardManager.CreateSearchHelper();
+                if (SearchCollectionOnly)
+                    helper.SearchMyCollection();
+                else
+                    helper.SearchCards(options.IncludeTokens);
+                SearchOptionsApplier.Apply(helper, options);
+                helper.OrderBy("c.name").Limit(100);
+
+                _allCards = await _cardManager.ExecuteSearchAsync(helper);
             }
             else
             {
-                _allCards = await _cardManager.SearchCardsAsync(query, 100);
+                if (SearchCollectionOnly)
+                    _allCards = await _cardManager.SearchInCollectionAsync(query);
+                else
+                    _allCards = await _cardManager.SearchCardsAsync(query, 100);
             }
 
             SearchResults = new ObservableCollection<Card>(_allCards);
             IsEmpty = _allCards.Length == 0;
 
             if (IsEmpty)
-            {
                 StatusMessage = "No cards found.";
-            }
             else
-            {
                 StatusMessage = $"Found {_allCards.Length} cards";
-            }
-
         }
         catch (Exception ex)
         {
