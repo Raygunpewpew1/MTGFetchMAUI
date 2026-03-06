@@ -359,6 +359,11 @@ public partial class CollectionViewModel : BaseViewModel
 
                 IsBusy = false;
                 await LoadCollectionAsync();
+                // Clear filter after reload so the list shows the full collection (avoids showing
+                // empty when a previous filter matches no cards in the new dataset). Doing this
+                // after the load prevents a race where a filter-triggered apply could overwrite
+                // the grid with pre-import data.
+                FilterText = "";
             }
         }
         catch (Exception ex)
