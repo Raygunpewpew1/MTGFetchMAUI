@@ -156,7 +156,7 @@
             </Grid>
         </Border>
 
-        <!-- Content area: when empty only empty state is in tree (no Skia). Grid is added/removed in code. -->
+        <!-- Content area: same pattern as SearchPage — grid and empty state always in tree, visibility toggled (no add/remove). -->
         <Grid x:Name="CollectionContentArea"
               Grid.Row="2"
               BackgroundColor="{StaticResource Background}">
@@ -187,6 +187,7 @@
                 </VerticalStackLayout>
             </Grid>
             <controls:CardGrid x:Name="CollectionGrid"
+                               IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}"
                                Scrolled="OnCollectionScrolled"
                                UseCompactGrid="True" />
         </Grid>

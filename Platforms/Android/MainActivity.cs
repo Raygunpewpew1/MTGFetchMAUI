@@ -24,6 +24,10 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnWindowFocusChanged(hasFocus);
         if (hasFocus)
+        {
             WindowFocusGained?.Invoke(this, EventArgs.Empty);
+            // Force a second draw after the first post-resume frame (which can be black). See HANDOFF_COLLECTION_BLACK_SCREEN.md.
+            App.ScheduleResumeRedraw();
+        }
     }
 }
