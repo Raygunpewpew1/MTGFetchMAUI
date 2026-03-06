@@ -1,19 +1,29 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-        <filter id="borderGlow" x="-25%" y="-25%" width="150%" height="150%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-            <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-            </feMerge>
-        </filter>
-    </defs>
-    <!-- Luminous teal border (squircle outline) -->
-    <rect x="24" y="24" width="464" height="464" rx="99" 
-          fill="none" stroke="#28FFCA" stroke-width="20" 
-          stroke-linejoin="round" filter="url(#borderGlow)" />
-    <!-- Letter A: clean sans-serif, same luminous teal -->
-    <path d="M 256 128 L 200 392 M 256 128 L 312 392 M 218 278 L 294 278" 
-          fill="none" stroke="#28FFCA" stroke-width="36" 
-          stroke-linecap="round" stroke-linejoin="round" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect 
+    x="48" 
+    y="48" 
+    width="416" 
+    height="416" 
+    rx="100" 
+    fill="#1b1a29" 
+    stroke="#00dfbd" 
+    stroke-width="20" 
+  />
+
+  <path 
+    d="M 228 160 
+       L 284 160 
+       L 360 360 
+       L 308 360 
+       L 286 296 
+       L 226 296 
+       L 204 360 
+       L 152 360 
+       Z 
+       M 256 208 
+       L 238 260 
+       L 274 260 
+       Z" 
+    fill="#00dfbd" 
+  />
 </svg>
