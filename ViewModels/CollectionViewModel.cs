@@ -95,16 +95,17 @@ public partial class CollectionViewModel : BaseViewModel
         _filterCts = new CancellationTokenSource();
         var token = _filterCts.Token;
 
-        // Always update empty state — the old early-return left IsCollectionEmpty=false
-        // and StatusMessage stuck at "Loading collection..." when the collection was empty.
-        IsCollectionEmpty = _allItems.Length == 0;
-
         if (_allItems.Length == 0)
         {
             if (_grid != null) await _grid.SetCollectionAsync([]);
-            TotalCards = 0;
-            UniqueCards = 0;
-            StatusMessage = "";
+            if (token.IsCancellationRequested) return;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsCollectionEmpty = true;
+                TotalCards = 0;
+                UniqueCards = 0;
+                StatusMessage = "";
+            });
             return;
         }
 
@@ -146,13 +147,16 @@ public partial class CollectionViewModel : BaseViewModel
 
             if (token.IsCancellationRequested) return;
 
-            TotalCards = displayedTotal;
-            UniqueCards = displayedUnique;
-            StatusMessage = $"{displayedTotal} cards ({displayedUnique} unique)";
-
+            var totalCards = displayedTotal;
+            var uniqueCards = displayedUnique;
+            var statusMessage = $"{displayedTotal} cards ({displayedUnique} unique)";
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 if (token.IsCancellationRequested) return;
+                IsCollectionEmpty = false;
+                TotalCards = totalCards;
+                UniqueCards = uniqueCards;
+                StatusMessage = statusMessage;
 
                 if (_grid != null)
                 {
@@ -232,34 +236,41 @@ public partial class CollectionViewModel : BaseViewModel
 
         if (!await _cardManager.EnsureInitializedAsync())
         {
-            StatusMessage = "Database not connected.";
+            MainThread.BeginInvokeOnMainThread(() => StatusMessage = "Database not connected.");
             return;
         }
 
         // Ensure prices are initialized
         await _cardManager.InitializePricesAsync();
 
-        IsBusy = true;
-        IsCollectionEmpty = false;
-        StatusIsError = false;
-        StatusMessage = "Loading collection...";
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            IsBusy = true;
+            IsCollectionEmpty = false;
+            StatusIsError = false;
+            StatusMessage = "Loading collection...";
+        });
 
         try
         {
             _allItems = await Task.Run(() => _cardManager.GetCollectionAsync());
 
             await ApplyFilterAndSortAsync();
-            CollectionLoaded?.Invoke();
+            MainThread.BeginInvokeOnMainThread(() => CollectionLoaded?.Invoke());
         }
         catch (Exception ex)
         {
-            StatusIsError = true;
-            StatusMessage = $"Load failed: {ex.Message}";
+            var msg = ex.Message;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                StatusIsError = true;
+                StatusMessage = $"Load failed: {msg}";
+            });
             Logger.LogStuff($"Collection load error: {ex.Message}", LogLevel.Error);
         }
         finally
         {
-            IsBusy = false;
+            MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
         }
     }
 
