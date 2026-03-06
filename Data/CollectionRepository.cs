@@ -80,6 +80,19 @@ public class CollectionRepository : ICollectionRepository
         }
     }
 
+    public async Task ClearCollectionAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            await _db.CollectionConnection.ExecuteAsync(SQLQueries.CollectionDeleteAll);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public async Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false)
     {
         if (quantity <= 0)

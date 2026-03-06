@@ -284,6 +284,9 @@ public static class SQLQueries
     public const string CollectionDeleteCard =
         "DELETE FROM my_collection WHERE card_uuid = @uuid";
 
+    public const string CollectionDeleteAll =
+        "DELETE FROM my_collection";
+
     public const string CollectionTableInfo = "PRAGMA table_info(my_collection)";
     public const string CollectionAddSortOrder = "ALTER TABLE my_collection ADD COLUMN sort_order INTEGER DEFAULT 0";
     public const string CollectionSeedSortOrder = "UPDATE my_collection SET sort_order = rowid WHERE sort_order = 0";

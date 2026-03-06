@@ -275,6 +275,16 @@ public partial class CollectionViewModel : BaseViewModel
         await LoadCollectionAsync();
     }
 
+    /// <summary>
+    /// Clears the entire collection. Call after user confirmation (e.g. from page code-behind).
+    /// </summary>
+    public async Task ClearCollectionAsync()
+    {
+        await _cardManager.ClearCollectionAsync();
+        await LoadCollectionAsync();
+        _toastService.Show("Collection cleared.");
+    }
+
     public void OnScrollChanged(float scrollY)
     {
         // No-op for now unless we need to trigger infinite scroll

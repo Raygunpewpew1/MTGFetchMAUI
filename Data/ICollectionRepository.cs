@@ -11,6 +11,7 @@ public interface ICollectionRepository
     Task AddCardAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false);
     Task AddCardsBulkAsync(IEnumerable<(string cardUUID, int quantity, bool isFoil, bool isEtched)> cards);
     Task RemoveCardAsync(string cardUUID);
+    Task ClearCollectionAsync();
     Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false);
     Task<CollectionItem[]> GetCollectionAsync();
     Task<CollectionStats> GetCollectionStatsAsync();

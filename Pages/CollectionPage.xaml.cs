@@ -107,4 +107,15 @@ public partial class CollectionPage : ContentPage
     {
         await _viewModel.ReorderCollectionAsync(fromIndex, toIndex);
     }
+
+    private async void OnClearCollectionClicked(object? sender, EventArgs e)
+    {
+        bool confirmed = await DisplayAlertAsync(
+            "Clear collection",
+            "Remove all cards from your collection? This cannot be undone.",
+            "Clear",
+            "Cancel");
+        if (confirmed)
+            await _viewModel.ClearCollectionAsync();
+    }
 }

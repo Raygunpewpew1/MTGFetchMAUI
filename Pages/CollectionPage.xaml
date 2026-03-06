@@ -36,6 +36,15 @@
                                  Color="{StaticResource TextPrimary}" />
             </ToolbarItem.IconImageSource>
         </ToolbarItem>
+        <ToolbarItem Text="Clear"
+                     Clicked="OnClearCollectionClicked">
+            <ToolbarItem.IconImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.TrashCan}"
+                                 Size="24"
+                                 Color="{StaticResource TextPrimary}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,Auto,*">
