@@ -26,8 +26,7 @@
                 <Border Style="{StaticResource CardStyle}" Padding="16">
                     <VerticalStackLayout Spacing="16">
                         <material:TextField x:Name="NameEntry"
-                                           Title="Deck name"
-                                           Placeholder="e.g. My Commander Deck"
+                                           Title="Deck name (e.g. My Commander Deck)"
                                            MaxLength="64"
                                            TextColor="{StaticResource TextPrimary}"
                                            TitleColor="{StaticResource TextSecondary}"

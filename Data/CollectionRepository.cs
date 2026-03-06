@@ -1,5 +1,6 @@
 using AetherVault.Core;
 using AetherVault.Models;
+using AetherVault.Services;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
@@ -248,63 +249,63 @@ public class CollectionRepository : ICollectionRepository
                 stats.FoilCount += item.Quantity;
         }
 
-        private static SqliteConnection CreateReadOnlyConnection(string dbPath)
-        {
-            var builder = new SqliteConnectionStringBuilder
-            {
-                DataSource = dbPath,
-                Mode = SqliteOpenMode.ReadOnly
-            };
-            return new SqliteConnection(builder.ConnectionString);
-        }
-
-        /// <summary>
-        /// Computes collection statistics directly in SQLite using the MTG master DB
-        /// with the collection DB attached as 'col'. This avoids loading full Card
-        /// objects for every collection entry and scales much better for large
-        /// collections.
-        /// </summary>
-        private static async Task<CollectionStats?> GetCollectionStatsFromDatabaseAsync()
-        {
-            var mtgPath = AppDataManager.GetMTGDatabasePath();
-            var collectionPath = AppDataManager.GetCollectionDatabasePath();
-
-            if (!File.Exists(mtgPath) || !File.Exists(collectionPath))
-                return null;
-
-            await using var conn = CreateReadOnlyConnection(mtgPath);
-            await conn.OpenAsync();
-
-            // Attach the collection database as 'col' to mirror DatabaseManager.
-            var escapedCollPath = collectionPath.Replace("'", "''");
-            await conn.ExecuteAsync($"ATTACH DATABASE '{escapedCollPath}' AS col");
-
-            var row = await conn.QueryFirstOrDefaultAsync<CollectionStatsAggregateRow>(SQLQueries.CollectionStatsAggregates);
-            if (row is null)
-                return new CollectionStats();
-
-            var stats = new CollectionStats
-            {
-                TotalCards = row.TotalCards,
-                UniqueCards = row.UniqueCards,
-                CreatureCount = row.CreatureCount,
-                SpellCount = row.SpellCount,
-                LandCount = row.LandCount,
-                CommonCount = row.CommonCount,
-                UncommonCount = row.UncommonCount,
-                RareCount = row.RareCount,
-                MythicCount = row.MythicCount,
-                FoilCount = row.FoilCount
-            };
-
-            if (row.NonLandCount > 0)
-                stats.AvgCMC = row.TotalCMC / row.NonLandCount;
-
-            return stats;
-        }
-
         if (nonLandCount > 0)
             stats.AvgCMC = totalCMC / nonLandCount;
+
+        return stats;
+    }
+
+    private static SqliteConnection CreateReadOnlyConnection(string dbPath)
+    {
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadOnly
+        };
+        return new SqliteConnection(builder.ConnectionString);
+    }
+
+    /// <summary>
+    /// Computes collection statistics directly in SQLite using the MTG master DB
+    /// with the collection DB attached as 'col'. This avoids loading full Card
+    /// objects for every collection entry and scales much better for large
+    /// collections.
+    /// </summary>
+    private static async Task<CollectionStats?> GetCollectionStatsFromDatabaseAsync()
+    {
+        var mtgPath = AppDataManager.GetMTGDatabasePath();
+        var collectionPath = AppDataManager.GetCollectionDatabasePath();
+
+        if (!File.Exists(mtgPath) || !File.Exists(collectionPath))
+            return null;
+
+        await using var conn = CreateReadOnlyConnection(mtgPath);
+        await conn.OpenAsync();
+
+        // Attach the collection database as 'col' to mirror DatabaseManager.
+        var escapedCollPath = collectionPath.Replace("'", "''");
+        await conn.ExecuteAsync($"ATTACH DATABASE '{escapedCollPath}' AS col");
+
+        var row = await conn.QueryFirstOrDefaultAsync<CollectionStatsAggregateRow>(SQLQueries.CollectionStatsAggregates);
+        if (row is null)
+            return new CollectionStats();
+
+        var stats = new CollectionStats
+        {
+            TotalCards = row.TotalCards,
+            UniqueCards = row.UniqueCards,
+            CreatureCount = row.CreatureCount,
+            SpellCount = row.SpellCount,
+            LandCount = row.LandCount,
+            CommonCount = row.CommonCount,
+            UncommonCount = row.UncommonCount,
+            RareCount = row.RareCount,
+            MythicCount = row.MythicCount,
+            FoilCount = row.FoilCount
+        };
+
+        if (row.NonLandCount > 0)
+            stats.AvgCMC = row.TotalCMC / row.NonLandCount;
 
         return stats;
     }

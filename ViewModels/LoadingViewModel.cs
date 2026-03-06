@@ -30,7 +30,7 @@ public partial class LoadingViewModel : BaseViewModel
     ];
 
     [ObservableProperty]
-    public partial string? tipText { get; set; }
+    private string? tipText;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ProgressPercent))]
