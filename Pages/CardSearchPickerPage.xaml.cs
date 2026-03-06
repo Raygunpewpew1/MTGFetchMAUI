@@ -1,5 +1,6 @@
 using AetherVault.Controls;
 using AetherVault.Models;
+using AetherVault.Services;
 using AetherVault.ViewModels;
 
 namespace AetherVault.Pages;
@@ -7,12 +8,14 @@ namespace AetherVault.Pages;
 public partial class CardSearchPickerPage : ContentPage
 {
     private readonly CardSearchPickerViewModel _viewModel;
+    private readonly CardManager _cardManager;
     private TaskCompletionSource<Card?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public CardSearchPickerPage(CardSearchPickerViewModel viewModel)
+    public CardSearchPickerPage(CardSearchPickerViewModel viewModel, CardManager cardManager)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _cardManager = cardManager;
         BindingContext = _viewModel;
 
         _viewModel.CardSelected += OnCardSelected;
@@ -27,6 +30,12 @@ public partial class CardSearchPickerPage : ContentPage
 
             _ = Navigation.PopModalAsync();
         }));
+    }
+
+    private async void OnFiltersClicked(object? sender, EventArgs e)
+    {
+        var filtersPage = new SearchFiltersPage(_viewModel, _cardManager);
+        await Navigation.PushAsync(filtersPage);
     }
 
     protected override void OnAppearing()

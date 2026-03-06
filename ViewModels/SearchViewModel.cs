@@ -14,7 +14,7 @@ namespace AetherVault.ViewModels;
 /// and image loading for the card grid.
 /// Port of TSearchPresenter + TScrollHandler from MainUnit.Search.Custom.pas.
 /// </summary>
-public partial class SearchViewModel : BaseViewModel
+public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 {
     private readonly CardManager _cardManager;
     private CancellationTokenSource? _searchDebounceCts;
@@ -37,7 +37,7 @@ public partial class SearchViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
-    public SearchOptions CurrentOptions { get; private set; } = new();
+    public SearchOptions CurrentOptions { get; set; } = new();
 
     public string FiltersButtonText
     {
@@ -151,6 +151,11 @@ public partial class SearchViewModel : BaseViewModel
         await Shell.Current.GoToAsync("searchfilters");
     }
 
+    public async Task ApplyFiltersAndSearchAsync(SearchOptions options)
+    {
+        await PerformSearchAsync(options);
+    }
+
     public async Task PerformSearchAsync(SearchOptions? options = null)
     {
         if (IsBusy) return;
@@ -192,7 +197,7 @@ public partial class SearchViewModel : BaseViewModel
         {
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards(CurrentOptions.IncludeTokens);
-            ApplySearchOptions(helper, CurrentOptions);
+            SearchOptionsApplier.Apply(helper, CurrentOptions);
             helper.OrderBy("c.name").Limit(PageSize).Offset(0);
 
             var results = await Task.Run(() => _cardManager.ExecuteSearchAsync(helper));
@@ -207,7 +212,7 @@ public partial class SearchViewModel : BaseViewModel
                 // Get total count
                 var countHelper = _cardManager.CreateSearchHelper();
                 countHelper.SearchCards(CurrentOptions.IncludeTokens);
-                ApplySearchOptions(countHelper, CurrentOptions);
+                SearchOptionsApplier.Apply(countHelper, CurrentOptions);
                 TotalResults = await _cardManager.GetCountAdvancedAsync(countHelper);
                 HasMorePages = TotalResults > results.Length;
             }
@@ -278,7 +283,7 @@ public partial class SearchViewModel : BaseViewModel
         {
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards(CurrentOptions.IncludeTokens);
-            ApplySearchOptions(helper, CurrentOptions);
+            SearchOptionsApplier.Apply(helper, CurrentOptions);
             helper.OrderBy("c.name")
                   .Limit(PageSize)
                   .Offset((_currentPage - 1) * PageSize);
@@ -348,62 +353,6 @@ public partial class SearchViewModel : BaseViewModel
                 });
             }
         });
-    }
-
-    private static void ApplySearchOptions(MTGSearchHelper helper, SearchOptions options)
-    {
-        if (!string.IsNullOrEmpty(options.NameFilter))
-            helper.WhereNameContains(options.NameFilter);
-
-        if (!string.IsNullOrEmpty(options.TextFilter))
-            helper.WhereTextContains(options.TextFilter);
-
-        if (!string.IsNullOrEmpty(options.TypeFilter) &&
-            !options.TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase))
-            helper.WhereType(options.TypeFilter);
-
-        if (!string.IsNullOrEmpty(options.SubtypeFilter))
-            helper.WhereSubtype(options.SubtypeFilter);
-
-        if (!string.IsNullOrEmpty(options.SupertypeFilter))
-            helper.WhereSupertype(options.SupertypeFilter);
-
-        if (!string.IsNullOrEmpty(options.ColorFilter))
-            helper.WhereColors(options.ColorFilter);
-
-        if (options.RarityFilter.Count > 0)
-            helper.WhereRarity([.. options.RarityFilter]);
-
-        if (!string.IsNullOrEmpty(options.SetFilter))
-            helper.WhereSet(options.SetFilter);
-
-        if (options.UseCMCExact)
-            helper.WhereCMC(options.CMCExact);
-        else if (options.UseCMCRange)
-            helper.WhereCMCBetween(options.CMCMin, options.CMCMax);
-
-        if (!string.IsNullOrEmpty(options.PowerFilter))
-            helper.WherePower(options.PowerFilter);
-
-        if (!string.IsNullOrEmpty(options.ToughnessFilter))
-            helper.WhereToughness(options.ToughnessFilter);
-
-        if (options.UseLegalFormat)
-            helper.WhereLegalIn(options.LegalFormat);
-
-        if (!string.IsNullOrEmpty(options.ArtistFilter))
-            helper.WhereArtist(options.ArtistFilter);
-
-        if (options.PrimarySideOnly)
-            helper.WherePrimarySideOnly();
-        else
-            helper.IncludeAllFaces();
-
-        if (options.NoVariations)
-            helper.WhereNoVariations();
-
-        if (options.IncludeAllFaces)
-            helper.IncludeAllFaces();
     }
 
     private void UpdateFilterState()

@@ -258,6 +258,11 @@ public static class CardMapper
         card.tcgplayer = Str(reader, o.Tcgplayer);
         card.tcgplayerEtched = Str(reader, o.TcgplayerEtched);
 
+        // Scryfall CDN image URL for list/grid thumbnails (small front face)
+        card.ImageUrl = string.IsNullOrEmpty(card.UUID)
+            ? ""
+            : ScryfallCDN.GetImageUrl(card.UUID, ScryfallSize.Small, ScryfallFace.Front);
+
         return card;
     }
 

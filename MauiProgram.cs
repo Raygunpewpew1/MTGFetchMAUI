@@ -95,6 +95,7 @@ public static class MauiProgram
         builder.Services.AddTransient<DeckDetailViewModel>();
         builder.Services.AddTransient<LoadingViewModel>();
         builder.Services.AddTransient<CardSearchPickerViewModel>();
+        builder.Services.AddSingleton<ISearchFilterTarget>(sp => sp.GetRequiredService<SearchViewModel>());
 
         // ── Pages ───────────────────────────────────────────────────
         builder.Services.AddSingleton<AppShell>();
