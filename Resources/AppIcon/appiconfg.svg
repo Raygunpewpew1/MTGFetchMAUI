@@ -1,73 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <defs>
-    <!-- Modern card gradients -->
-    <linearGradient id="cardFront" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3A286A"/>
-      <stop offset="100%" stop-color="#1F123A"/>
-    </linearGradient>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0F172A" />
+            <stop offset="100%" stop-color="#1E1B4B" />
+        </linearGradient>
+        
+        <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur2" />
+            <feMerge>
+                <feMergeNode in="blur1" />
+                <feMergeNode in="blur2" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
 
-    <linearGradient id="cardBack" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2A1B4F"/>
-      <stop offset="100%" stop-color="#140A26"/>
-    </linearGradient>
+    <rect width="512" height="512" rx="115" fill="url(#darkBg)" />
+    
+    <path d="M 128 100 L 384 100 L 410 256 L 256 430 L 102 256 Z" 
+          fill="none" stroke="#94A3B8" stroke-width="16" stroke-linejoin="round" />
+          
+    <path d="M 158 130 L 354 130 L 370 256 L 256 380 L 142 256 Z" 
+          fill="none" stroke="#475569" stroke-width="4" stroke-linejoin="round" />
+    
+    <g transform="translate(256, 240)" filter="url(#cyanGlow)">
+        <circle cx="0" cy="-30" r="35" fill="#22D3EE" />
+        <polygon points="-25,-5 25,-5 35,60 -35,60" fill="#22D3EE" />
+        <circle cx="0" cy="-30" r="10" fill="#1E1B4B" />
+        <rect x="-6" y="-30" width="12" height="60" fill="#1E1B4B" />
+    </g>
+</svg><svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0F172A" />
+            <stop offset="100%" stop-color="#1E1B4B" />
+        </linearGradient>
+        
+        <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur2" />
+            <feMerge>
+                <feMergeNode in="blur1" />
+                <feMergeNode in="blur2" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
 
-    <linearGradient id="borderFront" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#A57CF0"/>
-      <stop offset="100%" stop-color="#693BC6"/>
-    </linearGradient>
-
-    <!-- Glowing cyan gradient for the search icon -->
-    <linearGradient id="searchGradBright" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00ffff"/>
-      <stop offset="100%" stop-color="#00c8ff"/>
-    </linearGradient>
-
-    <!-- Shadow filter for depth -->
-    <filter id="dropShadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="4" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.75"/>
-    </filter>
-
-    <!-- Glow for search icon -->
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-        <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-    </filter>
-  </defs>
-
-  <g id="foreground">
-      <!-- Back card -->
-      <g transform="translate(128, 128) rotate(-10) translate(-128, -128)" filter="url(#dropShadow)">
-          <!-- Card border -->
-          <rect x="68" y="44" width="120" height="168" rx="14" fill="url(#cardBack)" stroke="#4A3182" stroke-width="4"/>
-          <!-- Inner border -->
-          <rect x="78" y="54" width="100" height="148" rx="8" fill="none" stroke="#3A216A" stroke-width="2"/>
-      </g>
-
-      <!-- Front card -->
-      <g transform="translate(128, 128) rotate(8) translate(-128, -128)" filter="url(#dropShadow)">
-          <!-- Card border -->
-          <rect x="68" y="44" width="120" height="168" rx="14" fill="url(#cardFront)" stroke="url(#borderFront)" stroke-width="5"/>
-          <!-- Inner border -->
-          <rect x="78" y="54" width="100" height="148" rx="8" fill="none" stroke="#7E54CD" stroke-width="2" opacity="0.6"/>
-
-          <!-- Modern Search Icon -->
-          <g transform="translate(0, -10)" filter="url(#glow)">
-              <circle cx="128" cy="115" r="26" fill="none" stroke="url(#searchGradBright)" stroke-width="8"/>
-              <line x1="146" y1="133" x2="168" y2="155" stroke="url(#searchGradBright)" stroke-width="10" stroke-linecap="round"/>
-          </g>
-
-          <!-- Colored dots at bottom of top card representing WUBRG -->
-          <g transform="translate(0, 10)">
-              <circle cx="92" cy="165" r="7" fill="#FFFBD5"/> <!-- White -->
-              <circle cx="110" cy="165" r="7" fill="#0073E6"/> <!-- Blue -->
-              <!-- Black needs contrasting stroke -->
-              <circle cx="128" cy="165" r="7" fill="#2E2E2E" stroke="#E6E6E6" stroke-width="1.5"/> <!-- Black -->
-              <circle cx="146" cy="165" r="7" fill="#E60000"/> <!-- Red -->
-              <circle cx="164" cy="165" r="7" fill="#00B33C"/> <!-- Green -->
-          </g>
-      </g>
-  </g>
+    <rect width="512" height="512" rx="115" fill="url(#darkBg)" />
+    
+    <path d="M 128 100 L 384 100 L 410 256 L 256 430 L 102 256 Z" 
+          fill="none" stroke="#94A3B8" stroke-width="16" stroke-linejoin="round" />
+          
+    <path d="M 158 130 L 354 130 L 370 256 L 256 380 L 142 256 Z" 
+          fill="none" stroke="#475569" stroke-width="4" stroke-linejoin="round" />
+    
+    <g transform="translate(256, 240)" filter="url(#cyanGlow)">
+        <circle cx="0" cy="-30" r="35" fill="#22D3EE" />
+        <polygon points="-25,-5 25,-5 35,60 -35,60" fill="#22D3EE" />
+        <circle cx="0" cy="-30" r="10" fill="#1E1B4B" />
+        <rect x="-6" y="-30" width="12" height="60" fill="#1E1B4B" />
+    </g>
 </svg>
