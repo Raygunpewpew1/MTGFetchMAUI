@@ -40,6 +40,7 @@ internal sealed class CardGridRenderer : IDisposable
     private SKPaint? _shadowPaint;
     private SKPaint? _borderPaint;
     private SKPaint? _chipBgPaint;
+    private SKPaint? _shimmerPaint;
 
     // List view thumbnail dimensions
     private const float ListImgWidth = 55f;
@@ -72,6 +73,7 @@ internal sealed class CardGridRenderer : IDisposable
         _shadowPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 140), MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10f) };
         _borderPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(100, 200, 255, 220), Style = SKPaintStyle.Stroke, StrokeWidth = 3f };
         _chipBgPaint ??= new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 185) };
+        _shimmerPaint ??= new SKPaint { IsAntialias = true };
         _cardRoundRect ??= new SKRoundRect();
         _imageRoundRect ??= new SKRoundRect();
     }
@@ -110,78 +112,94 @@ internal sealed class CardGridRenderer : IDisposable
         _shadowPaint?.Dispose(); _shadowPaint = null;
         _borderPaint?.Dispose(); _borderPaint = null;
         _chipBgPaint?.Dispose(); _chipBgPaint = null;
+        _shimmerPaint?.Dispose(); _shimmerPaint = null;
         _cardRoundRect?.Dispose(); _cardRoundRect = null;
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
 
     public void Paint(SKPaintSurfaceEventArgs e, RenderList list, float scrollY, float viewWidth, DragState? dragState = null)
     {
-        // Advance shimmer phase
-        long now = _animationStopwatch.ElapsedMilliseconds;
-        float delta = (now - _lastFrameTime) / 1000f;
-        _lastFrameTime = now;
-        if (delta > 0.1f) delta = 0.016f;
-        _shimmerPhase += delta * 0.8f;
-        if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
-
         var canvas = e.Surface.Canvas;
-        canvas.Clear(new SKColor(18, 18, 18));
-
-        if (list == null || list.Commands.IsEmpty) return;
-        if (_bgPaint == null) EnsureResources();
-
-        float scale = e.Info.Width / (viewWidth > 0 ? viewWidth : 360f);
-        canvas.Scale(scale);
-        canvas.Translate(0, -scrollY);
-
-        var viewMode = list.ViewMode;
-        foreach (var cmd in list.Commands)
+        var info = e.Info;
+        if (info.Width <= 0 || info.Height <= 0)
         {
-            if (cmd is DrawCardCommand draw)
-            {
-                bool isSource = dragState != null && draw.Index == dragState.SourceIndex;
-                bool isTarget = dragState != null && !isSource && draw.Index == dragState.TargetIndex;
-
-                if (viewMode == AetherVault.Core.Layout.ViewMode.List)
-                    RenderListCard(canvas, draw);
-                else if (viewMode == AetherVault.Core.Layout.ViewMode.TextOnly)
-                    RenderTextOnlyCard(canvas, draw);
-                else
-                    RenderCard(canvas, draw);
-
-                // Dim the source card slot so the floating drag card stands out
-                if (isSource)
-                {
-                    _cardRoundRect!.SetRect(draw.Rect, 8f, 8f);
-                    canvas.DrawRoundRect(_cardRoundRect, _dimPaint);
-                }
-
-                // Highlight the drop target slot with an accent border
-                if (isTarget)
-                    DrawTargetHighlight(canvas, draw.Rect);
-            }
+            canvas.Clear(new SKColor(18, 18, 18));
+            return;
         }
 
-        // Draw the floating drag card at the pointer position
-        if (dragState?.DraggedCard != null && (dragState.CanvasX != 0 || dragState.CanvasY != 0))
+        try
         {
-            float cw = list.CardWidth;
-            float ch = list.CardHeight;
-            float dx = dragState.CanvasX - cw / 2f;
-            float dy = dragState.CanvasY - ch / 2f;
-            var dragRect = new SKRect(dx, dy, dx + cw, dy + ch);
+            // Advance shimmer phase
+            long now = _animationStopwatch.ElapsedMilliseconds;
+            float delta = (now - _lastFrameTime) / 1000f;
+            _lastFrameTime = now;
+            if (delta > 0.1f) delta = 0.016f;
+            _shimmerPhase += delta * 0.8f;
+            if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
 
-            // Drop shadow
-            canvas.DrawRoundRect(dragRect, 8f, 8f, _shadowPaint);
+            canvas.Clear(new SKColor(18, 18, 18));
 
-            // Render card at drag position (match the active view mode)
-            var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
-            if (list.ViewMode == AetherVault.Core.Layout.ViewMode.List)
-                RenderListCard(canvas, dragCmd);
-            else if (list.ViewMode == AetherVault.Core.Layout.ViewMode.TextOnly)
-                RenderTextOnlyCard(canvas, dragCmd);
-            else
-                RenderCard(canvas, dragCmd);
+            if (list == null || list.Commands.IsEmpty) return;
+            if (_bgPaint == null) EnsureResources();
+
+            float scale = info.Width / (viewWidth > 0 ? viewWidth : 360f);
+            canvas.Scale(scale);
+            canvas.Translate(0, -scrollY);
+
+            var viewMode = list.ViewMode;
+            foreach (var cmd in list.Commands)
+            {
+                if (cmd is DrawCardCommand draw)
+                {
+                    bool isSource = dragState != null && draw.Index == dragState.SourceIndex;
+                    bool isTarget = dragState != null && !isSource && draw.Index == dragState.TargetIndex;
+
+                    if (viewMode == AetherVault.Core.Layout.ViewMode.List)
+                        RenderListCard(canvas, draw);
+                    else if (viewMode == AetherVault.Core.Layout.ViewMode.TextOnly)
+                        RenderTextOnlyCard(canvas, draw);
+                    else
+                        RenderCard(canvas, draw);
+
+                    // Dim the source card slot so the floating drag card stands out
+                    if (isSource)
+                    {
+                        _cardRoundRect!.SetRect(draw.Rect, 8f, 8f);
+                        canvas.DrawRoundRect(_cardRoundRect, _dimPaint);
+                    }
+
+                    // Highlight the drop target slot with an accent border
+                    if (isTarget)
+                        DrawTargetHighlight(canvas, draw.Rect);
+                }
+            }
+
+            // Draw the floating drag card at the pointer position
+            if (dragState?.DraggedCard != null && (dragState.CanvasX != 0 || dragState.CanvasY != 0))
+            {
+                float cw = list.CardWidth;
+                float ch = list.CardHeight;
+                float dx = dragState.CanvasX - cw / 2f;
+                float dy = dragState.CanvasY - ch / 2f;
+                var dragRect = new SKRect(dx, dy, dx + cw, dy + ch);
+
+                // Drop shadow
+                canvas.DrawRoundRect(dragRect, 8f, 8f, _shadowPaint);
+
+                // Render card at drag position (match the active view mode)
+                var dragCmd = new DrawCardCommand(dragState.DraggedCard, dragRect, dragState.SourceIndex);
+                if (list.ViewMode == AetherVault.Core.Layout.ViewMode.List)
+                    RenderListCard(canvas, dragCmd);
+                else if (list.ViewMode == AetherVault.Core.Layout.ViewMode.TextOnly)
+                    RenderTextOnlyCard(canvas, dragCmd);
+                else
+                    RenderCard(canvas, dragCmd);
+            }
+        }
+        catch (Exception ex)
+        {
+            canvas.Clear(new SKColor(18, 18, 18));
+            System.Diagnostics.Debug.WriteLine($"[CardGridRenderer] Paint error: {ex}");
         }
     }
 
@@ -448,25 +466,34 @@ internal sealed class CardGridRenderer : IDisposable
 
     private void DrawShimmer(SKCanvas canvas, SKRect rect)
     {
+        if (_shimmerPaint == null) return;
+
         canvas.Save();
         _imageRoundRect!.SetRect(rect, 8f, 8f);
         canvas.ClipRoundRect(_imageRoundRect, antialias: true);
 
-        canvas.DrawRect(rect, _shimmerBasePaint);
+        canvas.DrawRect(rect, _shimmerBasePaint!);
 
         float sweepWidth = rect.Width * 0.6f;
         float travelRange = rect.Width + sweepWidth;
         float shimmerX = rect.Left - sweepWidth + travelRange * _shimmerPhase;
 
-        using var shimmerPaint = new SKPaint { IsAntialias = true };
-        shimmerPaint.Shader = SKShader.CreateLinearGradient(
+        using var shader = SKShader.CreateLinearGradient(
             new SKPoint(shimmerX, rect.Top),
             new SKPoint(shimmerX + sweepWidth, rect.Top),
             new[] { SKColors.Transparent, new SKColor(255, 255, 255, 55), SKColors.Transparent },
             new[] { 0f, 0.5f, 1f },
             SKShaderTileMode.Clamp);
 
-        canvas.DrawRect(rect, shimmerPaint);
+        _shimmerPaint.Shader = shader;
+        try
+        {
+            canvas.DrawRect(rect, _shimmerPaint);
+        }
+        finally
+        {
+            _shimmerPaint.Shader = null;
+        }
         canvas.Restore();
     }
 
