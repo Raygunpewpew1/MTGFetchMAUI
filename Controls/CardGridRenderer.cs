@@ -42,6 +42,9 @@ internal sealed class CardGridRenderer : IDisposable
     private SKPaint? _chipBgPaint;
     private SKPaint? _shimmerPaint;
 
+    // Theme background (matches App Background #121212) so empty/zero-size canvas never shows black.
+    private static readonly SKColor ThemeBackground = new SKColor(0x12, 0x12, 0x12);
+
     // List view thumbnail dimensions
     private const float ListImgWidth = 55f;
     private const float ListImgHeight = ListImgWidth * 1.3968f; // ≈ 76.8px
@@ -123,16 +126,16 @@ internal sealed class CardGridRenderer : IDisposable
         var info = e.Info;
         if (info.Width <= 0 || info.Height <= 0)
         {
-            canvas.Clear(SKColors.Transparent);
+            canvas.Clear(ThemeBackground);
             return;
         }
 
         try
         {
-            // When there are no cards, clear to transparent so the empty-state overlay or page background shows through
+            // When there are no cards, clear to theme background so we never leave a black surface (Android black-screen fix).
             if (list == null || list.Commands.IsEmpty)
             {
-                canvas.Clear(SKColors.Transparent);
+                canvas.Clear(ThemeBackground);
                 return;
             }
 

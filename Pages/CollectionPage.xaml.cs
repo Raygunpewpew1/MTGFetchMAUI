@@ -43,11 +43,31 @@ public partial class CollectionPage : ContentPage
             }
             else if (e.PropertyName == nameof(CollectionViewModel.IsCollectionEmpty))
             {
-                // After clear, import, or any reload: force layout so empty state or grid gets measured/drawn (fixes Android black screen).
+                UpdateContentHostForEmptyState();
                 RunContentLayoutPass();
                 ScheduleDeferredContentLayoutPass();
             }
         };
+    }
+
+    /// <summary>When empty, remove CardGrid from the tree so no Skia view is present (avoids Android black screen). When we have data, add it back.</summary>
+    private void UpdateContentHostForEmptyState()
+    {
+        if (!MainThread.IsMainThread)
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateContentHostForEmptyState);
+            return;
+        }
+        bool isEmpty = _viewModel.IsCollectionEmpty;
+        bool gridInTree = CollectionContentArea.Children.Contains(CollectionGrid);
+        if (isEmpty && gridInTree)
+        {
+            CollectionContentArea.Children.Remove(CollectionGrid);
+        }
+        else if (!isEmpty && !gridInTree)
+        {
+            CollectionContentArea.Children.Add(CollectionGrid);
+        }
     }
 
     private const int DeferredLayoutDelayMs = 120;
@@ -60,9 +80,12 @@ public partial class CollectionPage : ContentPage
             return;
         }
         CollectionContentArea.InvalidateMeasure();
-        CollectionGrid.InvalidateMeasure();
-        if (!_viewModel.IsCollectionEmpty)
+        CollectionEmptyState.InvalidateMeasure();
+        if (!_viewModel.IsCollectionEmpty && CollectionContentArea.Children.Contains(CollectionGrid))
+        {
+            CollectionGrid.InvalidateMeasure();
             CollectionGrid.ForceRedraw();
+        }
     }
 
     private void ScheduleDeferredContentLayoutPass()
@@ -96,7 +119,9 @@ public partial class CollectionPage : ContentPage
 
         await _viewModel.LoadCollectionAsync();
 
-        // After any reload (clear, import, etc.) run layout pass immediately and again after delay so Android paints (fixes black screen).
+        // When empty, remove grid from tree so no Skia view is present; when we have data, ensure grid is in tree.
+        UpdateContentHostForEmptyState();
+        // After any reload run layout pass so Android paints (fixes black screen).
         RunContentLayoutPass();
         ScheduleDeferredContentLayoutPass();
     }

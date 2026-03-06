@@ -156,11 +156,12 @@
             </Grid>
         </Border>
 
-        <!-- Content area: empty state first (bottom), grid second (top) so grid always draws on top when visible (avoids Android covering grid). Both in tree; visibility toggled. -->
+        <!-- Content area: when empty only empty state is in tree (no Skia). Grid is added/removed in code. -->
         <Grid x:Name="CollectionContentArea"
               Grid.Row="2"
               BackgroundColor="{StaticResource Background}">
-            <Grid IsVisible="{Binding IsCollectionEmpty}"
+            <Grid x:Name="CollectionEmptyState"
+                  IsVisible="{Binding IsCollectionEmpty}"
                   BackgroundColor="{StaticResource Background}"
                   VerticalOptions="Fill"
                   HorizontalOptions="Fill"
@@ -187,8 +188,7 @@
             </Grid>
             <controls:CardGrid x:Name="CollectionGrid"
                                Scrolled="OnCollectionScrolled"
-                               UseCompactGrid="True"
-                               IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}" />
+                               UseCompactGrid="True" />
         </Grid>
 
     </Grid>
