@@ -242,6 +242,22 @@ public static class SQLQueries
     public const string SelectCardByUuid =
         "SELECT * FROM cards WHERE uuid = @uuid";
 
+    public const string SelectImportLookupRows =
+        """
+        SELECT
+            c.uuid AS UUID,
+            c.name AS Name,
+            c.faceName AS FaceName,
+            c.setCode AS SetCode,
+            s.name AS SetName,
+            c.number AS Number,
+            ci.scryfallId AS ScryfallId
+        FROM cards c
+        LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid
+        LEFT JOIN sets s ON c.setCode = s.code
+        WHERE c.side = 'a' OR c.side IS NULL
+        """;
+
     // ============================================================================
     // COLLECTION QUERIES
     // ============================================================================
@@ -254,6 +270,16 @@ public static class SQLQueries
 
     public const string CollectionInsertCard =
         "INSERT INTO my_collection (card_uuid, quantity, is_foil, is_etched, sort_order) VALUES (@uuid, @qty, @isFoil, @isEtched, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM my_collection))";
+
+    public const string CollectionUpsertAddCard =
+        """
+        INSERT INTO my_collection (card_uuid, quantity, is_foil, is_etched, sort_order)
+        VALUES (@uuid, @qty, @isFoil, @isEtched, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM my_collection))
+        ON CONFLICT(card_uuid) DO UPDATE SET
+            quantity = my_collection.quantity + excluded.quantity,
+            is_foil = MAX(my_collection.is_foil, excluded.is_foil),
+            is_etched = MAX(my_collection.is_etched, excluded.is_etched)
+        """;
 
     public const string CollectionDeleteCard =
         "DELETE FROM my_collection WHERE card_uuid = @uuid";

@@ -211,6 +211,20 @@ public class CardRepository : ICardRepository
         return result;
     }
 
+    public async Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            var rows = await _db.MTGConnection.QueryAsync<ImportLookupRow>(SQLQueries.SelectImportLookupRows);
+            return [.. rows];
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public async Task<Card[]> SearchCardsAsync(string searchText, int limit = 100)
     {
         var helper = CreateSearchHelper();

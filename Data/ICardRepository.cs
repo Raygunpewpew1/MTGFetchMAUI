@@ -22,6 +22,7 @@ public interface ICardRepository
     Task<Card[]> GetCardWithOtherFacesAsync(string uuid);
     Task<Card[]> GetFullCardPackageAsync(string uuid);
     Task<Dictionary<string, Card>> GetCardsByUUIDsAsync(string[] uuids);
+    Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync();
 
     Task<Card[]> SearchCardsAsync(string searchText, int limit = 100);
     Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper);
