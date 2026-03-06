@@ -11,6 +11,24 @@ namespace AetherVault.Data;
 /// </summary>
 public class CollectionRepository : ICollectionRepository
 {
+    #pragma warning disable SA1401 // Fields should be private (internal helper DTO)
+        private sealed class CollectionStatsAggregateRow
+        {
+            public int TotalCards { get; set; }
+            public int UniqueCards { get; set; }
+            public int CreatureCount { get; set; }
+            public int SpellCount { get; set; }
+            public int LandCount { get; set; }
+            public int CommonCount { get; set; }
+            public int UncommonCount { get; set; }
+            public int RareCount { get; set; }
+            public int MythicCount { get; set; }
+            public int FoilCount { get; set; }
+            public double TotalCMC { get; set; }
+            public int NonLandCount { get; set; }
+        }
+    #pragma warning restore SA1401
+
     private class CollectionRow
     {
         public string card_uuid { get; set; } = "";
@@ -169,6 +187,20 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
+        // Fast path: compute stats with a single aggregate SQL query
+        // over the MTG master + attached collection database.
+        try
+        {
+            var aggregated = await GetCollectionStatsFromDatabaseAsync();
+            if (aggregated is not null)
+                return aggregated;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Collection stats aggregate query failed, falling back to in-memory calculation: {ex.Message}", LogLevel.Warning);
+        }
+
+        // Fallback: load full collection and calculate in memory
         var collection = await GetCollectionAsync();
         return CalculateStats(collection);
     }
@@ -214,6 +246,61 @@ public class CollectionRepository : ICollectionRepository
 
             if (item.IsFoil || item.IsEtched)
                 stats.FoilCount += item.Quantity;
+        }
+
+        private static SqliteConnection CreateReadOnlyConnection(string dbPath)
+        {
+            var builder = new SqliteConnectionStringBuilder
+            {
+                DataSource = dbPath,
+                Mode = SqliteOpenMode.ReadOnly
+            };
+            return new SqliteConnection(builder.ConnectionString);
+        }
+
+        /// <summary>
+        /// Computes collection statistics directly in SQLite using the MTG master DB
+        /// with the collection DB attached as 'col'. This avoids loading full Card
+        /// objects for every collection entry and scales much better for large
+        /// collections.
+        /// </summary>
+        private static async Task<CollectionStats?> GetCollectionStatsFromDatabaseAsync()
+        {
+            var mtgPath = AppDataManager.GetMTGDatabasePath();
+            var collectionPath = AppDataManager.GetCollectionDatabasePath();
+
+            if (!File.Exists(mtgPath) || !File.Exists(collectionPath))
+                return null;
+
+            await using var conn = CreateReadOnlyConnection(mtgPath);
+            await conn.OpenAsync();
+
+            // Attach the collection database as 'col' to mirror DatabaseManager.
+            var escapedCollPath = collectionPath.Replace("'", "''");
+            await conn.ExecuteAsync($"ATTACH DATABASE '{escapedCollPath}' AS col");
+
+            var row = await conn.QueryFirstOrDefaultAsync<CollectionStatsAggregateRow>(SQLQueries.CollectionStatsAggregates);
+            if (row is null)
+                return new CollectionStats();
+
+            var stats = new CollectionStats
+            {
+                TotalCards = row.TotalCards,
+                UniqueCards = row.UniqueCards,
+                CreatureCount = row.CreatureCount,
+                SpellCount = row.SpellCount,
+                LandCount = row.LandCount,
+                CommonCount = row.CommonCount,
+                UncommonCount = row.UncommonCount,
+                RareCount = row.RareCount,
+                MythicCount = row.MythicCount,
+                FoilCount = row.FoilCount
+            };
+
+            if (row.NonLandCount > 0)
+                stats.AvgCMC = row.TotalCMC / row.NonLandCount;
+
+            return stats;
         }
 
         if (nonLandCount > 0)

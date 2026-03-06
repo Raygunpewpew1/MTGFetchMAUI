@@ -16,60 +16,62 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Header -->
+        <!-- Header: title and status -->
         <Border Grid.Row="0"
                 Style="{StaticResource CardStyle}"
-                Margin="8,8,8,4">
-            <Grid ColumnDefinitions="*,Auto"
-                  ColumnSpacing="12">
-                <VerticalStackLayout>
-                    <Label Text="My Decks"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}" />
-                    <Label Text="{Binding StatusDisplayText}"
-                           FontSize="12"
-                           TextColor="{Binding StatusTextColor}" />
-                </VerticalStackLayout>
-
-                <HorizontalStackLayout Grid.Column="1"
-                                       Spacing="8"
-                                       VerticalOptions="Center">
+                Margin="16,12,16,8"
+                Padding="16,12">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="My Decks"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}" />
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
                     <ActivityIndicator IsRunning="{Binding IsBusy}"
                                        IsVisible="{Binding IsBusy}"
-                                       HeightRequest="20"
-                                       WidthRequest="20"
+                                       HeightRequest="16"
+                                       WidthRequest="16"
                                        Color="{StaticResource Accent}" />
-                    <Button Text="New"
-                            Clicked="OnNewDeckClicked"
-                            BackgroundColor="{StaticResource Accent}"
-                            TextColor="Black"
-                            FontAttributes="Bold"
-                            HeightRequest="36"
-                            Padding="12,0"
-                            FontSize="13">
-                        <Button.ImageSource>
-                            <FontImageSource FontFamily="FASolid"
-                                             Glyph="{x:Static fa:Solid.Plus}"
-                                             Size="13"
-                                             Color="Black" />
-                        </Button.ImageSource>
-                    </Button>
+                    <Label Text="{Binding StatusDisplayText}"
+                           FontSize="13"
+                           TextColor="{Binding StatusTextColor}"
+                           VerticalOptions="Center" />
                 </HorizontalStackLayout>
-            </Grid>
+            </VerticalStackLayout>
         </Border>
 
-        <!-- Content area: solid background so empty state never shows black -->
-        <Grid Grid.Row="1"
-              BackgroundColor="{StaticResource Background}">
+        <!-- Primary CTA: New deck button (always visible, prominent) -->
+        <Button Grid.Row="1"
+                Margin="16,0,16,12"
+                Clicked="OnNewDeckClicked"
+                Text="New deck"
+                BackgroundColor="{StaticResource Accent}"
+                TextColor="Black"
+                FontSize="17"
+                FontAttributes="Bold"
+                CornerRadius="12"
+                HeightRequest="52"
+                HorizontalOptions="Fill"
+                BorderWidth="0">
+            <Button.ImageSource>
+                <FontImageSource FontFamily="FASolid"
+                                 Glyph="{x:Static fa:Solid.Plus}"
+                                 Size="18"
+                                 Color="Black" />
+            </Button.ImageSource>
+        </Button>
+
+        <!-- Content area -->
+        <Grid Grid.Row="2" BackgroundColor="{StaticResource Background}">
 
             <!-- Deck List -->
             <CollectionView ItemsSource="{Binding Decks}"
                             IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
                             SelectionMode="Single"
-                            SelectionChanged="OnDeckSelectionChanged">
+                            SelectionChanged="OnDeckSelectionChanged"
+                            Margin="0,0,0,8">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:DeckEntity">
                         <SwipeView>
@@ -89,43 +91,70 @@
                             </SwipeView.RightItems>
 
                             <Border Style="{StaticResource CardStyle}"
-                                    Margin="12,6"
-                                    Padding="12,10"
-                                    MinimumHeightRequest="64">
-                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                    <!-- Deck Name -->
+                                    Margin="16,6"
+                                    Padding="16,14"
+                                    MinimumHeightRequest="72">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
                                     <Label Grid.Row="0" Grid.Column="0"
                                            Text="{Binding Name}"
-                                           FontSize="15"
+                                           FontSize="16"
                                            FontAttributes="Bold"
-                                           TextColor="{StaticResource TextPrimary}" />
+                                           TextColor="{StaticResource TextPrimary}"
+                                           LineBreakMode="TailTruncation" />
 
-                                    <!-- Format + Card Count badges -->
                                     <HorizontalStackLayout Grid.Row="0" Grid.Column="1"
-                                                            Spacing="6"
-                                                            VerticalOptions="Center">
+                                                           Spacing="8"
+                                                           VerticalOptions="Center">
+                                        <Button Clicked="OnRenameDeckButtonClicked"
+                                                BackgroundColor="Transparent"
+                                                Padding="8"
+                                                HeightRequest="40"
+                                                WidthRequest="40"
+                                                CommandParameter="{Binding .}">
+                                            <Button.ImageSource>
+                                                <FontImageSource FontFamily="FASolid"
+                                                                 Glyph="{x:Static fa:Solid.PenToSquare}"
+                                                                 Size="16"
+                                                                 Color="{StaticResource TextSecondary}" />
+                                            </Button.ImageSource>
+                                        </Button>
+                                        <Button Clicked="OnDeleteDeckButtonClicked"
+                                                BackgroundColor="Transparent"
+                                                Padding="8"
+                                                HeightRequest="40"
+                                                WidthRequest="40"
+                                                CommandParameter="{Binding .}">
+                                            <Button.ImageSource>
+                                                <FontImageSource FontFamily="FASolid"
+                                                                 Glyph="{x:Static fa:Solid.TrashCan}"
+                                                                 Size="16"
+                                                                 Color="{StaticResource ErrorColor}" />
+                                            </Button.ImageSource>
+                                        </Button>
+                                    </HorizontalStackLayout>
+
+                                    <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                                           Spacing="8" Margin="0,6,0,0">
                                         <Border BackgroundColor="{StaticResource Surface}"
-                                                Padding="8,3"
-                                                StrokeShape="RoundRectangle 10"
+                                                Padding="10,4"
+                                                StrokeShape="RoundRectangle 8"
                                                 Stroke="Transparent">
                                             <Label Text="{Binding CardCount, StringFormat='{0} cards'}"
-                                                   FontSize="11"
+                                                   FontSize="12"
                                                    TextColor="{StaticResource TextSecondary}" />
                                         </Border>
                                         <Border BackgroundColor="{StaticResource Surface}"
-                                                Padding="8,3"
-                                                StrokeShape="RoundRectangle 10"
+                                                Padding="10,4"
+                                                StrokeShape="RoundRectangle 8"
                                                 Stroke="Transparent">
                                             <Label Text="{Binding FormatDisplay}"
-                                                   FontSize="11"
+                                                   FontSize="12"
                                                    TextColor="{StaticResource TextSecondary}" />
                                         </Border>
                                     </HorizontalStackLayout>
 
-                                    <!-- Detail row -->
-                                    <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
-                                                         Spacing="2"
-                                                         Margin="0,4,0,0">
+                                    <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2"
+                                                         Spacing="2" Margin="0,4,0,0">
                                         <Label Text="{Binding CommanderDisplay}"
                                                IsVisible="{Binding HasCommander}"
                                                FontSize="12"
@@ -135,38 +164,36 @@
                                                TextColor="{StaticResource TextSecondary}" />
                                     </VerticalStackLayout>
                                 </Grid>
-
                             </Border>
                         </SwipeView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Empty State: fills cell with theme background so no black shows through -->
-            <Grid IsVisible="{Binding IsEmpty}"
-                  BackgroundColor="{StaticResource Background}"
-                  VerticalOptions="Fill"
-                  HorizontalOptions="Fill">
-                <VerticalStackLayout VerticalOptions="Center"
-                                     HorizontalOptions="Center"
-                                     Spacing="12">
-                    <Label FontFamily="FASolid"
-                           Text="{x:Static fa:Solid.LayerGroup}"
-                           FontSize="48"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalOptions="Center" />
-                    <Label Text="No decks yet"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           HorizontalOptions="Center" />
-                    <Label Text="Tap New to create your first deck"
-                           FontSize="13"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalOptions="Center" />
-                </VerticalStackLayout>
-            </Grid>
-
+            <!-- Empty state -->
+            <VerticalStackLayout IsVisible="{Binding IsEmpty}"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="20"
+                                 Margin="32">
+                <Label FontFamily="FASolid"
+                       Text="{x:Static fa:Solid.LayerGroup}"
+                       FontSize="56"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center"
+                       Opacity="0.7" />
+                <Label Text="No decks yet"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalOptions="Center" />
+                <Label Text="Tap &quot;New deck&quot; above to create your first deck, then add cards from Search or your Collection."
+                       FontSize="14"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       MaxLines="3" />
+            </VerticalStackLayout>
         </Grid>
 
     </Grid>

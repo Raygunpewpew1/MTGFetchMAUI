@@ -8,6 +8,29 @@ public partial class LoadingViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
     private readonly IServiceProvider _serviceProvider;
+    private CancellationTokenSource? _tipCts;
+
+    private static readonly string[] LoadingTips =
+    [
+        "Magic fact: The first Magic: The Gathering set, Alpha, was released in 1993.",
+        "Tip: In Commander, your deck (including your commander) must contain exactly 100 cards.",
+        "Magic fact: The five colors of Magic are white, blue, black, red, and green—often abbreviated as WUBRG.",
+        "Tip: A good limited deck usually runs around 17 lands in a 40-card build.",
+        "Magic fact: The color pie helps keep the game balanced by giving each color its own strengths and weaknesses.",
+        "Tip: In Commander, you can only include cards that match your commander’s color identity.",
+        "Magic fact: The legendary card \"Black Lotus\" is part of the original Power Nine.",
+        "Tip: Removal spells are as important as powerful creatures when building a deck.",
+        "Magic fact: Evergreen keywords like flying, trample, and lifelink appear in most sets.",
+        "Tip: Try to keep your mana curve low so you can spend your mana efficiently every turn.",
+        "Magic fact: Basic lands—Plains, Island, Swamp, Mountain, and Forest—are the only cards you can play any number of in constructed formats.",
+        "Tip: When in doubt during combat, think through blocks from your opponent’s perspective first.",
+        "Magic fact: The Commander format was originally known as Elder Dragon Highlander (EDH).",
+        "Tip: In multiplayer games, card advantage and politics can matter more than early damage.",
+        "Magic fact: Double-faced cards have been used for mechanics like transform, daybound/nightbound, and modal double-faced cards."
+    ];
+
+    [ObservableProperty]
+    public partial string? tipText { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ProgressPercent))]
@@ -142,6 +165,7 @@ public partial class LoadingViewModel : BaseViewModel
         ShowRetry = false;
         StatusIsError = false;
         IsBusy = true;
+        StartTipLoop();
         StatusMessage = "Downloading database...";
         Progress = 0;
 
@@ -184,13 +208,71 @@ public partial class LoadingViewModel : BaseViewModel
             ShowRetry = true;
             StatusIsError = true;
             StatusMessage = "Download failed. Please check your internet connection.";
+            StopTipLoop();
         }
+    }
+
+    private void StartTipLoop()
+    {
+        _tipCts?.Cancel();
+        _tipCts?.Dispose();
+        _tipCts = new CancellationTokenSource();
+        var token = _tipCts.Token;
+
+        // Set an initial tip immediately so the user sees something right away.
+        SetRandomTip();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(8), token);
+                    if (token.IsCancellationRequested)
+                        break;
+
+                    MainThread.BeginInvokeOnMainThread(SetRandomTip);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the token is cancelled.
+            }
+        }, token);
+    }
+
+    private void StopTipLoop()
+    {
+        _tipCts?.Cancel();
+        _tipCts?.Dispose();
+        _tipCts = null;
+    }
+
+    private void SetRandomTip()
+    {
+        if (LoadingTips.Length == 0)
+        {
+            TipText = string.Empty;
+            return;
+        }
+
+        var random = Random.Shared;
+        string next;
+
+        do
+        {
+            next = LoadingTips[random.Next(LoadingTips.Length)];
+        } while (next == TipText && LoadingTips.Length > 1);
+
+        TipText = next;
     }
 
     private async Task FinalizeStartupAsync()
     {
         StatusMessage = "Initializing...";
         IsBusy = true;
+        StopTipLoop();
 
         // Connect to the DB
         bool connected = await _cardManager.InitializeAsync();

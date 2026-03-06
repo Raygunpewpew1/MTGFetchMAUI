@@ -54,14 +54,42 @@ public partial class DecksPage : ContentPage
     {
         if (sender is SwipeItem swipe && swipe.BindingContext is DeckEntity deck)
         {
-            bool confirmed = await DisplayAlertAsync(
-                "Delete Deck",
-                $"Delete \"{deck.Name}\"? This cannot be undone.",
-                "Delete", "Cancel");
-
-            if (confirmed)
-                await _viewModel.DeleteDeckAsync(deck);
+            await ConfirmAndDeleteDeckAsync(deck);
         }
+    }
+
+    private async void OnRenameDeckButtonClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button btn && btn.BindingContext is DeckEntity deck)
+        {
+            string? newName = await DisplayPromptAsync(
+                "Rename deck",
+                "Enter a new name:",
+                initialValue: deck.Name,
+                maxLength: 80);
+
+            if (!string.IsNullOrWhiteSpace(newName) && newName != deck.Name)
+                await _viewModel.RenameDeckAsync(deck, newName.Trim());
+        }
+    }
+
+    private async void OnDeleteDeckButtonClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button btn && btn.BindingContext is DeckEntity deck)
+        {
+            await ConfirmAndDeleteDeckAsync(deck);
+        }
+    }
+
+    private async Task ConfirmAndDeleteDeckAsync(DeckEntity deck)
+    {
+        bool confirmed = await DisplayAlertAsync(
+            "Delete deck",
+            $"Delete \"{deck.Name}\"? This cannot be undone.",
+            "Delete", "Cancel");
+
+        if (confirmed)
+            await _viewModel.DeleteDeckAsync(deck);
     }
 
     private async void OnDeckSelectionChanged(object? sender, SelectionChangedEventArgs e)

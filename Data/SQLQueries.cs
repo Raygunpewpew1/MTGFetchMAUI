@@ -320,6 +320,63 @@ public static class SQLQueries
     public const string CollectionCheckExists =
         "SELECT 1 FROM my_collection WHERE card_uuid = @uuid";
 
+    /// <summary>
+    /// Aggregated collection statistics.
+    /// Uses the MTG master DB (with attached collection DB as 'col') to
+    /// compute counts and averages in a single, efficient query.
+    /// Mirrors the semantics of CollectionRepository.CalculateStats.
+    /// </summary>
+    public const string CollectionStatsAggregates =
+        """
+        WITH coll AS (
+            SELECT
+                mc.quantity,
+                mc.is_foil,
+                mc.is_etched,
+                COALESCE(cc.type, tt.type, '') AS type,
+                /* Rarity from cards only; tokens have NULL rarity */
+                cc.rarity AS rarity,
+                cc.manaValue AS manaValue
+            FROM col.my_collection mc
+            LEFT JOIN cards cc ON cc.uuid = mc.card_uuid
+            LEFT JOIN tokens tt ON tt.uuid = mc.card_uuid
+        )
+        SELECT
+            COALESCE(SUM(quantity), 0) AS TotalCards,
+            COUNT(*) AS UniqueCards,
+            COALESCE(SUM(CASE WHEN type LIKE '%Creature%' THEN quantity ELSE 0 END), 0) AS CreatureCount,
+            COALESCE(SUM(CASE WHEN type LIKE '%Land%' THEN quantity ELSE 0 END), 0) AS LandCount,
+            COALESCE(SUM(CASE WHEN type NOT LIKE '%Creature%' AND type NOT LIKE '%Land%' THEN quantity ELSE 0 END), 0) AS SpellCount,
+            /* Rarity buckets mirror EnumExtensions.ParseCardRarity */
+            COALESCE(SUM(CASE
+                WHEN rarity IS NULL THEN quantity
+                WHEN LOWER(substr(rarity, 1, 1)) = 'c' THEN quantity
+                ELSE 0
+            END), 0) AS CommonCount,
+            COALESCE(SUM(CASE WHEN LOWER(substr(rarity, 1, 1)) = 'u' THEN quantity ELSE 0 END), 0) AS UncommonCount,
+            COALESCE(SUM(CASE WHEN LOWER(substr(rarity, 1, 1)) = 'r' THEN quantity ELSE 0 END), 0) AS RareCount,
+            COALESCE(SUM(CASE
+                WHEN LOWER(rarity) = 'mythic rare' THEN quantity
+                WHEN LOWER(substr(rarity, 1, 1)) = 'm' THEN quantity
+                ELSE 0
+            END), 0) AS MythicCount,
+            COALESCE(SUM(CASE
+                WHEN (is_foil IS NOT NULL AND is_foil != 0)
+                  OR (is_etched IS NOT NULL AND is_etched != 0)
+                    THEN quantity
+                ELSE 0
+            END), 0) AS FoilCount,
+            COALESCE(SUM(CASE
+                WHEN type NOT LIKE '%Land%' THEN COALESCE(manaValue, 0) * quantity
+                ELSE 0
+            END), 0.0) AS TotalCMC,
+            COALESCE(SUM(CASE
+                WHEN type NOT LIKE '%Land%' THEN quantity
+                ELSE 0
+            END), 0) AS NonLandCount
+        FROM coll
+        """;
+
     // ============================================================================
     // DECK QUERIES
     // ============================================================================

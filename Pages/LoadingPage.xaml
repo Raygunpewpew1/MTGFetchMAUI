@@ -93,6 +93,16 @@
                    HorizontalTextAlignment="Center"
                    MaxLines="2"
                    LineBreakMode="TailTruncation"
+                   Margin="0,0,0,12" />
+
+            <!-- MTG fact / tip -->
+            <Label Text="{Binding TipText}"
+                   FontSize="13"
+                   TextColor="{StaticResource SplashMuted}"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   MaxLines="3"
+                   LineBreakMode="WordWrap"
                    Margin="0,0,0,24" />
 
             <!-- Retry button -->

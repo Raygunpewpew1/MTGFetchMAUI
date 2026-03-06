@@ -1,93 +1,88 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="AetherVault.Pages.CreateDeckPage"
-             Title="New Deck"
+             Title="New deck"
              BackgroundColor="{StaticResource Background}">
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="20,16">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="24,20">
 
-        <!-- Title -->
-        <Label Grid.Row="0"
-               Text="Create Deck"
-               FontSize="20"
-               FontAttributes="Bold"
-               TextColor="{StaticResource TextPrimary}"
-               Margin="0,0,0,16" />
+        <!-- Title and subtitle -->
+        <VerticalStackLayout Grid.Row="0" Spacing="4" Margin="0,0,0,20">
+            <Label Text="Create deck"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}" />
+            <Label Text="Give your deck a name and choose a format."
+                   FontSize="14"
+                   TextColor="{StaticResource TextSecondary}" />
+        </VerticalStackLayout>
 
         <!-- Form -->
         <ScrollView Grid.Row="1">
-            <Border Style="{StaticResource CardStyle}">
-                <VerticalStackLayout Spacing="16">
+            <VerticalStackLayout Spacing="20">
 
-                    <!-- Deck Name -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Deck Name"
-                               FontSize="12"
-                               TextColor="{StaticResource TextSecondary}" />
-                        <Entry x:Name="NameEntry"
-                               Placeholder="My Deck"
-                               MaxLength="64"
-                               BackgroundColor="{StaticResource Surface}"
-                               TextColor="{StaticResource TextPrimary}"
-                               PlaceholderColor="{StaticResource TextSecondary}"
-                               HeightRequest="44"
-                               FontSize="15" />
+                <Border Style="{StaticResource CardStyle}" Padding="16">
+                    <VerticalStackLayout Spacing="16">
+                        <material:TextField x:Name="NameEntry"
+                                           Title="Deck name"
+                                           Placeholder="e.g. My Commander Deck"
+                                           MaxLength="64"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           TitleColor="{StaticResource TextSecondary}"
+                                           AccentColor="{StaticResource Accent}" />
+
+                        <material:PickerField x:Name="FormatPicker"
+                                              Title="Format"
+                                              TextColor="{StaticResource TextPrimary}"
+                                              TitleColor="{StaticResource TextSecondary}"
+                                              AccentColor="{StaticResource Accent}" />
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Description (optional)"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Editor x:Name="DescriptionEntry"
+                                    Placeholder="Describe your deck or strategy..."
+                                    MaxLength="256"
+                                    BackgroundColor="{StaticResource Surface}"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    PlaceholderColor="{StaticResource TextSecondary}"
+                                    MinimumHeightRequest="80"
+                                    FontSize="14"
+                                    Margin="0,4,0,0" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
+                </Border>
 
-                    <!-- Format -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Format"
-                               FontSize="12"
-                               TextColor="{StaticResource TextSecondary}" />
-                        <Picker x:Name="FormatPicker"
-                                BackgroundColor="{StaticResource Surface}"
-                                TextColor="{StaticResource TextPrimary}"
-                                HeightRequest="44"
-                                FontSize="15" />
-                    </VerticalStackLayout>
+                <Label x:Name="ErrorLabel"
+                       IsVisible="False"
+                       TextColor="{StaticResource ErrorColor}"
+                       FontSize="13"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center" />
 
-                    <!-- Description -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Description (optional)"
-                               FontSize="12"
-                               TextColor="{StaticResource TextSecondary}" />
-                        <Editor x:Name="DescriptionEntry"
-                                Placeholder="Describe your deck..."
-                                MaxLength="256"
-                                BackgroundColor="{StaticResource Surface}"
-                                TextColor="{StaticResource TextPrimary}"
-                                PlaceholderColor="{StaticResource TextSecondary}"
-                                HeightRequest="90"
-                                FontSize="14" />
-                    </VerticalStackLayout>
-
-                    <!-- Error label -->
-                    <Label x:Name="ErrorLabel"
-                           IsVisible="False"
-                           TextColor="#F44336"
-                           FontSize="13"
-                           HorizontalOptions="Center" />
-
-                </VerticalStackLayout>
-            </Border>
+            </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Buttons -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,16,0,0">
+        <!-- Actions -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,20,0,0">
             <Button Grid.Column="0"
                     Text="Cancel"
                     Clicked="OnCancelClicked"
                     BackgroundColor="{StaticResource Surface}"
                     TextColor="{StaticResource TextPrimary}"
-                    HeightRequest="44" />
+                    HeightRequest="48"
+                    CornerRadius="12" />
             <Button Grid.Column="1"
-                    Text="Create"
+                    Text="Create deck"
                     Clicked="OnCreateClicked"
-                    BackgroundColor="{StaticResource Primary}"
+                    BackgroundColor="{StaticResource Accent}"
                     TextColor="Black"
                     FontAttributes="Bold"
-                    HeightRequest="44" />
+                    HeightRequest="48"
+                    CornerRadius="12" />
         </Grid>
 
     </Grid>

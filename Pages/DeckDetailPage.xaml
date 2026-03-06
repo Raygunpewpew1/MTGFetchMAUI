@@ -12,107 +12,121 @@
              BackgroundColor="{StaticResource Background}"
              x:DataType="vm:DeckDetailViewModel">
 
-    <Grid x:Name="DeckDetailRoot" RowDefinitions="Auto,140,Auto,*,Auto">
+    <Grid x:Name="DeckDetailRoot" RowDefinitions="Auto,100,Auto,*,Auto">
 
-        <!-- Row 0: Deck header card -->
+        <!-- Row 0: Deck header -->
         <Border Grid.Row="0"
                 Style="{StaticResource CardStyle}"
-                Margin="8,8,8,4">
+                Margin="16,12,16,8"
+                Padding="16,12">
             <Grid ColumnDefinitions="*,Auto"
-                  ColumnSpacing="12">
-                <VerticalStackLayout Spacing="4">
+                  ColumnSpacing="16">
+                <VerticalStackLayout Spacing="4" VerticalOptions="Center">
                     <Label Text="{Binding Deck.Name}"
-                           FontSize="17"
+                           FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextPrimary}"
                            LineBreakMode="TailTruncation" />
                     <Label Text="{Binding DeckFormat}"
-                           FontSize="12"
+                           FontSize="13"
                            TextColor="{StaticResource TextSecondary}" />
                 </VerticalStackLayout>
 
                 <Border Grid.Column="1"
                         BackgroundColor="{StaticResource Accent}"
-                        Padding="10,5"
-                        StrokeShape="RoundRectangle 14"
+                        Padding="14,8"
+                        StrokeShape="RoundRectangle 12"
                         Stroke="Transparent"
                         VerticalOptions="Center">
                     <Label Text="{Binding TotalCardCount}"
                            TextColor="Black"
-                           FontSize="14"
+                           FontSize="16"
                            FontAttributes="Bold" />
                 </Border>
             </Grid>
         </Border>
 
-        <!-- Row 1: Commander Art Header (gradient placeholder, shows commander name) -->
+        <!-- Row 1: Commander Art Header (gradient, shows commander name) -->
         <skia:SKCanvasView Grid.Row="1"
                            x:Name="CommanderArtCanvas"
+                           HeightRequest="100"
                            PaintSurface="OnCommanderArtPaint" />
 
-        <!-- Row 2: Section Tab Bar -->
+        <!-- Row 2: Section Tab Bar (icons + labels for easier tapping) -->
         <Grid Grid.Row="2"
               ColumnDefinitions="*,*,*,*"
               BackgroundColor="{StaticResource Surface}"
-              HeightRequest="44">
-            <!-- Commander Tab -->
-            <Grid Grid.Column="0">
-                <Grid.GestureRecognizers>
+              HeightRequest="52"
+              ColumnSpacing="0">
+            <Border Grid.Column="0" StrokeThickness="0" Padding="4,8">
+                <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectCommanderCommand}" />
-                </Grid.GestureRecognizers>
-                <Label Text="Commander" FontSize="12" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" VerticalOptions="Center" />
-                <BoxView HeightRequest="3" Color="{Binding Tab0Color}" Opacity="{Binding Tab0Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
-            </Grid>
-            <!-- Main Tab -->
-            <Grid Grid.Column="1">
-                <Grid.GestureRecognizers>
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.Crown}" FontSize="14" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
+                    <Label Text="Commander" FontSize="11" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
+                    <BoxView HeightRequest="2" Color="{Binding Tab0Color}" Opacity="{Binding Tab0Indicator}" HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="1" StrokeThickness="0" Padding="4,8">
+                <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectMainCommand}" />
-                </Grid.GestureRecognizers>
-                <Label Text="Main" FontSize="12" FontAttributes="{Binding Tab1Font}" TextColor="{Binding Tab1Color}" HorizontalOptions="Center" VerticalOptions="Center" />
-                <BoxView HeightRequest="3" Color="{Binding Tab1Color}" Opacity="{Binding Tab1Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
-            </Grid>
-            <!-- Sideboard Tab -->
-            <Grid Grid.Column="2">
-                <Grid.GestureRecognizers>
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.List}" FontSize="14" TextColor="{Binding Tab1Color}" HorizontalOptions="Center" />
+                    <Label Text="Main" FontSize="11" FontAttributes="{Binding Tab1Font}" TextColor="{Binding Tab1Color}" HorizontalOptions="Center" />
+                    <BoxView HeightRequest="2" Color="{Binding Tab1Color}" Opacity="{Binding Tab1Indicator}" HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="2" StrokeThickness="0" Padding="4,8">
+                <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectSideboardCommand}" />
-                </Grid.GestureRecognizers>
-                <Label Text="Sideboard" FontSize="12" FontAttributes="{Binding Tab2Font}" TextColor="{Binding Tab2Color}" HorizontalOptions="Center" VerticalOptions="Center" />
-                <BoxView HeightRequest="3" Color="{Binding Tab2Color}" Opacity="{Binding Tab2Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
-            </Grid>
-            <!-- Stats Tab -->
-            <Grid Grid.Column="3">
-                <Grid.GestureRecognizers>
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.LayerGroup}" FontSize="14" TextColor="{Binding Tab2Color}" HorizontalOptions="Center" />
+                    <Label Text="Sideboard" FontSize="11" FontAttributes="{Binding Tab2Font}" TextColor="{Binding Tab2Color}" HorizontalOptions="Center" />
+                    <BoxView HeightRequest="2" Color="{Binding Tab2Color}" Opacity="{Binding Tab2Indicator}" HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Grid.Column="3" StrokeThickness="0" Padding="4,8">
+                <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SelectStatsCommand}" />
-                </Grid.GestureRecognizers>
-                <Label Text="Stats" FontSize="12" FontAttributes="{Binding Tab3Font}" TextColor="{Binding Tab3Color}" HorizontalOptions="Center" VerticalOptions="Center" />
-                <BoxView HeightRequest="3" Color="{Binding Tab3Color}" Opacity="{Binding Tab3Indicator}" VerticalOptions="End" HorizontalOptions="Fill" />
-            </Grid>
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.ChartColumn}" FontSize="14" TextColor="{Binding Tab3Color}" HorizontalOptions="Center" />
+                    <Label Text="Stats" FontSize="11" FontAttributes="{Binding Tab3Font}" TextColor="{Binding Tab3Color}" HorizontalOptions="Center" />
+                    <BoxView HeightRequest="2" Color="{Binding Tab3Color}" Opacity="{Binding Tab3Indicator}" HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+            </Border>
         </Grid>
 
         <!-- Row 3: Content Panels + FAB overlay -->
         <Grid Grid.Row="3">
 
-            <!-- Last-added history chip -->
+            <!-- Undo last add (compact bar, doesn't block FAB) -->
             <Border BackgroundColor="{StaticResource Surface}"
-                    StrokeShape="RoundRectangle 18"
-                    Padding="10,6"
-                    Margin="12,8,80,0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8"
+                    Margin="16,8,88,0"
                     HorizontalOptions="Start"
                     VerticalOptions="Start"
-                    IsVisible="{Binding HasLastAdded}">
-                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    IsVisible="{Binding HasLastAdded}"
+                    Stroke="Transparent">
+                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
                     <Label Text="{Binding LastAddedSummaryText}"
-                           FontSize="11"
+                           FontSize="12"
                            TextColor="{StaticResource TextSecondary}"
-                           VerticalOptions="Center" />
+                           VerticalOptions="Center"
+                           MaxLines="1"
+                           LineBreakMode="TailTruncation" />
                     <Button Text="Undo"
                             Command="{Binding UndoLastAddedCommand}"
-                            FontSize="11"
-                            HeightRequest="26"
-                            Padding="10,0"
+                            FontSize="12"
+                            HeightRequest="32"
+                            Padding="12,0"
                             BackgroundColor="{StaticResource Accent}"
                             TextColor="Black"
-                            CornerRadius="13" />
+                            CornerRadius="16" />
                 </HorizontalStackLayout>
             </Border>
 
@@ -123,18 +137,25 @@
                     <VerticalStackLayout IsVisible="{Binding HasNoCommander}"
                                          VerticalOptions="Center"
                                          HorizontalOptions="Center"
-                                         Spacing="8"
-                                         Padding="0,40,0,0">
+                                         Spacing="12"
+                                         Padding="24,48">
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.Crown}"
+                               FontSize="40"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center"
+                               Opacity="0.6" />
                         <Label Text="No commander set"
-                               FontSize="16"
+                               FontSize="18"
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextPrimary}"
                                HorizontalOptions="Center" />
-                        <Label Text="Tap + to search for a legendary creature"
-                               FontSize="13"
+                        <Label Text="Tap the + button below to search for a legendary creature to lead your deck."
+                               FontSize="14"
                                TextColor="{StaticResource TextSecondary}"
                                HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center" />
+                               HorizontalTextAlignment="Center"
+                               MaxLines="3" />
                     </VerticalStackLayout>
 
                     <!-- Commander cards -->
@@ -152,24 +173,28 @@
                                         </SwipeItems>
                                     </SwipeView.RightItems>
                                     <Border Style="{StaticResource CardStyle}"
-                                            Margin="0,4">
-                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto"
-                                              Padding="8,6"
-                                              ColumnSpacing="8">
+                                            Margin="0,6"
+                                            Padding="12,10"
+                                            MinimumHeightRequest="48">
+                                        <Grid ColumnDefinitions="Auto,*,Auto"
+                                              ColumnSpacing="10"
+                                              VerticalOptions="Center">
                                             <Border BackgroundColor="{StaticResource Accent}"
-                                                    Padding="6,2"
-                                                    StrokeShape="RoundRectangle 6"
+                                                    Padding="8,4"
+                                                    StrokeShape="RoundRectangle 8"
                                                     Stroke="Transparent"
-                                                    VerticalOptions="Center">
+                                                    VerticalOptions="Center"
+                                                    MinimumWidthRequest="32">
                                                 <Label Text="{Binding Entity.Quantity}"
                                                        TextColor="Black"
-                                                       FontSize="12"
-                                                       FontAttributes="Bold" />
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       HorizontalOptions="Center" />
                                             </Border>
                                             <Label Grid.Column="1"
                                                    Text="{Binding DisplayName}"
                                                    TextColor="{StaticResource TextPrimary}"
-                                                   FontSize="14"
+                                                   FontSize="15"
                                                    VerticalOptions="Center" />
                                             <controls:ManaCostView Grid.Column="2"
                                                    ManaText="{Binding ManaCostText}"
@@ -211,45 +236,47 @@
                                 </SwipeItems>
                             </SwipeView.RightItems>
                             <Border Style="{StaticResource CardStyle}"
-                                    Margin="8,4">
+                                    Margin="12,6"
+                                    Padding="12,10"
+                                    MinimumHeightRequest="52">
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
-                                      Padding="8,4"
-                                      ColumnSpacing="4">
+                                      ColumnSpacing="8"
+                                      VerticalOptions="Center">
                                     <Border BackgroundColor="{StaticResource Surface}"
-                                            Padding="6,2"
-                                            StrokeShape="RoundRectangle 6"
+                                            Padding="8,4"
+                                            StrokeShape="RoundRectangle 8"
                                             Stroke="Transparent"
-                                            VerticalOptions="Center">
+                                            VerticalOptions="Center"
+                                            MinimumWidthRequest="32">
                                         <Label Text="{Binding Entity.Quantity}"
                                                TextColor="{StaticResource TextPrimary}"
-                                               FontSize="12"
-                                               FontAttributes="Bold" />
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1"
                                            Text="{Binding DisplayName}"
                                            TextColor="{StaticResource TextPrimary}"
-                                           FontSize="14"
+                                           FontSize="15"
                                            VerticalOptions="Center"
                                            LineBreakMode="TailTruncation" />
                                     <controls:ManaCostView Grid.Column="2"
                                            ManaText="{Binding ManaCostText}"
-                                           SymbolSize="11"
+                                           SymbolSize="12"
                                            VerticalOptions="Center" />
                                     <Button Grid.Column="3"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Surface}"
                                             TextColor="{StaticResource TextPrimary}"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="44"
+                                            HeightRequest="44"
                                             Padding="0"
-                                            Margin="0"
-                                            FontSize="16"
-                                            CornerRadius="6">
+                                            CornerRadius="8">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Minus}"
-                                                             Size="14"
+                                                             Size="16"
                                                              Color="{StaticResource TextPrimary}" />
                                         </Button.ImageSource>
                                     </Button>
@@ -258,16 +285,14 @@
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
                                             TextColor="Black"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="44"
+                                            HeightRequest="44"
                                             Padding="0"
-                                            Margin="0"
-                                            FontSize="16"
-                                            CornerRadius="6">
+                                            CornerRadius="8">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Plus}"
-                                                             Size="14"
+                                                             Size="16"
                                                              Color="Black" />
                                         </Button.ImageSource>
                                     </Button>
@@ -301,45 +326,47 @@
                                 </SwipeItems>
                             </SwipeView.RightItems>
                             <Border Style="{StaticResource CardStyle}"
-                                    Margin="8,4">
+                                    Margin="12,6"
+                                    Padding="12,10"
+                                    MinimumHeightRequest="52">
                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
-                                      Padding="8,4"
-                                      ColumnSpacing="4">
+                                      ColumnSpacing="8"
+                                      VerticalOptions="Center">
                                     <Border BackgroundColor="{StaticResource Surface}"
-                                            Padding="6,2"
-                                            StrokeShape="RoundRectangle 6"
+                                            Padding="8,4"
+                                            StrokeShape="RoundRectangle 8"
                                             Stroke="Transparent"
-                                            VerticalOptions="Center">
+                                            VerticalOptions="Center"
+                                            MinimumWidthRequest="32">
                                         <Label Text="{Binding Entity.Quantity}"
                                                TextColor="{StaticResource TextPrimary}"
-                                               FontSize="12"
-                                               FontAttributes="Bold" />
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1"
                                            Text="{Binding DisplayName}"
                                            TextColor="{StaticResource TextPrimary}"
-                                           FontSize="14"
+                                           FontSize="15"
                                            VerticalOptions="Center"
                                            LineBreakMode="TailTruncation" />
                                     <controls:ManaCostView Grid.Column="2"
                                            ManaText="{Binding ManaCostText}"
-                                           SymbolSize="11"
+                                           SymbolSize="12"
                                            VerticalOptions="Center" />
                                     <Button Grid.Column="3"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Surface}"
                                             TextColor="{StaticResource TextPrimary}"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="44"
+                                            HeightRequest="44"
                                             Padding="0"
-                                            Margin="0"
-                                            FontSize="16"
-                                            CornerRadius="6">
+                                            CornerRadius="8">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Minus}"
-                                                             Size="14"
+                                                             Size="16"
                                                              Color="{StaticResource TextPrimary}" />
                                         </Button.ImageSource>
                                     </Button>
@@ -348,16 +375,14 @@
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
                                             TextColor="Black"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="44"
+                                            HeightRequest="44"
                                             Padding="0"
-                                            Margin="0"
-                                            FontSize="16"
-                                            CornerRadius="6">
+                                            CornerRadius="8">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Plus}"
-                                                             Size="14"
+                                                             Size="16"
                                                              Color="Black" />
                                         </Button.ImageSource>
                                     </Button>
