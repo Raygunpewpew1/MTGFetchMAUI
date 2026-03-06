@@ -123,12 +123,19 @@ internal sealed class CardGridRenderer : IDisposable
         var info = e.Info;
         if (info.Width <= 0 || info.Height <= 0)
         {
-            canvas.Clear(new SKColor(18, 18, 18));
+            canvas.Clear(SKColors.Transparent);
             return;
         }
 
         try
         {
+            // When there are no cards, clear to transparent so the empty-state overlay or page background shows through
+            if (list == null || list.Commands.IsEmpty)
+            {
+                canvas.Clear(SKColors.Transparent);
+                return;
+            }
+
             // Advance shimmer phase
             long now = _animationStopwatch.ElapsedMilliseconds;
             float delta = (now - _lastFrameTime) / 1000f;
@@ -138,8 +145,6 @@ internal sealed class CardGridRenderer : IDisposable
             if (_shimmerPhase > 1f) _shimmerPhase -= 1f;
 
             canvas.Clear(new SKColor(18, 18, 18));
-
-            if (list == null || list.Commands.IsEmpty) return;
             if (_bgPaint == null) EnsureResources();
 
             float scale = info.Width / (viewWidth > 0 ? viewWidth : 360f);

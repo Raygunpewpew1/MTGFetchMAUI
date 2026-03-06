@@ -154,9 +154,10 @@
             </Grid>
         </Border>
 
-        <!-- Card Grid (always present; empty state overlay on top when IsCollectionEmpty) -->
+        <!-- Card Grid: hidden when empty so Skia canvas cannot draw over the empty state -->
         <controls:CardGrid Grid.Row="2"
                            x:Name="CollectionGrid"
+                           IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}"
                            Scrolled="OnCollectionScrolled"
                            UseCompactGrid="True" />
 

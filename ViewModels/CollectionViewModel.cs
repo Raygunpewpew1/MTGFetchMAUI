@@ -97,24 +97,17 @@ public partial class CollectionViewModel : BaseViewModel
 
         if (_allItems.Length == 0)
         {
-            // Set empty state on UI first so the empty-state overlay shows (and grid is hidden) before grid updates
-            if (MainThread.IsMainThread)
+            // Always set empty state on UI thread so grid is hidden before we update it (avoids Skia repaint drawing over overlay)
+            MainThread.BeginInvokeOnMainThread(() =>
             {
                 IsCollectionEmpty = true;
                 TotalCards = 0;
                 UniqueCards = 0;
                 StatusMessage = "";
-            }
-            else
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    IsCollectionEmpty = true;
-                    TotalCards = 0;
-                    UniqueCards = 0;
-                    StatusMessage = "";
-                });
-            }
+            });
+            // Let the UI thread process the binding (grid becomes hidden) before we update grid state
+            await Task.Delay(150);
+            if (token.IsCancellationRequested) return;
             if (_grid != null) await _grid.SetCollectionAsync([]);
             if (token.IsCancellationRequested) return;
             return;
@@ -273,7 +266,9 @@ public partial class CollectionViewModel : BaseViewModel
             _allItems = await Task.Run(() => _cardManager.GetCollectionAsync());
 
             await ApplyFilterAndSortAsync();
-            MainThread.BeginInvokeOnMainThread(() => CollectionLoaded?.Invoke());
+            // Only scroll when we have content; when empty the grid is hidden and we must not trigger it
+            if (!IsCollectionEmpty)
+                MainThread.BeginInvokeOnMainThread(() => CollectionLoaded?.Invoke());
         }
         catch (Exception ex)
         {
