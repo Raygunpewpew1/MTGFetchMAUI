@@ -18,6 +18,7 @@
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
@@ -59,6 +60,10 @@
     <Compile Include="..\Services\AppDataManager.cs" Link="Services\AppDataManager.cs" />
     <Compile Include="..\Services\DeckBuilder\DeckValidator.cs" Link="Services\DeckBuilder\DeckValidator.cs" />
     <Compile Include="..\Services\DeckBuilder\DeckBuilderService.cs" Link="Services\DeckBuilder\DeckBuilderService.cs" />
+    <Compile Include="..\Services\ImportExport\DeckCsvV1.cs" Link="Services\ImportExport\DeckCsvV1.cs" />
+    <Compile Include="..\Services\ImportExport\CardImportResolver.cs" Link="Services\ImportExport\CardImportResolver.cs" />
+    <Compile Include="..\Services\ImportExport\DeckImporter.cs" Link="Services\ImportExport\DeckImporter.cs" />
+    <Compile Include="..\Services\ImportExport\DeckExporter.cs" Link="Services\ImportExport\DeckExporter.cs" />
   </ItemGroup>
 
 </Project>

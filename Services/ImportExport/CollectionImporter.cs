@@ -24,27 +24,11 @@ public class CollectionImporter
         _cardRepo = cardRepo;
     }
 
-    private sealed record ImportCandidate(string UUID, string SetCode, string? SetName);
-
-    private sealed class ImportLookupIndex
-    {
-        public Dictionary<string, string> ByScryfallId { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, string> BySetNumber { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, List<ImportCandidate>> ByName { get; } = new(StringComparer.OrdinalIgnoreCase);
-    }
-
     public async Task<ImportResult> ImportCsvAsync(Stream csvStream, Action<string, int>? onProgress = null)
     {
         var result = new ImportResult();
         var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
         var seenUuids = new Dictionary<string, int>(); // uuid → index in cardsToAdd, to deduplicate
-
-        // Fallback caches store both hits and misses (null) to avoid repeated misses.
-        var scryfallFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        var setNumberFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        var nameSetFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        var nameExactFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        var namePartialFallbackCache = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -111,8 +95,8 @@ public class CollectionImporter
         }
 
         onProgress?.Invoke("Preparing card lookup index...", 0);
-        var lookupRows = await _cardRepo.GetImportLookupRowsAsync();
-        var lookupIndex = BuildLookupIndex(lookupRows);
+        var resolver = new CardImportResolver(_cardRepo);
+        var resolveSession = await resolver.CreateSessionAsync();
 
         int lineNumber = 1;
         while (await csv.ReadAsync())
@@ -194,19 +178,10 @@ public class CollectionImporter
                 }
             }
 
-            var resolvedUuid = ResolveFromLookup(lookupIndex, scryfallId, set, number, name);
+            var resolvedUuid = resolveSession.ResolveFromLookup(scryfallId, set, number, name);
             if (string.IsNullOrEmpty(resolvedUuid))
             {
-                resolvedUuid = await ResolveFromFallbackAsync(
-                    scryfallId,
-                    set,
-                    number,
-                    name,
-                    scryfallFallbackCache,
-                    setNumberFallbackCache,
-                    nameSetFallbackCache,
-                    nameExactFallbackCache,
-                    namePartialFallbackCache);
+                resolvedUuid = await resolveSession.ResolveFromFallbackAsync(scryfallId, set, number, name);
             }
 
             if (!string.IsNullOrEmpty(resolvedUuid))
@@ -252,258 +227,5 @@ public class CollectionImporter
             result.TotalCards);
 
         return result;
-    }
-
-    private static ImportLookupIndex BuildLookupIndex(IReadOnlyList<ImportLookupRow> rows)
-    {
-        var index = new ImportLookupIndex();
-
-        foreach (var row in rows)
-        {
-            if (string.IsNullOrWhiteSpace(row.UUID))
-            {
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(row.ScryfallId))
-            {
-                index.ByScryfallId.TryAdd(NormalizeKey(row.ScryfallId), row.UUID);
-            }
-
-            if (!string.IsNullOrWhiteSpace(row.Number))
-            {
-                var setCodeKey = BuildSetNumberKey(row.SetCode, row.Number);
-                if (!string.IsNullOrEmpty(setCodeKey))
-                {
-                    index.BySetNumber.TryAdd(setCodeKey, row.UUID);
-                }
-
-                var setNameKey = BuildSetNumberKey(row.SetName, row.Number);
-                if (!string.IsNullOrEmpty(setNameKey))
-                {
-                    index.BySetNumber.TryAdd(setNameKey, row.UUID);
-                }
-            }
-
-            var candidate = new ImportCandidate(row.UUID, row.SetCode, row.SetName);
-            AddNameCandidate(index.ByName, row.Name, candidate);
-            AddNameCandidate(index.ByName, row.FaceName, candidate);
-        }
-
-        return index;
-    }
-
-    private static void AddNameCandidate(
-        Dictionary<string, List<ImportCandidate>> byName,
-        string? name,
-        ImportCandidate candidate)
-    {
-        var normalized = NormalizeKey(name);
-        if (string.IsNullOrEmpty(normalized))
-        {
-            return;
-        }
-
-        if (!byName.TryGetValue(normalized, out var candidates))
-        {
-            byName[normalized] = [candidate];
-            return;
-        }
-
-        for (int i = 0; i < candidates.Count; i++)
-        {
-            if (candidates[i].UUID == candidate.UUID)
-            {
-                return;
-            }
-        }
-
-        candidates.Add(candidate);
-    }
-
-    private static string? ResolveFromLookup(
-        ImportLookupIndex index,
-        string? scryfallId,
-        string? set,
-        string? number,
-        string? name)
-    {
-        if (!string.IsNullOrWhiteSpace(scryfallId) &&
-            index.ByScryfallId.TryGetValue(NormalizeKey(scryfallId), out var scryfallUuid))
-        {
-            return scryfallUuid;
-        }
-
-        var setNumberKey = BuildSetNumberKey(set, number);
-        if (!string.IsNullOrEmpty(setNumberKey) &&
-            index.BySetNumber.TryGetValue(setNumberKey, out var setNumberUuid))
-        {
-            return setNumberUuid;
-        }
-
-        var normalizedName = NormalizeKey(name);
-        if (string.IsNullOrEmpty(normalizedName) ||
-            !index.ByName.TryGetValue(normalizedName, out var candidates) ||
-            candidates.Count == 0)
-        {
-            return null;
-        }
-
-        var normalizedSet = NormalizeKey(set);
-        if (!string.IsNullOrEmpty(normalizedSet))
-        {
-            for (int i = 0; i < candidates.Count; i++)
-            {
-                var candidate = candidates[i];
-                if (string.Equals(NormalizeKey(candidate.SetCode), normalizedSet, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(NormalizeKey(candidate.SetName), normalizedSet, StringComparison.OrdinalIgnoreCase))
-                {
-                    return candidate.UUID;
-                }
-            }
-        }
-
-        return candidates[0].UUID;
-    }
-
-    private async Task<string?> ResolveFromFallbackAsync(
-        string? scryfallId,
-        string? set,
-        string? number,
-        string? name,
-        Dictionary<string, string?> scryfallFallbackCache,
-        Dictionary<string, string?> setNumberFallbackCache,
-        Dictionary<string, string?> nameSetFallbackCache,
-        Dictionary<string, string?> nameExactFallbackCache,
-        Dictionary<string, string?> namePartialFallbackCache)
-    {
-        if (!string.IsNullOrWhiteSpace(scryfallId))
-        {
-            var cacheKey = NormalizeKey(scryfallId);
-            if (!scryfallFallbackCache.TryGetValue(cacheKey, out var cachedUuid))
-            {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards(includeTokens: true).WhereScryfallId(cacheKey).Limit(1);
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
-                scryfallFallbackCache[cacheKey] = cachedUuid;
-            }
-
-            if (!string.IsNullOrEmpty(cachedUuid))
-            {
-                return cachedUuid;
-            }
-        }
-
-        var setNumberKey = BuildSetNumberKey(set, number);
-        if (!string.IsNullOrEmpty(setNumberKey))
-        {
-            if (!setNumberFallbackCache.TryGetValue(setNumberKey, out var cachedUuid))
-            {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards(includeTokens: true).WhereSet(set!).WhereNumber(number!).Limit(1);
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
-                setNumberFallbackCache[setNumberKey] = cachedUuid;
-            }
-
-            if (!string.IsNullOrEmpty(cachedUuid))
-            {
-                return cachedUuid;
-            }
-        }
-
-        var normalizedName = NormalizeKey(name);
-        if (!string.IsNullOrEmpty(normalizedName) && !string.IsNullOrWhiteSpace(set))
-        {
-            var nameSetKey = $"{normalizedName}|{NormalizeKey(set)}";
-            if (!nameSetFallbackCache.TryGetValue(nameSetKey, out var cachedUuid))
-            {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards(includeTokens: true).WhereNameEquals(name!).WherePrimarySideOnly().Limit(100);
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-
-                Card? chosen = null;
-                for (int i = 0; i < matches.Length; i++)
-                {
-                    var card = matches[i];
-                    if (card.SetCode.Equals(set, StringComparison.OrdinalIgnoreCase) ||
-                        (!string.IsNullOrWhiteSpace(card.SetName) && card.SetName.Equals(set, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        chosen = card;
-                        break;
-                    }
-                }
-
-                chosen ??= matches.FirstOrDefault();
-                cachedUuid = chosen?.UUID;
-                nameSetFallbackCache[nameSetKey] = cachedUuid;
-            }
-
-            if (!string.IsNullOrEmpty(cachedUuid))
-            {
-                return cachedUuid;
-            }
-        }
-
-        if (!string.IsNullOrEmpty(normalizedName))
-        {
-            if (!nameExactFallbackCache.TryGetValue(normalizedName, out var cachedUuid))
-            {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards(includeTokens: true).WhereNameEquals(name!).WherePrimarySideOnly().Limit(1);
-                var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
-                cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
-                nameExactFallbackCache[normalizedName] = cachedUuid;
-            }
-
-            if (!string.IsNullOrEmpty(cachedUuid))
-            {
-                return cachedUuid;
-            }
-
-            if (!namePartialFallbackCache.TryGetValue(normalizedName, out cachedUuid))
-            {
-                var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards(includeTokens: true).WhereNameContains(name!).WherePrimarySideOnly().Limit(50);
-                var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
-
-                Card? chosen = null;
-                for (int i = 0; i < candidates.Length; i++)
-                {
-                    if (candidates[i].Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        chosen = candidates[i];
-                        break;
-                    }
-                }
-
-                chosen ??= candidates.FirstOrDefault();
-                cachedUuid = chosen?.UUID;
-                namePartialFallbackCache[normalizedName] = cachedUuid;
-            }
-
-            if (!string.IsNullOrEmpty(cachedUuid))
-            {
-                return cachedUuid;
-            }
-        }
-
-        return null;
-    }
-
-    private static string NormalizeKey(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? "" : value.Trim();
-
-    private static string BuildSetNumberKey(string? set, string? number)
-    {
-        var normalizedSet = NormalizeKey(set);
-        var normalizedNumber = NormalizeKey(number);
-        if (string.IsNullOrEmpty(normalizedSet) || string.IsNullOrEmpty(normalizedNumber))
-        {
-            return "";
-        }
-
-        return $"{normalizedSet}|{normalizedNumber}";
     }
 }

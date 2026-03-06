@@ -1,8 +1,10 @@
 using AetherVault.Services;
 using AetherVault.Services.DeckBuilder;
+using AetherVault.Services.ImportExport;
 using AetherVault.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
+using System.Text;
 
 namespace AetherVault.Pages;
 
@@ -13,6 +15,7 @@ public partial class DeckDetailPage : ContentPage
     private readonly IServiceProvider _serviceProvider;
     private readonly DeckBuilderService _deckService;
     private readonly IToastService _toastService;
+    private readonly DeckExporter _deckExporter;
     private readonly ImageDownloadService _imageDownloadService;
 
     private SKImage? _commanderArtImage;
@@ -31,6 +34,7 @@ public partial class DeckDetailPage : ContentPage
         IServiceProvider serviceProvider,
         DeckBuilderService deckService,
         IToastService toastService,
+        DeckExporter deckExporter,
         ImageDownloadService imageDownloadService)
     {
         InitializeComponent();
@@ -38,6 +42,7 @@ public partial class DeckDetailPage : ContentPage
         _serviceProvider = serviceProvider;
         _deckService = deckService;
         _toastService = toastService;
+        _deckExporter = deckExporter;
         _imageDownloadService = imageDownloadService;
         BindingContext = viewModel;
 
@@ -50,6 +55,52 @@ public partial class DeckDetailPage : ContentPage
                 CommanderArtCanvas?.InvalidateSurface();
             }
         };
+    }
+
+    private async void OnExportDeckClicked(object? sender, EventArgs e)
+    {
+        if (_viewModel.Deck == null) return;
+
+        try
+        {
+            _viewModel.IsBusy = true;
+            _viewModel.StatusIsError = false;
+            _viewModel.StatusMessage = "Exporting deck...";
+
+            var csvText = await _deckExporter.ExportDeckToCsvAsync(_viewModel.Deck.Id);
+            if (string.IsNullOrWhiteSpace(csvText))
+            {
+                _toastService.Show("Nothing to export.");
+                _viewModel.StatusMessage = "";
+                return;
+            }
+
+            var safeName = string.Join("_",
+                (_viewModel.Deck.Name ?? "deck")
+                    .Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries))
+                .Trim();
+
+            if (string.IsNullOrWhiteSpace(safeName)) safeName = "deck";
+
+            var cacheFile = Path.Combine(FileSystem.CacheDirectory, $"{safeName}_export.csv");
+            await File.WriteAllTextAsync(cacheFile, csvText, Encoding.UTF8);
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = "Export Deck",
+                File = new ShareFile(cacheFile)
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Failed to export deck: {ex.Message}", LogLevel.Error);
+            _viewModel.StatusIsError = true;
+            _viewModel.StatusMessage = $"Export failed: {ex.Message}";
+        }
+        finally
+        {
+            _viewModel.IsBusy = false;
+        }
     }
 
     private async Task TryLoadCommanderArtAsync()

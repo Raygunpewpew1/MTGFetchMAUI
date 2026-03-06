@@ -12,6 +12,11 @@
              BackgroundColor="{StaticResource Background}"
              x:DataType="vm:DeckDetailViewModel">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Export"
+                     Clicked="OnExportDeckClicked" />
+    </ContentPage.ToolbarItems>
+
     <Grid x:Name="DeckDetailRoot" RowDefinitions="Auto,100,Auto,*,Auto">
 
         <!-- Row 0: Deck header -->

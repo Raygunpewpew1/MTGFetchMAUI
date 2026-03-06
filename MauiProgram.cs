@@ -84,6 +84,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ImageDownloadService>();
         builder.Services.AddSingleton<CollectionImporter>();
         builder.Services.AddSingleton<CollectionExporter>();
+        builder.Services.AddSingleton<DeckImporter>();
+        builder.Services.AddSingleton<DeckExporter>();
         builder.Services.AddSingleton<CardGalleryContext>();
 
         // ── ViewModels ──────────────────────────────────────────────

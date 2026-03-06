@@ -42,26 +42,52 @@
             </VerticalStackLayout>
         </Border>
 
-        <!-- Primary CTA: New deck button (always visible, prominent) -->
-        <Button Grid.Row="1"
-                Margin="16,0,16,12"
-                Clicked="OnNewDeckClicked"
-                Text="New deck"
-                BackgroundColor="{StaticResource Accent}"
-                TextColor="Black"
-                FontSize="17"
-                FontAttributes="Bold"
-                CornerRadius="12"
-                HeightRequest="52"
-                HorizontalOptions="Fill"
-                BorderWidth="0">
-            <Button.ImageSource>
-                <FontImageSource FontFamily="FASolid"
-                                 Glyph="{x:Static fa:Solid.Plus}"
-                                 Size="18"
-                                 Color="Black" />
-            </Button.ImageSource>
-        </Button>
+        <!-- Primary CTA + import/export actions -->
+        <VerticalStackLayout Grid.Row="1"
+                             Margin="16,0,16,12"
+                             Spacing="10">
+            <Button Clicked="OnNewDeckClicked"
+                    Text="New deck"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="Black"
+                    FontSize="17"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    HeightRequest="52"
+                    HorizontalOptions="Fill"
+                    BorderWidth="0">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="FASolid"
+                                     Glyph="{x:Static fa:Solid.Plus}"
+                                     Size="18"
+                                     Color="Black" />
+                </Button.ImageSource>
+            </Button>
+
+            <Grid ColumnDefinitions="*,*"
+                  ColumnSpacing="12">
+                <Button Grid.Column="0"
+                        Clicked="OnImportDecksClicked"
+                        Text="Import decks"
+                        BackgroundColor="{StaticResource Surface}"
+                        TextColor="{StaticResource TextPrimary}"
+                        FontSize="14"
+                        CornerRadius="12"
+                        HeightRequest="44"
+                        HorizontalOptions="Fill"
+                        BorderWidth="0" />
+                <Button Grid.Column="1"
+                        Clicked="OnExportAllDecksClicked"
+                        Text="Export all"
+                        BackgroundColor="{StaticResource Surface}"
+                        TextColor="{StaticResource TextPrimary}"
+                        FontSize="14"
+                        CornerRadius="12"
+                        HeightRequest="44"
+                        HorizontalOptions="Fill"
+                        BorderWidth="0" />
+            </Grid>
+        </VerticalStackLayout>
 
         <!-- Content area -->
         <Grid Grid.Row="2" BackgroundColor="{StaticResource Background}">
