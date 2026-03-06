@@ -245,33 +245,56 @@ public class DeckBuilderService
         }
 
         int added = 0;
+        var failures = new List<string>();
 
         foreach (var kvp in allocations)
         {
             if (kvp.Value <= 0) continue;
 
-            Card? landCard = null;
             try
             {
-                var candidates = await _cardRepository.SearchCardsAsync(kvp.Key, 8);
-                landCard = candidates
-                    .FirstOrDefault(c =>
-                        string.Equals(c.Name, kvp.Key, StringComparison.OrdinalIgnoreCase) &&
-                        (c.CardType?.Contains("Land", StringComparison.OrdinalIgnoreCase) ?? false))
-                    ?? candidates.FirstOrDefault();
-            }
-            catch
-            {
-                // Ignore search failures for this land name.
-            }
+                // Use a deterministic lookup so we don't accidentally pick e.g. "Island Fish Jasconius".
+                // We want a real BASIC land printing so validation rules (copy limits, etc.) behave correctly.
+                var helper = _cardRepository.CreateSearchHelper();
+                helper.SearchCards()
+                    .WhereNameEquals(kvp.Key)
+                    .WhereType("Land")
+                    .WhereSupertype("Basic")
+                    .WherePrimarySideOnly()
+                    .OrderBy("c.name")
+                    .Limit(1);
 
-            if (landCard == null) continue;
+                var exactBasics = await _cardRepository.SearchCardsAdvancedAsync(helper);
+                var landCard = exactBasics.FirstOrDefault();
 
-            var result = await AddCardAsync(deckId, landCard.UUID, kvp.Value, "Main");
-            if (result.IsSuccess)
-            {
-                added += kvp.Value;
+                if (landCard == null)
+                {
+                    failures.Add($"Could not find basic land '{kvp.Key}'.");
+                    continue;
+                }
+
+                var result = await AddCardAsync(deckId, landCard.UUID, kvp.Value, "Main");
+                if (result.IsSuccess)
+                {
+                    added += kvp.Value;
+                }
+                else
+                {
+                    failures.Add(!string.IsNullOrWhiteSpace(result.Message)
+                        ? $"Could not add {kvp.Value}× {kvp.Key}: {result.Message}"
+                        : $"Could not add {kvp.Value}× {kvp.Key}.");
+                }
             }
+            catch (Exception ex)
+            {
+                failures.Add($"Failed while adding {kvp.Value}× {kvp.Key}: {ex.Message}");
+            }
+        }
+
+        if (added == 0 && delta > 0 && failures.Count > 0)
+        {
+            // Surface *why* it didn't add anything; the UI will show this as an error status.
+            throw new InvalidOperationException(string.Join(" ", failures.Take(3)));
         }
 
         return added;

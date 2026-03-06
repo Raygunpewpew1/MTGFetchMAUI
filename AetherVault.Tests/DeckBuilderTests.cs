@@ -91,7 +91,8 @@ public class DeckBuilderTests
         // Assert
         Assert.True(result.IsSuccess);
         var deck = await _deckRepo.GetDeckAsync(deckId);
-        Assert.Equal(commander.UUID, deck.CommanderId);
+        Assert.NotNull(deck);
+        Assert.Equal(commander.UUID, deck!.CommanderId);
         Assert.Equal("WU", deck.ColorIdentity);
     }
 
@@ -173,6 +174,55 @@ public class DeckBuilderTests
         var result = await _service.AddCardAsync(deckId, land.UUID, 20); // total 24
 
         Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task AutoSuggestLands_NoColorIdentity_AddsWastesToTarget()
+    {
+        var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
+
+        var wastes = CreateCard("wastes-1", "Wastes", DeckFormat.Standard, LegalityStatus.Legal);
+        wastes.CardType = "Basic Land — Wastes";
+        _cardRepo.AddCard(wastes);
+
+        var added = await _service.AutoSuggestLandsAsync(deckId);
+
+        Assert.Equal(24, added);
+        var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Single(deckCards);
+        Assert.Equal(24, deckCards[0].Quantity);
+        Assert.Equal("Main", deckCards[0].Section);
+    }
+
+    [Fact]
+    public async Task AutoSuggestLands_WithColorIdentity_SplitsEvenly()
+    {
+        var deckId = await _service.CreateDeckAsync("Commander Deck", DeckFormat.Commander);
+
+        // Manually set deck identity for the test.
+        var deck = await _deckRepo.GetDeckAsync(deckId);
+        deck!.ColorIdentity = "WU";
+        await _deckRepo.UpdateDeckAsync(deck);
+
+        var plains = CreateCard("plains-1", "Plains", DeckFormat.Commander, LegalityStatus.Legal);
+        plains.CardType = "Basic Land — Plains";
+        _cardRepo.AddCard(plains);
+
+        var island = CreateCard("island-1", "Island", DeckFormat.Commander, LegalityStatus.Legal);
+        island.CardType = "Basic Land — Island";
+        _cardRepo.AddCard(island);
+
+        var added = await _service.AutoSuggestLandsAsync(deckId);
+
+        Assert.Equal(37, added);
+        var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Equal(2, deckCards.Count);
+
+        var plainsQty = deckCards.First(c => c.CardId == plains.UUID).Quantity;
+        var islandQty = deckCards.First(c => c.CardId == island.UUID).Quantity;
+
+        Assert.Equal(19, plainsQty);
+        Assert.Equal(18, islandQty);
     }
 
     [Fact]
@@ -500,10 +550,49 @@ public class MockCardRepository : ICardRepository
     public Task<Card[]> GetCardWithOtherFacesAsync(string uuid) => throw new NotImplementedException();
     public Task<Card[]> GetFullCardPackageAsync(string uuid) => throw new NotImplementedException();
     public Task<Dictionary<string, Card>> GetCardsByUUIDsAsync(string[] uuids) => throw new NotImplementedException();
-    public Task<Card[]> SearchCardsAsync(string searchText, int limit = 100) => throw new NotImplementedException();
-    public Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
+    public Task<Card[]> SearchCardsAsync(string searchText, int limit = 100)
+    {
+        // Minimal behavior for tests.
+        var result = _cards.Values
+            .Where(c => c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(c => c.Name)
+            .Take(limit)
+            .ToArray();
+        return Task.FromResult(result);
+    }
+
+    public Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper)
+    {
+        // Minimal interpretation of the helper's parameters for unit tests.
+        // This intentionally does NOT try to execute SQL; it just honors the key filters used by DeckBuilderService.
+        var (_, parameters) = searchHelper.Build();
+
+        string? nameEq = parameters
+            .Select(p => p.value)
+            .OfType<string>()
+            .FirstOrDefault(v => !v.Contains('%'));
+
+        bool requireLand = parameters.Select(p => p.value).OfType<string>().Any(v => v.Contains("Land", StringComparison.OrdinalIgnoreCase));
+        bool requireBasic = parameters.Select(p => p.value).OfType<string>().Any(v => v.Contains("Basic", StringComparison.OrdinalIgnoreCase));
+
+        IEnumerable<Card> query = _cards.Values;
+
+        if (!string.IsNullOrEmpty(nameEq))
+        {
+            query = query.Where(c => string.Equals(c.Name, nameEq, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (requireLand)
+            query = query.Where(c => c.CardType.Contains("Land", StringComparison.OrdinalIgnoreCase));
+        if (requireBasic)
+            query = query.Where(c => c.CardType.Contains("Basic", StringComparison.OrdinalIgnoreCase));
+
+        // Respect the DeckBuilderService expectation (LIMIT 1).
+        return Task.FromResult(query.Take(1).ToArray());
+    }
+
     public Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
-    public MTGSearchHelper CreateSearchHelper() => throw new NotImplementedException();
+    public MTGSearchHelper CreateSearchHelper() => new();
     public Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync() => Task.FromResult<IReadOnlyList<ImportLookupRow>>([]);
     public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
 }
