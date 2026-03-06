@@ -127,9 +127,10 @@
             </Grid>
         </Border>
 
-        <!-- Card Grid -->
+        <!-- Card Grid (hidden when no results so empty state shows) -->
         <controls:CardGrid Grid.Row="2"
                            x:Name="CardGrid"
+                           IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
                            Scrolled="OnGridScrolled"
                            IsDragEnabled="False" />
 

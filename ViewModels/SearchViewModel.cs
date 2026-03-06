@@ -217,11 +217,12 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
                 HasMorePages = TotalResults > results.Length;
             }
 
+            // Set empty state before updating grid so empty-state overlay shows (and grid hides) before grid repaints
+            IsEmpty = TotalResults == 0;
             _grid?.SetCards(results);
             _cardManager.ImageService.CancelPendingDownloads();
 
             StatusMessage = $"Found {TotalResults} cards";
-            IsEmpty = TotalResults == 0;
             SearchCompleted?.Invoke();
         }
         catch (Exception ex)

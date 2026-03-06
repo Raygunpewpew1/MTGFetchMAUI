@@ -8,6 +8,7 @@
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
              xmlns:pages="clr-namespace:AetherVault.Pages"
              xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             xmlns:converters="clr-namespace:AetherVault.Converters"
              x:Class="AetherVault.Pages.CardSearchPickerPage"
              Title="Select a Card"
              BackgroundColor="{StaticResource Background}">
@@ -15,6 +16,7 @@
     <ContentPage.Resources>
         <ResourceDictionary>
             <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <converters:UrlToImageSourceConverter x:Key="UrlToImageSource" />
         </ResourceDictionary>
     </ContentPage.Resources>
 
@@ -84,9 +86,10 @@
                                Color="{StaticResource Primary}" />
         </Grid>
 
-        <!-- Card List -->
+        <!-- Card List (hidden when no results so empty state shows) -->
         <CollectionView Grid.Row="2"
                         ItemsSource="{Binding SearchResults}"
+                        IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
                         SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Card">
@@ -98,7 +101,7 @@
                         </Grid.GestureRecognizers>
 
                         <Border Grid.Column="0" WidthRequest="40" HeightRequest="56" BackgroundColor="{StaticResource Surface}" StrokeShape="RoundRectangle 4">
-                            <Image Source="{Binding ImageUrl}" Aspect="AspectFill" />
+                            <Image Source="{Binding ImageUrl, Converter={StaticResource UrlToImageSource}}" Aspect="AspectFill" />
                         </Border>
 
                         <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
