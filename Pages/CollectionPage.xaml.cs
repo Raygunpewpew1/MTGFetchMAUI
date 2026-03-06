@@ -43,36 +43,10 @@ public partial class CollectionPage : ContentPage
             }
             else if (e.PropertyName == nameof(CollectionViewModel.IsCollectionEmpty))
             {
-                UpdateContentHostForEmptyState();
                 RunContentLayoutPass();
-                ScheduleDeferredContentLayoutPass();
             }
         };
     }
-
-    /// <summary>When empty, remove CardGrid from the tree so no Skia view is present (avoids Android black screen). When we have data, add it back.</summary>
-    private void UpdateContentHostForEmptyState()
-    {
-        if (!MainThread.IsMainThread)
-        {
-            MainThread.BeginInvokeOnMainThread(UpdateContentHostForEmptyState);
-            return;
-        }
-        bool isEmpty = _viewModel.IsCollectionEmpty;
-        bool gridInTree = CollectionContentArea.Children.Contains(CollectionGrid);
-        if (isEmpty && gridInTree)
-        {
-            CollectionContentArea.Children.Remove(CollectionGrid);
-        }
-        else if (!isEmpty && !gridInTree)
-        {
-            CollectionContentArea.Children.Add(CollectionGrid);
-        }
-    }
-
-    private const int DeferredLayoutDelayMs = 120;
-    /// <summary>Delay so invalidate runs after WindowManager destroys modal surface and moves focus (logcat: Destroying surface → Changing focus).</summary>
-    private const int PostModalInvalidateDelayMs = 220;
 
     private void RunContentLayoutPass()
     {
@@ -83,40 +57,9 @@ public partial class CollectionPage : ContentPage
         }
         CollectionContentArea.InvalidateMeasure();
         CollectionEmptyState.InvalidateMeasure();
-        if (!_viewModel.IsCollectionEmpty && CollectionContentArea.Children.Contains(CollectionGrid))
-        {
-            CollectionGrid.InvalidateMeasure();
+        CollectionGrid.InvalidateMeasure();
+        if (!_viewModel.IsCollectionEmpty)
             CollectionGrid.ForceRedraw();
-        }
-    }
-
-    private void ScheduleDeferredContentLayoutPass()
-    {
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(DeferredLayoutDelayMs);
-            MainThread.BeginInvokeOnMainThread(RunContentLayoutPass);
-        });
-    }
-
-    /// <summary>After a modal/dialog is dismissed, the main window content may not redraw (logcat: Destroying surface, focus change). Invalidate page root after transition.</summary>
-    private void SchedulePostModalInvalidate()
-    {
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(PostModalInvalidateDelayMs);
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                (Content as View)?.InvalidateMeasure();
-                CollectionContentArea.InvalidateMeasure();
-                CollectionEmptyState.InvalidateMeasure();
-                if (CollectionContentArea.Children.Contains(CollectionGrid))
-                {
-                    CollectionGrid.InvalidateMeasure();
-                    CollectionGrid.ForceRedraw();
-                }
-            });
-        });
     }
 
     protected override async void OnAppearing()
@@ -141,11 +84,7 @@ public partial class CollectionPage : ContentPage
 
         await _viewModel.LoadCollectionAsync();
 
-        // When empty, remove grid from tree so no Skia view is present; when we have data, ensure grid is in tree.
-        UpdateContentHostForEmptyState();
         RunContentLayoutPass();
-        ScheduleDeferredContentLayoutPass();
-        SchedulePostModalInvalidate();
     }
 
     protected override void OnDisappearing()
@@ -190,10 +129,7 @@ public partial class CollectionPage : ContentPage
             else
                 _toastService.Show($"{card.Name} removed from collection");
             await _viewModel.LoadCollectionAsync();
-            UpdateContentHostForEmptyState();
             RunContentLayoutPass();
-            ScheduleDeferredContentLayoutPass();
-            SchedulePostModalInvalidate();
         }
     }
 
@@ -212,7 +148,6 @@ public partial class CollectionPage : ContentPage
         if (confirmed)
         {
             await _viewModel.ClearCollectionAsync();
-            SchedulePostModalInvalidate();
         }
     }
 }
