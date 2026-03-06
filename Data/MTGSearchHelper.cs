@@ -226,7 +226,9 @@ public class MTGSearchHelper
     public MTGSearchHelper WhereScryfallId(string scryfallId)
     {
         var param = NextParam("ScryfallId");
-        _whereConditions.Add($"ci.scryfallId = @{param}");
+        // Union base (cards+tokens) only exposes alias "c"; cards-only base has "ci" from JOIN.
+        var column = _baseSQL.Contains("UNION ALL") ? "c.scryfallId" : "ci.scryfallId";
+        _whereConditions.Add($"{column} = @{param}");
         _params.Add(param, scryfallId);
         return this;
     }

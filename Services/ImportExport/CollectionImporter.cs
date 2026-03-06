@@ -383,7 +383,7 @@ public class CollectionImporter
             if (!scryfallFallbackCache.TryGetValue(cacheKey, out var cachedUuid))
             {
                 var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards().WhereScryfallId(cacheKey).Limit(1);
+                helper.SearchCards(includeTokens: true).WhereScryfallId(cacheKey).Limit(1);
                 var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
                 cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
                 scryfallFallbackCache[cacheKey] = cachedUuid;
@@ -401,7 +401,7 @@ public class CollectionImporter
             if (!setNumberFallbackCache.TryGetValue(setNumberKey, out var cachedUuid))
             {
                 var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards().WhereSet(set!).WhereNumber(number!).Limit(1);
+                helper.SearchCards(includeTokens: true).WhereSet(set!).WhereNumber(number!).Limit(1);
                 var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
                 cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
                 setNumberFallbackCache[setNumberKey] = cachedUuid;
@@ -420,7 +420,7 @@ public class CollectionImporter
             if (!nameSetFallbackCache.TryGetValue(nameSetKey, out var cachedUuid))
             {
                 var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards().WhereNameEquals(name!).WherePrimarySideOnly().Limit(100);
+                helper.SearchCards(includeTokens: true).WhereNameEquals(name!).WherePrimarySideOnly().Limit(100);
                 var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
 
                 Card? chosen = null;
@@ -451,7 +451,7 @@ public class CollectionImporter
             if (!nameExactFallbackCache.TryGetValue(normalizedName, out var cachedUuid))
             {
                 var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards().WhereNameEquals(name!).WherePrimarySideOnly().Limit(1);
+                helper.SearchCards(includeTokens: true).WhereNameEquals(name!).WherePrimarySideOnly().Limit(1);
                 var matches = await _cardRepo.SearchCardsAdvancedAsync(helper);
                 cachedUuid = matches.Length > 0 ? matches[0].UUID : null;
                 nameExactFallbackCache[normalizedName] = cachedUuid;
@@ -465,7 +465,7 @@ public class CollectionImporter
             if (!namePartialFallbackCache.TryGetValue(normalizedName, out cachedUuid))
             {
                 var helper = _cardRepo.CreateSearchHelper();
-                helper.SearchCards().WhereNameContains(name!).WherePrimarySideOnly().Limit(50);
+                helper.SearchCards(includeTokens: true).WhereNameContains(name!).WherePrimarySideOnly().Limit(50);
                 var candidates = await _cardRepo.SearchCardsAdvancedAsync(helper);
 
                 Card? chosen = null;

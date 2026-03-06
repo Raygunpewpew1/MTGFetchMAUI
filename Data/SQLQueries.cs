@@ -242,7 +242,8 @@ public static class SQLQueries
     public const string SelectCardByUuid =
         "SELECT * FROM cards WHERE uuid = @uuid";
 
-    public const string SelectImportLookupRows =
+    /// <summary>Cards + tokens for CSV import lookup (name/set/number/scryfallId).</summary>
+    public const string SelectImportLookupRowsCards =
         """
         SELECT
             c.uuid AS UUID,
@@ -257,6 +258,23 @@ public static class SQLQueries
         LEFT JOIN sets s ON c.setCode = s.code
         WHERE c.side = 'a' OR c.side IS NULL
         """;
+
+    public const string SelectImportLookupRowsTokens =
+        """
+        SELECT
+            c.uuid AS UUID,
+            c.name AS Name,
+            c.faceName AS FaceName,
+            c.setCode AS SetCode,
+            s.name AS SetName,
+            c.number AS Number,
+            ti.scryfallId AS ScryfallId
+        FROM tokens c
+        LEFT JOIN tokenIdentifiers ti ON c.uuid = ti.uuid
+        LEFT JOIN sets s ON c.setCode = s.code
+        """;
+
+    public const string SelectImportLookupRows = SelectImportLookupRowsCards + " UNION ALL " + SelectImportLookupRowsTokens;
 
     // ============================================================================
     // COLLECTION QUERIES
