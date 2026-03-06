@@ -154,40 +154,13 @@
             </Grid>
         </Border>
 
-        <!-- Card Grid: hidden when empty so Skia canvas cannot draw over the empty state -->
-        <controls:CardGrid Grid.Row="2"
-                           x:Name="CollectionGrid"
-                           IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}"
-                           Scrolled="OnCollectionScrolled"
-                           UseCompactGrid="True" />
-
-        <!-- Empty State overlay: solid background, fills cell, on top so it fully covers the grid when empty -->
-        <Grid Grid.Row="2"
-              IsVisible="{Binding IsCollectionEmpty}"
-              BackgroundColor="{StaticResource Background}"
-              VerticalOptions="Fill"
-              HorizontalOptions="Fill"
-              ZIndex="1">
-            <VerticalStackLayout VerticalOptions="Center"
-                                 HorizontalOptions="Center"
-                                 Spacing="8">
-                <Label FontFamily="FASolid"
-                       Text="{x:Static fa:Solid.BoxArchive}"
-                       FontSize="44"
-                       TextColor="{StaticResource TextSecondary}"
-                       HorizontalOptions="Center" />
-                <Label Text="Your collection is empty"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
-                       HorizontalOptions="Center" />
-                <Label Text="Search for cards and long-press to add them"
-                       FontSize="13"
-                       TextColor="{StaticResource TextSecondary}"
-                       HorizontalOptions="Center"
-                       HorizontalTextAlignment="Center" />
-            </VerticalStackLayout>
-        </Grid>
+        <!-- Single content host: shows either grid OR empty state (grid removed from tree when empty so Skia never paints) -->
+        <ContentView x:Name="CollectionContentHost"
+                    Grid.Row="2">
+            <controls:CardGrid x:Name="CollectionGrid"
+                               Scrolled="OnCollectionScrolled"
+                               UseCompactGrid="True" />
+        </ContentView>
 
     </Grid>
 
