@@ -125,7 +125,9 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         HasLastAdded = true;
     }
 
-    [RelayCommand]
+    private IAsyncRelayCommand? _undoLastAddedCommand;
+    public IAsyncRelayCommand UndoLastAddedCommand => _undoLastAddedCommand ??= new AsyncRelayCommand(UndoLastAddedAsync);
+
     private async Task UndoLastAddedAsync()
     {
         if (Deck == null || _lastAdded is null) return;
@@ -306,7 +308,9 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         await ReloadAsync(preserveState: true);
     }
 
-    [RelayCommand]
+    private IAsyncRelayCommand? _suggestLandsCommand;
+    public IAsyncRelayCommand SuggestLandsCommand => _suggestLandsCommand ??= new AsyncRelayCommand(SuggestLandsAsync);
+
     private async Task SuggestLandsAsync()
     {
         if (Deck == null) return;
