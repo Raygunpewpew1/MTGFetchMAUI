@@ -148,6 +148,8 @@ public class CardGrid : ContentView
             _cts = new CancellationTokenSource();
             _isProcessingUpdates = true;
             Task.Run(ProcessStateUpdates);
+            // Re-queue current state so the pipeline renders after tab return / reload
+            _stateChannel.Writer.TryWrite(_lastState);
         }
 
         _renderer.EnsureResources();

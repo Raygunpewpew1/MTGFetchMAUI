@@ -1,33 +1,43 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
     <defs>
-        <radialGradient id="portalGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#38BDF8" stop-opacity="1" />
-            <stop offset="60%" stop-color="#818CF8" stop-opacity="0.4" />
-            <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
-        </radialGradient>
+        <filter id="elevation-1" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.25" />
+        </filter>
+        <filter id="elevation-2" x="-15%" y="-15%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.35" />
+        </filter>
     </defs>
 
-    <rect width="512" height="512" rx="115" fill="#0B1120" />
-    
-    <circle cx="256" cy="230" r="190" fill="url(#portalGlow)" />
-    
-    <g transform="translate(256, 260)">
-        <rect x="-150" y="-80" width="80" height="112" rx="6" 
-              fill="#1E293B" stroke="#94A3B8" stroke-width="4" transform="rotate(-35)" />
-              
-        <rect x="70" y="-80" width="80" height="112" rx="6" 
-              fill="#1E293B" stroke="#94A3B8" stroke-width="4" transform="rotate(35)" />
-              
-        <rect x="-55" y="-140" width="110" height="154" rx="8" 
-              fill="#F8FAFC" stroke="#38BDF8" stroke-width="6" />
+    <rect width="512" height="512" fill="#263238" />
+
+    <polygon points="256,64 422,160 422,352 256,448 90,352 90,160" 
+             fill="#FFC107" filter="url(#elevation-1)" />
+             
+    <polygon points="256,96 394,176 394,336 256,416 118,336 118,176" 
+             fill="#37474F" />
+
+    <g transform="translate(256, 266)">
         
-        <polygon points="0,-110 25,-80 0,-50 -25,-80" fill="#38BDF8" />
+        <g transform="translate(-50, 20) rotate(-20)" filter="url(#elevation-1)">
+            <rect x="-60" y="-85" width="120" height="170" rx="8" fill="#78909C" />
+            <rect x="-50" y="-75" width="100" height="150" rx="4" 
+                  fill="none" stroke="#CFD8DC" stroke-width="4" />
+        </g>
+
+        <g transform="translate(50, 20) rotate(20)" filter="url(#elevation-1)">
+            <rect x="-60" y="-85" width="120" height="170" rx="8" fill="#78909C" />
+            <rect x="-50" y="-75" width="100" height="150" rx="4" 
+                  fill="none" stroke="#CFD8DC" stroke-width="4" />
+        </g>
+
+        <g transform="translate(0, 0)" filter="url(#elevation-2)">
+            <rect x="-65" y="-95" width="130" height="190" rx="8" fill="#00BCD4" />
+            
+            <rect x="-55" y="-85" width="110" height="170" rx="4" 
+                  fill="none" stroke="#E0F7FA" stroke-width="6" />
+            
+            <polygon points="0,-35 25,0 0,35 -25,0" fill="#E0F7FA" />
+            <polygon points="0,-15 10,0 0,15 -10,0" fill="#006064" />
+        </g>
     </g>
-    
-    <path d="M 80 340 Q 256 280 432 340 L 432 512 L 80 512 Z" 
-          fill="#1E293B" stroke="#64748B" stroke-width="8" />
-          
-    <circle cx="256" cy="390" r="45" fill="#0B1120" stroke="#94A3B8" stroke-width="8" />
-    <circle cx="256" cy="390" r="18" fill="#38BDF8" />
-    <rect x="252" y="390" width="8" height="25" fill="#38BDF8" />
 </svg>

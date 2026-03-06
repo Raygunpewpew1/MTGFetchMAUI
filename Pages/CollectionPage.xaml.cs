@@ -8,7 +8,6 @@ public partial class CollectionPage : ContentPage
     private readonly CollectionViewModel _viewModel;
     private readonly IToastService _toastService;
     private readonly CardGalleryContext _galleryContext;
-    private bool _loaded;
 
     public CollectionPage(CollectionViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext)
     {
@@ -53,11 +52,7 @@ public partial class CollectionPage : ContentPage
             CollectionGrid.ForceRedraw();
         });
 
-        if (!_loaded)
-        {
-            _loaded = true;
-            await _viewModel.LoadCollectionAsync();
-        }
+        await _viewModel.LoadCollectionAsync();
     }
 
     protected override void OnDisappearing()
