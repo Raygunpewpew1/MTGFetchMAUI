@@ -73,19 +73,13 @@ public partial class StatsViewModel : BaseViewModel
         IsBusy = true;
         try
         {
+            // Fast path: counts only (single DB aggregate). Show immediately.
             Stats = await _cardManager.GetCollectionStatsAsync();
-            CacheStats = await _cardManager.GetImageCacheStatsAsync();
-
-            // Calculate storage sizes
-            Storage = new StorageStats
-            {
-                MtgDatabaseSize = GetFileSize(AppDataManager.GetMTGDatabasePath()),
-                CollectionDatabaseSize = GetFileSize(AppDataManager.GetCollectionDatabasePath()),
-                PricesDatabaseSize = GetFileSize(AppDataManager.GetPricesDatabasePath()),
-                ImageCacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize()
-            };
-
             DatabaseStatus = "Connected";
+
+            // Placeholders until background work completes
+            CacheStats = "…";
+            Storage = new StorageStats();
         }
         catch (Exception ex)
         {
@@ -95,6 +89,59 @@ public partial class StatsViewModel : BaseViewModel
         finally
         {
             IsBusy = false;
+        }
+
+        // Defer heavy work so the page feels responsive
+        _ = LoadTotalValueInBackgroundAsync();
+        _ = LoadStorageAndCacheInBackgroundAsync();
+    }
+
+    private async Task LoadTotalValueInBackgroundAsync()
+    {
+        try
+        {
+            var total = await _cardManager.GetCollectionTotalValueAsync();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var s = Stats;
+                s.TotalValue = total;
+                Stats = s;
+                OnPropertyChanged(nameof(Stats));
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Total value load failed: {ex.Message}", LogLevel.Warning);
+        }
+    }
+
+    private async Task LoadStorageAndCacheInBackgroundAsync()
+    {
+        try
+        {
+            var cacheStats = await _cardManager.GetImageCacheStatsAsync();
+            var mtgSize = GetFileSize(AppDataManager.GetMTGDatabasePath());
+            var collSize = GetFileSize(AppDataManager.GetCollectionDatabasePath());
+            var pricesSize = GetFileSize(AppDataManager.GetPricesDatabasePath());
+            var cacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize();
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CacheStats = cacheStats;
+                Storage = new StorageStats
+                {
+                    MtgDatabaseSize = mtgSize,
+                    CollectionDatabaseSize = collSize,
+                    PricesDatabaseSize = pricesSize,
+                    ImageCacheSize = cacheSize
+                };
+                OnPropertyChanged(nameof(Storage));
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Storage stats load failed: {ex.Message}", LogLevel.Warning);
+            MainThread.BeginInvokeOnMainThread(() => CacheStats = "—");
         }
     }
 

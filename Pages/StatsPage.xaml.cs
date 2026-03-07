@@ -66,6 +66,13 @@ public partial class StatsPage : ContentPage
             });
         };
 
+        // Refresh labels when total value or storage stats arrive from background
+        _viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(StatsViewModel.Stats) or nameof(StatsViewModel.Storage) or nameof(StatsViewModel.CacheStats))
+                MainThread.BeginInvokeOnMainThread(UpdateStatsUI);
+        };
+
         InitPriceVendorPicker();
     }
 

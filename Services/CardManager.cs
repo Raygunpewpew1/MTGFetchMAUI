@@ -334,28 +334,33 @@ public class CardManager : IDisposable
         return await _collectionRepository.GetCollectionAsync();
     }
 
+    /// <summary>
+    /// Returns collection stats (counts, CMC, etc.) without total value. Use for fast initial display.
+    /// </summary>
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
-        var stats = await _collectionRepository.GetCollectionStatsAsync();
+        return await _collectionRepository.GetCollectionStatsAsync();
+    }
 
-        if (_priceManager != null)
+    /// <summary>
+    /// Computes collection total value using preferred vendor and bulk price lookup. Call in background after showing stats.
+    /// </summary>
+    public async Task<double> GetCollectionTotalValueAsync()
+    {
+        if (_priceManager == null) return 0;
+
+        var entries = await _collectionRepository.GetCollectionEntriesForPricingAsync();
+        if (entries.Count == 0) return 0;
+
+        var uuids = entries.Select(e => e.Uuid).Distinct().ToList();
+        var pricesMap = await _priceManager.GetCardPricesBulkAsync(uuids);
+        double total = 0;
+        foreach (var (uuid, quantity, isFoil, isEtched) in entries)
         {
-            var entries = await _collectionRepository.GetCollectionEntriesForPricingAsync();
-            if (entries.Count > 0)
-            {
-                var uuids = entries.Select(e => e.Uuid).Distinct().ToList();
-                var pricesMap = await _priceManager.GetCardPricesBulkAsync(uuids);
-                double total = 0;
-                foreach (var (uuid, quantity, isFoil, isEtched) in entries)
-                {
-                    if (pricesMap.TryGetValue(uuid, out var data))
-                        total += quantity * PriceDisplayHelper.GetNumericPrice(data, isFoil, isEtched);
-                }
-                stats.TotalValue = total;
-            }
+            if (pricesMap.TryGetValue(uuid, out var data))
+                total += quantity * PriceDisplayHelper.GetNumericPrice(data, isFoil, isEtched);
         }
-
-        return stats;
+        return total;
     }
 
     public async Task ReorderCollectionAsync(IList<string> orderedUuids)
