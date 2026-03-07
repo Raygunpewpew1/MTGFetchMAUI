@@ -22,6 +22,12 @@ public partial class MTGJsonDecksViewModel : BaseViewModel
     private string _searchText = "";
 
     [ObservableProperty]
+    private string _selectedDeckType = "All";
+
+    [ObservableProperty]
+    private List<string> _availableDeckTypes = ["All"];
+
+    [ObservableProperty]
     private MtgJsonDeckListEntry? _selectedDeck;
 
     private List<MtgJsonDeckListEntry> _allDecks = [];
@@ -51,9 +57,13 @@ public partial class MTGJsonDecksViewModel : BaseViewModel
         {
             var list = await _deckListService.GetDeckListAsync(forceRefresh);
             _allDecks = [.. list];
-            ApplyFilter();
+            var types = _allDecks.Select(d => d.Type ?? "").Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().OrderBy(t => t).ToList();
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                AvailableDeckTypes = ["All", .. types];
+                if (!AvailableDeckTypes.Contains(SelectedDeckType))
+                    SelectedDeckType = "All";
+                ApplyFilter();
                 Decks = new ObservableCollection<MtgJsonDeckListEntry>(_allDecks);
                 StatusMessage = _allDecks.Count == 0 ? "No decks in catalog." : $"{(uint)_allDecks.Count} decks";
             });
@@ -71,20 +81,22 @@ public partial class MTGJsonDecksViewModel : BaseViewModel
 
     private void ApplyFilter()
     {
-        if (string.IsNullOrWhiteSpace(SearchText))
+        IEnumerable<MtgJsonDeckListEntry> source = _allDecks;
+        if (SelectedDeckType != "All")
+            source = source.Where(d => string.Equals(d.Type, SelectedDeckType, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            FilteredDecks = new ObservableCollection<MtgJsonDeckListEntry>(_allDecks);
-            return;
+            var q = SearchText.Trim();
+            source = source.Where(d =>
+                d.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (d.Type?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (d.Code?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
         }
-        var q = SearchText.Trim();
-        var filtered = _allDecks.Where(d =>
-            d.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-            (d.Type?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (d.Code?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
-        FilteredDecks = new ObservableCollection<MtgJsonDeckListEntry>(filtered);
+        FilteredDecks = new ObservableCollection<MtgJsonDeckListEntry>(source.ToList());
     }
 
     partial void OnSearchTextChanged(string value) => ApplyFilter();
+    partial void OnSelectedDeckTypeChanged(string value) => ApplyFilter();
 
     [RelayCommand]
     public async Task ImportDeckAsync(MtgJsonDeckListEntry? entry)

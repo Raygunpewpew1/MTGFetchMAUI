@@ -34,8 +34,24 @@
                     VerticalOptions="Center" />
         </Grid>
 
-        <!-- Search + Status -->
+        <!-- Type filter + Search + Status -->
         <VerticalStackLayout Grid.Row="1" Margin="16,0,16,8" Spacing="8">
+            <Grid ColumnDefinitions="Auto,*">
+                <Label Grid.Column="0"
+                       Text="Type:"
+                       FontSize="14"
+                       TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center"
+                       Margin="0,0,8,0" />
+                <Picker Grid.Column="1"
+                        Title="Deck type"
+                        ItemsSource="{Binding AvailableDeckTypes}"
+                        SelectedItem="{Binding SelectedDeckType, Mode=TwoWay}"
+                        FontSize="14"
+                        TextColor="{StaticResource TextPrimary}"
+                        BackgroundColor="{StaticResource Surface}"
+                        VerticalOptions="Center" />
+            </Grid>
             <SearchBar Text="{Binding SearchText, Mode=TwoWay}"
                        Placeholder="Search by name, type, or code"
                        PlaceholderColor="{StaticResource TextSecondary}"

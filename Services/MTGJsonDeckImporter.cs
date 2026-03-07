@@ -48,13 +48,24 @@ public class MTGJsonDeckImporter
             return result;
 
         var allCards = new List<(string Section, MtgJsonDeckCard Card)>();
-        foreach (var c in deck.MainBoard)
-            allCards.Add(("Main", c));
-        foreach (var c in deck.SideBoard)
-            allCards.Add(("Sideboard", c));
-        if (deck.Commander != null)
+        foreach (var c in deck.MainBoard ?? [])
         {
-            foreach (var c in deck.Commander)
+            if (c != null)
+                allCards.Add(("Main", c));
+        }
+        foreach (var c in deck.SideBoard ?? [])
+        {
+            if (c != null)
+                allCards.Add(("Sideboard", c));
+        }
+        foreach (var c in deck.Commander ?? [])
+        {
+            if (c != null)
+                allCards.Add(("Commander", c));
+        }
+        foreach (var c in deck.DisplayCommander ?? [])
+        {
+            if (c != null)
                 allCards.Add(("Commander", c));
         }
 
@@ -117,9 +128,10 @@ public class MTGJsonDeckImporter
             if (section == "Commander" && firstCommanderCard != null && card.UUID == firstCommanderCard.UUID)
                 continue; // already added by SetCommanderAsync
 
-            var addResult = await _deckService.AddCardAsync(deckId, card.UUID, mtgCard.Count, section);
+            var quantity = mtgCard.Count < 1 ? 1 : mtgCard.Count;
+            var addResult = await _deckService.AddCardAsync(deckId, card.UUID, quantity, section);
             if (!addResult.IsError)
-                result.CardsAdded += mtgCard.Count;
+                result.CardsAdded += quantity;
         }
 
         return result;

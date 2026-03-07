@@ -97,4 +97,7 @@ public class MtgJsonDeck
 
     [JsonPropertyName("commander")]
     public List<MtgJsonDeckCard>? Commander { get; set; }
+
+    [JsonPropertyName("displayCommander")]
+    public List<MtgJsonDeckCard>? DisplayCommander { get; set; }
 }

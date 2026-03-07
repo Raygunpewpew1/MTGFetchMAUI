@@ -27,22 +27,24 @@
                    TextColor="{StaticResource TextSecondary}" />
         </HorizontalStackLayout>
 
-        <CollectionView Grid.Row="1"
-                        x:Name="LogList"
-                        ItemsSource="{Binding LogBuffer.Entries}"
-                        SelectionMode="None"
-                        VerticalScrollBarVisibility="Always">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="services:LogEntry">
-                    <Label Text="{Binding Text}"
-                           TextColor="{Binding Level, Converter={StaticResource LogLevelToColor}}"
-                           FontSize="12"
-                           FontFamily="Consolas"
-                           LineBreakMode="TailTruncation"
-                           Padding="12,4"
-                           MaximumHeightRequest="120" />
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+        <ScrollView Grid.Row="1"
+                    x:Name="LogScroll"
+                    VerticalScrollBarVisibility="Always">
+            <VerticalStackLayout>
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding LogBuffer.Entries}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="services:LogEntry">
+                            <Label Text="{Binding Text}"
+                                   TextColor="{Binding Level, Converter={StaticResource LogLevelToColor}}"
+                                   FontSize="12"
+                                   FontFamily="Consolas"
+                                   LineBreakMode="WordWrap"
+                                   Padding="12,4" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+                <BoxView x:Name="LogEnd" HeightRequest="1" Color="Transparent" />
+            </VerticalStackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>

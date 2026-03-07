@@ -16,16 +16,15 @@ public partial class LogViewPage : ContentPage
 
     private void OnEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action == NotifyCollectionChangedAction.Add && _vm.AutoScroll && _vm.LogBuffer.Entries.Count > 0)
-            MainThread.BeginInvokeOnMainThread(() =>
-                LogList.ScrollTo(_vm.LogBuffer.Entries.Count - 1, position: ScrollToPosition.End, animate: false));
+        if (e.Action == NotifyCollectionChangedAction.Add && _vm.AutoScroll)
+            MainThread.BeginInvokeOnMainThread(() => LogScroll.ScrollToAsync(LogEnd, ScrollToPosition.End, false));
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
         if (_vm.LogBuffer.Entries.Count > 0)
-            LogList.ScrollTo(_vm.LogBuffer.Entries.Count - 1, position: ScrollToPosition.End, animate: false);
+            LogScroll.ScrollToAsync(LogEnd, ScrollToPosition.End, false);
     }
 
 }

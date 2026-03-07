@@ -186,8 +186,8 @@
                         IsVisible="{Binding IsFlavorVisible}">
                     <Label x:Name="FlavorTextLabel"
                            Text="{Binding CurrentFace.FlavorText}"
+                           FontAttributes="Italic" 
                            FontSize="13"
-                           FontFamily="SerifFontItalic"
                            TextColor="{StaticResource TextSecondary}"
                            LineBreakMode="WordWrap" />
                 </Border>
