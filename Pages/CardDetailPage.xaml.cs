@@ -1,5 +1,3 @@
-using AetherVault.Controls;
-using AetherVault.Core;
 using AetherVault.Services;
 using AetherVault.Services.DeckBuilder;
 using AetherVault.ViewModels;
@@ -43,7 +41,7 @@ public partial class CardDetailPage : ContentPage
         SwipeContainer.SwipedRight += () => _ = HandleSwipeAsync(isNext: false);
 
         Unloaded += (s, e) => _viewModel.Dispose();
-     //   _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        //   _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
     }
 
     private async Task LoadCard()

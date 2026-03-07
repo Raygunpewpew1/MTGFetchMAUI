@@ -1,6 +1,6 @@
+using AetherVault.Services;
 using Dapper;
 using Microsoft.Data.Sqlite;
-using AetherVault.Services;
 
 namespace AetherVault.Data;
 
