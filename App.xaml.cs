@@ -4,6 +4,10 @@ using AetherVault.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
+/// <summary>
+/// Application root. Creates the first window with LoadingPage, then the shell takes over.
+/// Also provides ScheduleResumeRedraw for Android to fix black screen after resume/file picker.
+/// </summary>
 public partial class App : Application
 {
     /// <summary>Delay (ms) so the invalidate runs after the first post-resume frame and transition (logcat: "Start draw after previous draw not visible").</summary>

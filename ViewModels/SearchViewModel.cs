@@ -10,8 +10,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace AetherVault.ViewModels;
 
 /// <summary>
-/// ViewModel for search page. Handles search execution, pagination,
-/// and image loading for the card grid.
+/// ViewModel for the Search tab. Handles search execution, pagination, and image loading for the card grid.
+/// The Page binds to SearchText, SearchCommand, ClearCommand, and the grid; this class does the actual work.
 /// Port of TSearchPresenter + TScrollHandler from MainUnit.Search.Custom.pas.
 /// </summary>
 public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
@@ -21,6 +21,8 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     private int _currentPage;
     private bool _isLoadingPage;
     private CardGrid? _grid;
+
+    // ── Bindable properties (XAML uses these via {Binding PropertyName}) ──
 
     [ObservableProperty]
     private string filtersSummaryText = "";
@@ -61,6 +63,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
     private const int PageSize = 50;
 
+    /// <summary>Raised when a search finishes (e.g. so the filters page can refresh).</summary>
     public event Action? SearchCompleted;
 
     public SearchViewModel(CardManager cardManager)
@@ -97,12 +100,14 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         };
     }
 
+    /// <summary>Called by SearchPage when the card grid is created. We need the grid reference for pagination and visible-range updates.</summary>
     public void AttachGrid(CardGrid grid)
     {
         _grid = grid;
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
     }
 
+    // Debounce: wait 750ms after user stops typing before running search
     partial void OnSearchTextChanged(string value)
     {
         _searchDebounceCts?.Cancel();
@@ -130,6 +135,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         await PerformSearchAsync();
     }
 
+    /// <summary>Clear search box, filters, grid, and reset state. Bound to the Clear button.</summary>
     [RelayCommand]
     private void Clear()
     {
@@ -156,11 +162,12 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         await PerformSearchAsync(options);
     }
 
+    /// <summary>Runs the search: builds query via MTGSearchHelper, executes via CardManager, then updates the grid. Handles first page and total count.</summary>
     public async Task PerformSearchAsync(SearchOptions? options = null)
     {
         if (IsBusy) return;
 
-        // If no text and no options, don't search
+        // No search term and no filters (e.g. from filters page) → prompt user
         if (string.IsNullOrWhiteSpace(SearchText) && options == null)
         {
             StatusMessage = "Enter a search term";
@@ -195,6 +202,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         try
         {
+            // Build parameterized SQL via the fluent helper (never concatenate user input into SQL)
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards(CurrentOptions.IncludeTokens);
             SearchOptionsApplier.Apply(helper, CurrentOptions);
@@ -273,6 +281,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         }
     }
 
+    /// <summary>Loads the next page of results and appends to the grid. Called when user scrolls near the bottom.</summary>
     public async Task LoadNextPageAsync()
     {
         if (_isLoadingPage || !HasMorePages || _grid == null) return;

@@ -4,6 +4,10 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AetherVault.ViewModels;
 
+/// <summary>
+/// ViewModel for the initial loading/splash screen. Runs CardManager.InitializeAsync (download DB if needed, connect),
+/// shows progress and tips, then navigates to AppShell when ready. Retry command restarts the download if it failed.
+/// </summary>
 public partial class LoadingViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;

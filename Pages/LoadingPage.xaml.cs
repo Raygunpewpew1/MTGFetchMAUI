@@ -3,6 +3,10 @@ using System.ComponentModel;
 
 namespace AetherVault.Pages;
 
+/// <summary>
+/// First screen shown at startup. Displays logo, progress, and tips while LoadingViewModel runs InitAsync
+/// (DB download/connect). When initialization succeeds, the ViewModel navigates to AppShell and this page is replaced.
+/// </summary>
 public partial class LoadingPage : ContentPage
 {
     private readonly LoadingViewModel _viewModel;

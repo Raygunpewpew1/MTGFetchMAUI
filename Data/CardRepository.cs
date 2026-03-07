@@ -6,8 +6,8 @@ using System.Data.Common;
 namespace AetherVault.Data;
 
 /// <summary>
-/// Async card data access using Microsoft.Data.Sqlite.
-/// Port of TCardRepository from CardRepository.pas.
+/// Read-only access to the MTG card database (cards + tokens). All queries go through the MTG connection.
+/// Uses Dapper for execution and CardMapper to turn rows into Card objects. Never write to this DB from here.
 /// </summary>
 public class CardRepository : ICardRepository
 {
@@ -21,6 +21,7 @@ public class CardRepository : ICardRepository
 
     public Task<Card> GetCardByUUIDAsync(string uuid) => GetCardWithLegalitiesAsync(uuid);
 
+    /// <summary>Loads a single card by UUID from cards/tokens and maps it to a Card model.</summary>
     public async Task<Card> GetCardWithLegalitiesAsync(string uuid)
     {
         return await WithMTGReaderAsync(

@@ -4,6 +4,10 @@ using Microsoft.Data.Sqlite;
 
 namespace AetherVault.Data;
 
+/// <summary>
+/// CRUD for decks and deck cards. Uses the Collection database (Decks and DeckCards tables).
+/// DeckBuilderService coordinates deck logic; this class handles persistence only.
+/// </summary>
 public class DeckRepository : IDeckRepository
 {
     private readonly DatabaseManager _databaseManager;

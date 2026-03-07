@@ -7,8 +7,8 @@ using Microsoft.Data.Sqlite;
 namespace AetherVault.Data;
 
 /// <summary>
-/// Async user collection CRUD operations.
-/// Port of TCollectionRepository from CollectionRepository.pas.
+/// CRUD for the user's collection (my_collection table in the Collection DB). Uses the same DatabaseManager as CardRepository;
+/// for queries that need card data (e.g. names, set) we use ICardRepository against the MTG DB. All writes go through CollectionConnection.
 /// </summary>
 public class CollectionRepository : ICollectionRepository
 {
@@ -50,6 +50,7 @@ public class CollectionRepository : ICollectionRepository
         _cardRepo = cardRepository;
     }
 
+    /// <summary>Insert or update quantity for one card. Uses upsert so multiple adds accumulate quantity.</summary>
     public async Task AddCardAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false)
     {
         await WithCollectionTransactionAsync(async (conn, trans) =>
