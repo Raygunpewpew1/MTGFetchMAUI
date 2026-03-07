@@ -17,6 +17,10 @@
 
     <Grid RowDefinitions="Auto,*">
         <HorizontalStackLayout Grid.Row="0" Padding="12,8" Spacing="8" BackgroundColor="{StaticResource Surface}">
+            <Button Text="Copy"
+                    Command="{Binding CopyCommand}"
+                    StyleClass="OutlinedButton"
+                    Padding="12,6" />
             <Button Text="Clear"
                     Command="{Binding ClearCommand}"
                     StyleClass="OutlinedButton"

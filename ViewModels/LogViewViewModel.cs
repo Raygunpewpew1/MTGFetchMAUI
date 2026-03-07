@@ -20,6 +20,15 @@ public partial class LogViewViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task CopyAsync()
+    {
+        if (LogBuffer.Entries.Count == 0)
+            return;
+        var text = string.Join(Environment.NewLine, LogBuffer.Entries.Select(e => e.Text));
+        await Clipboard.Default.SetTextAsync(text);
+    }
+
+    [RelayCommand]
     private void Clear()
     {
         LogBuffer.Clear();
