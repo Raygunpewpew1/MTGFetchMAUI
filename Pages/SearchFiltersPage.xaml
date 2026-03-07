@@ -54,7 +54,7 @@
                         <Label Text="Colors" FontSize="{StaticResource HeaderFontSize}" FontAttributes="Bold" />
                         <FlexLayout BindableLayout.ItemsSource="{Binding ColorFilters}"
                                     BindableLayout.ItemTemplate="{StaticResource ColorFilterItemTemplate}"
-                                    Wrap="NoWrap" JustifyContent="Start" />
+                                    Wrap="NoWrap" JustifyContent="SpaceEvenly" />
                     </VerticalStackLayout>
                 </Border>
 
