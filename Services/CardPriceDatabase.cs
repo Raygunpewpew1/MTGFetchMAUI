@@ -90,48 +90,41 @@ public class CardPriceDatabase : IDisposable
 
     /// <summary>
     /// Looks up paper price data for multiple card UUIDs. History is omitted for performance.
+    /// Chunks are queried in parallel using short-lived read-only connections (WAL mode allows concurrent readers).
     /// </summary>
     public async Task<Dictionary<string, CardPriceData>> GetCardPricesBulkAsync(IEnumerable<string> uuids)
     {
+        // Quick guard — check connectivity and grab the DB path while holding the lock.
+        string dbPath;
         await _lock.WaitAsync();
         try
         {
             if (!IsConnected) return [];
+            dbPath = AppDataManager.GetPricesDatabasePath();
+        }
+        finally
+        {
+            _lock.Release();
+        }
 
-            var result = new Dictionary<string, CardPriceData>();
+        try
+        {
             var uuidList = uuids.Distinct().ToList();
-            if (uuidList.Count == 0) return result;
+            if (uuidList.Count == 0) return [];
 
             const int chunkSize = 500;
-            for (int i = 0; i < uuidList.Count; i += chunkSize)
-            {
-                var chunk = uuidList.Skip(i).Take(chunkSize).ToList();
+            var chunks = Enumerable
+                .Range(0, (uuidList.Count + chunkSize - 1) / chunkSize)
+                .Select(i => uuidList.Skip(i * chunkSize).Take(chunkSize).ToList())
+                .ToList();
 
-                var dynamicParams = new DynamicParameters();
-                var paramNames = new List<string>(chunk.Count);
-                for (int j = 0; j < chunk.Count; j++)
-                {
-                    var p = $"@p{j}";
-                    dynamicParams.Add(p, chunk[j]);
-                    paramNames.Add(p);
-                }
+            // Run all chunks in parallel; each opens its own short-lived read-only connection.
+            var chunkResults = await Task.WhenAll(chunks.Select(c => QueryChunkAsync(dbPath, c)));
 
-                var sql = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramNames));
-
-                var rows = await _connection!.QueryAsync<BulkPriceRow>(sql, dynamicParams);
-
-                var rowsByUuid = rows.GroupBy(r => r.uuid).ToDictionary(g => g.Key, g => g.Cast<PriceRow>().ToList());
-
-                foreach (var (rowUuid, rowList) in rowsByUuid)
-                {
-                    result[rowUuid] = new CardPriceData
-                    {
-                        UUID = rowUuid,
-                        Paper = BuildPaperPlatform(rowList, []),
-                        LastUpdated = DateTime.Now
-                    };
-                }
-            }
+            var result = new Dictionary<string, CardPriceData>(uuidList.Count);
+            foreach (var chunkResult in chunkResults)
+                foreach (var (rowUuid, data) in chunkResult)
+                    result[rowUuid] = data;
 
             return result;
         }
@@ -140,10 +133,44 @@ public class CardPriceDatabase : IDisposable
             Logger.LogStuff($"GetCardPricesBulk failed: {ex.Message}", LogLevel.Error);
             return [];
         }
-        finally
+    }
+
+    private static async Task<Dictionary<string, CardPriceData>> QueryChunkAsync(string dbPath, List<string> chunk)
+    {
+        var connStr = new SqliteConnectionStringBuilder
         {
-            _lock.Release();
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadOnly,
+            Pooling = false
+        }.ConnectionString;
+
+        await using var conn = new SqliteConnection(connStr);
+        await conn.OpenAsync();
+
+        var dynamicParams = new DynamicParameters();
+        var paramNames = new List<string>(chunk.Count);
+        for (int j = 0; j < chunk.Count; j++)
+        {
+            var p = $"@p{j}";
+            dynamicParams.Add(p, chunk[j]);
+            paramNames.Add(p);
         }
+
+        var sql = string.Format(SQLQueries.PricesGetBulkByUuids, string.Join(",", paramNames));
+        var rows = await conn.QueryAsync<BulkPriceRow>(sql, dynamicParams);
+
+        var result = new Dictionary<string, CardPriceData>();
+        foreach (var g in rows.GroupBy(r => r.uuid))
+        {
+            result[g.Key] = new CardPriceData
+            {
+                UUID = g.Key,
+                Paper = BuildPaperPlatform(g.Cast<PriceRow>().ToList(), []),
+                LastUpdated = DateTime.Now
+            };
+        }
+
+        return result;
     }
 
     /// <summary>

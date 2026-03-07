@@ -192,7 +192,7 @@ public class CollectionRepository : ICollectionRepository
         await _lock.WaitAsync();
         try
         {
-            var rows = await _db.CollectionConnection.QueryAsync<CollectionRow>(SQLQueries.CollectionGetAll);
+            var rows = await _db.CollectionConnection.QueryAsync<CollectionRow>(SQLQueries.CollectionGetForPricing);
             return rows
                 .Select(r => (Uuid: r.card_uuid, Quantity: r.quantity, IsFoil: r.is_foil.HasValue && r.is_foil.Value != 0, IsEtched: r.is_etched.HasValue && r.is_etched.Value != 0))
                 .ToList();

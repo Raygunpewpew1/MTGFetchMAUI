@@ -21,6 +21,10 @@ public class CardManager : IDisposable
     private CancellationTokenSource? _downloadCts;
     private readonly SemaphoreSlim _priceInitLock = new(1, 1);
 
+    private double _cachedTotalValue;
+    private DateTime _totalValueCacheExpiry = DateTime.MinValue;
+    private static readonly TimeSpan TotalValueCacheTtl = TimeSpan.FromMinutes(5);
+
     // ── Events ───────────────────────────────────────────────────────
 
     /// <summary>Progress callback for downloads: (message, percent).</summary>
@@ -302,21 +306,25 @@ public class CardManager : IDisposable
     public async Task AddCardToCollectionAsync(string cardUUID, int quantity = 1, bool isFoil = false, bool isEtched = false)
     {
         await _collectionRepository.AddCardAsync(cardUUID, quantity, isFoil, isEtched);
+        InvalidateTotalValueCache();
     }
 
     public async Task AddCardsToCollectionBulkAsync(IEnumerable<(string cardUUID, int quantity, bool isFoil, bool isEtched)> cards)
     {
         await _collectionRepository.AddCardsBulkAsync(cards);
+        InvalidateTotalValueCache();
     }
 
     public async Task RemoveCardFromCollectionAsync(string cardUUID)
     {
         await _collectionRepository.RemoveCardAsync(cardUUID);
+        InvalidateTotalValueCache();
     }
 
     public async Task UpdateCardQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false)
     {
         await _collectionRepository.UpdateQuantityAsync(cardUUID, quantity, isFoil, isEtched);
+        InvalidateTotalValueCache();
     }
 
     public async Task<bool> IsInCollectionAsync(string cardUUID)
@@ -344,10 +352,14 @@ public class CardManager : IDisposable
 
     /// <summary>
     /// Computes collection total value using preferred vendor and bulk price lookup. Call in background after showing stats.
+    /// Result is cached for <see cref="TotalValueCacheTtl"/>; use <see cref="InvalidateTotalValueCache"/> after collection mutations.
     /// </summary>
     public async Task<double> GetCollectionTotalValueAsync()
     {
         if (_priceManager == null) return 0;
+
+        if (DateTime.UtcNow < _totalValueCacheExpiry)
+            return _cachedTotalValue;
 
         var entries = await _collectionRepository.GetCollectionEntriesForPricingAsync();
         if (entries.Count == 0) return 0;
@@ -360,8 +372,13 @@ public class CardManager : IDisposable
             if (pricesMap.TryGetValue(uuid, out var data))
                 total += quantity * PriceDisplayHelper.GetNumericPrice(data, isFoil, isEtched);
         }
+
+        _cachedTotalValue = total;
+        _totalValueCacheExpiry = DateTime.UtcNow.Add(TotalValueCacheTtl);
         return total;
     }
+
+    private void InvalidateTotalValueCache() => _totalValueCacheExpiry = DateTime.MinValue;
 
     public async Task ReorderCollectionAsync(IList<string> orderedUuids)
     {
@@ -371,6 +388,7 @@ public class CardManager : IDisposable
     public async Task ClearCollectionAsync()
     {
         await _collectionRepository.ClearCollectionAsync();
+        InvalidateTotalValueCache();
     }
 
     // ── Image Methods ────────────────────────────────────────────────

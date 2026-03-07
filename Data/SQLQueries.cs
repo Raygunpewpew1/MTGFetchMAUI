@@ -181,7 +181,7 @@ public static class SQLQueries
         "DELETE FROM card_prices";
 
     public const string PricesGetBulkByUuids =
-        "SELECT * FROM card_prices WHERE uuid IN ({0}) AND source = 'paper'";
+        "SELECT uuid, provider, price_type, finish, currency, price FROM card_prices WHERE uuid IN ({0}) AND source = 'paper'";
 
     // ============================================================================
     // CARD QUERIES
@@ -318,6 +318,10 @@ public static class SQLQueries
 
     public const string CollectionGetAll =
         "SELECT card_uuid, quantity, date_added, sort_order, is_foil, is_etched FROM my_collection ORDER BY sort_order ASC, date_added DESC";
+
+    /// <summary>Minimal projection for pricing calculations — no ORDER BY, no unused columns.</summary>
+    public const string CollectionGetForPricing =
+        "SELECT card_uuid, quantity, is_foil, is_etched FROM my_collection";
 
     public const string CollectionReorderItem =
         "UPDATE my_collection SET sort_order = @sortOrder WHERE card_uuid = @uuid";
