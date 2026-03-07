@@ -96,15 +96,16 @@ public static class AppDataManager
             await using var connection = new SqliteConnection(builder.ConnectionString);
             await connection.OpenAsync(ct);
 
-            // 1. Run PRAGMA integrity_check
+            // 1. Run PRAGMA quick_check (validates structure without the expensive full page scan
+            //    that integrity_check performs; catches corruption in the vast majority of cases)
             await using (var cmd = connection.CreateCommand())
             {
-                cmd.CommandText = "PRAGMA integrity_check;";
+                cmd.CommandText = "PRAGMA quick_check;";
                 var resultObj = await cmd.ExecuteScalarAsync(ct);
                 var result = resultObj?.ToString() ?? string.Empty;
                 if (!result.Equals("ok", StringComparison.OrdinalIgnoreCase))
                 {
-                    Logger.LogStuff($"MTG DB integrity_check failed with result: '{result}'.", LogLevel.Error);
+                    Logger.LogStuff($"MTG DB quick_check failed with result: '{result}'.", LogLevel.Error);
                     return false;
                 }
             }
@@ -122,7 +123,7 @@ public static class AppDataManager
                 }
             }
 
-            Logger.LogStuff("MTG DB integrity and sanity checks passed.", LogLevel.Info);
+            Logger.LogStuff("MTG DB quick_check and sanity checks passed.", LogLevel.Info);
             return true;
         }
         catch (OperationCanceledException)
@@ -155,82 +156,39 @@ public static class AppDataManager
     }
 
     /// <summary>
-    /// Fetches the version tag and Last-Modified header from GitHub release assets.
-    /// Returns a composite string: "TAG|LastModified".
+    /// Fetches the release tag from the GitHub release redirect.
+    /// Returns the tag string (e.g. "2025-03-01"), which is sufficient for version comparison
+    /// since the CI/CD pipeline uses date-based tags for each weekly release.
     /// </summary>
     public static async Task<string> GetRemoteDatabaseVersionAsync()
     {
         try
         {
-            // 1. Get the TAG from the redirect (GitHub releases/latest -> download/TAG)
-            string tag = string.Empty;
-            string lastModified = string.Empty;
+            // A single HEAD request with redirect following disabled lets us read the
+            // Location header, which encodes the release tag in its path segments:
+            // .../releases/download/<TAG>/MTG_App_DB.zip
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler);
+            using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
+            using var response = await client.SendAsync(request);
 
-            // We need a client that DOES NOT follow redirects to capture the initial location header
-            using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
-            using (var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler))
+            var location = response.Headers.Location;
+            if (location != null)
             {
-                using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
-                using var response = await client.SendAsync(request);
-
-                if (response.StatusCode == System.Net.HttpStatusCode.Redirect ||
-                    response.StatusCode == System.Net.HttpStatusCode.MovedPermanently ||
-                    response.StatusCode == System.Net.HttpStatusCode.Found ||
-                    response.StatusCode == System.Net.HttpStatusCode.TemporaryRedirect)
+                var segments = location.Segments;
+                for (int i = 0; i < segments.Length - 1; i++)
                 {
-                    var location = response.Headers.Location;
-                    if (location != null)
+                    if (segments[i].TrimEnd('/').Equals("download", StringComparison.OrdinalIgnoreCase))
                     {
-                        // URL format: .../releases/download/<TAG>/MTG_App_DB.zip
-                        var segments = location.Segments;
-                        for (int i = 0; i < segments.Length - 1; i++)
-                        {
-                            if (segments[i].TrimEnd('/').Equals("download", StringComparison.OrdinalIgnoreCase))
-                            {
-                                tag = segments[i + 1].TrimEnd('/');
-                                break;
-                            }
-                        }
+                        var tag = segments[i + 1].TrimEnd('/');
+                        Logger.LogStuff($"Remote database version resolved to '{tag}'.", LogLevel.Info);
+                        return tag;
                     }
                 }
             }
 
-            if (string.IsNullOrEmpty(tag))
-            {
-                Logger.LogStuff("Remote database version check did not return a release tag.", LogLevel.Warning);
-                return string.Empty;
-            }
-
-            // 2. Get the Last-Modified header from the ACTUAL file location (following redirects)
-            // GitHub releases/download/TAG/file.zip -> redirects to Amazon S3 / Azure Blob
-            // We use a normal client that follows redirects here.
-            using (var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15)))
-            {
-                // The URL we found above is likely .../releases/download/TAG/MTG_App_DB.zip
-                // But we can just hit the original URL again with a normal client to follow the chain.
-                // Or construct the specific tag URL if needed. Let's stick to the original URL
-                // because it redirects to the specific tag, then to the blob storage.
-
-                // However, to be precise, let's construct the tag-specific URL so we are checking the *exact* version we found.
-                // But the original URL is "latest", which is what we want.
-
-                using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
-                using var response = await client.SendAsync(request);
-
-                if (response.IsSuccessStatusCode && response.Content.Headers.LastModified.HasValue)
-                {
-                    lastModified = response.Content.Headers.LastModified.Value.UtcDateTime.ToString("O");
-                }
-            }
-
-            // Return composite key: TAG + LastModified
-            // If LastModified is missing (unlikely), fallback to just TAG
-            var composite = !string.IsNullOrEmpty(lastModified)
-                ? $"{tag}|{lastModified}"
-                : tag;
-
-            Logger.LogStuff($"Remote database version resolved to '{composite}'.", LogLevel.Info);
-            return composite;
+            Logger.LogStuff("Remote database version check did not return a release tag.", LogLevel.Warning);
+            return string.Empty;
         }
         catch (Exception ex)
         {

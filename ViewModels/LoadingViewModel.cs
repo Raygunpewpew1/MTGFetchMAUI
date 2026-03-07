@@ -90,27 +90,22 @@ public partial class LoadingViewModel : BaseViewModel
         if (_cardManager.DatabaseManager.IsConnected)
             _cardManager.Disconnect();
 
-        // Check for updates
-        bool updateAvailable = false;
-        string remoteVersion = "";
+        bool dbExists = AppDataManager.MTGDatabaseExists();
 
-        try
-        {
-            var updateInfo = await AppDataManager.CheckForDatabaseUpdateAsync();
-            updateAvailable = updateInfo.updateAvailable;
-            remoteVersion = updateInfo.remoteVersion;
-        }
-        catch (Exception ex)
-        {
-            // Silently fail update check
-            System.Diagnostics.Debug.WriteLine($"Update check failed: {ex.Message}");
-        }
+        // Kick off the network update check and local DB validation concurrently — they
+        // are independent (network I/O vs. local disk I/O) so there is no reason to sequence them.
+        var updateCheckTask = CheckForUpdateSafeAsync();
+        var validationTask = dbExists
+            ? AppDataManager.ValidateMTGDatabaseAsync()
+            : Task.FromResult(false);
+
+        // Await the update check first — its result determines whether we even need validation.
+        var (updateAvailable, _, remoteVersion) = await updateCheckTask;
 
         if (updateAvailable)
         {
-            var displayVersion = remoteVersion.Split('|')[0];
             bool shouldUpdate = await _dialogService.DisplayAlertAsync(UserMessages.UpdateAvailableTitle,
-                UserMessages.UpdateAvailableMessage(displayVersion),
+                UserMessages.UpdateAvailableMessage(remoteVersion),
                 "Yes",
                 "No");
             if (shouldUpdate)
@@ -120,10 +115,10 @@ public partial class LoadingViewModel : BaseViewModel
             }
         }
 
-        if (AppDataManager.MTGDatabaseExists())
+        if (dbExists)
         {
-            // Run a quick integrity/sanity check on the existing DB before using it.
-            var isValid = await AppDataManager.ValidateMTGDatabaseAsync();
+            // Validation was running in parallel — await the already-in-flight task.
+            var isValid = await validationTask;
             if (isValid)
             {
                 await FinalizeStartupAsync();
@@ -150,6 +145,19 @@ public partial class LoadingViewModel : BaseViewModel
         else
         {
             await StartDownloadAsync();
+        }
+    }
+
+    private async Task<(bool updateAvailable, string localVersion, string remoteVersion)> CheckForUpdateSafeAsync()
+    {
+        try
+        {
+            return await AppDataManager.CheckForDatabaseUpdateAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Update check failed: {ex.Message}");
+            return (false, string.Empty, string.Empty);
         }
     }
 
