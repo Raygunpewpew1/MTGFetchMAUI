@@ -46,21 +46,11 @@ public record CardState(
         return state with { CachedDisplayPrice = state.GetDisplayPrice() };
     }
 
-    // Helper to calculate display price if not provided
+    // Helper to calculate display price if not provided (uses user's vendor priority)
     public string GetDisplayPrice()
     {
         if (!string.IsNullOrEmpty(CachedDisplayPrice)) return CachedDisplayPrice;
-        if (PriceData == null) return "";
-
-        // Priority: TCGPlayer > Cardmarket > CardKingdom > ManaPool
-        var paper = PriceData.Paper;
-        VendorPrices[] vendors = [paper.TCGPlayer, paper.Cardmarket, paper.CardKingdom, paper.ManaPool];
-        foreach (var v in vendors)
-        {
-            if (v.RetailNormal.Price > 0) return $"${v.RetailNormal.Price:F2}";
-            if (v.RetailFoil.Price > 0) return $"${v.RetailFoil.Price:F2}";
-        }
-        return "";
+        return PriceDisplayHelper.GetDisplayPrice(PriceData);
     }
 }
 

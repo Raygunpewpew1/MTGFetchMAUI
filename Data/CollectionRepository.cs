@@ -187,6 +187,22 @@ public class CollectionRepository : ICollectionRepository
         return [.. items];
     }
 
+    public async Task<IReadOnlyList<(string Uuid, int Quantity, bool IsFoil, bool IsEtched)>> GetCollectionEntriesForPricingAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            var rows = await _db.CollectionConnection.QueryAsync<CollectionRow>(SQLQueries.CollectionGetAll);
+            return rows
+                .Select(r => (Uuid: r.card_uuid, Quantity: r.quantity, IsFoil: r.is_foil.HasValue && r.is_foil.Value != 0, IsEtched: r.is_etched.HasValue && r.is_etched.Value != 0))
+                .ToList();
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
         // Fast path: compute stats with a single aggregate SQL query

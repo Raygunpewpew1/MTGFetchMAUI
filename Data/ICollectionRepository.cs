@@ -14,6 +14,8 @@ public interface ICollectionRepository
     Task ClearCollectionAsync();
     Task UpdateQuantityAsync(string cardUUID, int quantity, bool isFoil = false, bool isEtched = false);
     Task<CollectionItem[]> GetCollectionAsync();
+    /// <summary>Lightweight list of (uuid, quantity, isFoil, isEtched) for pricing total. No Card load.</summary>
+    Task<IReadOnlyList<(string Uuid, int Quantity, bool IsFoil, bool IsEtched)>> GetCollectionEntriesForPricingAsync();
     Task<CollectionStats> GetCollectionStatsAsync();
     Task<bool> IsInCollectionAsync(string cardUUID);
     Task<int> GetQuantityAsync(string cardUUID);

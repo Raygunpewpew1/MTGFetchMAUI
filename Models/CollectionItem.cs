@@ -40,7 +40,7 @@ public class CollectionStats
         $"Total: {TotalCards} cards ({UniqueCards} unique)\n" +
         $"Creatures: {CreatureCount} | Spells: {SpellCount} | Lands: {LandCount}\n" +
         $"Common: {CommonCount} | Uncommon: {UncommonCount} | Rare: {RareCount} | Mythic: {MythicCount}\n" +
-        $"Foils: {FoilCount} | Avg CMC: {AvgCMC:F2}";
+        $"Foils: {FoilCount} | Avg CMC: {AvgCMC:F2} | Total value: ${TotalValue:F2}";
 }
 
 /// <summary>

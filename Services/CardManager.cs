@@ -336,7 +336,26 @@ public class CardManager : IDisposable
 
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
-        return await _collectionRepository.GetCollectionStatsAsync();
+        var stats = await _collectionRepository.GetCollectionStatsAsync();
+
+        if (_priceManager != null)
+        {
+            var entries = await _collectionRepository.GetCollectionEntriesForPricingAsync();
+            if (entries.Count > 0)
+            {
+                var uuids = entries.Select(e => e.Uuid).Distinct().ToList();
+                var pricesMap = await _priceManager.GetCardPricesBulkAsync(uuids);
+                double total = 0;
+                foreach (var (uuid, quantity, isFoil, isEtched) in entries)
+                {
+                    if (pricesMap.TryGetValue(uuid, out var data))
+                        total += quantity * PriceDisplayHelper.GetNumericPrice(data, isFoil, isEtched);
+                }
+                stats.TotalValue = total;
+            }
+        }
+
+        return stats;
     }
 
     public async Task ReorderCollectionAsync(IList<string> orderedUuids)

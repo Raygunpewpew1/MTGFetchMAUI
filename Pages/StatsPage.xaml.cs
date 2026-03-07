@@ -8,6 +8,7 @@ public partial class StatsPage : ContentPage
     private readonly StatsViewModel _viewModel;
     private readonly CardManager _cardManager;
     private bool _loaded;
+    private bool _initializingPricePicker;
 
     public StatsPage(StatsViewModel viewModel, CardManager cardManager)
     {
@@ -64,6 +65,37 @@ public partial class StatsPage : ContentPage
                 DownloadStatusLabel.Text = "Download cancelled.";
             });
         };
+
+        InitPriceVendorPicker();
+    }
+
+    private static readonly string[] PriceVendorNames = ["TCG Player", "Cardmarket", "Card Kingdom", "ManaPool"];
+    private static readonly PriceVendor[] PriceVendorValues = [PriceVendor.TCGPlayer, PriceVendor.Cardmarket, PriceVendor.CardKingdom, PriceVendor.ManaPool];
+
+    private void InitPriceVendorPicker()
+    {
+        _initializingPricePicker = true;
+        try
+        {
+            PriceVendorPicker.ItemsSource = PriceVendorNames;
+            var priority = PriceDisplayHelper.GetVendorPriority();
+            var first = priority.Length > 0 ? priority[0] : PriceVendor.TCGPlayer;
+            var idx = Array.IndexOf(PriceVendorValues, first);
+            PriceVendorPicker.SelectedIndex = idx >= 0 ? idx : 0;
+        }
+        finally
+        {
+            _initializingPricePicker = false;
+        }
+    }
+
+    private async void OnPriceVendorPickerChanged(object? sender, EventArgs e)
+    {
+        if (_initializingPricePicker || PriceVendorPicker.SelectedIndex < 0 || PriceVendorPicker.SelectedIndex >= PriceVendorValues.Length)
+            return;
+        PriceDisplayHelper.SetPreferredVendor(PriceVendorValues[PriceVendorPicker.SelectedIndex]);
+        await _viewModel.LoadStatsAsync();
+        UpdateStatsUI();
     }
 
     protected override async void OnAppearing()
@@ -102,6 +134,7 @@ public partial class StatsPage : ContentPage
         var stats = _viewModel.Stats;
         TotalCardsLabel.Text = stats.TotalCards.ToString();
         UniqueCardsLabel.Text = stats.UniqueCards.ToString();
+        TotalValueLabel.Text = stats.TotalValue > 0 ? $"${stats.TotalValue:F2}" : "—";
         AvgCMCLabel.Text = stats.AvgCMC.ToString("F2");
         FoilCountLabel.Text = stats.FoilCount.ToString();
 

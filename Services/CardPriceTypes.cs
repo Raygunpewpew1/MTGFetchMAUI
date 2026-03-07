@@ -64,6 +64,18 @@ public record VendorPrices
 }
 
 /// <summary>
+/// Supported price vendors for display and collection total.
+/// User can set a priority order in settings; first vendor with a price is used.
+/// </summary>
+public enum PriceVendor
+{
+    TCGPlayer,
+    Cardmarket,
+    CardKingdom,
+    ManaPool
+}
+
+/// <summary>
 /// Paper pricing across all supported vendors.
 /// Port of TPaperPlatform from CardPriceTypes.pas.
 /// </summary>

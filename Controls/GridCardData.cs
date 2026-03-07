@@ -62,16 +62,8 @@ public class GridCardData
     {
         if (PriceData == null) return "";
         if (CachedDisplayPrice.Length > 0) return CachedDisplayPrice;
-
-        // Priority: TCGPlayer > Cardmarket > CardKingdom > ManaPool
-        var paper = PriceData.Paper;
-        VendorPrices[] vendors = [paper.TCGPlayer, paper.Cardmarket, paper.CardKingdom, paper.ManaPool];
-        foreach (var v in vendors)
-        {
-            if (v.RetailNormal.Price > 0) { CachedDisplayPrice = $"${v.RetailNormal.Price:F2}"; return CachedDisplayPrice; }
-            if (v.RetailFoil.Price > 0) { CachedDisplayPrice = $"${v.RetailFoil.Price:F2}"; return CachedDisplayPrice; }
-        }
-        return "";
+        CachedDisplayPrice = PriceDisplayHelper.GetDisplayPrice(PriceData);
+        return CachedDisplayPrice;
     }
 
     public static GridCardData FromCard(Card card, int quantity = 0) => new()

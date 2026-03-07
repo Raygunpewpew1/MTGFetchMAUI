@@ -49,19 +49,28 @@
                         <Label Text="Collection" FontSize="18" FontAttributes="Bold" />
                     </uranium:ExpanderView.Header>
                     <VerticalStackLayout Spacing="8" Padding="0,8,0,0">
-                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
                             <Label Text="Total Cards:" TextColor="{StaticResource TextSecondary}" />
                             <Label x:Name="TotalCardsLabel" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
 
                             <Label Grid.Row="1" Text="Unique Cards:" TextColor="{StaticResource TextSecondary}" />
                             <Label x:Name="UniqueCardsLabel" Grid.Row="1" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
 
-                            <Label Grid.Row="2" Text="Average CMC:" TextColor="{StaticResource TextSecondary}" />
-                            <Label x:Name="AvgCMCLabel" Grid.Row="2" Grid.Column="1" Text="0.00" HorizontalTextAlignment="End" />
+                            <Label Grid.Row="2" Text="Total Value:" TextColor="{StaticResource TextSecondary}" />
+                            <Label x:Name="TotalValueLabel" Grid.Row="2" Grid.Column="1" Text="$0.00" HorizontalTextAlignment="End" FontAttributes="Bold" />
 
-                            <Label Grid.Row="3" Text="Foils:" TextColor="{StaticResource TextSecondary}" />
-                            <Label x:Name="FoilCountLabel" Grid.Row="3" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
+                            <Label Grid.Row="3" Text="Average CMC:" TextColor="{StaticResource TextSecondary}" />
+                            <Label x:Name="AvgCMCLabel" Grid.Row="3" Grid.Column="1" Text="0.00" HorizontalTextAlignment="End" />
+
+                            <Label Grid.Row="4" Text="Foils:" TextColor="{StaticResource TextSecondary}" />
+                            <Label x:Name="FoilCountLabel" Grid.Row="4" Grid.Column="1" Text="0" HorizontalTextAlignment="End" />
                         </Grid>
+
+                        <Label Text="Price source" FontSize="14" FontAttributes="Bold" Margin="0,8,0,0" />
+                        <HorizontalStackLayout Spacing="8" Margin="0,4,0,0">
+                            <Label Text="Preferred vendor:" VerticalOptions="Center" TextColor="{StaticResource TextSecondary}" />
+                            <Picker x:Name="PriceVendorPicker" Title="Price vendor" WidthRequest="180" SelectedIndexChanged="OnPriceVendorPickerChanged" />
+                        </HorizontalStackLayout>
 
                         <!-- Type Breakdown -->
                         <Label Text="By Type" FontSize="14" FontAttributes="Bold" Margin="0,8,0,0" />

@@ -392,14 +392,17 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
         PriceData = prices;
 
-        VendorPrices[] vendors = [prices.Paper.TCGPlayer, prices.Paper.Cardmarket, prices.Paper.CardKingdom];
-        foreach (var v in vendors)
+        var display = PriceDisplayHelper.GetDisplayPrice(prices, preferFoilLabel: true, preferEtchedLabel: true);
+        if (!string.IsNullOrEmpty(display))
         {
-            if (v.RetailNormal.Price > 0) { PriceDisplay = $"${v.RetailNormal.Price:F2}"; IsPriceVisible = true; return; }
-            if (v.RetailFoil.Price > 0) { PriceDisplay = $"${v.RetailFoil.Price:F2} (Foil)"; IsPriceVisible = true; return; }
+            PriceDisplay = display;
+            IsPriceVisible = true;
         }
-        PriceDisplay = "";
-        IsPriceVisible = false;
+        else
+        {
+            PriceDisplay = "";
+            IsPriceVisible = false;
+        }
     }
 
     partial void OnCardImageChanging(SKImage? value)
