@@ -6,7 +6,7 @@
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
              xmlns:models="clr-namespace:AetherVault.Models"
              x:Class="AetherVault.Pages.MTGJsonDecksPage"
-             Title="MTGJSON Decks"
+             Title="Sample Decks"
              BackgroundColor="{StaticResource Background}"
              x:DataType="vm:MTGJsonDecksViewModel">
 
@@ -19,7 +19,7 @@
     <Grid RowDefinitions="Auto,Auto,*">
         <!-- Toolbar: Refresh -->
         <Grid Grid.Row="0" Padding="16,12" ColumnDefinitions="*,Auto">
-            <Label Text="Browse decks from MTGJSON"
+            <Label Text="Sample decks provided by MTGJSON"
                    FontSize="18"
                    FontAttributes="Bold"
                    TextColor="{StaticResource TextPrimary}"
