@@ -252,6 +252,12 @@ public class MTGSearchHelper
         {
             var trimmed = color.Trim();
             if (string.IsNullOrEmpty(trimmed)) continue;
+            // Colorless: MTGJSON uses empty colors for colorless cards, not "C"
+            if (string.Equals(trimmed, "C", StringComparison.OrdinalIgnoreCase))
+            {
+                conditions.Add(SQLQueries.CondColorless);
+                continue;
+            }
             var param = NextParam("Color" + trimmed);
             conditions.Add(SQLQueries.CondColors + param);
             _params.Add(param, "%" + trimmed + "%");

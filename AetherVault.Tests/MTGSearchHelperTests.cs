@@ -182,6 +182,18 @@ public class MTGSearchHelperTests
     }
 
     [Fact]
+    public void WhereColors_Colorless_UsesEmptyColorsCondition()
+    {
+        var helper = new MTGSearchHelper();
+        helper.SearchCards().WhereColors("C");
+        var result = helper.Build();
+        // Colorless cards have empty colors in MTGJSON, not "C"
+        Assert.Contains("c.colors IS NULL", result.sql);
+        Assert.Contains("c.colors = ''", result.sql);
+        Assert.DoesNotContain("c.colors LIKE", result.sql);
+    }
+
+    [Fact]
     public void WhereType_EmptyArray_AddsNoCondition()
     {
         var helper = new MTGSearchHelper();
