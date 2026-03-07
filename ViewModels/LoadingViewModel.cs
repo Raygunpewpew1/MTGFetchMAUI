@@ -54,6 +54,14 @@ public partial class LoadingViewModel : BaseViewModel
         _dialogService = dialogService;
     }
 
+    private Task _minimumDisplayTask = Task.CompletedTask;
+
+    /// <summary>
+    /// Called by LoadingPage with the entrance-animation Task so that FinalizeStartupAsync
+    /// can await it before navigating away — preventing fast startup from cutting the animation short.
+    /// </summary>
+    public void SetMinimumDisplayTask(Task t) => _minimumDisplayTask = t;
+
     [RelayCommand]
     private async Task RetryAsync()
     {
@@ -268,6 +276,9 @@ public partial class LoadingViewModel : BaseViewModel
         StatusMessage = UserMessages.Initializing;
         IsBusy = true;
         StopTipLoop();
+
+        // Ensure the entrance animation has finished before navigating away.
+        await _minimumDisplayTask;
 
         // Connect to the DB
         bool connected = await _cardManager.InitializeAsync();

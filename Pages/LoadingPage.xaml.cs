@@ -23,7 +23,8 @@ public partial class LoadingPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        RunEntranceAnimationsAsync();
+        var entranceTask = RunEntranceAnimationsAsync();
+        _viewModel.SetMinimumDisplayTask(entranceTask);
         await _viewModel.InitAsync();
     }
 
@@ -39,7 +40,7 @@ public partial class LoadingPage : ContentPage
             _ = FadeInProgressSectionAsync();
     }
 
-    private async void RunEntranceAnimationsAsync()
+    private async Task RunEntranceAnimationsAsync()
     {
         if (_entranceDone) return;
 
