@@ -42,7 +42,7 @@ public class DeckBuilderService
         return await _repository.CreateDeckAsync(deck);
     }
 
-    public async Task<ValidationResult> AddCardAsync(int deckId, string cardUuid, int quantityToAdd, string section = "Main")
+    public async Task<ValidationResult> AddCardAsync(int deckId, string cardUuid, int quantityToAdd, string section = "Main", bool skipLegalityCheck = false)
     {
         var deck = await _repository.GetDeckAsync(deckId);
         if (deck == null) return ValidationResult.Error("Deck not found.");
@@ -59,7 +59,7 @@ public class DeckBuilderService
 
         // Validate (pass quantityToAdd to check against limits relative to current state)
         // DeckValidator logic: total = existing + toAdd. Correct.
-        var result = await _validator.ValidateCardAdditionAsync(deck, card, quantityToAdd, currentCards);
+        var result = await _validator.ValidateCardAdditionAsync(deck, card, quantityToAdd, currentCards, skipLegalityCheck);
 
         if (result.IsError) return result;
 

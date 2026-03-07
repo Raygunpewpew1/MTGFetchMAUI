@@ -34,27 +34,31 @@ public class DeckValidator
         _cardRepository = cardRepository;
     }
 
-    public async Task<ValidationResult> ValidateCardAdditionAsync(DeckEntity deck, Card card, int quantityToAdd, List<DeckCardEntity> currentCards)
+    public async Task<ValidationResult> ValidateCardAdditionAsync(DeckEntity deck, Card card, int quantityToAdd, List<DeckCardEntity> currentCards, bool skipLegalityCheck = false)
     {
         var format = EnumExtensions.ParseDeckFormat(deck.Format);
 
         // 1. Format Legality
-        // Note: CardLegalities indexer uses the DeckFormat enum directly
-        if (!card.Legalities.IsLegalInFormat(format))
+        // Skipped during trusted imports (e.g. MTGJSON precon decks) where the source is authoritative.
+        if (!skipLegalityCheck)
         {
-            // Allow restricted in Vintage
-            if (format == DeckFormat.Vintage && card.Legalities[format] == LegalityStatus.Restricted)
+            // Note: CardLegalities indexer uses the DeckFormat enum directly
+            if (!card.Legalities.IsLegalInFormat(format))
             {
-                // Validate restricted (max 1)
-                int currentQty = GetTotalQuantity(card.UUID, currentCards);
-                if (currentQty + quantityToAdd > 1)
+                // Allow restricted in Vintage
+                if (format == DeckFormat.Vintage && card.Legalities[format] == LegalityStatus.Restricted)
                 {
-                    return ValidationResult.Error($"Card '{card.Name}' is Restricted in Vintage (Max 1).");
+                    // Validate restricted (max 1)
+                    int currentQty = GetTotalQuantity(card.UUID, currentCards);
+                    if (currentQty + quantityToAdd > 1)
+                    {
+                        return ValidationResult.Error($"Card '{card.Name}' is Restricted in Vintage (Max 1).");
+                    }
                 }
-            }
-            else
-            {
-                return ValidationResult.Error($"Card '{card.Name}' is not legal in {format.ToDisplayName()}.");
+                else
+                {
+                    return ValidationResult.Error($"Card '{card.Name}' is not legal in {format.ToDisplayName()}.");
+                }
             }
         }
 

@@ -32,6 +32,43 @@ public class MTGJsonDeckImporter
     }
 
     /// <summary>
+    /// Maps MTGJSON deck type strings to the closest internal DeckFormat.
+    /// MTGJSON uses type names like "Theme Deck", "Commander", "Preconstructed", etc.
+    /// Competitive format names match directly; everything else defaults to Legacy
+    /// (permissive legality, 4-of limit) which suits casual precon products.
+    /// </summary>
+    private static DeckFormat MapMtgJsonDeckType(string? deckType)
+    {
+        if (string.IsNullOrWhiteSpace(deckType))
+            return DeckFormat.Legacy;
+
+        return deckType.Trim().ToLowerInvariant() switch
+        {
+            "commander"                             => DeckFormat.Commander,
+            "brawl"                                 => DeckFormat.Brawl,
+            "standard brawl" or "standardbrawl"     => DeckFormat.StandardBrawl,
+            "pauper commander" or "paupercommander" => DeckFormat.PauperCommander,
+            "oathbreaker"                           => DeckFormat.Oathbreaker,
+            "duel" or "duel commander"              => DeckFormat.Duel,
+            "standard"                              => DeckFormat.Standard,
+            "pioneer"                               => DeckFormat.Pioneer,
+            "modern"                                => DeckFormat.Modern,
+            "legacy"                                => DeckFormat.Legacy,
+            "vintage"                               => DeckFormat.Vintage,
+            "pauper"                                => DeckFormat.Pauper,
+            "historic"                              => DeckFormat.Historic,
+            "alchemy"                               => DeckFormat.Alchemy,
+            "timeless"                              => DeckFormat.Timeless,
+            "gladiator"                             => DeckFormat.Gladiator,
+            "premodern"                             => DeckFormat.Premodern,
+            "penny" or "penny dreadful"             => DeckFormat.Penny,
+            // MTGJSON product types (Theme Deck, Preconstructed, Starter, Two-Headed Giant, etc.)
+            // use Legacy: permissive legality, no color-identity constraint, 4-of limit.
+            _                                       => DeckFormat.Legacy
+        };
+    }
+
+    /// <summary>
     /// Imports the given MTGJSON deck as a new deck. Returns the new deck id and counts.
     /// </summary>
     public async Task<MTGJsonDeckImportResult> ImportDeckAsync(MtgJsonDeck deck, IProgress<string>? progress = null, CancellationToken ct = default)
@@ -40,7 +77,7 @@ public class MTGJsonDeckImporter
         if (deck == null)
             return result;
 
-        var format = EnumExtensions.ParseDeckFormat(deck.Type);
+        var format = MapMtgJsonDeckType(deck.Type);
         progress?.Report("Creating deck...");
         var deckId = await _deckService.CreateDeckAsync(deck.Name, format, deck.ReleaseDate ?? "");
         result.DeckId = deckId;
@@ -129,7 +166,8 @@ public class MTGJsonDeckImporter
                 continue; // already added by SetCommanderAsync
 
             var quantity = mtgCard.Count < 1 ? 1 : mtgCard.Count;
-            var addResult = await _deckService.AddCardAsync(deckId, card.UUID, quantity, section);
+            // skipLegalityCheck: MTGJSON deck files are authoritative — trust the source.
+            var addResult = await _deckService.AddCardAsync(deckId, card.UUID, quantity, section, skipLegalityCheck: true);
             if (!addResult.IsError)
                 result.CardsAdded += quantity;
         }
