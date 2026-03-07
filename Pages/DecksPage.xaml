@@ -67,7 +67,7 @@
             <Grid ColumnDefinitions="*,*"
                   ColumnSpacing="12">
                 <Button Grid.Column="0"
-                        Clicked="OnImportDecksClicked"
+                        Command="{Binding ImportDecksCommand}"
                         Text="Import decks"
                         BackgroundColor="{StaticResource Surface}"
                         TextColor="{StaticResource TextPrimary}"
@@ -77,7 +77,7 @@
                         HorizontalOptions="Fill"
                         BorderWidth="0" />
                 <Button Grid.Column="1"
-                        Clicked="OnExportAllDecksClicked"
+                        Command="{Binding ExportDecksCommand}"
                         Text="Export all"
                         BackgroundColor="{StaticResource Surface}"
                         TextColor="{StaticResource TextPrimary}"

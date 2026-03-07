@@ -216,6 +216,37 @@ internal sealed class CardGridRenderer : IDisposable
         canvas.DrawRoundRect(rect, 8f, 8f, _borderPaint);
     }
 
+    private void DrawCardImageOrShimmer(SKCanvas canvas, SKRect imageRect, string cacheKey, float cornerRadius = 8f)
+    {
+        var image = _getImage(cacheKey);
+        if (image != null && image.Handle != IntPtr.Zero)
+        {
+            canvas.Save();
+            _imageRoundRect!.SetRect(imageRect, cornerRadius, cornerRadius);
+            canvas.ClipRoundRect(_imageRoundRect, antialias: true);
+            canvas.DrawImage(image, imageRect);
+            canvas.Restore();
+        }
+        else
+        {
+            DrawShimmer(canvas, imageRect);
+        }
+    }
+
+    private void DrawQuantityBadge(SKCanvas canvas, int quantity, float rightEdge, float top, float height)
+    {
+        if (quantity <= 0) return;
+        string qtyStr = quantity.ToString();
+        float tw = _badgeFont!.MeasureText(qtyStr);
+        float minWidth = height >= 19f ? 20f : 18f;
+        float padding = height >= 19f ? 10f : 8f;
+        float bw = Math.Max(minWidth, tw + padding);
+        float x = rightEdge - bw;
+        float radius = height / 2f;
+        canvas.DrawRoundRect(x, top, bw, height, radius, radius, _badgeBgPaint!);
+        canvas.DrawText(qtyStr, x + (bw - tw) / 2f, top + height - 5f, _badgeFont, _badgeTextPaint!);
+    }
+
     private void RenderCard(SKCanvas canvas, DrawCardCommand cmd)
     {
         var rect = cmd.Rect;
@@ -228,20 +259,7 @@ internal sealed class CardGridRenderer : IDisposable
         // 2. Card image
         var imageRect = new SKRect(rect.Left, rect.Top, rect.Right, rect.Top + rect.Width * 1.3968f);
         var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
-        var image = _getImage(cacheKey);
-
-        if (image != null && image.Handle != IntPtr.Zero)
-        {
-            canvas.Save();
-            _imageRoundRect!.SetRect(imageRect, 8f, 8f);
-            canvas.ClipRoundRect(_imageRoundRect, antialias: true);
-            canvas.DrawImage(image, imageRect);
-            canvas.Restore();
-        }
-        else
-        {
-            DrawShimmer(canvas, imageRect);
-        }
+        DrawCardImageOrShimmer(canvas, imageRect, cacheKey, cornerRadius: 8f);
 
         // 3. Name text + set symbol
         float textY = imageRect.Bottom + 16f;
@@ -284,16 +302,7 @@ internal sealed class CardGridRenderer : IDisposable
         }
 
         // 5. Quantity badge
-        if (card.Quantity > 0)
-        {
-            string qtyStr = card.Quantity.ToString();
-            float tw = _badgeFont!.MeasureText(qtyStr);
-            float bw = Math.Max(20f, tw + 10f);
-            float bx = imageRect.Right - bw - 4f;
-            float by = imageRect.Top + 4f;
-            canvas.DrawRoundRect(bx, by, bw, 20f, 10f, 10f, _badgeBgPaint!);
-            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 15f, _badgeFont, _badgeTextPaint!);
-        }
+        DrawQuantityBadge(canvas, card.Quantity, imageRect.Right - 4f, imageRect.Top + 4f, 20f);
     }
 
     private void RenderListCard(SKCanvas canvas, DrawCardCommand cmd)
@@ -312,32 +321,10 @@ internal sealed class CardGridRenderer : IDisposable
         var imgRect = new SKRect(pad, imgTop, pad + ListImgWidth, imgTop + ListImgHeight);
 
         var cacheKey = ImageDownloadService.GetCacheKey(card.ScryfallId, "normal", "");
-        var image = _getImage(cacheKey);
-
-        if (image != null && image.Handle != IntPtr.Zero)
-        {
-            canvas.Save();
-            _imageRoundRect!.SetRect(imgRect, 4f, 4f);
-            canvas.ClipRoundRect(_imageRoundRect, antialias: true);
-            canvas.DrawImage(image, imgRect);
-            canvas.Restore();
-        }
-        else
-        {
-            DrawShimmer(canvas, imgRect);
-        }
+        DrawCardImageOrShimmer(canvas, imgRect, cacheKey, cornerRadius: 4f);
 
         // 3. Quantity badge overlaid on thumbnail (top-right corner)
-        if (card.Quantity > 0)
-        {
-            string qtyStr = card.Quantity.ToString();
-            float tw = _badgeFont!.MeasureText(qtyStr);
-            float bw = Math.Max(18f, tw + 8f);
-            float bx = imgRect.Right - bw - 2f;
-            float by = imgRect.Top + 2f;
-            canvas.DrawRoundRect(bx, by, bw, 18f, 9f, 9f, _badgeBgPaint!);
-            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 13f, _badgeFont, _badgeTextPaint!);
-        }
+        DrawQuantityBadge(canvas, card.Quantity, imgRect.Right - 2f, imgRect.Top + 2f, 18f);
 
         // 4. Text area — to the right of the thumbnail
         float textLeft = pad + ListImgWidth + gap;
@@ -405,14 +392,10 @@ internal sealed class CardGridRenderer : IDisposable
         float priceRightLimit = row.Right - pad;
         if (card.Quantity > 0)
         {
-            string qtyStr = card.Quantity.ToString();
-            float tw = _badgeFont!.MeasureText(qtyStr);
-            float bw = Math.Max(16f, tw + 6f);
-            float bx = row.Right - bw - 4f;
-            float by = row.MidY - 9f;
-            canvas.DrawRoundRect(bx, by, bw, 18f, 9f, 9f, _badgeBgPaint!);
-            canvas.DrawText(qtyStr, bx + (bw - tw) / 2f, by + 13f, _badgeFont, _badgeTextPaint!);
-            priceRightLimit = bx - 8f;
+            DrawQuantityBadge(canvas, card.Quantity, row.Right - 4f, row.MidY - 9f, 18f);
+            float tw = _badgeFont!.MeasureText(card.Quantity.ToString());
+            float bw = Math.Max(18f, tw + 8f);
+            priceRightLimit = row.Right - 4f - bw - 8f;
         }
 
         // 5. Price

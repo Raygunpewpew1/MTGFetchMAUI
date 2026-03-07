@@ -54,7 +54,8 @@ public class CardPriceSQLiteSync
         }
         finally
         {
-            try { if (File.Exists(tempSqlitePath)) File.Delete(tempSqlitePath); } catch { }
+            try { if (File.Exists(tempSqlitePath)) File.Delete(tempSqlitePath); }
+            catch (Exception ex) { Logger.LogStuff($"[PriceSync] Cleanup: could not delete temp file: {ex.Message}", LogLevel.Warning); }
         }
     }
 
@@ -159,8 +160,12 @@ public class CardPriceSQLiteSync
         finally
         {
             if (collectionAttached)
-                try { await ExecuteAsync(conn, "DETACH DATABASE col"); } catch { }
-            try { await ExecuteAsync(conn, "DETACH DATABASE today"); } catch { }
+            {
+                try { await ExecuteAsync(conn, "DETACH DATABASE col"); }
+                catch (Exception ex) { Logger.LogStuff($"[PriceSync] DETACH col failed (non-fatal): {ex.Message}", LogLevel.Warning); }
+            }
+            try { await ExecuteAsync(conn, "DETACH DATABASE today"); }
+            catch (Exception ex) { Logger.LogStuff($"[PriceSync] DETACH today failed (non-fatal): {ex.Message}", LogLevel.Warning); }
         }
 
         // Reclaim freed pages after deleting non-collection history.

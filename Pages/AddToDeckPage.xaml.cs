@@ -8,29 +8,31 @@ public record AddToDeckResult(int DeckId, string DeckName, string Section, int Q
 public partial class AddToDeckPage : ContentPage
 {
     private readonly DeckBuilderService _deckService;
+    private readonly IServiceProvider _serviceProvider;
     private int _quantity = 1;
     private List<DeckEntity> _decks = [];
-    private readonly int? _initialDeckId;
-    private readonly string? _initialSection;
     private readonly TaskCompletionSource<AddToDeckResult?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>Set by caller after resolving from DI; used when opening for a specific card.</summary>
+    public string CardUuid { get; set; } = "";
+
+    /// <summary>Set by caller after resolving from DI; displayed as title.</summary>
+    public string CardName { get; set; } = "";
+
+    /// <summary>Optional; preselect this deck when available.</summary>
+    public int? InitialDeckId { get; set; }
+
+    /// <summary>Optional; preselect this section (e.g. "Main", "Sideboard").</summary>
+    public string? InitialSection { get; set; }
 
     public Task<AddToDeckResult?> WaitForResultAsync() => _tcs.Task;
 
-    public AddToDeckPage(
-        DeckBuilderService deckService,
-        string cardUuid,
-        string cardName,
-        int? initialDeckId = null,
-        string? initialSection = null)
+    public AddToDeckPage(DeckBuilderService deckService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
         _deckService = deckService;
-        _initialDeckId = initialDeckId;
-        _initialSection = string.IsNullOrWhiteSpace(initialSection) ? null : initialSection;
-        TitleLabel.Text = cardName;
+        _serviceProvider = serviceProvider;
         SectionPicker.SelectedIndex = 0; // "Main"
-        UpdateQuantityUI();
-
         SectionPicker.SelectedIndexChanged += (_, _) => UpdateConfirmText();
         DeckPicker.SelectedIndexChanged += (_, _) => UpdateConfirmText();
     }
@@ -38,6 +40,8 @@ public partial class AddToDeckPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        TitleLabel.Text = CardName;
+        UpdateQuantityUI();
         await LoadDecksAsync();
     }
 
@@ -59,16 +63,14 @@ public partial class AddToDeckPage : ContentPage
 
         int indexToSelect = 0;
 
-        // Prefer explicit deck (e.g., when opened from a specific Deck).
-        if (_initialDeckId.HasValue)
+        if (InitialDeckId.HasValue)
         {
-            int idx = _decks.FindIndex(d => d.Id == _initialDeckId.Value);
+            int idx = _decks.FindIndex(d => d.Id == InitialDeckId.Value);
             if (idx >= 0)
                 indexToSelect = idx;
         }
         else
         {
-            // Fall back to last-used deck if available.
             var (lastDeckId, _) = _deckService.GetLastSelection();
             if (lastDeckId.HasValue)
             {
@@ -80,8 +82,7 @@ public partial class AddToDeckPage : ContentPage
 
         DeckPicker.SelectedIndex = indexToSelect;
 
-        // Section: explicit initial > last-used > default Main.
-        string? section = _initialSection;
+        string? section = string.IsNullOrWhiteSpace(InitialSection) ? null : InitialSection;
         if (string.IsNullOrWhiteSpace(section))
         {
             var (_, lastSection) = _deckService.GetLastSelection();
@@ -182,7 +183,7 @@ public partial class AddToDeckPage : ContentPage
 
     private async void OnCreateDeckClicked(object? sender, EventArgs e)
     {
-        var modal = new CreateDeckPage(_deckService);
+        var modal = _serviceProvider.GetRequiredService<CreateDeckPage>();
         await Navigation.PushModalAsync(modal);
         int? newId = await modal.WaitForResultAsync();
         if (newId.HasValue)
@@ -193,7 +194,7 @@ public partial class AddToDeckPage : ContentPage
     {
         if (DeckPicker.SelectedIndex < 0)
         {
-            await DisplayAlertAsync("No Deck", "Please select a deck.", "OK");
+            await DisplayAlertAsync(UserMessages.NoDeckTitle, UserMessages.PleaseSelectDeck, "OK");
             return;
         }
 

@@ -146,7 +146,7 @@ public partial class StatsPage : ContentPage
 
     private async void OnClearCacheClicked(object? sender, EventArgs e)
     {
-        bool confirm = await DisplayAlertAsync("Clear Cache", "Clear all cached card images?", "Yes", "No");
+        bool confirm = await DisplayAlertAsync(UserMessages.ClearCacheTitle, UserMessages.ClearCacheMessage, "Yes", "No");
         if (!confirm) return;
 
         _viewModel.ClearCacheCommand.Execute(null);

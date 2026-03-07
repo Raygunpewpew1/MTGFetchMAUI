@@ -10,8 +10,8 @@ namespace AetherVault.Pages;
 public partial class CardDetailPage : ContentPage
 {
     private readonly CardDetailViewModel _viewModel;
-    private readonly IToastService _toastService;
     private readonly DeckBuilderService _deckService;
+    private readonly IServiceProvider _serviceProvider;
     private string _cardUUID = "";
     private bool _isSwipeAnimating;
 
@@ -25,12 +25,12 @@ public partial class CardDetailPage : ContentPage
         }
     }
 
-    public CardDetailPage(CardDetailViewModel viewModel, IToastService toastService, DeckBuilderService deckService)
+    public CardDetailPage(CardDetailViewModel viewModel, DeckBuilderService deckService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
         _viewModel = viewModel;
-        _toastService = toastService;
         _deckService = deckService;
+        _serviceProvider = serviceProvider;
         BindingContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -119,27 +119,26 @@ public partial class CardDetailPage : ContentPage
     {
         int currentQty = await _viewModel.GetCollectionQuantityAsync();
 
-        var page = new CollectionAddPage(
-            _viewModel.Card.Name,
-            $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}",
-            currentQty);
-
+        var page = _serviceProvider.GetRequiredService<CollectionAddPage>();
+        page.CardName = _viewModel.Card.Name;
+        page.SetInfo = $"{_viewModel.Card.SetCode} #{_viewModel.Card.Number}";
+        page.CurrentQty = currentQty;
         await Navigation.PushModalAsync(page);
         var result = await page.WaitForResultAsync();
 
         if (result is CollectionAddResult r)
         {
             await _viewModel.AddToCollectionWithFinishAsync(r.NewQuantity, r.IsFoil, r.IsEtched);
-            if (r.NewQuantity > 0)
-                _toastService.Show($"{r.NewQuantity}x {_viewModel.Card.Name} in collection");
-            else
-                _toastService.Show($"{_viewModel.Card.Name} removed from collection");
+            _viewModel.StatusIsError = false;
+            _viewModel.StatusMessage = UserMessages.CardAddedToCollection(r.NewQuantity, _viewModel.Card.Name);
         }
     }
 
     private async void OnAddToDeckClicked(object? sender, EventArgs e)
     {
-        var page = new AddToDeckPage(_deckService, _viewModel.Card.UUID, _viewModel.Card.Name);
+        var page = _serviceProvider.GetRequiredService<AddToDeckPage>();
+        page.CardUuid = _viewModel.Card.UUID;
+        page.CardName = _viewModel.Card.Name;
         await Navigation.PushModalAsync(page);
         var result = await page.WaitForResultAsync();
 
@@ -147,15 +146,21 @@ public partial class CardDetailPage : ContentPage
         {
             var validation = await _deckService.AddCardAsync(result.DeckId, _viewModel.Card.UUID, result.Quantity, result.Section);
             if (validation.IsError)
-                _toastService.Show(validation.Message ?? "Could not add card to deck.");
+            {
+                _viewModel.StatusIsError = true;
+                _viewModel.StatusMessage = validation.Message ?? UserMessages.CouldNotAddCardToDeck();
+            }
             else
-                _toastService.Show($"{result.Quantity}× {_viewModel.Card.Name} added to {result.DeckName}.");
+            {
+                _viewModel.StatusIsError = false;
+                _viewModel.StatusMessage = UserMessages.CardAddedToDeck(result.Quantity, _viewModel.Card.Name, result.DeckName);
+            }
         }
     }
 
     private async void OnRemoveClicked(object? sender, EventArgs e)
     {
-        bool confirm = await DisplayAlertAsync("Remove", $"Remove {_viewModel.Card.Name} from collection?", "Yes", "No");
+        bool confirm = await DisplayAlertAsync(UserMessages.RemoveTitle, UserMessages.RemoveFromCollectionMessage(_viewModel.Card.Name), "Yes", "No");
         if (confirm)
             _viewModel.RemoveFromCollectionCommand.Execute(null);
     }

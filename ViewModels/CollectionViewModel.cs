@@ -17,9 +17,9 @@ namespace AetherVault.ViewModels;
 public partial class CollectionViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
+    private readonly IGridPriceLoadService _gridPriceLoadService;
     private readonly CollectionImporter _importer;
     private readonly CollectionExporter _exporter;
-    private readonly IToastService _toastService;
     private CardGrid? _grid;
     private CollectionItem[] _allItems = [];
 
@@ -65,12 +65,12 @@ public partial class CollectionViewModel : BaseViewModel
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
     public IAsyncRelayCommand RefreshCommand { get; }
 
-    public CollectionViewModel(CardManager cardManager, CollectionImporter importer, CollectionExporter exporter, IToastService toastService)
+    public CollectionViewModel(CardManager cardManager, IGridPriceLoadService gridPriceLoadService, CollectionImporter importer, CollectionExporter exporter)
     {
         _cardManager = cardManager;
+        _gridPriceLoadService = gridPriceLoadService;
         _importer = importer;
         _exporter = exporter;
-        _toastService = toastService;
         ImportCollectionCommand = new AsyncRelayCommand(ImportCollectionAsync);
         ExportCollectionCommand = new AsyncRelayCommand(ExportCollectionAsync);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
@@ -120,7 +120,7 @@ public partial class CollectionViewModel : BaseViewModel
                 IsCollectionEmpty = true;
                 TotalCards = 0;
                 UniqueCards = 0;
-                StatusMessage = "";
+                StatusMessage = UserMessages.StatusClear;
                 Logger.LogStuff("[CollectionUI] ApplyFilterAndSort: set IsCollectionEmpty=true on main thread", LogLevel.Debug);
             });
             if (token.IsCancellationRequested) return;
@@ -190,12 +190,12 @@ public partial class CollectionViewModel : BaseViewModel
                     var (start, end) = _grid.GetVisibleRange();
                     if (end >= start && start >= 0)
                     {
-                        LoadVisiblePrices(start, end);
+                        _gridPriceLoadService.LoadVisiblePrices(_grid, start, end);
                     }
                 }
             });
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { /* Expected when operation is cancelled (e.g. new search). */ }
     }
 
     private async Task RefreshAsync()
@@ -262,7 +262,7 @@ public partial class CollectionViewModel : BaseViewModel
 
         if (!await _cardManager.EnsureInitializedAsync())
         {
-            MainThread.BeginInvokeOnMainThread(() => StatusMessage = "Database not connected.");
+                MainThread.BeginInvokeOnMainThread(() => StatusMessage = UserMessages.DatabaseNotConnected);
             return;
         }
 
@@ -275,7 +275,7 @@ public partial class CollectionViewModel : BaseViewModel
         {
             IsBusy = true;
             StatusIsError = false;
-            StatusMessage = "Loading collection...";
+            StatusMessage = UserMessages.LoadingCollection;
         });
 
         try
@@ -296,7 +296,7 @@ public partial class CollectionViewModel : BaseViewModel
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 StatusIsError = true;
-                StatusMessage = $"Load failed: {msg}";
+                StatusMessage = UserMessages.LoadFailed(msg);
             });
             Logger.LogStuff($"Collection load error: {ex.Message}", LogLevel.Error);
         }
@@ -334,60 +334,19 @@ public partial class CollectionViewModel : BaseViewModel
 
     private void OnVisibleRangeChanged(int start, int end)
     {
-        LoadVisiblePrices(start, end);
-    }
-
-    private void LoadVisiblePrices(int start, int end)
-    {
-        if (_grid == null) return;
-
-        _ = Task.Run(async () =>
-        {
-            var uuidsToFetch = new List<string>();
-            for (int i = start; i <= end; i++)
-            {
-                var card = _grid.GetCardStateAt(i);
-                if (card != null && card.PriceData == null)
-                {
-                    uuidsToFetch.Add(card.Id.Value);
-                }
-            }
-
-            if (uuidsToFetch.Count == 0) return;
-
-            var pricesMap = await _cardManager.GetCardPricesBulkAsync(uuidsToFetch);
-            if (pricesMap.Count > 0)
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    _grid?.UpdateCardPricesBulk(pricesMap);
-                });
-            }
-        });
+        _gridPriceLoadService.LoadVisiblePrices(_grid, start, end);
     }
 
     private async Task ImportCollectionAsync()
     {
         try
         {
-            var customFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
-{
-    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
-    { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv" } },
-    { DevicePlatform.WinUI, new[] { ".csv" } },
-    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } },
-});
-
-            var result = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = "Select a CSV file to import",
-                FileTypes = customFileType,
-            });
+            var result = await FilePickerHelper.PickCsvFileAsync("Select a CSV file to import");
 
             if (result != null)
             {
                 IsBusy = true;
-                StatusMessage = "Importing collection...";
+                StatusMessage = UserMessages.ImportingCollection;
                 StatusIsError = false;
 
                 void OnProgress(string message, int progress)
@@ -436,7 +395,7 @@ public partial class CollectionViewModel : BaseViewModel
                 return;
 
             IsBusy = true;
-            StatusMessage = "Exporting collection...";
+            StatusMessage = UserMessages.ExportingCollection;
             StatusIsError = false;
 
             var csvText = await _exporter.ExportToCsvAsync();

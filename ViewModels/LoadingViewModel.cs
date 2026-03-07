@@ -12,6 +12,7 @@ public partial class LoadingViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDialogService _dialogService;
     private CancellationTokenSource? _tipCts;
 
     private static readonly string[] LoadingTips =
@@ -46,10 +47,11 @@ public partial class LoadingViewModel : BaseViewModel
     [ObservableProperty]
     public partial bool ShowRetry { get; set; }
 
-    public LoadingViewModel(CardManager cardManager, IServiceProvider serviceProvider)
+    public LoadingViewModel(CardManager cardManager, IServiceProvider serviceProvider, IDialogService dialogService)
     {
         _cardManager = cardManager;
         _serviceProvider = serviceProvider;
+        _dialogService = dialogService;
     }
 
     [RelayCommand]
@@ -78,7 +80,7 @@ public partial class LoadingViewModel : BaseViewModel
             return;
         }
 
-        StatusMessage = "Checking database...";
+        StatusMessage = UserMessages.CheckingDatabase;
         ShowRetry = false;
         StatusIsError = false;
         Progress = 0;
@@ -106,23 +108,15 @@ public partial class LoadingViewModel : BaseViewModel
 
         if (updateAvailable)
         {
-            // Display only the TAG part to the user, not the timestamp
             var displayVersion = remoteVersion.Split('|')[0];
-
-            // Use Windows[0].Page since MainPage might be null in some contexts
-            var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-            if (page != null)
+            bool shouldUpdate = await _dialogService.DisplayAlertAsync(UserMessages.UpdateAvailableTitle,
+                UserMessages.UpdateAvailableMessage(displayVersion),
+                "Yes",
+                "No");
+            if (shouldUpdate)
             {
-                bool shouldUpdate = await page.DisplayAlertAsync("Update Available",
-                    $"A new database version ({displayVersion}) is available. Would you like to download it?",
-                    "Yes",
-                    "No");
-
-                if (shouldUpdate)
-                {
-                    await StartDownloadAsync();
-                    return;
-                }
+                await StartDownloadAsync();
+                return;
             }
         }
 
@@ -136,26 +130,21 @@ public partial class LoadingViewModel : BaseViewModel
             }
             else
             {
-                var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-                if (page != null)
+                bool redownload = await _dialogService.DisplayAlertAsync(
+                    UserMessages.DatabaseErrorTitle,
+                    UserMessages.DatabaseErrorMessage,
+                    "Download",
+                    "Cancel");
+                if (redownload)
                 {
-                    bool redownload = await page.DisplayAlertAsync(
-                        "Database Error",
-                        "The local card database appears to be corrupted. Download a fresh copy?",
-                        "Download",
-                        "Cancel");
-
-                    if (redownload)
-                    {
-                        await StartDownloadAsync();
-                        return;
-                    }
+                    await StartDownloadAsync();
+                    return;
                 }
 
                 ShowRetry = true;
                 IsBusy = false;
                 StatusIsError = true;
-                StatusMessage = "Database is corrupted. Please retry the download.";
+                StatusMessage = UserMessages.DatabaseCorrupted;
             }
         }
         else
@@ -170,7 +159,7 @@ public partial class LoadingViewModel : BaseViewModel
         StatusIsError = false;
         IsBusy = true;
         StartTipLoop();
-        StatusMessage = "Downloading database...";
+        StatusMessage = UserMessages.DownloadingDatabase;
         Progress = 0;
 
         // Subscribe to progress
@@ -189,29 +178,23 @@ public partial class LoadingViewModel : BaseViewModel
         }
         else
         {
-            // If download failed but we have a database (e.g. update failed), offer to continue
             if (AppDataManager.MTGDatabaseExists())
             {
-                var page = Application.Current?.Windows.FirstOrDefault()?.Page;
-                if (page != null)
+                bool useExisting = await _dialogService.DisplayAlertAsync(UserMessages.DownloadFailedTitle,
+                    UserMessages.DownloadFailedContinueMessage,
+                    "Yes",
+                    "Retry");
+                if (useExisting)
                 {
-                    bool useExisting = await page.DisplayAlertAsync("Download Failed",
-                        "Could not download the update. Continue with existing database?",
-                        "Yes",
-                        "Retry");
-
-                    if (useExisting)
-                    {
-                        await FinalizeStartupAsync();
-                        return;
-                    }
+                    await FinalizeStartupAsync();
+                    return;
                 }
             }
 
             IsBusy = false;
             ShowRetry = true;
             StatusIsError = true;
-            StatusMessage = "Download failed. Please check your internet connection.";
+            StatusMessage = UserMessages.DownloadFailed;
             StopTipLoop();
         }
     }
@@ -274,7 +257,7 @@ public partial class LoadingViewModel : BaseViewModel
 
     private async Task FinalizeStartupAsync()
     {
-        StatusMessage = "Initializing...";
+        StatusMessage = UserMessages.Initializing;
         IsBusy = true;
         StopTipLoop();
 
@@ -283,7 +266,7 @@ public partial class LoadingViewModel : BaseViewModel
 
         if (!connected)
         {
-            StatusMessage = "Failed to open database.";
+            StatusMessage = UserMessages.FailedToOpenDatabase;
             ShowRetry = true;
             StatusIsError = true;
             IsBusy = false;

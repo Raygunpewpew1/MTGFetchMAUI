@@ -38,17 +38,7 @@ public static class ManaSvgCache
     {
         var picture = GetSymbol(symbolName);
         if (picture == null) return;
-
-        canvas.Save();
-        canvas.Translate(x, y);
-
-        // SVGs have a 100x100 viewBox, scale to target size
-        float scaleX = size / picture.CullRect.Width;
-        float scaleY = size / picture.CullRect.Height;
-        canvas.Scale(scaleX, scaleY);
-
-        canvas.DrawPicture(picture);
-        canvas.Restore();
+        SvgCacheEngine.DrawPictureInRect(canvas, picture, x, y, size, tint: null, centerInRect: false);
     }
 
     /// <summary>

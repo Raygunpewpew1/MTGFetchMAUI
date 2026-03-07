@@ -187,7 +187,10 @@ public class FileImageCache : IDisposable
             foreach (var file in Directory.GetFiles(_cacheDir, $"*{FileExtension}"))
             {
                 try { File.Delete(file); }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Logger.LogStuff($"Cache cleanup: could not delete file: {ex.Message}", LogLevel.Debug);
+                }
             }
 
             _currentCacheSize = 0;
@@ -270,7 +273,10 @@ public class FileImageCache : IDisposable
                 freedBytes += files[i].Length;
                 files[i].Delete();
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Logger.LogStuff($"Cache cleanup: could not delete file: {ex.Message}", LogLevel.Debug);
+            }
         }
 
         _currentCacheSize = Math.Max(0, _currentCacheSize - freedBytes);
@@ -290,7 +296,10 @@ public class FileImageCache : IDisposable
             foreach (var file in files)
             {
                 try { totalSize += new FileInfo(file).Length; }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Logger.LogStuff($"Cache stats: could not read file size: {ex.Message}", LogLevel.Debug);
+                }
             }
 
             _currentCacheSize = totalSize;
@@ -313,6 +322,9 @@ public class FileImageCache : IDisposable
     private static void TryDeleteFile(string path)
     {
         try { File.Delete(path); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogStuff($"Cache: could not delete file: {ex.Message}", LogLevel.Debug);
+        }
     }
 }

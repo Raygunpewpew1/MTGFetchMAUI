@@ -5,24 +5,33 @@ public record CollectionAddResult(int NewQuantity, bool IsFoil, bool IsEtched);
 public partial class CollectionAddPage : ContentPage
 {
     private int _quantity;
-    private readonly int _currentInCollection;
-    private readonly int _minQuantity;
-    private readonly TaskCompletionSource<CollectionAddResult?> _tcs;
+    private int _currentInCollection;
+    private int _minQuantity;
+    private readonly TaskCompletionSource<CollectionAddResult?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>Set by caller after resolving from DI.</summary>
+    public string CardName { get; set; } = "";
+
+    /// <summary>Set by caller (e.g. set code and number).</summary>
+    public string SetInfo { get; set; } = "";
+
+    /// <summary>Current quantity in collection; 0 if not in collection.</summary>
+    public int CurrentQty { get; set; }
 
     public Task<CollectionAddResult?> Result => _tcs.Task;
 
-    public CollectionAddPage(string cardName, string setInfo, int currentQty)
+    public CollectionAddPage()
     {
         InitializeComponent();
+    }
 
-        _tcs = new TaskCompletionSource<CollectionAddResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _currentInCollection = currentQty;
-
-        // If already in collection: show current total, allow down to 0 (remove)
-        // If not in collection: start at 1, minimum is 1
-        if (currentQty > 0)
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _currentInCollection = CurrentQty;
+        if (CurrentQty > 0)
         {
-            _quantity = currentQty;
+            _quantity = CurrentQty;
             _minQuantity = 0;
             QuantityHeaderLabel.Text = "Set quantity";
         }
@@ -32,13 +41,11 @@ public partial class CollectionAddPage : ContentPage
             _minQuantity = 1;
             QuantityHeaderLabel.Text = "Quantity";
         }
-
-        TitleLabel.Text = cardName;
-        SetLabel.Text = setInfo;
-        CollectionInfoLabel.Text = currentQty > 0
-            ? $"Currently in collection: {currentQty}"
+        TitleLabel.Text = CardName;
+        SetLabel.Text = SetInfo;
+        CollectionInfoLabel.Text = CurrentQty > 0
+            ? $"Currently in collection: {CurrentQty}"
             : "Not in collection yet";
-
         UpdateQuantityUI();
     }
 

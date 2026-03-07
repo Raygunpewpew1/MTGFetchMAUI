@@ -63,7 +63,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
         {
             SearchResults.Clear();
             IsEmpty = true;
-            StatusMessage = "Enter a search term";
+            StatusMessage = UserMessages.EnterSearchTerm;
         }
     }
 
@@ -125,7 +125,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
         IsBusy = true;
         IsEmpty = false;
         StatusIsError = false;
-        StatusMessage = "Searching...";
+        StatusMessage = UserMessages.Searching;
 
         try
         {
@@ -134,7 +134,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
                 _allCards = [];
                 SearchResults = new ObservableCollection<Card>(_allCards);
                 IsEmpty = true;
-                StatusMessage = "Enter a search term";
+                StatusMessage = UserMessages.EnterSearchTerm;
                 return;
             }
 
@@ -189,14 +189,14 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
             IsEmpty = _allCards.Length == 0;
 
             if (IsEmpty)
-                StatusMessage = "No cards found.";
+                StatusMessage = UserMessages.NoCardsFound;
             else
-                StatusMessage = $"Found {_allCards.Length} cards";
+                StatusMessage = UserMessages.FoundCards(_allCards.Length);
         }
         catch (Exception ex)
         {
             StatusIsError = true;
-            StatusMessage = "Search failed.";
+            StatusMessage = UserMessages.SearchFailed(string.Empty);
             Logger.LogStuff($"Search error: {ex.Message}", LogLevel.Error);
         }
         finally

@@ -1,4 +1,5 @@
 using AetherVault.Controls;
+using AetherVault.Services;
 using Android.Graphics;
 using Android.Text;
 using Android.Text.Style;
@@ -101,7 +102,10 @@ public class CardTextViewHandler : ViewHandler<CardTextView, TextView>
             {
                 resId = resources.GetIdentifier(resourceName, "drawable", context.PackageName);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogStuff($"GetIdentifier for mana symbol '{resourceName}' failed: {ex.Message}", LogLevel.Debug);
+            }
 
             bool added = false;
             if (resId != 0)

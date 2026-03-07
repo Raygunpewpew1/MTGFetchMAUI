@@ -14,7 +14,6 @@ public partial class DeckDetailPage : ContentPage
     private readonly DeckDetailViewModel _viewModel;
     private readonly IServiceProvider _serviceProvider;
     private readonly DeckBuilderService _deckService;
-    private readonly IToastService _toastService;
     private readonly DeckExporter _deckExporter;
     private readonly ImageDownloadService _imageDownloadService;
 
@@ -33,7 +32,6 @@ public partial class DeckDetailPage : ContentPage
         DeckDetailViewModel viewModel,
         IServiceProvider serviceProvider,
         DeckBuilderService deckService,
-        IToastService toastService,
         DeckExporter deckExporter,
         ImageDownloadService imageDownloadService)
     {
@@ -41,7 +39,6 @@ public partial class DeckDetailPage : ContentPage
         _viewModel = viewModel;
         _serviceProvider = serviceProvider;
         _deckService = deckService;
-        _toastService = toastService;
         _deckExporter = deckExporter;
         _imageDownloadService = imageDownloadService;
         BindingContext = viewModel;
@@ -65,13 +62,13 @@ public partial class DeckDetailPage : ContentPage
         {
             _viewModel.IsBusy = true;
             _viewModel.StatusIsError = false;
-            _viewModel.StatusMessage = "Exporting deck...";
+            _viewModel.StatusMessage = UserMessages.ExportingDeck;
 
             var csvText = await _deckExporter.ExportDeckToCsvAsync(_viewModel.Deck.Id);
             if (string.IsNullOrWhiteSpace(csvText))
             {
-                _toastService.Show("Nothing to export.");
-                _viewModel.StatusMessage = "";
+                _viewModel.StatusIsError = false;
+                _viewModel.StatusMessage = UserMessages.NothingToExport;
                 return;
             }
 
@@ -166,7 +163,7 @@ public partial class DeckDetailPage : ContentPage
             if (result.IsError)
             {
                 _viewModel.StatusIsError = true;
-                _viewModel.StatusMessage = result.Message ?? "Could not set commander.";
+                _viewModel.StatusMessage = result.Message ?? UserMessages.CouldNotSetCommander();
             }
             else
             {
@@ -189,14 +186,11 @@ public partial class DeckDetailPage : ContentPage
         {
             string section = sectionIndex == 2 ? "Sideboard" : "Main";
 
-            // Reuse the add-to-deck modal to pick quantity/section with current deck preselected.
-            var addPage = new AddToDeckPage(
-                _deckService,
-                card.UUID,
-                card.Name,
-                _viewModel.Deck.Id,
-                section);
-
+            var addPage = _serviceProvider.GetRequiredService<AddToDeckPage>();
+            addPage.CardUuid = card.UUID;
+            addPage.CardName = card.Name;
+            addPage.InitialDeckId = _viewModel.Deck.Id;
+            addPage.InitialSection = section;
             await Navigation.PushModalAsync(addPage);
             var addResult = await addPage.WaitForResultAsync();
 
@@ -212,12 +206,12 @@ public partial class DeckDetailPage : ContentPage
             if (result.IsError)
             {
                 _viewModel.StatusIsError = true;
-                _viewModel.StatusMessage = result.Message ?? "Could not add card.";
+                _viewModel.StatusMessage = result.Message ?? UserMessages.CouldNotAddCardToDeck();
             }
             else
             {
                 _viewModel.StatusIsError = false;
-                _viewModel.StatusMessage = $"{addResult.Quantity}× {card.Name} added to {addResult.Section}.";
+                _viewModel.StatusMessage = UserMessages.CardsAddedToSection(addResult.Quantity, card.Name, addResult.Section);
                 _viewModel.RegisterLastAdded(card.UUID, card.Name, addResult.Section, addResult.Quantity);
             }
         }

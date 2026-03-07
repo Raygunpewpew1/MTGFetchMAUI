@@ -415,6 +415,10 @@ public static class SQLQueries
     public const string DeckGetCardCount =
         "SELECT COALESCE(SUM(Quantity), 0) FROM DeckCards WHERE DeckId = @DeckId";
 
+    /// <summary>Returns DeckId and Total (sum of Quantity) for each deck. Use with Dapper IN @DeckIds.</summary>
+    public const string DeckGetCardCountsBatch =
+        "SELECT DeckId, CAST(COALESCE(SUM(Quantity), 0) AS INTEGER) AS Total FROM DeckCards WHERE DeckId IN @DeckIds GROUP BY DeckId";
+
     // ============================================================================
     // SEARCH HELPER FRAGMENTS
     // ============================================================================

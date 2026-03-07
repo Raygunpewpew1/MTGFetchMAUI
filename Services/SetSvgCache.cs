@@ -34,30 +34,7 @@ public static class SetSvgCache
     {
         var picture = GetSymbol(setCode);
         if (picture == null) return;
-
-        canvas.Save();
-        canvas.Translate(x, y);
-
-        float scaleX = size / picture.CullRect.Width;
-        float scaleY = size / picture.CullRect.Height;
-        float scale = Math.Min(scaleX, scaleY);
-
-        float offsetX = (size - (picture.CullRect.Width * scale)) / 2f;
-        float offsetY = (size - (picture.CullRect.Height * scale)) / 2f;
-
-        canvas.Translate(offsetX, offsetY);
-        canvas.Scale(scale, scale);
-
-        using var paint = new SKPaint
-        {
-            IsAntialias = true,
-            ColorFilter = tint.HasValue
-                ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn)
-                : null
-        };
-
-        canvas.DrawPicture(picture, paint);
-        canvas.Restore();
+        SvgCacheEngine.DrawPictureInRect(canvas, picture, x, y, size, tint, centerInRect: true);
     }
 
     /// <summary>
@@ -67,30 +44,7 @@ public static class SetSvgCache
     {
         var picture = GetSymbol(setCode);
         if (picture == null) return;
-
-        canvas.Save();
-        canvas.Translate(destRect.Left, destRect.Top);
-
-        float scaleX = destRect.Width / picture.CullRect.Width;
-        float scaleY = destRect.Height / picture.CullRect.Height;
-        float scale = Math.Min(scaleX, scaleY);
-
-        float offsetX = (destRect.Width - (picture.CullRect.Width * scale)) / 2f;
-        float offsetY = (destRect.Height - (picture.CullRect.Height * scale)) / 2f;
-
-        canvas.Translate(offsetX, offsetY);
-        canvas.Scale(scale, scale);
-
-        using var paint = new SKPaint
-        {
-            IsAntialias = true,
-            ColorFilter = tint.HasValue
-                ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn)
-                : null
-        };
-
-        canvas.DrawPicture(picture, paint);
-        canvas.Restore();
+        SvgCacheEngine.DrawPictureInRect(canvas, picture, destRect, tint, centerInRect: true);
     }
 
     /// <summary>

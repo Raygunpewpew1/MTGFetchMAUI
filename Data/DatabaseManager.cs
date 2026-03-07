@@ -59,12 +59,8 @@ public sealed class DatabaseManager : IDisposable
 
                     // Create collection tables
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateCollectionTable);
-                    //    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
-                    //      await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDecksTable);
                     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDeckCardsTable);
-                    //    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
-                    //     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
                     await MigrateCollectionSchemaAsync(_collectionConnection);
 
                     // Connect MTG database (read-only) and attach collection so we can JOIN col.my_collection in search/collection queries
@@ -210,12 +206,8 @@ public sealed class DatabaseManager : IDisposable
         await _collectionConnection.OpenAsync();
         await ConfigureConnectionAsync(_collectionConnection, isCollection: true);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateCollectionTable);
-        //        await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
-        //      await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDecksTable);
         await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateDeckCardsTable);
-        //    await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailCacheTable);
-        //     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
         await MigrateCollectionSchemaAsync(_collectionConnection);
     }
 

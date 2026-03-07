@@ -12,17 +12,17 @@ namespace AetherVault.Pages;
 public partial class SearchPage : ContentPage
 {
     private readonly SearchViewModel _viewModel;
-    private readonly IToastService _toastService;
     private readonly CardGalleryContext _galleryContext;
     private readonly DeckBuilderService _deckService;
+    private readonly IServiceProvider _serviceProvider;
 
-    public SearchPage(SearchViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext, DeckBuilderService deckService)
+    public SearchPage(SearchViewModel viewModel, CardGalleryContext galleryContext, DeckBuilderService deckService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
         _viewModel = viewModel;
-        _toastService = toastService;
         _galleryContext = galleryContext;
         _deckService = deckService;
+        _serviceProvider = serviceProvider;
         BindingContext = _viewModel;
 
         // ViewModel needs the grid reference for pagination and visible-range (e.g. price loading)
@@ -82,26 +82,25 @@ public partial class SearchPage : ContentPage
         {
             int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
 
-            var page = new CollectionAddPage(
-                card.Name,
-                $"{card.SetCode} #{card.Number}",
-                currentQty);
-
+            var page = _serviceProvider.GetRequiredService<CollectionAddPage>();
+            page.CardName = card.Name;
+            page.SetInfo = $"{card.SetCode} #{card.Number}";
+            page.CurrentQty = currentQty;
             await Navigation.PushModalAsync(page);
             var result = await page.WaitForResultAsync();
 
             if (result is CollectionAddResult r)
             {
                 await _viewModel.UpdateCollectionAsync(uuid, r.NewQuantity, r.IsFoil, r.IsEtched);
-                if (r.NewQuantity > 0)
-                    _toastService.Show($"{r.NewQuantity}x {card.Name} in collection");
-                else
-                    _toastService.Show($"{card.Name} removed from collection");
+                _viewModel.StatusIsError = false;
+                _viewModel.StatusMessage = UserMessages.CardAddedToCollection(r.NewQuantity, card.Name);
             }
         }
         else if (action == "Add to Deck")
         {
-            var deckPage = new AddToDeckPage(_deckService, card.UUID, card.Name);
+            var deckPage = _serviceProvider.GetRequiredService<AddToDeckPage>();
+            deckPage.CardUuid = card.UUID;
+            deckPage.CardName = card.Name;
             await Navigation.PushModalAsync(deckPage);
             var deckResult = await deckPage.WaitForResultAsync();
 
@@ -110,9 +109,15 @@ public partial class SearchPage : ContentPage
                 var validation = await _deckService.AddCardAsync(
                     deckResult.DeckId, card.UUID, deckResult.Quantity, deckResult.Section);
                 if (validation.IsError)
-                    _toastService.Show(validation.Message ?? "Could not add card to deck.");
+                {
+                    _viewModel.StatusIsError = true;
+                    _viewModel.StatusMessage = validation.Message ?? UserMessages.CouldNotAddCardToDeck();
+                }
                 else
-                    _toastService.Show($"{deckResult.Quantity}x {card.Name} added to {deckResult.DeckName}.");
+                {
+                    _viewModel.StatusIsError = false;
+                    _viewModel.StatusMessage = UserMessages.CardAddedToDeck(deckResult.Quantity, card.Name, deckResult.DeckName);
+                }
             }
         }
     }

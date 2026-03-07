@@ -10,17 +10,17 @@ namespace AetherVault.Pages;
 public partial class CollectionPage : ContentPage
 {
     private readonly CollectionViewModel _viewModel;
-    private readonly IToastService _toastService;
     private readonly CardGalleryContext _galleryContext;
+    private readonly IServiceProvider _serviceProvider;
     /// <summary>When true, OnAppearing skips LoadCollectionAsync so we don't reload when coming back from card detail.</summary>
     private bool _skipNextReload;
 
-    public CollectionPage(CollectionViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext)
+    public CollectionPage(CollectionViewModel viewModel, CardGalleryContext galleryContext, IServiceProvider serviceProvider)
     {
         InitializeComponent();
         _viewModel = viewModel;
-        _toastService = toastService;
         _galleryContext = galleryContext;
+        _serviceProvider = serviceProvider;
         BindingContext = _viewModel;
 
         _viewModel.AttachGrid(CollectionGrid);
@@ -118,11 +118,10 @@ public partial class CollectionPage : ContentPage
 
         int currentQty = await _viewModel.GetCollectionQuantityAsync(uuid);
 
-        var page = new CollectionAddPage(
-            card.Name,
-            $"{card.SetCode} #{card.Number}",
-            currentQty);
-
+        var page = _serviceProvider.GetRequiredService<CollectionAddPage>();
+        page.CardName = card.Name;
+        page.SetInfo = $"{card.SetCode} #{card.Number}";
+        page.CurrentQty = currentQty;
         await Navigation.PushModalAsync(page);
         var result = await page.WaitForResultAsync();
 
@@ -142,8 +141,8 @@ public partial class CollectionPage : ContentPage
     private async void OnClearCollectionClicked(object? sender, EventArgs e)
     {
         bool confirmed = await DisplayAlertAsync(
-            "Clear collection",
-            "Remove all cards from your collection? This cannot be undone.",
+            UserMessages.ClearCollectionTitle,
+            UserMessages.ClearCollectionMessage,
             "Clear",
             "Cancel");
         if (confirmed)

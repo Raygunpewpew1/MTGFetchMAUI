@@ -55,12 +55,16 @@ public class CardManager : IDisposable
 
     // ── Constructor ──────────────────────────────────────────────────
 
-    public CardManager(ImageDownloadService imageDownloadService)
+    public CardManager(
+        DatabaseManager databaseManager,
+        ICardRepository cardRepository,
+        ICollectionRepository collectionRepository,
+        ImageDownloadService imageDownloadService)
     {
+        _databaseManager = databaseManager;
+        _cardRepository = cardRepository;
+        _collectionRepository = collectionRepository;
         _imageService = imageDownloadService;
-        _databaseManager = new DatabaseManager();
-        _cardRepository = new CardRepository(_databaseManager);
-        _collectionRepository = new CollectionRepository(_databaseManager, _cardRepository);
     }
 
     // ── Initialization ───────────────────────────────────────────────

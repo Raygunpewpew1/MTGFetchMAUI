@@ -279,7 +279,8 @@ public class CardPriceManager : IDisposable
         {
             // Reopen read connection for subsequent price lookups.
             await _database.EnsureDatabaseAsync();
-            try { if (File.Exists(zipPath)) File.Delete(zipPath); } catch { }
+            try { if (File.Exists(zipPath)) File.Delete(zipPath); }
+            catch (Exception ex) { Logger.LogStuff($"Cleanup: could not delete temp zip: {ex.Message}", LogLevel.Warning); }
         }
     }
 

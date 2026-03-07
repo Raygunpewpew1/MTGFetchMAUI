@@ -8,13 +8,15 @@ public partial class CardSearchPickerPage : ContentPage
 {
     private readonly CardSearchPickerViewModel _viewModel;
     private readonly CardManager _cardManager;
+    private readonly ISearchFiltersOpener _filtersOpener;
     private TaskCompletionSource<Card?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public CardSearchPickerPage(CardSearchPickerViewModel viewModel, CardManager cardManager)
+    public CardSearchPickerPage(CardSearchPickerViewModel viewModel, CardManager cardManager, ISearchFiltersOpener filtersOpener)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _cardManager = cardManager;
+        _filtersOpener = filtersOpener;
         BindingContext = _viewModel;
 
         _viewModel.CardSelected += OnCardSelected;
@@ -33,8 +35,7 @@ public partial class CardSearchPickerPage : ContentPage
 
     private async void OnFiltersClicked(object? sender, EventArgs e)
     {
-        var filtersPage = new SearchFiltersPage(_viewModel, _cardManager);
-        await Navigation.PushAsync(filtersPage);
+        await _filtersOpener.OpenAsync(_viewModel, _cardManager);
     }
 
     protected override void OnAppearing()

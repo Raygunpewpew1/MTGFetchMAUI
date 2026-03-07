@@ -20,7 +20,6 @@ public partial class AppShell : Shell
 
         // Register routes so we can navigate with Shell.Current.GoToAsync("carddetail", new Dictionary<string, object> { ... })
         Routing.RegisterRoute("carddetail", typeof(CardDetailPage));
-        Routing.RegisterRoute("searchfilters", typeof(SearchFiltersPage));
         Routing.RegisterRoute("deckdetail", typeof(DeckDetailPage));
     }
 }

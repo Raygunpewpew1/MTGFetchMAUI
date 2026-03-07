@@ -1,3 +1,5 @@
+using AetherVault.Services;
+
 namespace AetherVault.Controls;
 
 internal sealed class CardGridGestureHandler
@@ -67,7 +69,8 @@ internal sealed class CardGridGestureHandler
                     // Tell the ScrollView not to intercept subsequent moves so the
                     // drag gesture can proceed without the scroll view stealing events.
                     DisallowScrollIntercept?.Invoke();
-                    try { HapticFeedback.Perform(HapticFeedbackType.LongPress); } catch { }
+                    try { HapticFeedback.Perform(HapticFeedbackType.LongPress); }
+                    catch (Exception ex) { Logger.LogStuff($"Haptic feedback failed: {ex.Message}", LogLevel.Debug); }
                 }
                 else
                 {

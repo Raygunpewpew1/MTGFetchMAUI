@@ -358,8 +358,8 @@ public class CardGrid : ContentView
                 });
             }
         }
-        catch (OperationCanceledException) { }
-        catch (Exception ex) { Console.WriteLine($"Grid Error: {ex}"); }
+        catch (OperationCanceledException) { /* Expected when state updates are cancelled. */ }
+        catch (Exception ex) { Logger.LogStuff($"Grid error: {ex.Message}", LogLevel.Warning); }
         finally { _isProcessingUpdates = false; }
     }
 

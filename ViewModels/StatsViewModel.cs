@@ -43,18 +43,18 @@ public partial class StatsViewModel : BaseViewModel
     private async Task ClearCacheAsync()
     {
         IsBusy = true;
-        StatusMessage = "Clearing cache...";
+        StatusMessage = UserMessages.ClearingCache;
         try
         {
             await _cardManager.ClearImageCacheAsync();
             CacheStats = await _cardManager.GetImageCacheStatsAsync();
             Storage.ImageCacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize();
             OnPropertyChanged(nameof(Storage)); // notify UI about the total size update
-            StatusMessage = "Cache cleared";
+            StatusMessage = UserMessages.CacheCleared;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Error: {ex.Message}";
+            StatusMessage = UserMessages.Error(ex.Message);
         }
         finally
         {

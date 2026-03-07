@@ -1,8 +1,10 @@
 namespace AetherVault.Services;
 
 /// <summary>
-/// Singleton service that tracks the ordered list of card UUIDs from the current search
-/// or collection view, enabling swipe-to-navigate between cards in CardDetailPage.
+/// Holds the ordered list of card UUIDs for swipe-to-navigate in card detail
+/// (often referred to as "swipe context" or "gallery"). When the user opens a card from
+/// search or collection, this context is set so left/right swipes move through the same
+/// result set. Singleton service used by SearchPage, CollectionPage, and CardDetailPage.
 /// </summary>
 public class CardGalleryContext
 {

@@ -80,20 +80,27 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     public bool IsSideboardTab => SelectedSectionIndex == 2;
     public bool IsStatsTab => SelectedSectionIndex == 3;
 
-    public Color Tab0Color => SelectedSectionIndex == 0 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
-    public Color Tab1Color => SelectedSectionIndex == 1 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
-    public Color Tab2Color => SelectedSectionIndex == 2 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
-    public Color Tab3Color => SelectedSectionIndex == 3 ? Color.FromArgb("#03DAC5") : Color.FromArgb("#888888");
+    private static readonly Color TabSelectedColor = Color.FromArgb("#03DAC5");
+    private static readonly Color TabUnselectedColor = Color.FromArgb("#888888");
 
-    public FontAttributes Tab0Font => SelectedSectionIndex == 0 ? FontAttributes.Bold : FontAttributes.None;
-    public FontAttributes Tab1Font => SelectedSectionIndex == 1 ? FontAttributes.Bold : FontAttributes.None;
-    public FontAttributes Tab2Font => SelectedSectionIndex == 2 ? FontAttributes.Bold : FontAttributes.None;
-    public FontAttributes Tab3Font => SelectedSectionIndex == 3 ? FontAttributes.Bold : FontAttributes.None;
+    private Color GetTabColor(int index) => SelectedSectionIndex == index ? TabSelectedColor : TabUnselectedColor;
+    private FontAttributes GetTabFont(int index) => SelectedSectionIndex == index ? FontAttributes.Bold : FontAttributes.None;
+    private double GetTabIndicator(int index) => SelectedSectionIndex == index ? 1 : 0;
 
-    public double Tab0Indicator => SelectedSectionIndex == 0 ? 1 : 0;
-    public double Tab1Indicator => SelectedSectionIndex == 1 ? 1 : 0;
-    public double Tab2Indicator => SelectedSectionIndex == 2 ? 1 : 0;
-    public double Tab3Indicator => SelectedSectionIndex == 3 ? 1 : 0;
+    public Color Tab0Color => GetTabColor(0);
+    public Color Tab1Color => GetTabColor(1);
+    public Color Tab2Color => GetTabColor(2);
+    public Color Tab3Color => GetTabColor(3);
+
+    public FontAttributes Tab0Font => GetTabFont(0);
+    public FontAttributes Tab1Font => GetTabFont(1);
+    public FontAttributes Tab2Font => GetTabFont(2);
+    public FontAttributes Tab3Font => GetTabFont(3);
+
+    public double Tab0Indicator => GetTabIndicator(0);
+    public double Tab1Indicator => GetTabIndicator(1);
+    public double Tab2Indicator => GetTabIndicator(2);
+    public double Tab3Indicator => GetTabIndicator(3);
 
     [ObservableProperty]
     public partial int TotalCardCount { get; set; }
@@ -153,7 +160,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             if (result.IsSuccess)
             {
                 StatusIsError = false;
-                StatusMessage = $"Undid last add: removed {_lastAdded.Quantity}× {_lastAdded.CardName} from {_lastAdded.Section}.";
+                StatusMessage = UserMessages.UndidLastAdd(_lastAdded.Quantity, _lastAdded.CardName, _lastAdded.Section);
                 HasLastAdded = false;
                 _lastAdded = null;
                 await ReloadAsync(preserveState: true);
@@ -161,13 +168,13 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             else
             {
                 StatusIsError = true;
-                StatusMessage = result.Message ?? "Could not undo last add.";
+                StatusMessage = result.Message ?? UserMessages.CouldNotUndoLastAdd();
             }
         }
         catch (Exception ex)
         {
             StatusIsError = true;
-            StatusMessage = $"Could not undo last add: {ex.Message}";
+            StatusMessage = UserMessages.CouldNotUndoLastAdd(ex.Message);
         }
     }
 
@@ -181,7 +188,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         StatusIsError = false;
 
         if (!preserveState)
-            StatusMessage = "Loading deck...";
+            StatusMessage = UserMessages.LoadingDeck;
 
         try
         {
@@ -189,7 +196,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             if (newDeck == null)
             {
                 StatusIsError = true;
-                StatusMessage = "Deck not found.";
+                StatusMessage = UserMessages.DeckNotFound;
                 return;
             }
 
@@ -207,31 +214,13 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
                 ? await _cardRepository.GetCardsByUUIDsAsync(uuids)
                 : [];
 
-            var commander = new List<DeckCardDisplayItem>();
-            var main = new List<DeckCardDisplayItem>();
-            var sideboard = new List<DeckCardDisplayItem>();
-
-            foreach (var entity in cardEntities)
-            {
-                cardMap.TryGetValue(entity.CardId, out var card);
-                var item = new DeckCardDisplayItem
-                {
-                    Entity = entity,
-                    Card = card ?? new Card { Name = entity.CardId }
-                };
-
-                switch (entity.Section)
-                {
-                    case "Commander": commander.Add(item); break;
-                    case "Sideboard": sideboard.Add(item); break;
-                    default: main.Add(item); break;
-                }
-            }
+            var (commander, main, sideboard) = MapEntitiesToSectionLists(cardEntities, cardMap);
 
             var mainDeckGroups = BuildGroups(main);
             var totalCardCount = cardEntities.Sum(c => c.Quantity);
             var stats = ComputeStats(cardEntities, cardMap);
             var validation = await _deckService.ValidateDeckAsync(deckId);
+            var statusMessage = GetValidationStatusMessage(validation, totalCardCount);
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -242,32 +231,56 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
                 Stats = stats;
                 OnPropertyChanged(nameof(HasNoCommander));
                 StatusIsError = validation.Level == ValidationLevel.Error;
-
-                var baseMessage = $"{TotalCardCount} cards";
-                if (validation.Level == ValidationLevel.Warning && !string.IsNullOrWhiteSpace(validation.Message))
-                {
-                    StatusMessage = $"{baseMessage} • {validation.Message}";
-                }
-                else if (validation.Level == ValidationLevel.Error && !string.IsNullOrWhiteSpace(validation.Message))
-                {
-                    StatusMessage = validation.Message;
-                }
-                else
-                {
-                    StatusMessage = baseMessage;
-                }
+                StatusMessage = statusMessage;
                 ReloadCompleted?.Invoke();
             });
         }
         catch (Exception ex)
         {
             StatusIsError = true;
-            StatusMessage = $"Load failed: {ex.Message}";
+            StatusMessage = UserMessages.LoadFailed(ex.Message);
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private static (List<DeckCardDisplayItem> commander, List<DeckCardDisplayItem> main, List<DeckCardDisplayItem> sideboard)
+        MapEntitiesToSectionLists(List<DeckCardEntity> cardEntities, Dictionary<string, Card> cardMap)
+    {
+        var commander = new List<DeckCardDisplayItem>();
+        var main = new List<DeckCardDisplayItem>();
+        var sideboard = new List<DeckCardDisplayItem>();
+
+        foreach (var entity in cardEntities)
+        {
+            cardMap.TryGetValue(entity.CardId, out var card);
+            var item = new DeckCardDisplayItem
+            {
+                Entity = entity,
+                Card = card ?? new Card { Name = entity.CardId }
+            };
+
+            switch (entity.Section)
+            {
+                case "Commander": commander.Add(item); break;
+                case "Sideboard": sideboard.Add(item); break;
+                default: main.Add(item); break;
+            }
+        }
+
+        return (commander, main, sideboard);
+    }
+
+    private static string GetValidationStatusMessage(ValidationResult validation, int totalCardCount)
+    {
+        var baseMessage = $"{totalCardCount} cards";
+        if (validation.Level == ValidationLevel.Warning && !string.IsNullOrWhiteSpace(validation.Message))
+            return $"{baseMessage} • {validation.Message}";
+        if (validation.Level == ValidationLevel.Error && !string.IsNullOrWhiteSpace(validation.Message))
+            return validation.Message;
+        return baseMessage;
     }
 
     [RelayCommand]
@@ -279,13 +292,13 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         if (result.IsSuccess)
         {
             StatusIsError = false;
-            StatusMessage = $"Updated {item.DisplayName} quantity.";
+            StatusMessage = UserMessages.UpdatedQuantity(item.DisplayName);
             await ReloadAsync(preserveState: true);
         }
         else
         {
             StatusIsError = true;
-            StatusMessage = result.Message ?? "Could not update quantity.";
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
         }
     }
 
@@ -299,13 +312,13 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         if (result.IsSuccess)
         {
             StatusIsError = false;
-            StatusMessage = $"Updated {item.DisplayName} quantity.";
+            StatusMessage = UserMessages.UpdatedQuantity(item.DisplayName);
             await ReloadAsync(preserveState: true);
         }
         else
         {
             StatusIsError = true;
-            StatusMessage = result.Message ?? "Could not update quantity.";
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
         }
     }
 
@@ -322,7 +335,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         if (Deck == null) return;
 
         StatusIsError = false;
-        StatusMessage = "Suggesting lands...";
+        StatusMessage = UserMessages.SuggestingLands;
 
         try
         {
@@ -330,12 +343,12 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             if (added > 0)
             {
                 StatusIsError = false;
-                StatusMessage = $"Added {added} basic lands to Main.";
+                StatusMessage = UserMessages.AddedLandsToMain(added);
             }
             else
             {
                 StatusIsError = false;
-                StatusMessage = "No lands were added (deck may already have enough lands).";
+                StatusMessage = UserMessages.NoLandsAdded;
             }
 
             await ReloadAsync(preserveState: true);
@@ -343,7 +356,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         catch (Exception ex)
         {
             StatusIsError = true;
-            StatusMessage = $"Auto-suggest failed: {ex.Message}";
+            StatusMessage = UserMessages.LoadFailed(ex.Message);
         }
     }
 

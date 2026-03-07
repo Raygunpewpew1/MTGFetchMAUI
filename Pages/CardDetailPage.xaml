@@ -19,7 +19,7 @@
         <BackButtonBehavior Command="{Binding BindingContext.BackCommand, Source={x:Reference DetailScreen}}" />
     </Shell.BackButtonBehavior>
 
-    <Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="*,Auto,Auto">
 
         <ScrollView Grid.Row="0">
             <!-- SwipeGestureContainer wraps the content instead of overlaying it.
@@ -287,7 +287,15 @@
             </controls:SwipeGestureContainer>
         </ScrollView>
 
-        <Grid Grid.Row="1"
+        <Label Grid.Row="1"
+               Text="{Binding StatusDisplayText}"
+               TextColor="{Binding StatusTextColor}"
+               FontSize="12"
+               Margin="12,4,12,0"
+               IsVisible="{Binding HasStatusMessage}"
+               HorizontalTextAlignment="Center" />
+
+        <Grid Grid.Row="2"
               BackgroundColor="{StaticResource Surface}"
               Padding="12,8"
               ColumnDefinitions="*,Auto,Auto,Auto"

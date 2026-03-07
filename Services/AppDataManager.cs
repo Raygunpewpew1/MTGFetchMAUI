@@ -352,8 +352,9 @@ public static class AppDataManager
         }
         finally
         {
-            // Cleanup zip
-            try { if (File.Exists(zipPath)) File.Delete(zipPath); } catch { }
+            // Cleanup zip (non-fatal if delete fails, e.g. in use)
+            try { if (File.Exists(zipPath)) File.Delete(zipPath); }
+            catch (Exception ex) { Logger.LogStuff($"Cleanup: could not delete temp zip: {ex.Message}", LogLevel.Warning); }
 
             // 5. CRITICAL: Release the lock so the next attempt can proceed (or not)
             _downloadLock.Release();

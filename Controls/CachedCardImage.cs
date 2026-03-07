@@ -117,7 +117,7 @@ public class CachedCardImage : ContentView
                     });
                 }
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException) { /* Expected when load is cancelled. */ }
             catch (Exception ex)
             {
                 Services.Logger.LogStuff($"CachedCardImage load failed for {uuid}: {ex.Message}", Services.LogLevel.Warning);

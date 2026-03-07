@@ -18,6 +18,7 @@ public abstract partial class BaseViewModel : ObservableObject
     /// <summary>Message shown in the UI (e.g. status bar). Use StatusIsError to control color.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusDisplayText))]
+    [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
     public partial string StatusMessage { get; set; } = "";
 
     /// <summary>When true, status is shown as an error (e.g. red).</summary>
@@ -31,6 +32,9 @@ public abstract partial class BaseViewModel : ObservableObject
         : Color.FromArgb("#888888");
 
     public string StatusDisplayText => StatusIsError ? $"⚠ {StatusMessage}" : StatusMessage;
+
+    /// <summary>True when StatusMessage is not empty; use for binding status label visibility.</summary>
+    public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
 
     [ObservableProperty]
     public partial bool IsImportingPrices { get; set; }

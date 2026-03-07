@@ -17,6 +17,8 @@ namespace AetherVault.ViewModels;
 public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 {
     private readonly CardManager _cardManager;
+    private readonly IGridPriceLoadService _gridPriceLoadService;
+    private readonly ISearchFiltersOpener _filtersOpener;
     private CancellationTokenSource? _searchDebounceCts;
     private int _currentPage;
     private bool _isLoadingPage;
@@ -66,9 +68,11 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     /// <summary>Raised when a search finishes (e.g. so the filters page can refresh).</summary>
     public event Action? SearchCompleted;
 
-    public SearchViewModel(CardManager cardManager)
+    public SearchViewModel(CardManager cardManager, IGridPriceLoadService gridPriceLoadService, ISearchFiltersOpener filtersOpener)
     {
         _cardManager = cardManager;
+        _gridPriceLoadService = gridPriceLoadService;
+        _filtersOpener = filtersOpener;
 
         // Subscribe to CardManager events for status updates
         _cardManager.OnProgress += (msg, pct) =>
@@ -84,7 +88,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         };
         _cardManager.OnDatabaseReady += () =>
         {
-            MainThread.BeginInvokeOnMainThread(() => StatusMessage = "Database ready");
+            MainThread.BeginInvokeOnMainThread(() => StatusMessage = UserMessages.DatabaseReady);
         };
         _cardManager.OnPricesUpdated += () =>
         {
@@ -94,7 +98,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
                 if (_grid != null)
                 {
                     var range = _grid.GetVisibleRange();
-                    LoadVisiblePrices(range.start, range.end);
+                    _gridPriceLoadService.LoadVisiblePrices(_grid, range.start, range.end);
                 }
             });
         };
@@ -146,7 +150,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         HasMorePages = false;
         IsEmpty = false;
         StatusIsError = false;
-        StatusMessage = "";
+        StatusMessage = UserMessages.StatusClear;
         UpdateFilterState();
         SearchCompleted?.Invoke();
     }
@@ -154,7 +158,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     [RelayCommand]
     private async Task GoToFiltersAsync()
     {
-        await Shell.Current.GoToAsync("searchfilters");
+        await _filtersOpener.OpenAsync(this, _cardManager);
     }
 
     public async Task ApplyFiltersAndSearchAsync(SearchOptions options)
@@ -170,13 +174,13 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         // No search term and no filters (e.g. from filters page) → prompt user
         if (string.IsNullOrWhiteSpace(SearchText) && options == null)
         {
-            StatusMessage = "Enter a search term";
+            StatusMessage = UserMessages.EnterSearchTerm;
             return;
         }
 
         if (!await _cardManager.EnsureInitializedAsync())
         {
-            StatusMessage = "Database not found. Please download.";
+            StatusMessage = UserMessages.DatabaseNotFound;
             return;
         }
 
@@ -186,7 +190,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         IsBusy = true;
         IsEmpty = false;
         StatusIsError = false;
-        StatusMessage = "Searching...";
+        StatusMessage = UserMessages.Searching;
 
         if (options != null)
         {
@@ -230,13 +234,13 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
             _grid?.SetCards(results);
             _cardManager.ImageService.CancelPendingDownloads();
 
-            StatusMessage = $"Found {TotalResults} cards";
+            StatusMessage = UserMessages.FoundCards(TotalResults);
             SearchCompleted?.Invoke();
         }
         catch (Exception ex)
         {
             StatusIsError = true;
-            StatusMessage = $"Search failed: {ex.Message}";
+            StatusMessage = UserMessages.SearchFailed(ex.Message);
             Logger.LogStuff($"Search error: {ex.Message}", LogLevel.Error);
         }
         finally
@@ -335,34 +339,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
     private void OnVisibleRangeChanged(int start, int end)
     {
-        LoadVisiblePrices(start, end);
-    }
-
-    private void LoadVisiblePrices(int start, int end)
-    {
-        if (_grid == null) return;
-
-        _ = Task.Run(async () =>
-        {
-            var uuids = new HashSet<string>();
-            for (int i = start; i <= end; i++)
-            {
-                var card = _grid.GetCardStateAt(i);
-                if (card == null || card.PriceData != null) continue;
-                uuids.Add(card.Id.Value);
-            }
-
-            if (uuids.Count == 0) return;
-
-            var pricesMap = await _cardManager.GetCardPricesBulkAsync(uuids);
-            if (pricesMap.Count > 0)
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    _grid?.UpdateCardPricesBulk(pricesMap);
-                });
-            }
-        });
+        _gridPriceLoadService.LoadVisiblePrices(_grid, start, end);
     }
 
     private void UpdateFilterState()
@@ -375,7 +352,22 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     private static string BuildFiltersSummary(SearchOptions options)
     {
         var parts = new List<string>();
+        AddTextAndTypeSummary(parts, options);
+        AddColorAndRaritySummary(parts, options);
+        AddCMCSummary(parts, options);
+        AddPowerToughnessSummary(parts, options);
+        AddFormatSetArtistSummary(parts, options);
+        AddSpecialSummary(parts, options);
 
+        if (parts.Count == 0)
+            return string.Empty;
+
+        var summary = string.Join(" • ", parts);
+        return summary.Length <= 120 ? summary : summary[..120] + "…";
+    }
+
+    private static void AddTextAndTypeSummary(List<string> parts, SearchOptions options)
+    {
         if (!string.IsNullOrWhiteSpace(options.TextFilter))
             parts.Add($"Text: \"{options.TextFilter}\"");
 
@@ -388,24 +380,36 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         if (!string.IsNullOrWhiteSpace(options.SupertypeFilter))
             parts.Add($"Supertype: {options.SupertypeFilter}");
+    }
 
+    private static void AddColorAndRaritySummary(List<string> parts, SearchOptions options)
+    {
         if (!string.IsNullOrWhiteSpace(options.ColorFilter))
             parts.Add($"Colors: {options.ColorFilter.Replace(",", "").Replace(" ", "")}");
 
         if (options.RarityFilter.Count > 0)
             parts.Add($"Rarity: {string.Join("/", options.RarityFilter)}");
+    }
 
+    private static void AddCMCSummary(List<string> parts, SearchOptions options)
+    {
         if (options.UseCMCRange)
             parts.Add($"CMC: {options.CMCMin}-{options.CMCMax}");
         else if (options.UseCMCExact)
             parts.Add($"CMC: {options.CMCExact}");
+    }
 
+    private static void AddPowerToughnessSummary(List<string> parts, SearchOptions options)
+    {
         if (!string.IsNullOrWhiteSpace(options.PowerFilter))
             parts.Add($"Power: {options.PowerFilter}");
 
         if (!string.IsNullOrWhiteSpace(options.ToughnessFilter))
             parts.Add($"Toughness: {options.ToughnessFilter}");
+    }
 
+    private static void AddFormatSetArtistSummary(List<string> parts, SearchOptions options)
+    {
         if (options.UseLegalFormat)
             parts.Add($"Format: {options.LegalFormat}");
 
@@ -414,17 +418,14 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         if (!string.IsNullOrWhiteSpace(options.ArtistFilter))
             parts.Add($"Artist: {options.ArtistFilter}");
+    }
 
+    private static void AddSpecialSummary(List<string> parts, SearchOptions options)
+    {
         if (options.NoVariations)
             parts.Add("No variations");
 
         if (options.IncludeTokens)
             parts.Add("Include tokens");
-
-        if (parts.Count == 0)
-            return string.Empty;
-
-        var summary = string.Join(" • ", parts);
-        return summary.Length <= 120 ? summary : summary[..120] + "…";
     }
 }

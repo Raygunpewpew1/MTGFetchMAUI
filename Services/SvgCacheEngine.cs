@@ -77,6 +77,49 @@ internal sealed class SvgCacheEngine
         }
     }
 
+    /// <summary>
+    /// Shared draw logic: draws an SKPicture into a rect with optional tint and optional centering.
+    /// Used by SetSvgCache and ManaSvgCache to avoid duplicating Save/Translate/Scale/Draw/Restore.
+    /// </summary>
+    internal static void DrawPictureInRect(SKCanvas canvas, SKPicture picture, float x, float y, float size, SKColor? tint = null, bool centerInRect = true)
+    {
+        var destRect = new SKRect(x, y, x + size, y + size);
+        DrawPictureInRect(canvas, picture, destRect, tint, centerInRect);
+    }
+
+    /// <summary>
+    /// Shared draw logic: draws an SKPicture into destRect with optional tint and optional centering.
+    /// </summary>
+    internal static void DrawPictureInRect(SKCanvas canvas, SKPicture picture, SKRect destRect, SKColor? tint = null, bool centerInRect = true)
+    {
+        canvas.Save();
+        canvas.Translate(destRect.Left, destRect.Top);
+
+        float scaleX = destRect.Width / picture.CullRect.Width;
+        float scaleY = destRect.Height / picture.CullRect.Height;
+
+        if (centerInRect)
+        {
+            float scale = Math.Min(scaleX, scaleY);
+            float offsetX = (destRect.Width - (picture.CullRect.Width * scale)) / 2f;
+            float offsetY = (destRect.Height - (picture.CullRect.Height * scale)) / 2f;
+            canvas.Translate(offsetX, offsetY);
+            canvas.Scale(scale, scale);
+        }
+        else
+        {
+            canvas.Scale(scaleX, scaleY);
+        }
+
+        using var paint = new SKPaint
+        {
+            IsAntialias = true,
+            ColorFilter = tint.HasValue ? SKColorFilter.CreateBlendMode(tint.Value, SKBlendMode.SrcIn) : null
+        };
+        canvas.DrawPicture(picture, paint);
+        canvas.Restore();
+    }
+
     /// <summary>Clears all cached SVGs and failed-lookup records.</summary>
     public void ClearCache()
     {

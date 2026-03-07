@@ -68,18 +68,13 @@ public static class MauiProgram
 #endif
 
         // ── Services (singleton = one instance for the whole app) ─────
-        builder.Services.AddSingleton<IToastService, ToastService>();
+        builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<DatabaseManager>();
+        builder.Services.AddSingleton<ICardRepository, CardRepository>();
+        builder.Services.AddSingleton<ITokenRepository, TokenRepository>();
+        builder.Services.AddSingleton<ICollectionRepository, CollectionRepository>();
+        builder.Services.AddSingleton<IDeckRepository, DeckRepository>();
         builder.Services.AddSingleton<CardManager>();
-        // Repositories get the same DatabaseManager instance from CardManager so they share the same DB connection
-        builder.Services.AddSingleton<ICardRepository>(sp =>
-            new CardRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
-        builder.Services.AddSingleton<ITokenRepository>(sp =>
-            new TokenRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
-        builder.Services.AddSingleton<ICollectionRepository>(sp =>
-            new CollectionRepository(sp.GetRequiredService<CardManager>().DatabaseManager, sp.GetRequiredService<ICardRepository>()));
-        builder.Services.AddSingleton<IDeckRepository>(sp =>
-            new DeckRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<DeckValidator>();
         builder.Services.AddSingleton<DeckBuilderService>();
         builder.Services.AddSingleton<FileImageCache>(sp =>
@@ -94,6 +89,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeckImporter>();
         builder.Services.AddSingleton<DeckExporter>();
         builder.Services.AddSingleton<CardGalleryContext>();
+        builder.Services.AddSingleton<IGridPriceLoadService, GridPriceLoadService>();
 
         // ── ViewModels (singleton = shared state e.g. search; transient = new instance per navigation) ──
         builder.Services.AddSingleton<SearchViewModel>();
@@ -104,7 +100,9 @@ public static class MauiProgram
         builder.Services.AddTransient<DeckDetailViewModel>();
         builder.Services.AddTransient<LoadingViewModel>();
         builder.Services.AddTransient<CardSearchPickerViewModel>();
+        builder.Services.AddTransient<SearchFiltersViewModel>();
         builder.Services.AddSingleton<ISearchFilterTarget>(sp => sp.GetRequiredService<SearchViewModel>());
+        builder.Services.AddSingleton<Services.ISearchFiltersOpener, Services.SearchFiltersOpenerService>();
 
         // ── Pages (Shell and tab content are singleton; modal/detail pages are transient so each open gets a fresh instance) ──
         builder.Services.AddSingleton<AppShell>();
@@ -117,6 +115,9 @@ public static class MauiProgram
         builder.Services.AddTransient<DeckDetailPage>();
         builder.Services.AddTransient<SearchFiltersPage>();
         builder.Services.AddTransient<CardSearchPickerPage>();
+        builder.Services.AddTransient<CreateDeckPage>();
+        builder.Services.AddTransient<AddToDeckPage>();
+        builder.Services.AddTransient<CollectionAddPage>();
 
         return builder.Build();
     }

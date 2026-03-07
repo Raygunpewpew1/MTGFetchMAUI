@@ -15,4 +15,7 @@ public interface IDeckRepository
     Task UpdateCardQuantityAsync(int deckId, string cardId, string section, int quantity);
     Task<List<DeckCardEntity>> GetDeckCardsAsync(int deckId);
     Task<int> GetDeckCardCountAsync(int deckId);
+
+    /// <summary>Returns card count per deck for the given deck IDs. Missing decks get count 0.</summary>
+    Task<Dictionary<int, int>> GetDeckCardCountsAsync(IEnumerable<int> deckIds);
 }

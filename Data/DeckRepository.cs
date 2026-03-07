@@ -207,11 +207,31 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
-            using var cmd = _databaseManager.CollectionConnection.CreateCommand();
-            cmd.CommandText = SQLQueries.DeckGetCardCount;
-            cmd.Parameters.AddWithValue("@DeckId", deckId);
-            var result = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(result ?? 0);
+            var conn = _databaseManager.CollectionConnection;
+            return await conn.ExecuteScalarAsync<int>(SQLQueries.DeckGetCardCount, new { DeckId = deckId });
+        }
+        finally
+        {
+            _databaseManager.ConnectionLock.Release();
+        }
+    }
+
+    public async Task<Dictionary<int, int>> GetDeckCardCountsAsync(IEnumerable<int> deckIds)
+    {
+        var deckIdsList = deckIds.ToList();
+        if (deckIdsList.Count == 0) return new Dictionary<int, int>();
+
+        if (!_databaseManager.IsConnected) return deckIdsList.ToDictionary(id => id, _ => 0);
+
+        await _databaseManager.ConnectionLock.WaitAsync();
+        try
+        {
+            var conn = _databaseManager.CollectionConnection;
+            var rows = await conn.QueryAsync<(int DeckId, int Total)>(SQLQueries.DeckGetCardCountsBatch, new { DeckIds = deckIdsList });
+            var dict = deckIdsList.ToDictionary(id => id, _ => 0);
+            foreach (var row in rows)
+                dict[row.DeckId] = row.Total;
+            return dict;
         }
         finally
         {
