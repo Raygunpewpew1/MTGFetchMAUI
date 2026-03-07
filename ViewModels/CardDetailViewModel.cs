@@ -22,14 +22,15 @@ public record LegalityItem(string Format, LegalityStatus Status)
 }
 
 /// <summary>
-/// ViewModel for card detail page.
-/// Loads card data, images, faces, legalities, and prices.
-/// Port of TCardDetailFrame logic from CardDetailFrame.pas.
+/// ViewModel for the card detail page (opened from search or collection). Loads full card data, images, multiple faces,
+/// legalities, rulings, and prices. CardGalleryContext provides the list of UUIDs for swipe-to-next/prev from the same result set.
 /// </summary>
 public partial class CardDetailViewModel : BaseViewModel, IDisposable
 {
     private readonly CardManager _cardManager;
     private readonly CardGalleryContext _galleryContext;
+
+    // ── Bindable properties (detail UI binds to these) ──
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMultipleFaces))]

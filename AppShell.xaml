@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- Main shell: tab bar (Search, Collection, Stats, Decks). Tab content is assigned in AppShell.xaml.cs from DI-injected pages. -->
 <Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
        xmlns:pages="clr-namespace:AetherVault.Pages"

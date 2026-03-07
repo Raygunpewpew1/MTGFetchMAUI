@@ -11,8 +11,8 @@ using System.Text;
 namespace AetherVault.ViewModels;
 
 /// <summary>
-/// ViewModel for the collection page.
-/// Loads and displays user's card collection in the grid.
+/// ViewModel for the Collection tab. Loads the user's saved cards, supports sort/filter, import/export, and add/remove.
+/// Binds to the same style of CardGrid as Search; data comes from CollectionRepository (user DB), not the MTG card DB.
 /// </summary>
 public partial class CollectionViewModel : BaseViewModel
 {
@@ -22,6 +22,8 @@ public partial class CollectionViewModel : BaseViewModel
     private readonly IToastService _toastService;
     private CardGrid? _grid;
     private CollectionItem[] _allItems = [];
+
+    // ── Bindable properties ──
 
     [ObservableProperty]
     public partial int TotalCards { get; set; }
@@ -38,6 +40,7 @@ public partial class CollectionViewModel : BaseViewModel
     [ObservableProperty]
     public partial string FilterText { get; set; } = "";
 
+    /// <summary>Labels for the sort-mode picker (Manual, Name, CMC, etc.).</summary>
     public List<string> SortModeOptions { get; } = ["Manual", "Name", "CMC", "Rarity", "Color"];
 
     public int SortModeIndex
@@ -50,9 +53,10 @@ public partial class CollectionViewModel : BaseViewModel
         }
     }
 
+    /// <summary>Raised when collection has been loaded so the UI can refresh (e.g. empty-state visibility).</summary>
     public event Action? CollectionLoaded;
 
-    /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
+    // Explicit IAsyncRelayCommand properties for XAML compiled bindings (avoids MAUIG2045 reflection fallback)
     public IAsyncRelayCommand ImportCollectionCommand { get; }
 
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
@@ -80,6 +84,7 @@ public partial class CollectionViewModel : BaseViewModel
         };
     }
 
+    /// <summary>Called by CollectionPage when the card grid is created. Needed for visible-range updates (e.g. loading prices).</summary>
     public void AttachGrid(CardGrid grid)
     {
         _grid = grid;

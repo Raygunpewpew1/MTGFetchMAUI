@@ -15,12 +15,21 @@ using Plugin.Maui.OCR;
 
 namespace AetherVault;
 
+/// <summary>
+/// Application entry point and dependency injection (DI) setup.
+/// This is the equivalent of a Delphi DPR / project file: it configures the app and registers
+/// all services, repositories, ViewModels, and Pages so the container can create and inject them.
+/// </summary>
 public static class MauiProgram
 {
+    /// <summary>
+    /// Builds and configures the MAUI application. Called once at startup.
+    /// </summary>
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
 
+        // Core MAUI app + community and UI libraries (SkiaSharp for card grid, UraniumUI for Material inputs, gestures for swipe)
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
@@ -36,15 +45,13 @@ public static class MauiProgram
             })
             .ConfigureFonts(fonts =>
             {
-
+                // Fonts registered here must exist in Resources/Fonts/
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 fonts.AddFont("CrimsonText-Regular.ttf", "SerifFont");
                 fonts.AddFont("CrimsonText-Bold.ttf", "SerifFontBold");
                 fonts.AddFont("CrimsonText-Italic.ttf", "SerifFontItalic");
                 fonts.AddFontAwesomeIconFonts();
-                // Fonts registered here must exist in Resources/Fonts/
-                // OpenSans ships with MAUI's default template but isn't included yet
             });
 
 #if ANDROID
@@ -60,11 +67,11 @@ public static class MauiProgram
         }
 #endif
 
-        // ── Services ─────────────────────────────────────────────────
+        // ── Services (singleton = one instance for the whole app) ─────
         builder.Services.AddSingleton<IToastService, ToastService>();
         builder.Services.AddSingleton<DatabaseManager>();
         builder.Services.AddSingleton<CardManager>();
-        // ICardRepository and IDeckRepository use CardManager's internal connected DatabaseManager
+        // Repositories get the same DatabaseManager instance from CardManager so they share the same DB connection
         builder.Services.AddSingleton<ICardRepository>(sp =>
             new CardRepository(sp.GetRequiredService<CardManager>().DatabaseManager));
         builder.Services.AddSingleton<ITokenRepository>(sp =>
@@ -88,7 +95,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeckExporter>();
         builder.Services.AddSingleton<CardGalleryContext>();
 
-        // ── ViewModels ──────────────────────────────────────────────
+        // ── ViewModels (singleton = shared state e.g. search; transient = new instance per navigation) ──
         builder.Services.AddSingleton<SearchViewModel>();
         builder.Services.AddSingleton<CollectionViewModel>();
         builder.Services.AddSingleton<StatsViewModel>();
@@ -99,7 +106,7 @@ public static class MauiProgram
         builder.Services.AddTransient<CardSearchPickerViewModel>();
         builder.Services.AddSingleton<ISearchFilterTarget>(sp => sp.GetRequiredService<SearchViewModel>());
 
-        // ── Pages ───────────────────────────────────────────────────
+        // ── Pages (Shell and tab content are singleton; modal/detail pages are transient so each open gets a fresh instance) ──
         builder.Services.AddSingleton<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddSingleton<SearchPage>();

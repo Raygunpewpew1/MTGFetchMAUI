@@ -97,7 +97,7 @@ public class MTGSearchHelper
     }
 
     // ════════════════════════════════════════════════════════════════
-    // Text Filters
+    // Text Filters (all use _params dictionary — never concatenate user input into SQL)
     // ════════════════════════════════════════════════════════════════
 
     public MTGSearchHelper WhereNameContains(string name)

@@ -3,11 +3,16 @@ using AetherVault.ViewModels;
 
 namespace AetherVault.Pages;
 
+/// <summary>
+/// Collection tab: shows the user's saved cards in a grid. Binds to CollectionViewModel; supports sort, filter, reorder, import/export.
+/// OnAppearing we load the collection unless returning from card detail (then we skip reload to keep scroll position).
+/// </summary>
 public partial class CollectionPage : ContentPage
 {
     private readonly CollectionViewModel _viewModel;
     private readonly IToastService _toastService;
     private readonly CardGalleryContext _galleryContext;
+    /// <summary>When true, OnAppearing skips LoadCollectionAsync so we don't reload when coming back from card detail.</summary>
     private bool _skipNextReload;
 
     public CollectionPage(CollectionViewModel viewModel, IToastService toastService, CardGalleryContext galleryContext)
@@ -75,7 +80,7 @@ public partial class CollectionPage : ContentPage
                 CollectionGrid.ForceRedraw();
         });
 
-        // Skip full reload when returning from card detail to preserve scroll position and grid state
+        // Skip full reload when returning from card detail (see OnCardClicked setting _skipNextReload)
         if (_skipNextReload)
         {
             _skipNextReload = false;

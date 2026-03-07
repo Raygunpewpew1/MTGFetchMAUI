@@ -5,9 +5,9 @@ using AetherVault.Services;
 namespace AetherVault.Data;
 
 /// <summary>
-/// Thread-safe SQLite connection manager for MTG and Collection databases.
-/// Port of TDatabaseManager from DatabaseManager.pas.
-/// Uses Microsoft.Data.Sqlite instead of FireDAC.
+/// Thread-safe manager for the two SQLite databases: MTG (read-only card data) and Collection (read-write for user data).
+/// ConnectAsync opens both and attaches the collection DB to the MTG connection so queries can join across them (e.g. col.my_collection).
+/// All repository access goes through MTGConnection or CollectionConnection; never hold connections outside this class.
 /// </summary>
 public sealed class DatabaseManager : IDisposable
 {
@@ -67,7 +67,7 @@ public sealed class DatabaseManager : IDisposable
                     //     await ExecuteNonQueryAsync(_collectionConnection, SQLQueries.CreateThumbnailIndexAccessed);
                     await MigrateCollectionSchemaAsync(_collectionConnection);
 
-                    // Connect MTG database (read-only)
+                    // Connect MTG database (read-only) and attach collection so we can JOIN col.my_collection in search/collection queries
                     if (_mtgConnection is null || _mtgConnection.State != System.Data.ConnectionState.Open)
                     {
                         _mtgConnection?.Dispose();
@@ -75,7 +75,7 @@ public sealed class DatabaseManager : IDisposable
                         await _mtgConnection.OpenAsync();
                         await ConfigureConnectionAsync(_mtgConnection, isCollection: false);
 
-                        // Attach collection database so MTG queries can join collection tables
+                        // Attach collection DB as "col" so queries on MTG connection can reference col.my_collection, col.Decks, etc.
                         var escapedCollPath = collectionDbPath.Replace("'", "''");
                         await ExecuteNonQueryAsync(_mtgConnection, $"ATTACH DATABASE '{escapedCollPath}' AS col");
                     }
