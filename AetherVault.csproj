@@ -11,6 +11,9 @@
 		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 		<SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
+		<UseNativeAOTRuntime>false</UseNativeAOTRuntime>
+		
+
 		<EnableNETAnalyzers>false</EnableNETAnalyzers>
 		<ApplicationTitle>AetherVault</ApplicationTitle>
 
