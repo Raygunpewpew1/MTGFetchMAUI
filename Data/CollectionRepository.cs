@@ -205,8 +205,7 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
-        // Fast path: compute stats with a single aggregate SQL query
-        // over the MTG master + attached collection database.
+        // Single aggregate query on existing MTG connection (collection already attached). No full load.
         try
         {
             var aggregated = await GetCollectionStatsFromDatabaseAsync();
@@ -215,12 +214,10 @@ public class CollectionRepository : ICollectionRepository
         }
         catch (Exception ex)
         {
-            Logger.LogStuff($"Collection stats aggregate query failed, falling back to in-memory calculation: {ex.Message}", LogLevel.Warning);
+            Logger.LogStuff($"Collection stats aggregate failed: {ex.Message}", LogLevel.Warning);
         }
 
-        // Fallback: load full collection and calculate in memory
-        var collection = await GetCollectionAsync();
-        return CalculateStats(collection);
+        return new CollectionStats();
     }
 
     /// <summary>
@@ -272,59 +269,45 @@ public class CollectionRepository : ICollectionRepository
         return stats;
     }
 
-    private static SqliteConnection CreateReadOnlyConnection(string dbPath)
-    {
-        var builder = new SqliteConnectionStringBuilder
-        {
-            DataSource = dbPath,
-            Mode = SqliteOpenMode.ReadOnly
-        };
-        return new SqliteConnection(builder.ConnectionString);
-    }
-
     /// <summary>
-    /// Computes collection statistics directly in SQLite using the MTG master DB
-    /// with the collection DB attached as 'col'. This avoids loading full Card
-    /// objects for every collection entry and scales much better for large
-    /// collections.
+    /// Computes collection statistics using the existing MTG connection (collection already attached as 'col').
+    /// Avoids opening a second connection and re-attaching; much faster for large collections.
     /// </summary>
-    private static async Task<CollectionStats?> GetCollectionStatsFromDatabaseAsync()
+    private async Task<CollectionStats?> GetCollectionStatsFromDatabaseAsync()
     {
-        var mtgPath = AppDataManager.GetMTGDatabasePath();
-        var collectionPath = AppDataManager.GetCollectionDatabasePath();
-
-        if (!File.Exists(mtgPath) || !File.Exists(collectionPath))
+        if (!_db.IsConnected)
             return null;
 
-        await using var conn = CreateReadOnlyConnection(mtgPath);
-        await conn.OpenAsync();
-
-        // Attach the collection database as 'col' to mirror DatabaseManager.
-        var escapedCollPath = collectionPath.Replace("'", "''");
-        await conn.ExecuteAsync($"ATTACH DATABASE '{escapedCollPath}' AS col");
-
-        var row = await conn.QueryFirstOrDefaultAsync<CollectionStatsAggregateRow>(SQLQueries.CollectionStatsAggregates);
-        if (row is null)
-            return new CollectionStats();
-
-        var stats = new CollectionStats
+        await _db.ConnectionLock.WaitAsync();
+        try
         {
-            TotalCards = row.TotalCards,
-            UniqueCards = row.UniqueCards,
-            CreatureCount = row.CreatureCount,
-            SpellCount = row.SpellCount,
-            LandCount = row.LandCount,
-            CommonCount = row.CommonCount,
-            UncommonCount = row.UncommonCount,
-            RareCount = row.RareCount,
-            MythicCount = row.MythicCount,
-            FoilCount = row.FoilCount
-        };
+            var row = await _db.MTGConnection.QueryFirstOrDefaultAsync<CollectionStatsAggregateRow>(SQLQueries.CollectionStatsAggregates);
+            if (row is null)
+                return new CollectionStats();
 
-        if (row.NonLandCount > 0)
-            stats.AvgCMC = row.TotalCMC / row.NonLandCount;
+            var stats = new CollectionStats
+            {
+                TotalCards = row.TotalCards,
+                UniqueCards = row.UniqueCards,
+                CreatureCount = row.CreatureCount,
+                SpellCount = row.SpellCount,
+                LandCount = row.LandCount,
+                CommonCount = row.CommonCount,
+                UncommonCount = row.UncommonCount,
+                RareCount = row.RareCount,
+                MythicCount = row.MythicCount,
+                FoilCount = row.FoilCount
+            };
 
-        return stats;
+            if (row.NonLandCount > 0)
+                stats.AvgCMC = row.TotalCMC / row.NonLandCount;
+
+            return stats;
+        }
+        finally
+        {
+            _db.ConnectionLock.Release();
+        }
     }
 
     public async Task<bool> IsInCollectionAsync(string cardUUID)

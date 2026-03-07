@@ -62,38 +62,48 @@ public partial class StatsViewModel : BaseViewModel
         }
     }
 
-    public async Task LoadStatsAsync()
+    public Task LoadStatsAsync()
     {
-        if (!await _cardManager.EnsureInitializedAsync())
-        {
-            DatabaseStatus = "Database not connected";
-            return;
-        }
-
+        // Show placeholders immediately so the page doesn't block or lag
         IsBusy = true;
+        CacheStats = "…";
+        Storage = new StorageStats();
+        IsBusy = false;
+
+        _ = LoadStatsInBackgroundAsync();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadStatsInBackgroundAsync()
+    {
         try
         {
-            // Fast path: counts only (single DB aggregate). Show immediately.
-            Stats = await _cardManager.GetCollectionStatsAsync();
-            DatabaseStatus = "Connected";
+            if (!await _cardManager.EnsureInitializedAsync())
+            {
+                MainThread.BeginInvokeOnMainThread(() => DatabaseStatus = "Database not connected");
+                return;
+            }
 
-            // Placeholders until background work completes
-            CacheStats = "…";
-            Storage = new StorageStats();
+            var stats = await _cardManager.GetCollectionStatsAsync();
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                Stats = stats;
+                DatabaseStatus = "Connected";
+                OnPropertyChanged(nameof(Stats));
+            });
+
+            _ = LoadTotalValueInBackgroundAsync();
+            _ = LoadStorageAndCacheInBackgroundAsync();
         }
         catch (Exception ex)
         {
-            DatabaseStatus = $"Error: {ex.Message}";
             Logger.LogStuff($"Stats load error: {ex.Message}", LogLevel.Error);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                DatabaseStatus = $"Error: {ex.Message}";
+            });
         }
-        finally
-        {
-            IsBusy = false;
-        }
-
-        // Defer heavy work so the page feels responsive
-        _ = LoadTotalValueInBackgroundAsync();
-        _ = LoadStorageAndCacheInBackgroundAsync();
     }
 
     private async Task LoadTotalValueInBackgroundAsync()
