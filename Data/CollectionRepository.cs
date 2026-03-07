@@ -12,23 +12,23 @@ namespace AetherVault.Data;
 /// </summary>
 public class CollectionRepository : ICollectionRepository
 {
-    #pragma warning disable SA1401 // Fields should be private (internal helper DTO)
-        private sealed class CollectionStatsAggregateRow
-        {
-            public int TotalCards { get; set; }
-            public int UniqueCards { get; set; }
-            public int CreatureCount { get; set; }
-            public int SpellCount { get; set; }
-            public int LandCount { get; set; }
-            public int CommonCount { get; set; }
-            public int UncommonCount { get; set; }
-            public int RareCount { get; set; }
-            public int MythicCount { get; set; }
-            public int FoilCount { get; set; }
-            public double TotalCMC { get; set; }
-            public int NonLandCount { get; set; }
-        }
-    #pragma warning restore SA1401
+#pragma warning disable SA1401 // Fields should be private (internal helper DTO)
+    private sealed class CollectionStatsAggregateRow
+    {
+        public int TotalCards { get; set; }
+        public int UniqueCards { get; set; }
+        public int CreatureCount { get; set; }
+        public int SpellCount { get; set; }
+        public int LandCount { get; set; }
+        public int CommonCount { get; set; }
+        public int UncommonCount { get; set; }
+        public int RareCount { get; set; }
+        public int MythicCount { get; set; }
+        public int FoilCount { get; set; }
+        public double TotalCMC { get; set; }
+        public int NonLandCount { get; set; }
+    }
+#pragma warning restore SA1401
 
     private class CollectionRow
     {

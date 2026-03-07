@@ -164,7 +164,7 @@ public class CardRepository : ICardRepository
         if (mainCard.RelatedCards != null && mainCard.RelatedCards.Length > 0)
         {
             var dict = await GetCardsByUUIDsAsync(mainCard.RelatedCards);
-            foreach(var kvp in dict)
+            foreach (var kvp in dict)
             {
                 // Ensure we don't duplicate (e.g. if a related card was already included)
                 if (!cards.Any(c => c.UUID == kvp.Key))

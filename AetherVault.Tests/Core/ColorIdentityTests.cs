@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using AetherVault.Core;
+using System.Diagnostics;
 
 namespace AetherVault.Tests.Core;
 

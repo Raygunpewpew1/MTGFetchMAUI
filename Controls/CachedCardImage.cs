@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using SkiaSharp;
 
 namespace AetherVault.Controls;
