@@ -93,7 +93,7 @@
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" />
                         <Grid RowDefinitions="Auto,Auto"
-                              ColumnDefinitions="Auto,Auto"
+                              ColumnDefinitions="*,*"
                               ColumnSpacing="12"
                               RowSpacing="4">
                             <material:CheckBox Grid.Row="0" Grid.Column="0"
