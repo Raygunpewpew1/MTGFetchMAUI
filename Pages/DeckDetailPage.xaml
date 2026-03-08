@@ -162,33 +162,6 @@
         <!-- Row 4: Content Panels -->
         <Grid Grid.Row="4">
 
-            <!-- Undo last add -->
-            <Border BackgroundColor="{StaticResource Surface}"
-                    StrokeShape="RoundRectangle 8"
-                    Padding="12,8"
-                    Margin="16,8,16,0"
-                    HorizontalOptions="Start"
-                    VerticalOptions="Start"
-                    IsVisible="{Binding HasLastAdded}"
-                    Stroke="Transparent">
-                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                    <Label Text="{Binding LastAddedSummaryText}"
-                           FontSize="12"
-                           TextColor="{StaticResource TextSecondary}"
-                           VerticalOptions="Center"
-                           MaxLines="1"
-                           LineBreakMode="TailTruncation" />
-                    <Button Text="Undo"
-                            Command="{Binding UndoLastAddedCommand}"
-                            FontSize="12"
-                            HeightRequest="32"
-                            Padding="12,0"
-                            BackgroundColor="{StaticResource Accent}"
-                            TextColor="Black"
-                            CornerRadius="16" />
-                </HorizontalStackLayout>
-            </Border>
-
             <!-- Commander Tab -->
             <ScrollView IsVisible="{Binding IsCommanderTab}" Padding="16,8">
                 <VerticalStackLayout Spacing="12">

@@ -43,11 +43,12 @@ public class DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items)
     public string GroupName { get; } = name;
 }
 
-public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRepository cardRepository, CardManager cardManager) : BaseViewModel
+public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRepository cardRepository, CardManager cardManager, IToastService toast) : BaseViewModel
 {
     private readonly DeckBuilderService _deckService = deckService;
     private readonly ICardRepository _cardRepository = cardRepository;
     private readonly CardManager _cardManager = cardManager;
+    private readonly IToastService _toast = toast;
     private int _deckId;
     private CancellationTokenSource? _addCardSearchCts;
     private int _addCardSearchGeneration;
@@ -132,12 +133,6 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     public partial string DeckFormat { get; set; } = "";
 
     public bool HasNoCommander => CommanderCards.Count == 0;
-
-    [ObservableProperty]
-    public partial string LastAddedSummaryText { get; set; } = "";
-
-    [ObservableProperty]
-    public partial bool HasLastAdded { get; set; }
 
     // ── Inline add-card search (visible on Commander, Main, Sideboard tabs) ──
 
@@ -263,8 +258,8 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     public void RegisterLastAdded(string cardId, string cardName, string section, int quantity)
     {
         _lastAdded = new LastAddedInfo(cardId, section, quantity, cardName);
-        LastAddedSummaryText = $"{quantity}× {cardName} added to {section}.";
-        HasLastAdded = true;
+        var summary = $"{quantity}× {cardName} added to {section}.";
+        _toast.ShowWithAction(summary, "Undo", () => _ = UndoLastAddedAsync(), durationMs: 5000);
     }
 
     private async Task UndoLastAddedAsync()
@@ -283,22 +278,18 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             var result = await _deckService.UpdateQuantityAsync(Deck.Id, _lastAdded.CardId, newQty, _lastAdded.Section);
             if (result.IsSuccess)
             {
-                StatusIsError = false;
-                StatusMessage = UserMessages.UndidLastAdd(_lastAdded.Quantity, _lastAdded.CardName, _lastAdded.Section);
-                HasLastAdded = false;
+                _toast.Show(UserMessages.UndidLastAdd(_lastAdded.Quantity, _lastAdded.CardName, _lastAdded.Section));
                 _lastAdded = null;
                 await ReloadAsync(preserveState: true);
             }
             else
             {
-                StatusIsError = true;
-                StatusMessage = result.Message ?? UserMessages.CouldNotUndoLastAdd();
+                _toast.Show(result.Message ?? UserMessages.CouldNotUndoLastAdd());
             }
         }
         catch (Exception ex)
         {
-            StatusIsError = true;
-            StatusMessage = UserMessages.CouldNotUndoLastAdd(ex.Message);
+            _toast.Show(UserMessages.CouldNotUndoLastAdd(ex.Message));
         }
     }
 
