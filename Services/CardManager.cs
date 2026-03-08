@@ -254,13 +254,17 @@ public class CardManager : IDisposable
         return await _cardRepository.SearchCardsAdvancedAsync(helper);
     }
 
-    public async Task<Card[]> SearchInCollectionAsync(string nameFilter = "")
+    /// <param name="nameFilter">Optional name filter (contains).</param>
+    /// <param name="limit">Max results; 0 = no limit.</param>
+    public async Task<Card[]> SearchInCollectionAsync(string nameFilter = "", int limit = 0)
     {
         var helper = _cardRepository.CreateSearchHelper();
         helper.SearchMyCollection();
         if (!string.IsNullOrEmpty(nameFilter))
             helper.WhereNameContains(nameFilter);
         helper.OrderBy("c.name");
+        if (limit > 0)
+            helper.Limit(limit);
         return await _cardRepository.SearchCardsAdvancedAsync(helper);
     }
 

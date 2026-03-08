@@ -16,6 +16,7 @@ public partial class DeckDetailPage : ContentPage
     private readonly DeckBuilderService _deckService;
     private readonly DeckExporter _deckExporter;
     private readonly ImageDownloadService _imageDownloadService;
+    private readonly CardGalleryContext _galleryContext;
 
     private SKImage? _commanderArtImage;
 
@@ -33,7 +34,8 @@ public partial class DeckDetailPage : ContentPage
         IServiceProvider serviceProvider,
         DeckBuilderService deckService,
         DeckExporter deckExporter,
-        ImageDownloadService imageDownloadService)
+        ImageDownloadService imageDownloadService,
+        CardGalleryContext galleryContext)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -41,6 +43,7 @@ public partial class DeckDetailPage : ContentPage
         _deckService = deckService;
         _deckExporter = deckExporter;
         _imageDownloadService = imageDownloadService;
+        _galleryContext = galleryContext;
         BindingContext = viewModel;
 
         _viewModel.PropertyChanged += (_, e) =>
@@ -55,13 +58,30 @@ public partial class DeckDetailPage : ContentPage
                 }
             }
         };
+
+        CommanderMenuButton.Clicked += OnCommanderMenuButtonClicked;
+    }
+
+    private async void OnCommanderMenuButtonClicked(object? sender, EventArgs e)
+    {
+        if (_viewModel.FirstCommander == null) return;
+        const string viewDetails = "View details";
+        const string removeCommander = "Remove commander";
+        const string cancel = "Cancel";
+        var action = await DisplayActionSheetAsync("Commander", cancel, removeCommander, viewDetails);
+        if (action == viewDetails)
+            _viewModel.ShowCardQuickDetailCommand.Execute(_viewModel.FirstCommander);
+        else if (action == removeCommander)
+            await _viewModel.RemoveCardCommand.ExecuteAsync(_viewModel.FirstCommander);
     }
 
     private async void OnRequestShowQuickDetail(DeckCardDisplayItem item)
     {
-        var quickDetail = _serviceProvider.GetRequiredService<CardQuickDetailPage>();
-        quickDetail.DisplayItem = item;
-        await Navigation.PushModalAsync(quickDetail);
+        var uuids = _viewModel.GetOrderedUuidsForCurrentSection();
+        if (uuids.Count == 0)
+            uuids = [item.CardUuid];
+        _galleryContext.SetContext(uuids, item.CardUuid);
+        await Shell.Current.GoToAsync($"carddetail?uuid={Uri.EscapeDataString(item.CardUuid)}");
     }
 
     private async void OnExportDeckClicked(object? sender, EventArgs e)

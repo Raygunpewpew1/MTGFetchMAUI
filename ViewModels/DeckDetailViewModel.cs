@@ -32,15 +32,22 @@ public class DeckCardDisplayItem
     public string CardUuid => Entity.CardId;
     /// <summary>e.g. "2 in Main" for quick-detail popup.</summary>
     public string InDeckSummary => $"{Entity.Quantity} in {Entity.Section}";
+
+    /// <summary>Dark tint for list row background based on card color identity (WUBRG).</summary>
+    public Color StripBackgroundColor => DeckDetailViewModel.GetStripBackgroundColorFromIdentity(Card?.Colors ?? Card?.ColorIdentity ?? "");
 }
 
 /// <summary>
 /// Grouped list of DeckCardDisplayItems for CollectionView IsGrouped support.
 /// </summary>
-public class DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items)
+public class DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items, int count)
     : ObservableCollection<DeckCardDisplayItem>(items)
 {
     public string GroupName { get; } = name;
+    /// <summary>Sum of Entity.Quantity for all items in this group (e.g. for "Creatures (32)" header).</summary>
+    public int Count { get; } = count;
+    /// <summary>e.g. "Creatures (32)" for section header.</summary>
+    public string HeaderText => $"{GroupName} ({Count})";
 }
 
 public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRepository cardRepository, CardManager cardManager, IToastService toast) : BaseViewModel
@@ -72,6 +79,15 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
 
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> CommanderCards { get; set; } = [];
+
+    /// <summary>First commander card for the full-size hero display (partner: primary only).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoCommander))]
+    public partial DeckCardDisplayItem? FirstCommander { get; set; }
+
+    /// <summary>Commander cards after the first (e.g. partner), for the compact list below the hero.</summary>
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardDisplayItem> AdditionalCommanderCards { get; set; } = [];
 
     [ObservableProperty]
     public partial DeckStats Stats { get; set; } = new();
@@ -130,9 +146,26 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     public partial int TotalCardCount { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DeckSummaryText))]
+    public partial int MainDeckCount { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DeckSummaryText))]
+    [NotifyPropertyChangedFor(nameof(SideboardHeaderText))]
+    public partial int SideboardCount { get; set; }
+
+    /// <summary>e.g. "100 main deck / 0 sideboard" for the bottom summary bar.</summary>
+    public string DeckSummaryText => $"{MainDeckCount} main deck / {SideboardCount} sideboard";
+
+    /// <summary>e.g. "Sideboard (15)" for the sideboard section header.</summary>
+    public string SideboardHeaderText => $"Sideboard ({SideboardCount})";
+
+    [ObservableProperty]
     public partial string DeckFormat { get; set; } = "";
 
     public bool HasNoCommander => CommanderCards.Count == 0;
+    /// <summary>True when there are two or more commander cards (e.g. partner).</summary>
+    public bool HasMultipleCommanders => CommanderCards.Count > 1;
 
     // ── Inline add-card search (visible on Commander, Main, Sideboard tabs) ──
 
@@ -144,6 +177,10 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
 
     [ObservableProperty]
     public partial bool IsAddCardSearchBusy { get; set; }
+
+    /// <summary>When true, add-card search only returns cards that are in the user's collection.</summary>
+    [ObservableProperty]
+    public partial bool AddCardSearchOnlyCollection { get; set; }
 
     private IAsyncRelayCommand? _undoLastAddedCommand;
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
@@ -180,6 +217,12 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         }, TaskContinuationOptions.None);
     }
 
+    partial void OnAddCardSearchOnlyCollectionChanged(bool value)
+    {
+        if (!string.IsNullOrWhiteSpace(AddCardSearchText))
+            _ = ExecuteAddCardSearchAsync();
+    }
+
     private IAsyncRelayCommand? _addCardSearchCommand;
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
     public IAsyncRelayCommand AddCardSearchCommand => _addCardSearchCommand ??= new AsyncRelayCommand(ExecuteAddCardSearchAsync);
@@ -202,7 +245,9 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
                 return;
             }
 
-            var cards = await _cardManager.SearchCardsAsync(query, 50);
+            var cards = AddCardSearchOnlyCollection
+                ? await _cardManager.SearchInCollectionAsync(query, 50)
+                : await _cardManager.SearchCardsAsync(query, 50);
             if (myGen != _addCardSearchGeneration) return;
 
             MainThread.BeginInvokeOnMainThread(() =>
@@ -332,6 +377,8 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             var (commander, main, sideboard) = MapEntitiesToSectionLists(cardEntities, cardMap);
 
             var mainDeckGroups = BuildGroups(main);
+            int mainDeckCount = main.Sum(i => i.Entity.Quantity);
+            int sideboardCount = sideboard.Sum(i => i.Entity.Quantity);
             var totalCardCount = cardEntities.Sum(c => c.Quantity);
             var stats = ComputeStats(cardEntities, cardMap);
             var validation = await _deckService.ValidateDeckAsync(deckId);
@@ -340,11 +387,18 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 CommanderCards = new ObservableCollection<DeckCardDisplayItem>(commander);
+                FirstCommander = commander.Count > 0 ? commander[0] : null;
+                AdditionalCommanderCards = commander.Count > 1
+                    ? new ObservableCollection<DeckCardDisplayItem>(commander.Skip(1))
+                    : [];
                 SideboardCards = new ObservableCollection<DeckCardDisplayItem>(sideboard);
                 MainDeckGroups = mainDeckGroups;
+                MainDeckCount = mainDeckCount;
+                SideboardCount = sideboardCount;
                 TotalCardCount = totalCardCount;
                 Stats = stats;
                 OnPropertyChanged(nameof(HasNoCommander));
+                OnPropertyChanged(nameof(HasMultipleCommanders));
                 StatusIsError = validation.Level == ValidationLevel.Error;
                 StatusMessage = statusMessage;
                 ReloadCompleted?.Invoke();
@@ -359,6 +413,18 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>Returns the ordered list of card UUIDs for the current tab (Commander, Main, or Sideboard) for swipe context.</summary>
+    public IReadOnlyList<string> GetOrderedUuidsForCurrentSection()
+    {
+        return SelectedSectionIndex switch
+        {
+            0 => [.. CommanderCards.Select(x => x.CardUuid)],
+            1 => [.. MainDeckGroups.SelectMany(g => g).Select(x => x.CardUuid)],
+            2 => [.. SideboardCards.Select(x => x.CardUuid)],
+            _ => []
+        };
     }
 
     private static (List<DeckCardDisplayItem> commander, List<DeckCardDisplayItem> main, List<DeckCardDisplayItem> sideboard)
@@ -475,6 +541,27 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         }
     }
 
+    /// <summary>Maps color identity string (e.g. "W", "GU") to a dark tint for list strip backgrounds. Matches WUBRG logic used in commander header.</summary>
+    public static Color GetStripBackgroundColorFromIdentity(string colorIdentity)
+    {
+        bool w = colorIdentity.Contains('W');
+        bool u = colorIdentity.Contains('U');
+        bool b = colorIdentity.Contains('B');
+        bool r = colorIdentity.Contains('R');
+        bool g = colorIdentity.Contains('G');
+        int count = (w ? 1 : 0) + (u ? 1 : 0) + (b ? 1 : 0) + (r ? 1 : 0) + (g ? 1 : 0);
+
+        if (count == 0) return Color.FromArgb("#2A2A33");
+        if (count >= 3) return Color.FromArgb("#3B2C0A"); // multicolor / gold dark
+
+        // Single or dual: use first color, darkened for strip
+        return (u ? Color.FromArgb("#0D2E4F")
+             : g ? Color.FromArgb("#0D351D")
+             : r ? Color.FromArgb("#4F0D0D")
+             : b ? Color.FromArgb("#1D1528")
+             : Color.FromArgb("#3D3528")); // white -> tan
+    }
+
     private static ObservableCollection<DeckCardGroup> BuildGroups(List<DeckCardDisplayItem> items)
     {
         string[] order = ["Creatures", "Instants", "Sorceries", "Artifacts", "Enchantments", "Planeswalkers", "Lands", "Other"];
@@ -487,7 +574,10 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         foreach (var key in order)
         {
             if (grouped.TryGetValue(key, out var list) && list.Count > 0)
-                groups.Add(new DeckCardGroup(key, list));
+            {
+                int groupCount = list.Sum(i => i.Entity.Quantity);
+                groups.Add(new DeckCardGroup(key, list, groupCount));
+            }
         }
         return groups;
     }

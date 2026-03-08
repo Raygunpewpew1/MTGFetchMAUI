@@ -98,6 +98,16 @@
                                    VerticalOptions="Center"
                                    Color="{StaticResource Primary}" />
             </Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                <Label Text="Only my collection"
+                       TextColor="{StaticResource TextSecondary}"
+                       FontSize="13"
+                       VerticalOptions="Center" />
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding AddCardSearchOnlyCollection, Mode=TwoWay}"
+                        OnColor="{StaticResource Primary}"
+                        VerticalOptions="Center" />
+            </Grid>
             <Border MaximumHeightRequest="220"
                     Stroke="Transparent"
                     StrokeShape="RoundRectangle 4"
@@ -158,9 +168,55 @@
                                MaxLines="3" />
                     </VerticalStackLayout>
 
-                    <!-- Commander cards -->
-                    <CollectionView ItemsSource="{Binding CommanderCards}"
+                    <!-- Commander: single full-size card (first commander; partner shows as hero only) -->
+                    <Grid IsVisible="{Binding HasNoCommander, Converter={StaticResource InvertBool}}"
+                          HorizontalOptions="Start"
+                          Margin="0,0,0,12">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ShowCardQuickDetailCommand}"
+                                                  CommandParameter="{Binding FirstCommander}" />
+                        </Grid.GestureRecognizers>
+                        <Border WidthRequest="220"
+                                HeightRequest="308"
+                                BackgroundColor="{StaticResource Surface}"
+                                StrokeShape="RoundRectangle 8"
+                                Stroke="{StaticResource CardBackground}"
+                                StrokeThickness="1">
+                            <controls:CachedCardImage CardUuid="{Binding FirstCommander.ImageId}"
+                                                     ImageSize="large"
+                                                     HorizontalOptions="Fill"
+                                                     VerticalOptions="Fill" />
+                        </Border>
+                        <!-- Three-dot menu overlay (Flyout set in code-behind to avoid MAUIX2002) -->
+                        <Button x:Name="CommanderMenuButton"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Start"
+                                Margin="8"
+                                WidthRequest="36"
+                                HeightRequest="36"
+                                CornerRadius="18"
+                                BackgroundColor="#CC000000"
+                                Padding="0">
+                            <Button.ImageSource>
+                                <FontImageSource FontFamily="FASolid"
+                                                 Glyph="{x:Static fa:Solid.EllipsisVertical}"
+                                                 Size="16"
+                                                 Color="White" />
+                            </Button.ImageSource>
+                        </Button>
+                    </Grid>
+
+                    <!-- Additional commander cards (e.g. partner) as compact list -->
+                    <CollectionView IsVisible="{Binding HasMultipleCommanders}"
+                                    ItemsSource="{Binding AdditionalCommanderCards}"
                                     SelectionMode="None">
+                        <CollectionView.Header>
+                            <Label Text="Partner / other"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   Padding="0,8,0,4" />
+                        </CollectionView.Header>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="vm:DeckCardDisplayItem">
                                 <SwipeView>
@@ -235,12 +291,12 @@
                             SelectionMode="None">
                 <CollectionView.GroupHeaderTemplate>
                     <DataTemplate x:DataType="vm:DeckCardGroup">
-                        <Label Text="{Binding GroupName}"
-                               FontSize="12"
+                        <Label Text="{Binding HeaderText}"
+                               FontSize="13"
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextSecondary}"
                                BackgroundColor="{StaticResource Background}"
-                               Padding="12,6,12,2" />
+                               Padding="12,8,12,4" />
                     </DataTemplate>
                 </CollectionView.GroupHeaderTemplate>
                 <CollectionView.ItemTemplate>
@@ -254,66 +310,55 @@
                                                CommandParameter="{Binding .}" />
                                 </SwipeItems>
                             </SwipeView.RightItems>
-                            <Border Style="{StaticResource CardStyle}"
-                                    Margin="12,6"
-                                    Padding="12,8"
-                                    MinimumHeightRequest="48">
+                            <Border Margin="12,4"
+                                    Padding="10,8"
+                                    MinimumHeightRequest="44"
+                                    BackgroundColor="{Binding StripBackgroundColor}"
+                                    StrokeShape="RoundRectangle 6"
+                                    Stroke="Transparent">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowCardQuickDetailCommand}"
                                                          CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto"
-                                      ColumnSpacing="6"
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="8"
                                       VerticalOptions="Center">
-                                    <Border Grid.Column="0"
-                                            WidthRequest="36"
-                                            HeightRequest="50"
+                                    <Label Grid.Column="0"
+                                           Text="{Binding DisplayName}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="14"
+                                           LineBreakMode="TailTruncation"
+                                           VerticalOptions="Center" />
+                                    <controls:ManaCostView Grid.Column="1"
+                                                           ManaText="{Binding ManaCostText}"
+                                                           SymbolSize="12"
+                                                           VerticalOptions="Center" />
+                                    <Border Grid.Column="2"
                                             BackgroundColor="{StaticResource Surface}"
-                                            StrokeShape="RoundRectangle 4"
-                                            Stroke="Transparent"
-                                            VerticalOptions="Center">
-                                        <controls:CachedCardImage CardUuid="{Binding ImageId}"
-                                                                 HorizontalOptions="Fill"
-                                                                 VerticalOptions="Fill" />
-                                    </Border>
-                                    <Border Grid.Column="1"
-                                            BackgroundColor="{StaticResource Surface}"
-                                            Padding="6,4"
-                                            StrokeShape="RoundRectangle 8"
+                                            Padding="6,2"
+                                            StrokeShape="RoundRectangle 6"
                                             Stroke="Transparent"
                                             VerticalOptions="Center"
-                                            MinimumWidthRequest="28">
+                                            MinimumWidthRequest="24">
                                         <Label Text="{Binding Entity.Quantity}"
                                                TextColor="{StaticResource TextPrimary}"
-                                               FontSize="13"
+                                               FontSize="12"
                                                FontAttributes="Bold"
                                                HorizontalOptions="Center" />
                                     </Border>
-                                    <VerticalStackLayout Grid.Column="2"
-                                                         Spacing="2"
-                                                         VerticalOptions="Center">
-                                        <Label Text="{Binding DisplayName}"
-                                               TextColor="{StaticResource TextPrimary}"
-                                               FontSize="14"
-                                               LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding CardTypeText}"
-                                               TextColor="{StaticResource TextSecondary}"
-                                               FontSize="11"
-                                               LineBreakMode="TailTruncation" />
-                                    </VerticalStackLayout>
                                     <Button Grid.Column="3"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Surface}"
                                             TextColor="{StaticResource TextPrimary}"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="32"
+                                            HeightRequest="32"
                                             Padding="0"
                                             CornerRadius="6">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Minus}"
-                                                             Size="14"
+                                                             Size="12"
                                                              Color="{StaticResource TextPrimary}" />
                                         </Button.ImageSource>
                                     </Button>
@@ -322,14 +367,14 @@
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
                                             TextColor="Black"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="32"
+                                            HeightRequest="32"
                                             Padding="0"
                                             CornerRadius="6">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Plus}"
-                                                             Size="14"
+                                                             Size="12"
                                                              Color="Black" />
                                         </Button.ImageSource>
                                     </Button>
@@ -345,10 +390,11 @@
                             ItemsSource="{Binding SideboardCards}"
                             SelectionMode="None">
                 <CollectionView.Header>
-                    <Label Text="Sideboard"
-                           FontSize="12"
+                    <Label Text="{Binding SideboardHeaderText}"
+                           FontSize="13"
                            FontAttributes="Bold"
                            TextColor="{StaticResource TextSecondary}"
+                           BackgroundColor="{StaticResource Background}"
                            Padding="12,8,12,4" />
                 </CollectionView.Header>
                 <CollectionView.ItemTemplate>
@@ -362,66 +408,55 @@
                                                CommandParameter="{Binding .}" />
                                 </SwipeItems>
                             </SwipeView.RightItems>
-                            <Border Style="{StaticResource CardStyle}"
-                                    Margin="12,6"
-                                    Padding="12,8"
-                                    MinimumHeightRequest="48">
+                            <Border Margin="12,4"
+                                    Padding="10,8"
+                                    MinimumHeightRequest="44"
+                                    BackgroundColor="{Binding StripBackgroundColor}"
+                                    StrokeShape="RoundRectangle 6"
+                                    Stroke="Transparent">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowCardQuickDetailCommand}"
                                                          CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto"
-                                      ColumnSpacing="6"
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="8"
                                       VerticalOptions="Center">
-                                    <Border Grid.Column="0"
-                                            WidthRequest="36"
-                                            HeightRequest="50"
+                                    <Label Grid.Column="0"
+                                           Text="{Binding DisplayName}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="14"
+                                           LineBreakMode="TailTruncation"
+                                           VerticalOptions="Center" />
+                                    <controls:ManaCostView Grid.Column="1"
+                                                           ManaText="{Binding ManaCostText}"
+                                                           SymbolSize="12"
+                                                           VerticalOptions="Center" />
+                                    <Border Grid.Column="2"
                                             BackgroundColor="{StaticResource Surface}"
-                                            StrokeShape="RoundRectangle 4"
-                                            Stroke="Transparent"
-                                            VerticalOptions="Center">
-                                        <controls:CachedCardImage CardUuid="{Binding ImageId}"
-                                                                 HorizontalOptions="Fill"
-                                                                 VerticalOptions="Fill" />
-                                    </Border>
-                                    <Border Grid.Column="1"
-                                            BackgroundColor="{StaticResource Surface}"
-                                            Padding="6,4"
-                                            StrokeShape="RoundRectangle 8"
+                                            Padding="6,2"
+                                            StrokeShape="RoundRectangle 6"
                                             Stroke="Transparent"
                                             VerticalOptions="Center"
-                                            MinimumWidthRequest="28">
+                                            MinimumWidthRequest="24">
                                         <Label Text="{Binding Entity.Quantity}"
                                                TextColor="{StaticResource TextPrimary}"
-                                               FontSize="13"
+                                               FontSize="12"
                                                FontAttributes="Bold"
                                                HorizontalOptions="Center" />
                                     </Border>
-                                    <VerticalStackLayout Grid.Column="2"
-                                                         Spacing="2"
-                                                         VerticalOptions="Center">
-                                        <Label Text="{Binding DisplayName}"
-                                               TextColor="{StaticResource TextPrimary}"
-                                               FontSize="14"
-                                               LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding CardTypeText}"
-                                               TextColor="{StaticResource TextSecondary}"
-                                               FontSize="11"
-                                               LineBreakMode="TailTruncation" />
-                                    </VerticalStackLayout>
                                     <Button Grid.Column="3"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Surface}"
                                             TextColor="{StaticResource TextPrimary}"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="32"
+                                            HeightRequest="32"
                                             Padding="0"
                                             CornerRadius="6">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Minus}"
-                                                             Size="14"
+                                                             Size="12"
                                                              Color="{StaticResource TextPrimary}" />
                                         </Button.ImageSource>
                                     </Button>
@@ -430,14 +465,14 @@
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
                                             TextColor="Black"
-                                            WidthRequest="36"
-                                            HeightRequest="36"
+                                            WidthRequest="32"
+                                            HeightRequest="32"
                                             Padding="0"
                                             CornerRadius="6">
                                         <Button.ImageSource>
                                             <FontImageSource FontFamily="FASolid"
                                                              Glyph="{x:Static fa:Solid.Plus}"
-                                                             Size="14"
+                                                             Size="12"
                                                              Color="Black" />
                                         </Button.ImageSource>
                                     </Button>
@@ -550,15 +585,26 @@
 
         </Grid>
 
-        <!-- Row 4: Footer -->
+        <!-- Row 4: Deck summary bar + status -->
         <Grid Grid.Row="4"
+              RowDefinitions="Auto,Auto"
               Padding="12,8"
-              BackgroundColor="{StaticResource Surface}">
-            <Label Text="{Binding StatusDisplayText}"
+              BackgroundColor="{StaticResource Primary}"
+              RowSpacing="4">
+            <Label Grid.Row="0"
+                   Text="{Binding DeckSummaryText}"
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+            <Label Grid.Row="1"
+                   Text="{Binding StatusDisplayText}"
                    FontSize="12"
                    TextColor="{Binding StatusTextColor}"
                    HorizontalOptions="Center"
-                   VerticalOptions="Center" />
+                   VerticalOptions="Center"
+                   Opacity="0.9" />
         </Grid>
 
     </Grid>

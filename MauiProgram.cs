@@ -123,7 +123,6 @@ public static class MauiProgram
         builder.Services.AddTransient<CardSearchPickerPage>();
         builder.Services.AddTransient<CreateDeckPage>();
         builder.Services.AddTransient<AddToDeckPage>();
-        builder.Services.AddTransient<CardQuickDetailPage>();
         builder.Services.AddTransient<CollectionAddPage>();
         builder.Services.AddTransient<MTGJsonDecksPage>();
         builder.Services.AddSingleton<LogViewPage>();
