@@ -89,13 +89,13 @@ dotnet test AetherVault.Tests/AetherVault.Tests.csproj
 
 <table>
   <tr>
-    <td align="center"><img src="docs/media/screenshots/search-page.png" width="220" alt="Search Page"/><br/><b>Search</b></td>
-    <td align="center"><img src="docs/media/screenshots/collection-page.png" width="220" alt="Collection Page"/><br/><b>Collection</b></td>
-    <td align="center"><img src="docs/media/screenshots/card-detail.png" width="220" alt="Card Detail"/><br/><b>Card Detail</b></td>
+    <td align="center"><img src="docs/media/screenshots/search-page.jpg" width="220" alt="Search Page"/><br/><b>Search</b></td>
+    <td align="center"><img src="docs/media/screenshots/collection-page.jpg" width="220" alt="Collection Page"/><br/><b>Collection</b></td>
+    <td align="center"><img src="docs/media/screenshots/card-detail.jpg" width="220" alt="Card Detail"/><br/><b>Card Detail</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/media/screenshots/decks-page.png" width="220" alt="Decks Page"/><br/><b>Decks</b></td>
-    <td align="center"><img src="docs/media/screenshots/sample-decks.png" width="220" alt="Sample Decks"/><br/><b>Browse Sample Decks</b></td>
+    <td align="center"><img src="docs/media/screenshots/decks-page.jpg" width="220" alt="Decks Page"/><br/><b>Decks</b></td>
+    <td align="center"><img src="docs/media/screenshots/sample-decks.jpg" width="220" alt="Sample Decks"/><br/><b>Browse Sample Decks</b></td>
     <td></td>
   </tr>
 </table>
