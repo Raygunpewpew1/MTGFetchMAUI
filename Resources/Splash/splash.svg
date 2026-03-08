@@ -1,3 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <text x="256" y="300" text-anchor="middle" font-family="Arial,sans-serif" font-size="72" font-weight="bold" fill="white">AetherVault</text>
+  <!-- Logo: rounded rect matching LoadingPage LogoBorder (stroke #03DAC5) -->
+  <rect x="156" y="100" width="200" height="100" rx="24" ry="24" fill="#1E1A2E" stroke="#03DAC5" stroke-width="2"/>
+  <text x="256" y="168" text-anchor="middle" font-family="serif" font-size="48" font-weight="bold" fill="#03DAC5">A</text>
+  <!-- App name matching LoadingPage title -->
+  <text x="256" y="280" text-anchor="middle" font-family="serif" font-size="42" font-weight="bold" fill="#03DAC5">AetherVault</text>
 </svg>
