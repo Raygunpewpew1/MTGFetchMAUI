@@ -4,6 +4,8 @@ AetherVault is a .NET MAUI app for browsing, searching, and managing **Magic: Th
 
 It uses a local SQLite copy of MTGJSON data, downloads card images from Scryfall, and stores user collection/deck data in a separate local database.
 
+Decks are slowly being added.
+
 ---
 
 ## What this repo is built with
