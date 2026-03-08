@@ -1,0 +1,6 @@
+<Project>
+	<!-- Reuse MSBuild nodes across builds for faster incremental builds (especially Android). -->
+	<PropertyGroup>
+		<MSBuildNodeReuse>true</MSBuildNodeReuse>
+	</PropertyGroup>
+</Project>

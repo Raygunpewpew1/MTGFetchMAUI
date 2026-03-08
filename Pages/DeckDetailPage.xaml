@@ -19,48 +19,16 @@
                      Clicked="OnExportDeckClicked" />
     </ContentPage.ToolbarItems>
 
-    <Grid x:Name="DeckDetailRoot" RowDefinitions="Auto,100,Auto,Auto,*,Auto">
+    <Grid x:Name="DeckDetailRoot" RowDefinitions="100,Auto,Auto,*,Auto">
 
-        <!-- Row 0: Deck header -->
-        <Border Grid.Row="0"
-                Style="{StaticResource CardStyle}"
-                Margin="16,12,16,8"
-                Padding="16,12">
-            <Grid ColumnDefinitions="*,Auto"
-                  ColumnSpacing="16">
-                <VerticalStackLayout Spacing="4" VerticalOptions="Center">
-                    <Label Text="{Binding Deck.Name}"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           LineBreakMode="TailTruncation" />
-                    <Label Text="{Binding DeckFormat}"
-                           FontSize="13"
-                           TextColor="{StaticResource TextSecondary}" />
-                </VerticalStackLayout>
-
-                <Border Grid.Column="1"
-                        BackgroundColor="{StaticResource Accent}"
-                        Padding="14,8"
-                        StrokeShape="RoundRectangle 12"
-                        Stroke="Transparent"
-                        VerticalOptions="Center">
-                    <Label Text="{Binding TotalCardCount}"
-                           TextColor="Black"
-                           FontSize="16"
-                           FontAttributes="Bold" />
-                </Border>
-            </Grid>
-        </Border>
-
-        <!-- Row 1: Commander Art Header (gradient, shows commander name) -->
-        <skia:SKCanvasView Grid.Row="1"
+        <!-- Row 0: Commander Art Header (gradient, shows commander name) -->
+        <skia:SKCanvasView Grid.Row="0"
                            x:Name="CommanderArtCanvas"
                            HeightRequest="100"
                            PaintSurface="OnCommanderArtPaint" />
 
-        <!-- Row 2: Section Tab Bar (icons + labels for easier tapping) -->
-        <Grid Grid.Row="2"
+        <!-- Row 1: Section Tab Bar (icons + labels for easier tapping) -->
+        <Grid Grid.Row="1"
               ColumnDefinitions="*,*,*,*"
               BackgroundColor="{StaticResource Surface}"
               HeightRequest="52"
@@ -107,8 +75,8 @@
             </Border>
         </Grid>
 
-        <!-- Row 3: Inline add-card search (visible on Commander, Main, Sideboard tabs) -->
-        <VerticalStackLayout Grid.Row="3"
+        <!-- Row 2: Inline add-card search (visible on Commander, Main, Sideboard tabs) -->
+        <VerticalStackLayout Grid.Row="2"
                             IsVisible="{Binding IsAddCardSearchVisible}"
                             Spacing="4"
                             Padding="12,8,12,8"
@@ -159,8 +127,8 @@
             </Border>
         </VerticalStackLayout>
 
-        <!-- Row 4: Content Panels -->
-        <Grid Grid.Row="4">
+        <!-- Row 3: Content Panels -->
+        <Grid Grid.Row="3">
 
             <!-- Commander Tab -->
             <ScrollView IsVisible="{Binding IsCommanderTab}" Padding="16,8">
@@ -582,8 +550,8 @@
 
         </Grid>
 
-        <!-- Row 5: Footer -->
-        <Grid Grid.Row="5"
+        <!-- Row 4: Footer -->
+        <Grid Grid.Row="4"
               Padding="12,8"
               BackgroundColor="{StaticResource Surface}">
             <Label Text="{Binding StatusDisplayText}"

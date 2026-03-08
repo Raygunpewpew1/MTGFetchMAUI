@@ -156,6 +156,9 @@ public partial class DeckDetailPage : ContentPage
         base.OnAppearing();
         _viewModel.ReloadCompleted += RunDeferredLayoutPass;
         _viewModel.RequestShowQuickDetail += OnRequestShowQuickDetail;
+        // Reload commander art when returning to the page (it was cleared in OnDisappearing).
+        _ = TryLoadCommanderArtAsync();
+        try { CommanderArtCanvas?.InvalidateSurface(); } catch { /* ignore if view detached */ }
     }
 
     protected override void OnDisappearing()
@@ -177,6 +180,7 @@ public partial class DeckDetailPage : ContentPage
             if (Window == null) return;
             try
             {
+                _ = TryLoadCommanderArtAsync();
                 (Content as View)?.InvalidateMeasure();
                 DeckDetailRoot.InvalidateMeasure();
                 CommanderArtCanvas.InvalidateSurface();

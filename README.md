@@ -40,14 +40,16 @@ From repo root:
 dotnet workload install maui
 dotnet workload install maui-android
 dotnet restore AetherVault.sln
-dotnet build AetherVault.csproj -f net10.0-android
+dotnet build AetherVault.csproj -f net10.0-android -m
 ```
 
 To run on Android emulator/device:
 
 ```bash
-dotnet build AetherVault.csproj -t:Run -f net10.0-android
+dotnet build AetherVault.csproj -t:Run -f net10.0-android -m
 ```
+
+**Faster builds:** Use `-m` for parallel MSBuild (uses all cores). Debug builds use Fast Deployment by default (only changed assemblies are redeployed), so incremental build+deploy is quicker. For a single full APK (e.g. for sharing or devices where Fast Deployment fails), set `EmbedAssembliesIntoApk` to `True` in the Debug property group in `AetherVault.csproj`.
 
 ---
 
