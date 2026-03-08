@@ -83,6 +83,32 @@ dotnet test AetherVault.Tests/AetherVault.Tests.csproj
 
 ---
 
+## Media placeholders (screenshots + video)
+
+Add your media files under:
+
+- `docs/media/screenshots/`
+- `docs/media/video/`
+
+Then replace this section as needed:
+
+```md
+## Screenshots
+
+![Search Page](docs/media/screenshots/search-page.png)
+![Card Detail](docs/media/screenshots/card-detail.png)
+![Collection](docs/media/screenshots/collection-page.png)
+
+## Demo Video
+
+[![Watch Demo](docs/media/screenshots/demo-thumb.png)](https://www.youtube.com/watch?v=REPLACE_WITH_VIDEO_ID)
+
+Or link directly to a local video file:
+[Download Demo Video (MP4)](docs/media/video/demo.mp4)
+```
+
+---
+
 ## CI / database update automation
 
 GitHub Actions workflow (`.github/workflows/main.yml`) runs weekly and can be triggered manually to:
