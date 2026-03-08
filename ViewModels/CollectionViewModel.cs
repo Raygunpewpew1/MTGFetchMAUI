@@ -262,7 +262,7 @@ public partial class CollectionViewModel : BaseViewModel
 
         if (!await _cardManager.EnsureInitializedAsync())
         {
-                MainThread.BeginInvokeOnMainThread(() => StatusMessage = UserMessages.DatabaseNotConnected);
+            MainThread.BeginInvokeOnMainThread(() => StatusMessage = UserMessages.DatabaseNotConnected);
             return;
         }
 

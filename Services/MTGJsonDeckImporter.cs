@@ -45,29 +45,29 @@ public class MTGJsonDeckImporter
         return deckType.Trim().ToLowerInvariant() switch
         {
             // MTGJSON uses multi-word strings for product types; match both forms defensively.
-            "commander" or "commander deck"                   => DeckFormat.Commander,
-            "brawl" or "brawl deck"                           => DeckFormat.Brawl,
-            "standard brawl" or "standardbrawl"               => DeckFormat.StandardBrawl,
+            "commander" or "commander deck" => DeckFormat.Commander,
+            "brawl" or "brawl deck" => DeckFormat.Brawl,
+            "standard brawl" or "standardbrawl" => DeckFormat.StandardBrawl,
             "pauper commander" or "paupercommander"
-                or "pauper commander deck"                    => DeckFormat.PauperCommander,
-            "oathbreaker" or "oathbreaker deck"               => DeckFormat.Oathbreaker,
-            "duel" or "duel commander" or "duel deck"         => DeckFormat.Duel,
-            "standard"                                        => DeckFormat.Standard,
-            "pioneer"                                         => DeckFormat.Pioneer,
-            "modern"                                          => DeckFormat.Modern,
-            "legacy"                                          => DeckFormat.Legacy,
-            "vintage"                                         => DeckFormat.Vintage,
-            "pauper"                                          => DeckFormat.Pauper,
-            "historic"                                        => DeckFormat.Historic,
-            "alchemy"                                         => DeckFormat.Alchemy,
-            "timeless"                                        => DeckFormat.Timeless,
-            "gladiator"                                       => DeckFormat.Gladiator,
-            "premodern"                                       => DeckFormat.Premodern,
-            "penny" or "penny dreadful"                       => DeckFormat.Penny,
+                or "pauper commander deck" => DeckFormat.PauperCommander,
+            "oathbreaker" or "oathbreaker deck" => DeckFormat.Oathbreaker,
+            "duel" or "duel commander" or "duel deck" => DeckFormat.Duel,
+            "standard" => DeckFormat.Standard,
+            "pioneer" => DeckFormat.Pioneer,
+            "modern" => DeckFormat.Modern,
+            "legacy" => DeckFormat.Legacy,
+            "vintage" => DeckFormat.Vintage,
+            "pauper" => DeckFormat.Pauper,
+            "historic" => DeckFormat.Historic,
+            "alchemy" => DeckFormat.Alchemy,
+            "timeless" => DeckFormat.Timeless,
+            "gladiator" => DeckFormat.Gladiator,
+            "premodern" => DeckFormat.Premodern,
+            "penny" or "penny dreadful" => DeckFormat.Penny,
             // All other MTGJSON product types — Theme Deck, Planeswalker Deck, Starter Kit,
             // Two-Headed Giant, Welcome Deck, Preconstructed, Draft Set, etc. — use Legacy:
             // permissive legality, 4-of limit, no color-identity constraint.
-            _                                                 => DeckFormat.Legacy
+            _ => DeckFormat.Legacy
         };
     }
 

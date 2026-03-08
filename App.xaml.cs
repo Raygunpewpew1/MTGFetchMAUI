@@ -1,7 +1,6 @@
 namespace AetherVault;
 
 using AetherVault.Pages;
-using AetherVault.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 

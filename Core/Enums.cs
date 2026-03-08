@@ -287,7 +287,12 @@ public static class ColorFilterDisplay
 {
     private static readonly Dictionary<string, string> CodeToName = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["W"] = "White", ["U"] = "Blue", ["B"] = "Black", ["R"] = "Red", ["G"] = "Green", ["C"] = "Colorless"
+        ["W"] = "White",
+        ["U"] = "Blue",
+        ["B"] = "Black",
+        ["R"] = "Red",
+        ["G"] = "Green",
+        ["C"] = "Colorless"
     };
 
     /// <summary>Converts a color filter string (e.g. "W, U, B") to display text (e.g. "White, Blue, Black").</summary>

@@ -1,7 +1,5 @@
 using AetherVault.Models;
-using AetherVault.Services;
 using AetherVault.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AetherVault.Pages;
 
