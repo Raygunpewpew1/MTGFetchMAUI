@@ -20,7 +20,7 @@ public partial class LogViewViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task CopyAsync()
+    private async Task Copy()
     {
         if (LogBuffer.Entries.Count == 0)
             return;

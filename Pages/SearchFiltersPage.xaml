@@ -177,7 +177,6 @@
 
                         <material:PickerField SelectedIndex="{Binding SelectedSetIndex, Mode=TwoWay}"
                                               ItemsSource="{Binding SetList}"
-                                              ItemDisplayBinding="{Binding Name}"
                                               Title="Set"
                                               TextColor="{StaticResource TextPrimary}"
                                               TitleColor="{StaticResource TextSecondary}"

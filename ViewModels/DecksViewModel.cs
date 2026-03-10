@@ -90,7 +90,7 @@ public partial class DecksViewModel : BaseViewModel
     private static string FormatDeckCount(int count) => $"{count} deck{(count == 1 ? "" : "s")}";
 
     [RelayCommand]
-    public async Task ImportDecksAsync()
+    public async Task ImportDecks()
     {
         if (IsBusy) return;
         try
@@ -132,7 +132,7 @@ public partial class DecksViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    public async Task ExportDecksAsync()
+    public async Task ExportDecks()
     {
         if (IsBusy) return;
         try
