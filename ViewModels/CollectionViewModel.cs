@@ -22,6 +22,8 @@ public partial class CollectionViewModel : BaseViewModel
     private readonly CollectionExporter _exporter;
     private CardGrid? _grid;
     private CollectionItem[] _allItems = [];
+    private bool _hasLoadedOnce;
+    private int _lastLoadedCollectionVersion = -1;
 
     // ── Bindable properties ──
 
@@ -285,6 +287,11 @@ public partial class CollectionViewModel : BaseViewModel
 
             await ApplyFilterAndSortAsync();
 
+            // Mark the current collection version as loaded so future tab switches can
+            // skip reloading until we detect another mutation.
+            _hasLoadedOnce = true;
+            _lastLoadedCollectionVersion = _cardManager.CollectionVersion;
+
             var isEmptyNow = IsCollectionEmpty;
             Logger.LogStuff($"[CollectionUI] LoadCollectionAsync: after ApplyFilterAndSort, IsCollectionEmpty={isEmptyNow}, willInvokeCollectionLoaded={!isEmptyNow}", LogLevel.Debug);
             if (!IsCollectionEmpty)
@@ -303,6 +310,27 @@ public partial class CollectionViewModel : BaseViewModel
         finally
         {
             MainThread.BeginInvokeOnMainThread(() => IsBusy = false);
+        }
+    }
+
+    /// <summary>
+    /// Ensures the collection is loaded for the Collection tab. On first call, it
+    /// loads from the database. On subsequent calls it only reloads if the
+    /// underlying collection version has changed (i.e., the DB was mutated).
+    /// </summary>
+    public async Task EnsureCollectionLoadedAsync()
+    {
+        var currentVersion = _cardManager.CollectionVersion;
+
+        if (!_hasLoadedOnce)
+        {
+            await LoadCollectionAsync();
+            return;
+        }
+
+        if (currentVersion != _lastLoadedCollectionVersion)
+        {
+            await LoadCollectionAsync();
         }
     }
 

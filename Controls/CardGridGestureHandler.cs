@@ -24,6 +24,7 @@ internal sealed class CardGridGestureHandler
 
     private IDispatcherTimer? _longPressTimer;
     private Point _pressPoint;
+    private bool _hasMovedBeyondTapThreshold;
     private GestureState _gestureState = GestureState.Idle;
     private string? _armedUuid;
     private int _armedIndex;
@@ -48,6 +49,7 @@ internal sealed class CardGridGestureHandler
         AllowScrollIntercept?.Invoke();
 
         _pressPoint = new Point(x, y);
+        _hasMovedBeyondTapThreshold = false;
         _gestureState = GestureState.PressTracking;
         _armedUuid = null;
         _armedIndex = -1;
@@ -86,7 +88,16 @@ internal sealed class CardGridGestureHandler
         switch (_gestureState)
         {
             case GestureState.PressTracking:
-                // Cancel long-press if pointer drifts (lets the ScrollView scroll)
+                // Mark as moved for tap detection once the finger drifts a bit,
+                // but keep a slightly larger threshold for cancelling the
+                // long-press so users can still arm drag without it being
+                // overly fragile.
+                if (Math.Abs(x - _pressPoint.X) > 2 || Math.Abs(y - _pressPoint.Y) > 2)
+                {
+                    _hasMovedBeyondTapThreshold = true;
+                }
+
+                // Cancel long-press if pointer drifts more (lets the ScrollView scroll)
                 if (Math.Abs(x - _pressPoint.X) > 4 || Math.Abs(y - _pressPoint.Y) > 4)
                 {
                     _gestureState = GestureState.Idle;
@@ -119,15 +130,19 @@ internal sealed class CardGridGestureHandler
         switch (_gestureState)
         {
             case GestureState.PressTracking:
-                // Quick tap: fire Tapped and clear state.
+                // Quick tap: fire Tapped and clear state, but only if the
+                // pointer has not drifted beyond the small tap threshold.
                 _gestureState = GestureState.Idle;
                 _longPressTimer?.Stop();
-                var tapPoint = _pressPoint;
-                MainThread.BeginInvokeOnMainThread(() =>
+                if (!_hasMovedBeyondTapThreshold)
                 {
-                    var (uuid, _) = _hitTest((float)tapPoint.X, (float)tapPoint.Y);
-                    if (uuid != null) Tapped?.Invoke(uuid);
-                });
+                    var tapPoint = _pressPoint;
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        var (uuid, _) = _hitTest((float)tapPoint.X, (float)tapPoint.Y);
+                        if (uuid != null) Tapped?.Invoke(uuid);
+                    });
+                }
                 break;
 
             case GestureState.DragArmed:

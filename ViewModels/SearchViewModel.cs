@@ -390,14 +390,11 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         try
         {
-            var ftsAvailable = await _cardManager.IsFtsAvailableAsync();
             // Build parameterized SQL via the fluent helper (never concatenate user input into SQL)
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards(CurrentOptions.IncludeTokens);
-            SearchOptionsApplier.Apply(helper, CurrentOptions, ftsAvailable);
-            if (!helper.UsedFts)
-                helper.OrderBy("c.name");
-            helper.Limit(PageSize).Offset(0);
+            SearchOptionsApplier.Apply(helper, CurrentOptions);
+            helper.OrderBy("c.name").Limit(PageSize).Offset(0);
 
             var results = await Task.Run(() => _cardManager.ExecuteSearchAsync(helper));
 
@@ -411,7 +408,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
                 // Get total count
                 var countHelper = _cardManager.CreateSearchHelper();
                 countHelper.SearchCards(CurrentOptions.IncludeTokens);
-                SearchOptionsApplier.Apply(countHelper, CurrentOptions, ftsAvailable);
+                SearchOptionsApplier.Apply(countHelper, CurrentOptions);
                 TotalResults = await _cardManager.GetCountAdvancedAsync(countHelper);
                 HasMorePages = TotalResults > results.Length;
             }
@@ -482,13 +479,12 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         try
         {
-            var ftsAvailable = await _cardManager.IsFtsAvailableAsync();
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards(CurrentOptions.IncludeTokens);
-            SearchOptionsApplier.Apply(helper, CurrentOptions, ftsAvailable);
-            if (!helper.UsedFts)
-                helper.OrderBy("c.name");
-            helper.Limit(PageSize).Offset((_currentPage - 1) * PageSize);
+            SearchOptionsApplier.Apply(helper, CurrentOptions);
+            helper.OrderBy("c.name")
+                  .Limit(PageSize)
+                  .Offset((_currentPage - 1) * PageSize);
 
             // 1. Await directly. No Task.Run needed for true async I/O.
             var results = await _cardManager.ExecuteSearchAsync(helper);

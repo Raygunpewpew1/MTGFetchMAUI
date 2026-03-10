@@ -45,6 +45,8 @@ public class CardPriceDatabase : IDisposable
         await ExecuteAsync(SQLQueries.CreatePriceHistoryTable);
         await ExecuteAsync(SQLQueries.CreatePricesIndex);
         await ExecuteAsync(SQLQueries.CreatePriceHistoryIndex);
+        await ExecuteAsync(SQLQueries.CreatePricesUuidSourceIndex);
+        await ExecuteAsync(SQLQueries.CreatePriceHistoryUuidSourceIndex);
     }
 
     /// <summary>

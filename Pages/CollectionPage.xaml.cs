@@ -86,8 +86,7 @@ public partial class CollectionPage : ContentPage
             _skipNextReload = false;
             return;
         }
-
-        await _viewModel.LoadCollectionAsync();
+        await _viewModel.EnsureCollectionLoadedAsync();
 
         RunContentLayoutPass();
     }

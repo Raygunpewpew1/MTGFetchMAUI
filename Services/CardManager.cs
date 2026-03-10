@@ -26,6 +26,7 @@ public class CardManager : IDisposable
     private DateTime _totalValueCacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan TotalValueCacheTtl = TimeSpan.FromMinutes(5);
     private bool? _ftsAvailable;
+    private int _collectionVersion;
 
     // ── Events ───────────────────────────────────────────────────────
 
@@ -61,6 +62,13 @@ public class CardManager : IDisposable
     public DatabaseManager DatabaseManager => _databaseManager;
 
     public ImageDownloadService ImageService => _imageService;
+
+    /// <summary>
+    /// Monotonically increasing version for the user's collection.
+    /// Incremented on any collection mutation so consumers can detect when
+    /// a reload is necessary. Read via <see cref="CollectionVersion"/>.
+    /// </summary>
+    public int CollectionVersion => Volatile.Read(ref _collectionVersion);
 
     // ── Constructor ──────────────────────────────────────────────────
 
@@ -427,18 +435,25 @@ public class CardManager : IDisposable
     private void InvalidateTotalValueCache()
     {
         _totalValueCacheExpiry = DateTime.MinValue;
-        CollectionChanged?.Invoke();
+        BumpCollectionVersion();
     }
 
     public async Task ReorderCollectionAsync(IList<string> orderedUuids)
     {
         await _collectionRepository.ReorderAsync(orderedUuids);
+        BumpCollectionVersion();
     }
 
     public async Task ClearCollectionAsync()
     {
         await _collectionRepository.ClearCollectionAsync();
         InvalidateTotalValueCache();
+    }
+
+    private void BumpCollectionVersion()
+    {
+        Interlocked.Increment(ref _collectionVersion);
+        CollectionChanged?.Invoke();
     }
 
     // ── Image Methods ────────────────────────────────────────────────

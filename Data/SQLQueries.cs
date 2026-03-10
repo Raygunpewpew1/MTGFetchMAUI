@@ -125,6 +125,14 @@ public static class SQLQueries
     public const string CreatePriceHistoryIndex =
         "CREATE INDEX IF NOT EXISTS idx_history_uuid ON card_price_history(uuid)";
 
+    /// <summary>Composite index matching common pattern WHERE uuid = @uuid AND source = 'paper'.</summary>
+    public const string CreatePricesUuidSourceIndex =
+        "CREATE INDEX IF NOT EXISTS idx_prices_uuid_source ON card_prices(uuid, source)";
+
+    /// <summary>Composite index for history lookups by uuid + source.</summary>
+    public const string CreatePriceHistoryUuidSourceIndex =
+        "CREATE INDEX IF NOT EXISTS idx_history_uuid_source ON card_price_history(uuid, source)";
+
     public const string DropPricesIndex = "DROP INDEX IF EXISTS idx_prices_uuid";
     public const string DropPriceHistoryIndex = "DROP INDEX IF EXISTS idx_history_uuid";
 
