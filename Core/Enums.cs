@@ -1,5 +1,6 @@
 namespace AetherVault.Core;
 
+using System.Diagnostics;
 /// <summary>Legality status for a card in a format.</summary>
 public enum LegalityStatus
 {

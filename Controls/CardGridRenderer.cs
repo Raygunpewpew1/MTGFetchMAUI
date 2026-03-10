@@ -3,6 +3,7 @@ using AetherVault.Services;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
+using System.Diagnostics;
 
 namespace AetherVault.Controls;
 
