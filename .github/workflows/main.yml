@@ -19,12 +19,45 @@ jobs:
       - name: Extract Database
         run: unzip AllPrintings.sqlite.zip
 
-      - name: Drop Heavy Tables & Vacuum
+      - name: Drop Heavy Tables, Add FTS & Indexes, Vacuum
         run: |
-          sqlite3 AllPrintings.sqlite <<EOF
+          sqlite3 AllPrintings.sqlite <<'SQLEOF'
           DROP TABLE IF EXISTS cardForeignData;
+
+          -- FTS5 table for fast name/oracle/type/artist/set search (cards + tokens)
+          CREATE VIRTUAL TABLE IF NOT EXISTS av_cards_fts USING fts5(
+            uuid UNINDEXED,
+            name,
+            faceName,
+            text,
+            type,
+            artist,
+            setName,
+            tokenize='unicode61'
+          );
+
+          INSERT INTO av_cards_fts(uuid, name, faceName, text, type, artist, setName)
+          SELECT c.uuid, COALESCE(c.name,''), COALESCE(c.faceName,''), COALESCE(c.text,''), COALESCE(c.type,''), COALESCE(c.artist,''), COALESCE(s.name,'')
+          FROM cards c LEFT JOIN sets s ON c.setCode = s.code;
+
+          INSERT INTO av_cards_fts(uuid, name, faceName, text, type, artist, setName)
+          SELECT t.uuid, COALESCE(t.name,''), COALESCE(t.faceName,''), COALESCE(t.text,''), COALESCE(t.type,''), COALESCE(t.artist,''), COALESCE(s.name,'')
+          FROM tokens t LEFT JOIN sets s ON t.setCode = s.code;
+
+          -- Indexes for filters used by MTGSearchHelper
+          CREATE INDEX IF NOT EXISTS idx_cards_setCode ON cards(setCode);
+          CREATE INDEX IF NOT EXISTS idx_cards_name ON cards(name);
+          CREATE INDEX IF NOT EXISTS idx_cards_faceName ON cards(faceName);
+          CREATE INDEX IF NOT EXISTS idx_cards_manaValue ON cards(manaValue);
+          CREATE INDEX IF NOT EXISTS idx_cards_rarity ON cards(rarity);
+          CREATE INDEX IF NOT EXISTS idx_cards_side ON cards(side);
+          CREATE INDEX IF NOT EXISTS idx_cardIdentifiers_scryfallId ON cardIdentifiers(scryfallId);
+          CREATE INDEX IF NOT EXISTS idx_cardLegalities_uuid ON cardLegalities(uuid);
+          CREATE INDEX IF NOT EXISTS idx_tokens_setCode ON tokens(setCode);
+          CREATE INDEX IF NOT EXISTS idx_tokens_uuid ON tokens(uuid);
+
           VACUUM;
-          EOF
+          SQLEOF
 
       - name: Zip the Final Database
         run: zip -9 MTG_App_DB.zip AllPrintings.sqlite

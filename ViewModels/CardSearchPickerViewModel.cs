@@ -187,13 +187,16 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
                     CommanderOnly = CurrentOptions.CommanderOnly
                 };
 
+                var ftsAvailable = await _cardManager.IsFtsAvailableAsync();
                 var helper = _cardManager.CreateSearchHelper();
                 if (SearchCollectionOnly)
                     helper.SearchMyCollection();
                 else
                     helper.SearchCards(options.IncludeTokens);
-                SearchOptionsApplier.Apply(helper, options);
-                helper.OrderBy("c.name").Limit(100);
+                SearchOptionsApplier.Apply(helper, options, ftsAvailable);
+                if (!helper.UsedFts)
+                    helper.OrderBy("c.name");
+                helper.Limit(100);
 
                 _allCards = await _cardManager.ExecuteSearchAsync(helper);
             }

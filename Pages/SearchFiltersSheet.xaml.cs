@@ -1,9 +1,10 @@
 using AetherVault.ViewModels;
+using AetherVault.Services;
 using CommunityToolkit.Maui.Views;
 
 namespace AetherVault.Pages;
 
-public partial class SearchFiltersSheet : BottomSheet
+public partial class SearchFiltersSheet : Popup
 {
     private SearchFiltersViewModel ViewModel => (SearchFiltersViewModel)BindingContext;
 
@@ -21,21 +22,20 @@ public partial class SearchFiltersSheet : BottomSheet
     {
         ViewModel.Configure(target, cardManager);
         ViewModel.RequestClose += OnRequestClose;
-        Dismissed += OnSheetDismissed;
+        Closed += OnSheetClosed;
     }
 
-    // Drag-to-dismiss is treated as Cancel — no filters applied.
-    // Also fires when DismissAsync() is called, so we guard against double-unsubscribe.
-    private void OnSheetDismissed(object? sender, DismissOrigin e)
+    private void OnSheetClosed(object? sender, EventArgs e)
     {
         ViewModel.RequestClose -= OnRequestClose;
-        Dismissed -= OnSheetDismissed;
+        Closed -= OnSheetClosed;
     }
 
     private async void OnRequestClose()
     {
         ViewModel.RequestClose -= OnRequestClose;
-        Dismissed -= OnSheetDismissed;
-        await DismissAsync();
+        Closed -= OnSheetClosed;
+
+        await CloseAsync();
     }
 }

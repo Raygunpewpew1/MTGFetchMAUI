@@ -10,10 +10,6 @@ using UraniumUI;
 using AppoMobi.Maui.Gestures;
 using Plugin.Maui.Audio;
 
-#if ANDROID
-using Plugin.Maui.OCR;
-#endif
-
 namespace AetherVault;
 
 /// <summary>
@@ -55,19 +51,6 @@ public static class MauiProgram
                 fonts.AddFont("CrimsonText-Italic.ttf", "SerifFontItalic");
                 fonts.AddFontAwesomeIconFonts();
             });
-
-#if ANDROID
-        // Plugin.Maui.OCR uses native Google ML Kit - only available on Android
-        try
-        {
-            builder.UseOcr();
-            builder.Services.AddSingleton(Plugin.Maui.OCR.OcrPlugin.Default);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogStuff($"OCR plugin init failed: {ex}", LogLevel.Warning);
-        }
-#endif
 
         // ── Services (singleton = one instance for the whole app) ─────
         builder.Services.AddSingleton<IDialogService, DialogService>();

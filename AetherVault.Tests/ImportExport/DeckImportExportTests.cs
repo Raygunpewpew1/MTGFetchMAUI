@@ -252,6 +252,7 @@ public class DeckImportExportTests
         public Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
         public MTGSearchHelper CreateSearchHelper() => throw new NotImplementedException();
         public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
+        public Task<bool> HasFtsAsync() => Task.FromResult(false);
         public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
         {
             var card = _cards.Values.FirstOrDefault(c => string.Equals(c.ScryfallId, scryfallId, StringComparison.OrdinalIgnoreCase));

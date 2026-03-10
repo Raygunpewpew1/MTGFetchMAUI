@@ -33,4 +33,7 @@ public interface ICardRepository
 
     /// <summary>Returns all sets (code + name) for filter dropdowns, ordered by name.</summary>
     Task<IReadOnlyList<SetInfo>> GetAllSetsAsync();
+
+    /// <summary>Returns true if the av_cards_fts table exists (built by CI). When false, search falls back to LIKE.</summary>
+    Task<bool> HasFtsAsync();
 }

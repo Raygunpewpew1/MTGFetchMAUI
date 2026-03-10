@@ -425,6 +425,23 @@ public static class SQLQueries
         "SELECT DeckId, CAST(COALESCE(SUM(Quantity), 0) AS INTEGER) AS Total FROM DeckCards WHERE DeckId IN @DeckIds GROUP BY DeckId";
 
     // ============================================================================
+    // FTS5 (av_cards_fts) — built by CI; optional at runtime
+    // ============================================================================
+
+    /// <summary>FTS table name; must match .github/workflows/main.yml.</summary>
+    public const string FtsTableName = "av_cards_fts";
+
+    /// <summary>Returns one row if FTS table exists; used for runtime capability check.</summary>
+    public const string FtsExistsCheck = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='av_cards_fts' LIMIT 1";
+
+    /// <summary>Fragment: c.uuid IN (SELECT uuid FROM av_cards_fts WHERE av_cards_fts MATCH @paramName). Append param name + ")".</summary>
+    public const string CondFtsMatchPrefix = "c.uuid IN (SELECT uuid FROM av_cards_fts WHERE av_cards_fts MATCH @";
+
+    /// <summary>Order by FTS relevance (bm25) then name. Use when FTS filter is active.</summary>
+    public const string OrderByFtsRelevanceThenName =
+        "ORDER BY (SELECT bm25(av_cards_fts) FROM av_cards_fts WHERE av_cards_fts.uuid = c.uuid LIMIT 1) ASC, c.name";
+
+    // ============================================================================
     // SEARCH HELPER FRAGMENTS
     // ============================================================================
 

@@ -656,6 +656,7 @@ public class MockCardRepository : ICardRepository
     public MTGSearchHelper CreateSearchHelper() => new();
     public Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync() => Task.FromResult<IReadOnlyList<ImportLookupRow>>([]);
     public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
+    public Task<bool> HasFtsAsync() => Task.FromResult(false);
     public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
     {
         var card = _cards.Values.FirstOrDefault(c => string.Equals(c.ScryfallId, scryfallId, StringComparison.OrdinalIgnoreCase));

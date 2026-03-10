@@ -328,6 +328,24 @@ public class CardRepository : ICardRepository
         }
     }
 
+    public async Task<bool> HasFtsAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            var val = await _db.MTGConnection.QueryFirstOrDefaultAsync<int>(SQLQueries.FtsExistsCheck);
+            return val == 1;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     // ── Private helpers ─────────────────────────────────────────────
 
     private async Task<Card[]> GetMeldPartCardsAsync(string[] cardParts, string setCode, string mainUUID)

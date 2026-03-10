@@ -25,6 +25,7 @@ public class CardManager : IDisposable
     private double _cachedTotalValue;
     private DateTime _totalValueCacheExpiry = DateTime.MinValue;
     private static readonly TimeSpan TotalValueCacheTtl = TimeSpan.FromMinutes(5);
+    private bool? _ftsAvailable;
 
     // ── Events ───────────────────────────────────────────────────────
 
@@ -98,12 +99,24 @@ public class CardManager : IDisposable
     }
 
     /// <summary>
+    /// Returns true if the MTG DB has the av_cards_fts table (built by CI). Cached per connection; when false, search uses LIKE fallback.
+    /// </summary>
+    public async Task<bool> IsFtsAvailableAsync()
+    {
+        if (_ftsAvailable.HasValue) return _ftsAvailable.Value;
+        if (!_databaseManager.IsConnected) return false;
+        _ftsAvailable = await _cardRepository.HasFtsAsync();
+        return _ftsAvailable.Value;
+    }
+
+    /// <summary>
     /// Disconnects from databases. Only call from a background thread (e.g. inside Task.Run).
     /// </summary>
     public void Disconnect()
     {
         if (_databaseManager.IsConnected)
             _databaseManager.Disconnect();
+        _ftsAvailable = null;
     }
 
     /// <summary>
@@ -114,6 +127,7 @@ public class CardManager : IDisposable
     {
         if (_databaseManager.IsConnected)
             await _databaseManager.DisconnectAsync();
+        _ftsAvailable = null;
     }
 
     /// <summary>

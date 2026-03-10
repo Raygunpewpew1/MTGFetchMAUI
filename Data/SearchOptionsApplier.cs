@@ -8,13 +8,23 @@ namespace AetherVault.Data;
 /// </summary>
 public static class SearchOptionsApplier
 {
-    public static void Apply(MTGSearchHelper helper, SearchOptions options)
+    /// <summary>Applies options to the helper. When <paramref name="ftsAvailable"/> is true and name/text filters are set, uses FTS and relevance ordering instead of LIKE.</summary>
+    public static void Apply(MTGSearchHelper helper, SearchOptions options, bool ftsAvailable = false)
     {
-        if (!string.IsNullOrEmpty(options.NameFilter))
-            helper.WhereNameContains(options.NameFilter);
+        var hasNameOrText = !string.IsNullOrEmpty(options.NameFilter) || !string.IsNullOrEmpty(options.TextFilter);
+        if (ftsAvailable && hasNameOrText)
+        {
+            var ftsQuery = BuildFtsQuery(options.NameFilter, options.TextFilter);
+            helper.WhereFts(ftsQuery).OrderByFtsRelevance();
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(options.NameFilter))
+                helper.WhereNameContains(options.NameFilter);
 
-        if (!string.IsNullOrEmpty(options.TextFilter))
-            helper.WhereTextContains(options.TextFilter);
+            if (!string.IsNullOrEmpty(options.TextFilter))
+                helper.WhereTextContains(options.TextFilter);
+        }
 
         if (!string.IsNullOrEmpty(options.TypeFilter) &&
             !options.TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase))
@@ -65,5 +75,15 @@ public static class SearchOptionsApplier
 
         if (options.CommanderOnly)
             helper.WhereCommanderOnly();
+    }
+
+    private static string BuildFtsQuery(string nameFilter, string textFilter)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(nameFilter))
+            parts.Add(nameFilter.Trim());
+        if (!string.IsNullOrWhiteSpace(textFilter))
+            parts.Add(textFilter.Trim());
+        return string.Join(" ", parts);
     }
 }

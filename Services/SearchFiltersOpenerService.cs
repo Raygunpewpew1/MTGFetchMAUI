@@ -1,5 +1,6 @@
 using AetherVault.Pages;
 using AetherVault.ViewModels;
+using CommunityToolkit.Maui.Extensions;
 using CommunityToolkit.Maui.Views;
 
 namespace AetherVault.Services;
@@ -25,9 +26,9 @@ public sealed class SearchFiltersOpenerService : ISearchFiltersOpener
         // Prefer topmost modal page so the sheet appears above CardSearchPickerPage when active
         var page = Shell.Current?.Navigation?.ModalStack.LastOrDefault()
                    ?? Shell.Current?.CurrentPage
-                   ?? Application.Current?.MainPage;
+                   ?? Application.Current?.Windows.FirstOrDefault()?.Page;
 
         if (page != null)
-            await page.ShowBottomSheetAsync(sheet, animated: true);
+            await page.ShowPopupAsync(sheet);
     }
 }

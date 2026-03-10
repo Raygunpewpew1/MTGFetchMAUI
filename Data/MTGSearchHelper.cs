@@ -18,6 +18,9 @@ public class MTGSearchHelper
     private readonly Dictionary<string, object> _params = new();
     private readonly List<string> _whereConditions = [];
 
+    /// <summary>True when WhereFts was used; callers can skip setting OrderBy("c.name") and use FTS relevance order.</summary>
+    public bool UsedFts { get; private set; }
+
     // ════════════════════════════════════════════════════════════════
     // Build — returns SQL + parameters for CardRepository to execute
     // ════════════════════════════════════════════════════════════════
@@ -121,6 +124,27 @@ public class MTGSearchHelper
         var param = NextParam("Text");
         _whereConditions.Add(SQLQueries.CondText + param);
         _params.Add(param, "%" + text + "%");
+        return this;
+    }
+
+    /// <summary>
+    /// Restricts results to rows matching the FTS query (name, faceName, text, type, artist, setName).
+    /// Only use when av_cards_fts exists. Escapes double-quotes in the query for FTS5 MATCH.
+    /// </summary>
+    public MTGSearchHelper WhereFts(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return this;
+        var param = NextParam("Fts");
+        _whereConditions.Add(SQLQueries.CondFtsMatchPrefix + param + ")");
+        _params.Add(param, EscapeFtsQuery(query.Trim()));
+        UsedFts = true;
+        return this;
+    }
+
+    /// <summary>Orders by FTS relevance (bm25) then c.name. Call when FTS filter is active.</summary>
+    public MTGSearchHelper OrderByFtsRelevance()
+    {
+        _orderByClause = " " + SQLQueries.OrderByFtsRelevanceThenName;
         return this;
     }
 
@@ -500,4 +524,7 @@ public class MTGSearchHelper
         if (!currentSQL.Contains("c.side"))
             _whereConditions.Add(SQLQueries.CondSidePrimary);
     }
+
+    /// <summary>Escapes double-quote for FTS5 MATCH query string.</summary>
+    private static string EscapeFtsQuery(string query) => query.Replace("\"", "\"\"");
 }

@@ -67,10 +67,6 @@
 	<PackageReference Include="CsvHelper" Version="33.1.0" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
 	</ItemGroup>
