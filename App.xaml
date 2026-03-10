@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:converters="clr-namespace:AetherVault.Converters"
              x:Class="AetherVault.App">
     <Application.Resources>
         <ResourceDictionary>
@@ -17,6 +19,11 @@
             <Color x:Key="LegalGreen">#4CAF50</Color>
             <Color x:Key="BannedRed">#F44336</Color>
             <Color x:Key="RestrictedYellow">#FFC107</Color>
+            <Color x:Key="NotLegalGray">#666666</Color>
+
+            <!-- Global converters -->
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <converters:LegalityStatusToColorConverter x:Key="LegalityStatusToColorConverter" />
 
             <!-- Styles -->
             <Style TargetType="Page" ApplyToDerivedTypes="True">

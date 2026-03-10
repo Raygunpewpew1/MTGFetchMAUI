@@ -7,6 +7,7 @@
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              xmlns:models="clr-namespace:AetherVault.Models"
              xmlns:core="clr-namespace:AetherVault.Core"
+             xmlns:converters="clr-namespace:AetherVault.Converters"
              xmlns:services="clr-namespace:AetherVault.Services"
              xmlns:viewmodels="clr-namespace:AetherVault.ViewModels"
              x:Class="AetherVault.Pages.CardDetailPage"
@@ -234,22 +235,12 @@
                                 <DataTemplate x:DataType="viewmodels:LegalityItem">
                                     <Grid ColumnDefinitions="*,Auto" Padding="0,2">
                                         <Label Text="{Binding Format}" FontSize="13" TextColor="#A0A0A0" />
-                                        <Label Text="{Binding StatusText}" FontSize="13" FontAttributes="Bold" HorizontalTextAlignment="End" Grid.Column="1">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="Legal">
-                                                    <Setter Property="TextColor" Value="#4CAF50" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="Banned">
-                                                    <Setter Property="TextColor" Value="#F44336" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="Restricted">
-                                                    <Setter Property="TextColor" Value="#FFC107" />
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Label" Binding="{Binding Status}" Value="NotLegal">
-                                                    <Setter Property="TextColor" Value="#666666" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
+                                        <Label Text="{Binding StatusText}"
+                                               TextColor="{Binding Status, Converter={StaticResource LegalityStatusToColorConverter}}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               HorizontalTextAlignment="End"
+                                               Grid.Column="1" />
                                     </Grid>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
