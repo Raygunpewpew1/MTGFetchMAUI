@@ -17,44 +17,6 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Import"
-                     Command="{Binding ImportCollectionCommand}">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource FontFamily="FASolid"
-                                 Glyph="{x:Static fa:Solid.FileImport}"
-                                 Size="24"
-                                 Color="{StaticResource TextPrimary}" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
-        <ToolbarItem Text="Export"
-                     Command="{Binding ExportCollectionCommand}">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource FontFamily="FASolid"
-                                 Glyph="{x:Static fa:Solid.FileExport}"
-                                 Size="24"
-                                 Color="{StaticResource TextPrimary}" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
-        <ToolbarItem Text="Refresh"
-                     Command="{Binding RefreshCommand}">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource FontFamily="FASolid"
-                                 Glyph="{x:Static fa:Solid.ArrowsRotate}"
-                                 Size="24"
-                                 Color="{StaticResource TextPrimary}" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
-        <ToolbarItem Text="Clear"
-                     Clicked="OnClearCollectionClicked">
-            <ToolbarItem.IconImageSource>
-                <FontImageSource FontFamily="FASolid"
-                                 Glyph="{x:Static fa:Solid.TrashCan}"
-                                 Size="24"
-                                 Color="{StaticResource TextPrimary}" />
-            </ToolbarItem.IconImageSource>
-        </ToolbarItem>
-    </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,Auto,*">
 
@@ -62,76 +24,167 @@
         <Border Grid.Row="0"
                 Style="{StaticResource CardStyle}"
                 Margin="8,8,8,4">
-            <Grid ColumnDefinitions="*,Auto"
-                  ColumnSpacing="12">
-                <VerticalStackLayout Spacing="4">
-                    <Label x:Name="CollectionTitle"
-                           Text="My Collection"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}" />
+            <VerticalStackLayout Spacing="8">
 
-                    <HorizontalStackLayout Spacing="12">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Total cards"
-                                   FontSize="11"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Label Text="{Binding TotalCards}"
-                                   FontSize="15"
-                                   FontAttributes="Bold" />
-                        </VerticalStackLayout>
+                <!-- Title row -->
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="4">
+                        <Label x:Name="CollectionTitle"
+                               Text="My Collection"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
 
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Unique"
-                                   FontSize="11"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Label Text="{Binding UniqueCards}"
-                                   FontSize="15"
-                                   FontAttributes="Bold" />
-                        </VerticalStackLayout>
-                    </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Total cards"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextSecondary}" />
+                                <Label Text="{Binding TotalCards}"
+                                       FontSize="15"
+                                       FontAttributes="Bold" />
+                            </VerticalStackLayout>
 
-                    <HorizontalStackLayout Spacing="8">
-                        <Label x:Name="CollectionStatus"
-                               Text="{Binding StatusDisplayText}"
-                               FontSize="12"
-                               VerticalOptions="Center"
-                               TextColor="{Binding StatusTextColor}" />
-                        <HorizontalStackLayout IsVisible="{Binding IsImportingPrices}"
-                                               Spacing="4"
-                                               VerticalOptions="Center">
-                            <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
-                                               HeightRequest="12"
-                                               WidthRequest="12"
-                                               Color="{StaticResource TextSecondary}" />
-                            <Label Text="Syncing Prices..."
-                                   FontSize="10"
-                                   TextColor="{StaticResource TextSecondary}"
-                                   VerticalOptions="Center" />
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Unique"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextSecondary}" />
+                                <Label Text="{Binding UniqueCards}"
+                                       FontSize="15"
+                                       FontAttributes="Bold" />
+                            </VerticalStackLayout>
                         </HorizontalStackLayout>
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
 
-                <VerticalStackLayout Grid.Column="1"
-                                     Spacing="8"
-                                     HorizontalOptions="End"
-                                     VerticalOptions="Center">
-                    <ActivityIndicator x:Name="CollectionLoading"
-                                       IsRunning="{Binding IsBusy}"
-                                       IsVisible="{Binding IsBusy}"
-                                       HeightRequest="20"
-                                       WidthRequest="20"
-                                       Color="{StaticResource Primary}" />
-                    <Button Text="{Binding ViewModeButtonText}"
-                            Command="{Binding ToggleViewModeCommand}"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            HeightRequest="36"
-                            Padding="10,0"
-                            FontSize="13"
-                            StyleClass="ElevatedButton"
-                            ToolTipProperties.Text="{Binding ViewModeToolTip}" />
-                </VerticalStackLayout>
-            </Grid>
+                        <HorizontalStackLayout Spacing="8">
+                            <Label x:Name="CollectionStatus"
+                                   Text="{Binding StatusDisplayText}"
+                                   FontSize="12"
+                                   VerticalOptions="Center"
+                                   TextColor="{Binding StatusTextColor}" />
+                            <HorizontalStackLayout IsVisible="{Binding IsImportingPrices}"
+                                                   Spacing="4"
+                                                   VerticalOptions="Center">
+                                <ActivityIndicator IsRunning="{Binding IsImportingPrices}"
+                                                   HeightRequest="12"
+                                                   WidthRequest="12"
+                                                   Color="{StaticResource TextSecondary}" />
+                                <Label Text="Syncing Prices..."
+                                       FontSize="10"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="1"
+                                         Spacing="8"
+                                         HorizontalOptions="End"
+                                         VerticalOptions="Center">
+                        <ActivityIndicator x:Name="CollectionLoading"
+                                           IsRunning="{Binding IsBusy}"
+                                           IsVisible="{Binding IsBusy}"
+                                           HeightRequest="20"
+                                           WidthRequest="20"
+                                           Color="{StaticResource Primary}" />
+                        <Button Text="{Binding ViewModeButtonText}"
+                                Command="{Binding ToggleViewModeCommand}"
+                                BackgroundColor="{StaticResource CardBackground}"
+                                HeightRequest="36"
+                                Padding="10,0"
+                                FontSize="13"
+                                StyleClass="ElevatedButton"
+                                ToolTipProperties.Text="{Binding ViewModeToolTip}" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- Divider -->
+                <BoxView HeightRequest="1"
+                         Color="{StaticResource Surface}"
+                         Margin="0,0" />
+
+                <!-- Action button row -->
+                <Grid ColumnDefinitions="*,*,*,*">
+
+                    <!-- Import -->
+                    <VerticalStackLayout Grid.Column="0"
+                                         HorizontalOptions="Center"
+                                         Spacing="3"
+                                         Padding="4,2">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ImportCollectionCommand}" />
+                        </VerticalStackLayout.GestureRecognizers>
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.FileImport}"
+                               FontSize="20"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Primary}" />
+                        <Label Text="Import"
+                               FontSize="11"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+
+                    <!-- Export -->
+                    <VerticalStackLayout Grid.Column="1"
+                                         HorizontalOptions="Center"
+                                         Spacing="3"
+                                         Padding="4,2">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ExportCollectionCommand}" />
+                        </VerticalStackLayout.GestureRecognizers>
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.FileExport}"
+                               FontSize="20"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Primary}" />
+                        <Label Text="Export"
+                               FontSize="11"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+
+                    <!-- Refresh -->
+                    <VerticalStackLayout Grid.Column="2"
+                                         HorizontalOptions="Center"
+                                         Spacing="3"
+                                         Padding="4,2">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding RefreshCommand}" />
+                        </VerticalStackLayout.GestureRecognizers>
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.ArrowsRotate}"
+                               FontSize="20"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Primary}" />
+                        <Label Text="Refresh"
+                               FontSize="11"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+
+                    <!-- Clear -->
+                    <VerticalStackLayout Grid.Column="3"
+                                         HorizontalOptions="Center"
+                                         Spacing="3"
+                                         Padding="4,2">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnClearCollectionClicked" />
+                        </VerticalStackLayout.GestureRecognizers>
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.TrashCan}"
+                               FontSize="20"
+                               HorizontalOptions="Center"
+                               TextColor="#CF6679" />
+                        <Label Text="Clear"
+                               FontSize="11"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+
+                </Grid>
+
+            </VerticalStackLayout>
         </Border>
 
         <!-- Filter + Sort Row -->
