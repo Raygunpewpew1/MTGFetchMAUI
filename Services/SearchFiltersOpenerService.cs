@@ -1,10 +1,12 @@
 using AetherVault.Pages;
 using AetherVault.ViewModels;
+using CommunityToolkit.Maui.Views;
 
 namespace AetherVault.Services;
 
 /// <summary>
-/// Opens the Search Filters modal by resolving the page from DI, initializing it with the target and CardManager, then pushing it modally.
+/// Opens the Search Filters sheet by resolving SearchFiltersSheet from DI, initialising it
+/// with the caller's target and CardManager, then showing it as a bottom sheet.
 /// </summary>
 public sealed class SearchFiltersOpenerService : ISearchFiltersOpener
 {
@@ -17,10 +19,15 @@ public sealed class SearchFiltersOpenerService : ISearchFiltersOpener
 
     public async Task OpenAsync(ISearchFilterTarget target, CardManager cardManager)
     {
-        var page = _serviceProvider.GetRequiredService<SearchFiltersPage>();
-        page.Init(target, cardManager);
-        var shell = Shell.Current;
-        if (shell?.Navigation != null)
-            await shell.Navigation.PushModalAsync(page);
+        var sheet = _serviceProvider.GetRequiredService<SearchFiltersSheet>();
+        sheet.Init(target, cardManager);
+
+        // Prefer topmost modal page so the sheet appears above CardSearchPickerPage when active
+        var page = Shell.Current?.Navigation?.ModalStack.LastOrDefault()
+                   ?? Shell.Current?.CurrentPage
+                   ?? Application.Current?.MainPage;
+
+        if (page != null)
+            await page.ShowBottomSheetAsync(sheet, animated: true);
     }
 }
