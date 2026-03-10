@@ -12,6 +12,10 @@ namespace AetherVault.ViewModels;
 public partial class StatsViewModel : BaseViewModel
 {
     private readonly CardManager _cardManager;
+    private bool _storageStatsCached;
+
+    /// <summary>True when stats need to be reloaded (e.g. collection was mutated since last load).</summary>
+    public bool IsStatsStale { get; private set; } = true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatsDisplay))]
@@ -31,11 +35,20 @@ public partial class StatsViewModel : BaseViewModel
     public StatsViewModel(CardManager cardManager)
     {
         _cardManager = cardManager;
+        _cardManager.CollectionChanged += InvalidateStats;
+    }
+
+    /// <summary>Marks stats as stale so the next OnAppearing triggers a reload.</summary>
+    public void InvalidateStats()
+    {
+        IsStatsStale = true;
+        _storageStatsCached = false;
     }
 
     [RelayCommand]
     private async Task RefreshAsync()
     {
+        InvalidateStats();
         await LoadStatsAsync();
     }
 
@@ -50,6 +63,7 @@ public partial class StatsViewModel : BaseViewModel
             CacheStats = await _cardManager.GetImageCacheStatsAsync();
             Storage.ImageCacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize();
             OnPropertyChanged(nameof(Storage)); // notify UI about the total size update
+            _storageStatsCached = false; // storage sizes changed after cache clear
             StatusMessage = UserMessages.CacheCleared;
         }
         catch (Exception ex)
@@ -69,8 +83,19 @@ public partial class StatsViewModel : BaseViewModel
         CacheStats = "…";
         Storage = new StorageStats();
         IsBusy = false;
+        IsStatsStale = false;
 
+        // Launch all three independent tasks in parallel — none depends on the others
         _ = LoadStatsInBackgroundAsync();
+        _ = LoadTotalValueInBackgroundAsync();
+        _ = LoadStorageAndCacheInBackgroundAsync();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Refreshes only the total collection value (e.g. after changing the price vendor).</summary>
+    public Task RefreshTotalValueAsync()
+    {
+        _ = LoadTotalValueInBackgroundAsync();
         return Task.CompletedTask;
     }
 
@@ -92,9 +117,6 @@ public partial class StatsViewModel : BaseViewModel
                 DatabaseStatus = "Connected";
                 OnPropertyChanged(nameof(Stats));
             });
-
-            _ = LoadTotalValueInBackgroundAsync();
-            _ = LoadStorageAndCacheInBackgroundAsync();
         }
         catch (Exception ex)
         {
@@ -127,6 +149,8 @@ public partial class StatsViewModel : BaseViewModel
 
     private async Task LoadStorageAndCacheInBackgroundAsync()
     {
+        if (_storageStatsCached) return;
+
         try
         {
             var cacheStats = await _cardManager.GetImageCacheStatsAsync();
@@ -134,6 +158,8 @@ public partial class StatsViewModel : BaseViewModel
             var collSize = GetFileSize(AppDataManager.GetCollectionDatabasePath());
             var pricesSize = GetFileSize(AppDataManager.GetPricesDatabasePath());
             var cacheSize = _cardManager.ImageService.Cache.GetTotalCacheSize();
+
+            _storageStatsCached = true;
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
