@@ -141,7 +141,7 @@ public partial class SearchFiltersViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    private async Task ApplyAsync()
+    private async Task Apply()
     {
         if (_target == null) return;
         var options = BuildSearchOptions();

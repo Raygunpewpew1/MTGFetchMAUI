@@ -40,7 +40,7 @@ public partial class MTGJsonDecksViewModel : BaseViewModel
     }
 
     [RelayCommand]
-    public async Task RefreshAsync()
+    public async Task Refresh()
     {
         await LoadDeckListAsync(true);
     }
