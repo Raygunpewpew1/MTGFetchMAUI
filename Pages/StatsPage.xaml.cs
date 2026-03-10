@@ -7,7 +7,6 @@ public partial class StatsPage : ContentPage
 {
     private readonly StatsViewModel _viewModel;
     private readonly CardManager _cardManager;
-    private bool _loaded;
     private bool _initializingPricePicker;
 
     public StatsPage(StatsViewModel viewModel, CardManager cardManager)
@@ -101,8 +100,7 @@ public partial class StatsPage : ContentPage
         if (_initializingPricePicker || PriceVendorPicker.SelectedIndex < 0 || PriceVendorPicker.SelectedIndex >= PriceVendorValues.Length)
             return;
         PriceDisplayHelper.SetPreferredVendor(PriceVendorValues[PriceVendorPicker.SelectedIndex]);
-        await _viewModel.LoadStatsAsync();
-        UpdateStatsUI();
+        await _viewModel.RefreshTotalValueAsync();
     }
 
     protected override async void OnAppearing()
@@ -128,9 +126,8 @@ public partial class StatsPage : ContentPage
             DbStatusLabel.TextColor = Color.FromArgb("#FFC107");
         }
 
-        if (!_loaded || _cardManager.DatabaseManager.IsConnected)
+        if (_viewModel.IsStatsStale)
         {
-            _loaded = true;
             await _viewModel.LoadStatsAsync();
             UpdateStatsUI();
         }

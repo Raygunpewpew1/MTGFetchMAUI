@@ -46,6 +46,9 @@ public class CardManager : IDisposable
     /// <summary>Fired when a new MTG database version is available remotely.</summary>
     public event Action<string>? OnDatabaseUpdateAvailable;
 
+    /// <summary>Fired after any collection mutation (add, remove, update, clear, bulk add). Use to invalidate stats caches.</summary>
+    public event Action? CollectionChanged;
+
     /// <summary>One-shot callback when prices first become available.</summary>
     public Action? OnPricesReady { get; set; }
 
@@ -407,7 +410,11 @@ public class CardManager : IDisposable
         return total;
     }
 
-    private void InvalidateTotalValueCache() => _totalValueCacheExpiry = DateTime.MinValue;
+    private void InvalidateTotalValueCache()
+    {
+        _totalValueCacheExpiry = DateTime.MinValue;
+        CollectionChanged?.Invoke();
+    }
 
     public async Task ReorderCollectionAsync(IList<string> orderedUuids)
     {

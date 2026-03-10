@@ -356,19 +356,15 @@ public static class SQLQueries
             COALESCE(SUM(CASE WHEN type LIKE '%Creature%' THEN quantity ELSE 0 END), 0) AS CreatureCount,
             COALESCE(SUM(CASE WHEN type LIKE '%Land%' THEN quantity ELSE 0 END), 0) AS LandCount,
             COALESCE(SUM(CASE WHEN type NOT LIKE '%Creature%' AND type NOT LIKE '%Land%' THEN quantity ELSE 0 END), 0) AS SpellCount,
-            /* Rarity buckets mirror EnumExtensions.ParseCardRarity */
+            /* Rarity buckets mirror EnumExtensions.ParseCardRarity; MTGJSON stores lowercase values */
             COALESCE(SUM(CASE
                 WHEN rarity IS NULL THEN quantity
-                WHEN LOWER(substr(rarity, 1, 1)) = 'c' THEN quantity
+                WHEN rarity = 'common' THEN quantity
                 ELSE 0
             END), 0) AS CommonCount,
-            COALESCE(SUM(CASE WHEN LOWER(substr(rarity, 1, 1)) = 'u' THEN quantity ELSE 0 END), 0) AS UncommonCount,
-            COALESCE(SUM(CASE WHEN LOWER(substr(rarity, 1, 1)) = 'r' THEN quantity ELSE 0 END), 0) AS RareCount,
-            COALESCE(SUM(CASE
-                WHEN LOWER(rarity) = 'mythic rare' THEN quantity
-                WHEN LOWER(substr(rarity, 1, 1)) = 'm' THEN quantity
-                ELSE 0
-            END), 0) AS MythicCount,
+            COALESCE(SUM(CASE WHEN rarity = 'uncommon' THEN quantity ELSE 0 END), 0) AS UncommonCount,
+            COALESCE(SUM(CASE WHEN rarity = 'rare' THEN quantity ELSE 0 END), 0) AS RareCount,
+            COALESCE(SUM(CASE WHEN rarity = 'mythic' THEN quantity ELSE 0 END), 0) AS MythicCount,
             COALESCE(SUM(CASE
                 WHEN (is_foil IS NOT NULL AND is_foil != 0)
                   OR (is_etched IS NOT NULL AND is_etched != 0)
