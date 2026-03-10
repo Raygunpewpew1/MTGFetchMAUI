@@ -9,6 +9,7 @@
             <!-- Converters -->
             <toolkit:InvertedBoolConverter x:Key="InvertedBool" />
             <converters:LegalityToColorConverter x:Key="LegalityToColor" />
+            <converters:BoolToChevronConverter x:Key="BoolToChevronConverter" />
 
             <!-- Colors -->
             <Color x:Key="Primary">#6200EE</Color>

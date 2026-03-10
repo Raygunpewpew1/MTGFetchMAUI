@@ -45,6 +45,22 @@ public partial class SearchFiltersViewModel : BaseViewModel
     public IList<string> TypeOptions { get; }
     public ObservableCollection<SetInfo> SetList { get; }
 
+    /// <summary>Accordion section expansion state.</summary>
+    [ObservableProperty]
+    private bool _isTextSectionExpanded = true;
+
+    [ObservableProperty]
+    private bool _isColorSectionExpanded = true;
+
+    [ObservableProperty]
+    private bool _isStatsSectionExpanded = true;
+
+    [ObservableProperty]
+    private bool _isFormatSectionExpanded;
+
+    [ObservableProperty]
+    private bool _isSpecialSectionExpanded;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CmcMinLabel))]
     [NotifyPropertyChangedFor(nameof(CmcMaxLabel))]
@@ -142,6 +158,36 @@ public partial class SearchFiltersViewModel : BaseViewModel
         var item = ColorFilters.FirstOrDefault(c => c.Code == code);
         if (item != null)
             item.IsSelected = !item.IsSelected;
+    }
+
+    [RelayCommand]
+    private void ToggleTextSection()
+    {
+        IsTextSectionExpanded = !IsTextSectionExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleColorSection()
+    {
+        IsColorSectionExpanded = !IsColorSectionExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleStatsSection()
+    {
+        IsStatsSectionExpanded = !IsStatsSectionExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleFormatSection()
+    {
+        IsFormatSectionExpanded = !IsFormatSectionExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleSpecialSection()
+    {
+        IsSpecialSectionExpanded = !IsSpecialSectionExpanded;
     }
 
     [RelayCommand]
