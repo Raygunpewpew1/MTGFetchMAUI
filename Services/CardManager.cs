@@ -20,6 +20,7 @@ public class CardManager : IDisposable
     private CardPriceManager? _priceManager;
     private CancellationTokenSource? _downloadCts;
     private readonly SemaphoreSlim _priceInitLock = new(1, 1);
+    private readonly SemaphoreSlim _startupLock = new(1, 1);
 
     private double _cachedTotalValue;
     private DateTime _totalValueCacheExpiry = DateTime.MinValue;
@@ -94,13 +95,37 @@ public class CardManager : IDisposable
     }
 
     /// <summary>
-    /// Disconnects from databases.
+    /// Disconnects from databases. Only call from a background thread (e.g. inside Task.Run).
     /// </summary>
     public void Disconnect()
     {
         if (_databaseManager.IsConnected)
             _databaseManager.Disconnect();
     }
+
+    /// <summary>
+    /// Asynchronously disconnects from databases. Use from async code paths on the UI thread
+    /// to avoid deadlocking the synchronization context.
+    /// </summary>
+    public async Task DisconnectAsync()
+    {
+        if (_databaseManager.IsConnected)
+            await _databaseManager.DisconnectAsync();
+    }
+
+    /// <summary>
+    /// Attempts to claim the exclusive startup lock. Returns true if this caller is the
+    /// active startup owner. Returns false immediately if another instance of
+    /// LoadingViewModel is already running the startup sequence.
+    /// Must be paired with <see cref="EndStartup"/> in a finally block.
+    /// </summary>
+    public bool TryBeginStartup() => _startupLock.Wait(0);
+
+    /// <summary>
+    /// Releases the startup lock. Always call in a finally block paired with
+    /// a successful <see cref="TryBeginStartup"/> call.
+    /// </summary>
+    public void EndStartup() => _startupLock.Release();
 
     /// <summary>
     /// Checks if a new main database version is available.
@@ -452,6 +477,7 @@ public class CardManager : IDisposable
         _priceManager?.Dispose();
         _databaseManager.Dispose();
         _priceInitLock.Dispose();
+        _startupLock.Dispose();
         GC.SuppressFinalize(this);
     }
 }

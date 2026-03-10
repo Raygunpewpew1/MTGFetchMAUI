@@ -70,82 +70,102 @@ public partial class LoadingViewModel : BaseViewModel
 
     public async Task InitAsync()
     {
-        // Guard against re-entry on Android 14+ (Samsung S24 / One UI 7) where an
-        // unhandled configuration change can recreate the activity after minimize/restore,
-        // causing a fresh LoadingPage to appear while the app is already running.
-        // Re-running init would call Disconnect() on the live singleton database,
-        // tearing down the already-initialized app state.
-        if (_cardManager.DatabaseManager.IsConnected)
+        // Cross-instance guard: only one LoadingViewModel may run the startup sequence at a time.
+        // This protects against Android 14+ config-change re-entrancy where a new Activity
+        // (and thus a new Transient LoadingViewModel) is created while a first-time download is
+        // still in progress on the previous instance. Without this guard both instances would
+        // race: the second waits on _downloadLock, then after the first finishes connecting it
+        // downloads again and calls File.Delete on the file that the first just opened — crash.
+        if (!_cardManager.TryBeginStartup())
         {
-            MainThread.BeginInvokeOnMainThread(() => SwitchToShellWithToastOverlay());
+            Logger.LogStuff("LoadingViewModel.InitAsync: startup already in progress; skipping.", LogLevel.Warning);
             return;
         }
 
-        StatusMessage = UserMessages.CheckingDatabase;
-        ShowRetry = false;
-        StatusIsError = false;
-        Progress = 0;
-
-        // Ensure disconnected before checking/downloading to avoid locks
-        // unlikely to be connected at startup, but safe practice
-        if (_cardManager.DatabaseManager.IsConnected)
-            _cardManager.Disconnect();
-
-        bool dbExists = AppDataManager.MTGDatabaseExists();
-
-        // Kick off the network update check and local DB validation concurrently — they
-        // are independent (network I/O vs. local disk I/O) so there is no reason to sequence them.
-        var updateCheckTask = CheckForUpdateSafeAsync();
-        var validationTask = dbExists
-            ? AppDataManager.ValidateMTGDatabaseAsync()
-            : Task.FromResult(false);
-
-        // Await the update check first — its result determines whether we even need validation.
-        var (updateAvailable, _, remoteVersion) = await updateCheckTask;
-
-        if (updateAvailable)
+        try
         {
-            bool shouldUpdate = await _dialogService.DisplayAlertAsync(UserMessages.UpdateAvailableTitle,
-                UserMessages.UpdateAvailableMessage(remoteVersion),
-                "Yes",
-                "No");
-            if (shouldUpdate)
+            // If the DB is already connected (e.g. back-stack recreation after a successful
+            // init), navigate straight to the shell — no re-initialization needed.
+            if (_cardManager.DatabaseManager.IsConnected)
             {
-                await StartDownloadAsync();
+                MainThread.BeginInvokeOnMainThread(() => SwitchToShellWithToastOverlay());
                 return;
             }
-        }
 
-        if (dbExists)
-        {
-            // Validation was running in parallel — await the already-in-flight task.
-            var isValid = await validationTask;
-            if (isValid)
+            StatusMessage = UserMessages.CheckingDatabase;
+            ShowRetry = false;
+            StatusIsError = false;
+            Progress = 0;
+
+            // Ensure disconnected before checking/downloading to avoid locks.
+            // Unlikely to be connected at this point, but safe practice.
+            if (_cardManager.DatabaseManager.IsConnected)
+                await _cardManager.DisconnectAsync();
+
+            bool dbExists = AppDataManager.MTGDatabaseExists();
+
+            // Kick off the network update check and local DB validation concurrently — they
+            // are independent (network I/O vs. local disk I/O) so there is no reason to sequence them.
+            var updateCheckTask = CheckForUpdateSafeAsync();
+            var validationTask = dbExists
+                ? AppDataManager.ValidateMTGDatabaseAsync()
+                : Task.FromResult(false);
+
+            // Await the update check first — its result determines whether we even need validation.
+            var (updateAvailable, _, remoteVersion) = await updateCheckTask;
+
+            if (updateAvailable)
             {
-                await FinalizeStartupAsync();
-            }
-            else
-            {
-                bool redownload = await _dialogService.DisplayAlertAsync(
-                    UserMessages.DatabaseErrorTitle,
-                    UserMessages.DatabaseErrorMessage,
-                    "Download",
-                    "Cancel");
-                if (redownload)
+                bool shouldUpdate = await _dialogService.DisplayAlertAsync(UserMessages.UpdateAvailableTitle,
+                    UserMessages.UpdateAvailableMessage(remoteVersion),
+                    "Yes",
+                    "No");
+                if (shouldUpdate)
                 {
                     await StartDownloadAsync();
                     return;
                 }
+            }
 
-                ShowRetry = true;
-                IsBusy = false;
-                StatusIsError = true;
-                StatusMessage = UserMessages.DatabaseCorrupted;
+            if (dbExists)
+            {
+                // Validation was running in parallel — await the already-in-flight task.
+                var isValid = await validationTask;
+                if (isValid)
+                {
+                    await FinalizeStartupAsync();
+                }
+                else
+                {
+                    bool redownload = await _dialogService.DisplayAlertAsync(
+                        UserMessages.DatabaseErrorTitle,
+                        UserMessages.DatabaseErrorMessage,
+                        "Download",
+                        "Cancel");
+                    if (redownload)
+                    {
+                        await StartDownloadAsync();
+                        return;
+                    }
+
+                    ShowRetry = true;
+                    IsBusy = false;
+                    StatusIsError = true;
+                    StatusMessage = UserMessages.DatabaseCorrupted;
+                }
+            }
+            else
+            {
+                await StartDownloadAsync();
             }
         }
-        else
+        finally
         {
-            await StartDownloadAsync();
+            // Always release — every return path inside the try still executes this finally.
+            // On the success path, SwitchToShellWithToastOverlay() has been enqueued on the
+            // main thread dispatch queue; any subsequent VM instance will see IsConnected==true
+            // and navigate to the already-shown shell.
+            _cardManager.EndStartup();
         }
     }
 
@@ -179,7 +199,17 @@ public partial class LoadingViewModel : BaseViewModel
         };
 
         // Use AppDataManager directly for the download task
-        bool success = await AppDataManager.DownloadDatabaseAsync();
+        bool success;
+        try
+        {
+            success = await AppDataManager.DownloadDatabaseAsync();
+        }
+        finally
+        {
+            // Always clear the static callback so this ViewModel instance is not kept
+            // alive by the static field after the download completes (or fails/is abandoned).
+            AppDataManager.OnProgress = null;
+        }
 
         if (success)
         {
@@ -285,11 +315,24 @@ public partial class LoadingViewModel : BaseViewModel
             return;
         }
 
-        // Start prices in background
-        _ = _cardManager.InitializePricesAsync();
+        // Start prices in background (non-critical; app continues to function without price data)
+        _ = InitializePricesSafeAsync();
 
         // Switch to main app and create toast overlay (deferred from CreateWindow to avoid Android startup crash).
         MainThread.BeginInvokeOnMainThread(SwitchToShellWithToastOverlay);
+    }
+
+    private async Task InitializePricesSafeAsync()
+    {
+        try
+        {
+            await _cardManager.InitializePricesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Price subsystem init failed: {ex.Message}", LogLevel.Error);
+            // Non-fatal: the app continues to function without price data.
+        }
     }
 
     private void SwitchToShellWithToastOverlay()

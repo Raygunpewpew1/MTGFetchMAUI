@@ -14,7 +14,7 @@ public sealed class DatabaseManager : IDisposable
     private SqliteConnection? _mtgConnection;
     private SqliteConnection? _collectionConnection;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
-    private bool _isConnected;
+    private volatile bool _isConnected;
     private bool _disposed;
 
     private const int MaxConnectionRetries = 3;
@@ -116,7 +116,7 @@ public sealed class DatabaseManager : IDisposable
     /// <summary>Disconnect and reconnect.</summary>
     public async Task<bool> ReconnectAsync(string mtgDbPath, string collectionDbPath)
     {
-        Disconnect();
+        await DisconnectAsync();
         return await ConnectAsync(mtgDbPath, collectionDbPath);
     }
 
@@ -124,6 +124,23 @@ public sealed class DatabaseManager : IDisposable
     public void Disconnect()
     {
         _connectionLock.Wait();
+        try
+        {
+            DisconnectInternal();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously closes all connections. Use from async code paths on the UI thread
+    /// to avoid a sync-over-async deadlock that <see cref="Disconnect"/> can cause.
+    /// </summary>
+    public async Task DisconnectAsync()
+    {
+        await _connectionLock.WaitAsync();
         try
         {
             DisconnectInternal();
