@@ -569,6 +569,12 @@ public class MockDeckRepository : IDeckRepository
     {
         return Task.FromResult(_deckCards.Where(c => c.DeckId == deckId).Sum(c => c.Quantity));
     }
+
+    public Task<Dictionary<int, int>> GetDeckCardCountsAsync(IEnumerable<int> deckIds)
+    {
+        var result = deckIds.ToDictionary(id => id, id => _deckCards.Where(c => c.DeckId == id).Sum(c => c.Quantity));
+        return Task.FromResult(result);
+    }
 }
 
 public class MockCardRepository : ICardRepository
@@ -650,4 +656,16 @@ public class MockCardRepository : ICardRepository
     public MTGSearchHelper CreateSearchHelper() => new();
     public Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync() => Task.FromResult<IReadOnlyList<ImportLookupRow>>([]);
     public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
+    public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
+    {
+        var card = _cards.Values.FirstOrDefault(c => string.Equals(c.ScryfallId, scryfallId, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(card);
+    }
+    public Task<Card?> GetCardByNameAndSetAsync(string name, string setCode)
+    {
+        var card = _cards.Values.FirstOrDefault(c =>
+            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(c.SetCode, setCode, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(card);
+    }
 }

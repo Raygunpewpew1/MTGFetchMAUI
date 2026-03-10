@@ -169,6 +169,12 @@ public class DeckImportExportTests
         public Task<int> GetDeckCardCountAsync(int deckId) =>
             Task.FromResult(_cards.Where(c => c.DeckId == deckId).Sum(c => c.Quantity));
 
+        public Task<Dictionary<int, int>> GetDeckCardCountsAsync(IEnumerable<int> deckIds)
+        {
+            var result = deckIds.ToDictionary(id => id, id => _cards.Where(c => c.DeckId == id).Sum(c => c.Quantity));
+            return Task.FromResult(result);
+        }
+
         private static DeckEntity Clone(DeckEntity d) => new()
         {
             Id = d.Id,
@@ -246,6 +252,18 @@ public class DeckImportExportTests
         public Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
         public MTGSearchHelper CreateSearchHelper() => throw new NotImplementedException();
         public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
+        public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
+        {
+            var card = _cards.Values.FirstOrDefault(c => string.Equals(c.ScryfallId, scryfallId, StringComparison.OrdinalIgnoreCase));
+            return Task.FromResult(card);
+        }
+        public Task<Card?> GetCardByNameAndSetAsync(string name, string setCode)
+        {
+            var card = _cards.Values.FirstOrDefault(c =>
+                string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(c.SetCode, setCode, StringComparison.OrdinalIgnoreCase));
+            return Task.FromResult(card);
+        }
 
         private Card Get(string uuid)
         {
