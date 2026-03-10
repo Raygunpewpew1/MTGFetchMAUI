@@ -94,22 +94,22 @@
                         <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto" ColumnSpacing="4">
                             <VerticalStackLayout HorizontalOptions="Center">
                                 <Label x:Name="CommonLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
-                                       TextColor="#C0C0C0" />
+                                       TextColor="{StaticResource RarityCommon}" />
                                 <Label Text="C" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center">
                                 <Label x:Name="UncommonLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
-                                       TextColor="#B0C4DE" />
+                                       TextColor="{StaticResource RarityUncommon}" />
                                 <Label Text="U" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Grid.Column="2" HorizontalOptions="Center">
                                 <Label x:Name="RareLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
-                                       TextColor="#FFD700" />
+                                       TextColor="{StaticResource RarityRare}" />
                                 <Label Text="R" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Grid.Column="3" HorizontalOptions="Center">
                                 <Label x:Name="MythicLabel" Text="0" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center"
-                                       TextColor="#FF8C00" />
+                                       TextColor="{StaticResource RarityMythic}" />
                                 <Label Text="M" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
                         </Grid>

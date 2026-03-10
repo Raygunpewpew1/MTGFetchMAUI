@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
+             xmlns:vm="clr-namespace:AetherVault.ViewModels"
+             xmlns:pages="clr-namespace:AetherVault.Pages"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             x:Class="AetherVault.Views.DeckSideboardTabView"
+             x:DataType="vm:DeckDetailViewModel">
+    <CollectionView ItemsSource="{Binding SideboardCards}"
+                    SelectionMode="None">
+        <CollectionView.Header>
+            <Label Text="{Binding SideboardHeaderText}"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextSecondary}"
+                   BackgroundColor="{StaticResource Background}"
+                   Padding="12,8,12,4" />
+        </CollectionView.Header>
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="vm:DeckCardDisplayItem">
+                <SwipeView>
+                    <SwipeView.RightItems>
+                        <SwipeItems>
+                            <SwipeItem Text="Remove"
+                                       BackgroundColor="#B00020"
+                                       Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.RemoveCardCommand}"
+                                       CommandParameter="{Binding .}" />
+                        </SwipeItems>
+                    </SwipeView.RightItems>
+                    <Border Margin="12,4"
+                            Padding="10,8"
+                            MinimumHeightRequest="44"
+                            BackgroundColor="{Binding StripBackgroundColor}"
+                            StrokeShape="RoundRectangle 6"
+                            Stroke="Transparent">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowCardQuickDetailCommand}"
+                                                 CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                              ColumnSpacing="8"
+                              VerticalOptions="Center">
+                            <Label Grid.Column="0"
+                                   Text="{Binding DisplayName}"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   FontSize="14"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+                            <controls:ManaCostView Grid.Column="1"
+                                                   ManaText="{Binding ManaCostText}"
+                                                   SymbolSize="12"
+                                                   VerticalOptions="Center" />
+                            <Border Grid.Column="2"
+                                    BackgroundColor="{StaticResource Surface}"
+                                    Padding="6,2"
+                                    StrokeShape="RoundRectangle 6"
+                                    Stroke="Transparent"
+                                    VerticalOptions="Center"
+                                    MinimumWidthRequest="24">
+                                <Label Text="{Binding Entity.Quantity}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="Center" />
+                            </Border>
+                            <Button Grid.Column="3"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
+                                    CommandParameter="{Binding .}"
+                                    BackgroundColor="{StaticResource Surface}"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    WidthRequest="32"
+                                    HeightRequest="32"
+                                    Padding="0"
+                                    CornerRadius="6">
+                                <Button.ImageSource>
+                                    <FontImageSource FontFamily="FASolid"
+                                                     Glyph="{x:Static fa:Solid.Minus}"
+                                                     Size="12"
+                                                     Color="{StaticResource TextPrimary}" />
+                                </Button.ImageSource>
+                            </Button>
+                            <Button Grid.Column="4"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
+                                    CommandParameter="{Binding .}"
+                                    BackgroundColor="{StaticResource Accent}"
+                                    TextColor="Black"
+                                    WidthRequest="32"
+                                    HeightRequest="32"
+                                    Padding="0"
+                                    CornerRadius="6">
+                                <Button.ImageSource>
+                                    <FontImageSource FontFamily="FASolid"
+                                                     Glyph="{x:Static fa:Solid.Plus}"
+                                                     Size="12"
+                                                     Color="Black" />
+                                </Button.ImageSource>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </SwipeView>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
+</ContentView>

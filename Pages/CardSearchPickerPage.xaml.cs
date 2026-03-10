@@ -20,6 +20,7 @@ public partial class CardSearchPickerPage : ContentPage
         BindingContext = _viewModel;
 
         _viewModel.CardSelected += OnCardSelected;
+        SearchBar.FiltersTapped += OnFiltersTapped;
 
         // Add a close button to toolbar
         ToolbarItems.Add(new ToolbarItem("Cancel", null, () =>
@@ -33,7 +34,7 @@ public partial class CardSearchPickerPage : ContentPage
         }));
     }
 
-    private async void OnFiltersClicked(object? sender, EventArgs e)
+    private async void OnFiltersTapped(object? sender, EventArgs e)
     {
         await _filtersOpener.OpenAsync(_viewModel, _cardManager);
     }
@@ -41,8 +42,7 @@ public partial class CardSearchPickerPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        // Focus the search entry so the keyboard pops immediately.
-        MainThread.BeginInvokeOnMainThread(() => SearchEntry.Focus());
+        MainThread.BeginInvokeOnMainThread(() => SearchBar.FocusSearch());
     }
 
     public Task<Card?> WaitForResultAsync()
@@ -54,6 +54,7 @@ public partial class CardSearchPickerPage : ContentPage
     {
         base.OnDisappearing();
         _viewModel.CardSelected -= OnCardSelected;
+        SearchBar.FiltersTapped -= OnFiltersTapped;
     }
 
     private async void OnCardSelected(Card card)

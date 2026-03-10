@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:AetherVault.Models"
+             x:Class="AetherVault.Controls.DeckListItem"
+             x:DataType="models:DeckEntity">
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="0">
+        <Label Grid.Row="0"
+               Text="{Binding Name}"
+               FontSize="16"
+               FontAttributes="Bold"
+               TextColor="{StaticResource TextPrimary}"
+               LineBreakMode="TailTruncation" />
+        <HorizontalStackLayout Grid.Row="1"
+                               Spacing="8"
+                               Margin="0,6,0,0">
+            <Border BackgroundColor="{StaticResource Surface}"
+                    Padding="10,4"
+                    StrokeShape="RoundRectangle 8"
+                    Stroke="Transparent">
+                <Label Text="{Binding CardCount, StringFormat='{0} cards'}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextSecondary}" />
+            </Border>
+            <Border BackgroundColor="{StaticResource Surface}"
+                    Padding="10,4"
+                    StrokeShape="RoundRectangle 8"
+                    Stroke="Transparent">
+                <Label Text="{Binding FormatDisplay}"
+                       FontSize="12"
+                       TextColor="{StaticResource TextSecondary}" />
+            </Border>
+        </HorizontalStackLayout>
+        <VerticalStackLayout Grid.Row="2"
+                             Spacing="2"
+                             Margin="0,4,0,0">
+            <Label Text="{Binding CommanderDisplay}"
+                   IsVisible="{Binding HasCommander}"
+                   FontSize="12"
+                   TextColor="{StaticResource Accent}" />
+            <Label Text="{Binding DateModified, StringFormat='Modified {0:MMM d, yyyy}'}"
+                   FontSize="11"
+                   TextColor="{StaticResource TextSecondary}" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentView>

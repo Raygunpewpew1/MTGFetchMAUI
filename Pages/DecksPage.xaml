@@ -1,20 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
              xmlns:models="clr-namespace:AetherVault.Models"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
              x:Class="AetherVault.Pages.DecksPage"
              Title="Decks"
              BackgroundColor="{StaticResource Background}"
              x:DataType="vm:DecksViewModel">
-
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
-        </ResourceDictionary>
-    </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,Auto,*">
 
@@ -103,7 +97,7 @@
 
             <!-- Deck List -->
             <CollectionView ItemsSource="{Binding Decks}"
-                            IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
+                            IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBool}}"
                             SelectionMode="Single"
                             SelectionChanged="OnDeckSelectionChanged"
                             Margin="0,0,0,8">
@@ -114,14 +108,11 @@
                                 Padding="16,14"
                                 MinimumHeightRequest="72">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                                <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding Name}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       LineBreakMode="TailTruncation" />
-
-                                <HorizontalStackLayout Grid.Row="0" Grid.Column="1"
+                                <controls:DeckListItem Grid.Row="0"
+                                                      Grid.RowSpan="3"
+                                                      Grid.Column="0" />
+                                <HorizontalStackLayout Grid.Row="0"
+                                                       Grid.Column="1"
                                                        Spacing="8"
                                                        VerticalOptions="Center">
                                     <Button Clicked="OnRenameDeckButtonClicked"
@@ -151,37 +142,6 @@
                                         </Button.ImageSource>
                                     </Button>
                                 </HorizontalStackLayout>
-
-                                <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
-                                                       Spacing="8" Margin="0,6,0,0">
-                                    <Border BackgroundColor="{StaticResource Surface}"
-                                            Padding="10,4"
-                                            StrokeShape="RoundRectangle 8"
-                                            Stroke="Transparent">
-                                        <Label Text="{Binding CardCount, StringFormat='{0} cards'}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource TextSecondary}" />
-                                    </Border>
-                                    <Border BackgroundColor="{StaticResource Surface}"
-                                            Padding="10,4"
-                                            StrokeShape="RoundRectangle 8"
-                                            Stroke="Transparent">
-                                        <Label Text="{Binding FormatDisplay}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource TextSecondary}" />
-                                    </Border>
-                                </HorizontalStackLayout>
-
-                                <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2"
-                                                     Spacing="2" Margin="0,4,0,0">
-                                    <Label Text="{Binding CommanderDisplay}"
-                                           IsVisible="{Binding HasCommander}"
-                                           FontSize="12"
-                                           TextColor="{StaticResource Accent}" />
-                                    <Label Text="{Binding DateModified, StringFormat='Modified {0:MMM d, yyyy}'}"
-                                           FontSize="11"
-                                           TextColor="{StaticResource TextSecondary}" />
-                                </VerticalStackLayout>
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -189,29 +149,13 @@
             </CollectionView>
 
             <!-- Empty state -->
-            <VerticalStackLayout IsVisible="{Binding IsEmpty}"
-                                 VerticalOptions="Center"
-                                 HorizontalOptions="Center"
-                                 Spacing="20"
-                                 Margin="32">
-                <Label FontFamily="FASolid"
-                       Text="{x:Static fa:Solid.LayerGroup}"
-                       FontSize="56"
-                       TextColor="{StaticResource TextSecondary}"
-                       HorizontalOptions="Center"
-                       Opacity="0.7" />
-                <Label Text="No decks yet"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
-                       HorizontalOptions="Center" />
-                <Label Text="Tap &quot;New deck&quot; above to create your first deck, then add cards from Search or your Collection."
-                       FontSize="14"
-                       TextColor="{StaticResource TextSecondary}"
-                       HorizontalOptions="Center"
-                       HorizontalTextAlignment="Center"
-                       MaxLines="3" />
-            </VerticalStackLayout>
+            <controls:EmptyStateView IsVisible="{Binding IsEmpty}"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center"
+                                     Margin="32"
+                                     IconGlyph="{x:Static fa:Solid.LayerGroup}"
+                                     Message="No decks yet"
+                                     SecondaryMessage="Tap &quot;New deck&quot; above to create your first deck, then add cards from Search or your Collection." />
         </Grid>
 
     </Grid>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             x:Class="AetherVault.Controls.QuantitySelectorView"
+             x:Name="QuantitySelectorRoot">
+    <VerticalStackLayout Spacing="6" BindingContext="{x:Reference QuantitySelectorRoot}">
+        <Label x:Name="HeaderLabel"
+               Text="{Binding HeaderText}"
+               FontSize="13"
+               TextColor="{StaticResource TextSecondary}"
+               HorizontalTextAlignment="Center" />
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" HorizontalOptions="Center" WidthRequest="260">
+            <Button x:Name="MinusBtn"
+                    Clicked="OnMinusClicked"
+                    FontSize="24"
+                    WidthRequest="56"
+                    HeightRequest="56"
+                    CornerRadius="28"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    TextColor="{StaticResource TextPrimary}">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="FASolid"
+                                     Glyph="{x:Static fa:Solid.Minus}"
+                                     Size="18"
+                                     Color="{StaticResource TextPrimary}" />
+                </Button.ImageSource>
+            </Button>
+            <Label x:Name="QuantityLabel"
+                   Grid.Column="1"
+                   Text="{Binding Quantity}"
+                   FontSize="36"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnQuantityLabelTapped" />
+                </Label.GestureRecognizers>
+            </Label>
+            <Button x:Name="PlusBtn"
+                    Grid.Column="2"
+                    Clicked="OnPlusClicked"
+                    FontSize="24"
+                    WidthRequest="56"
+                    HeightRequest="56"
+                    CornerRadius="28"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    TextColor="{StaticResource TextPrimary}">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="FASolid"
+                                     Glyph="{x:Static fa:Solid.Plus}"
+                                     Size="18"
+                                     Color="{StaticResource TextPrimary}" />
+                </Button.ImageSource>
+            </Button>
+        </Grid>
+    </VerticalStackLayout>
+</ContentView>

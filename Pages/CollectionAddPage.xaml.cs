@@ -33,19 +33,29 @@ public partial class CollectionAddPage : ContentPage
         {
             _quantity = CurrentQty;
             _minQuantity = 0;
-            QuantityHeaderLabel.Text = "Set quantity";
+            QuantitySelector.HeaderText = "Set quantity";
         }
         else
         {
             _quantity = 1;
             _minQuantity = 1;
-            QuantityHeaderLabel.Text = "Quantity";
+            QuantitySelector.HeaderText = "Quantity";
         }
+        QuantitySelector.Quantity = _quantity;
+        QuantitySelector.Minimum = _minQuantity;
+        QuantitySelector.Maximum = 999;
+        QuantitySelector.QuantityChanged += OnQuantitySelectorQuantityChanged;
         TitleLabel.Text = CardName;
         SetLabel.Text = SetInfo;
         CollectionInfoLabel.Text = CurrentQty > 0
             ? $"Currently in collection: {CurrentQty}"
             : "Not in collection yet";
+        UpdateQuantityUI();
+    }
+
+    private void OnQuantitySelectorQuantityChanged(object? sender, int newQuantity)
+    {
+        _quantity = newQuantity;
         UpdateQuantityUI();
     }
 
@@ -63,15 +73,13 @@ public partial class CollectionAddPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        QuantitySelector.QuantityChanged -= OnQuantitySelectorQuantityChanged;
         if (!_tcs.Task.IsCompleted)
             _tcs.TrySetResult(null);
     }
 
     private void UpdateQuantityUI()
     {
-        QuantityLabel.Text = _quantity.ToString();
-        MinusBtn.IsEnabled = _quantity > _minQuantity;
-        MinusBtn.Opacity = _quantity > _minQuantity ? 1.0 : 0.4;
         RemoveWarningLabel.IsVisible = _quantity == 0 && _currentInCollection > 0;
 
         if (_quantity == 0)
@@ -82,25 +90,10 @@ public partial class CollectionAddPage : ContentPage
             ConfirmBtn.Text = "Add to Collection";
     }
 
-    private void OnMinusClicked(object? sender, EventArgs e)
-    {
-        if (_quantity > _minQuantity)
-        {
-            _quantity--;
-            UpdateQuantityUI();
-        }
-    }
-
-    private void OnPlusClicked(object? sender, EventArgs e)
-    {
-        _quantity++;
-        UpdateQuantityUI();
-    }
-
     private async void OnConfirmClicked(object? sender, EventArgs e)
     {
         var result = new CollectionAddResult(
-            _quantity,
+            QuantitySelector.Quantity,
             FoilCheckBox.IsChecked,
             EtchedCheckBox.IsChecked);
         _tcs.TrySetResult(result);

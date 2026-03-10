@@ -13,7 +13,6 @@
 
     <ContentPage.Resources>
         <ResourceDictionary>
-            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
             <DataTemplate x:Key="StripColorFilterItemTemplate" x:DataType="models:ColorFilterItem">
                 <Grid WidthRequest="36" HeightRequest="36" Margin="2"
                       Opacity="0.5" Scale="1">
@@ -50,37 +49,10 @@
                   ColumnSpacing="8">
 
                 <!-- Search Bar -->
-                <material:TextField Grid.Row="0"
-                                    Grid.Column="0"
-                                    x:Name="SearchEntry"
-                                    Title="Search cards..."
-                                    Text="{Binding SearchText, Mode=TwoWay}"
-                                    ReturnCommand="{Binding SearchCommand}"
-                                    TextColor="{StaticResource TextPrimary}"
-                                    TitleColor="{StaticResource TextSecondary}"
-                                    AccentColor="{StaticResource Primary}"
-                                    AllowClear="True" />
-
-                <Button Grid.Row="0"
-                        Grid.Column="1"
-                        Text="{Binding FiltersButtonText}"
-                        Command="{Binding ToggleFilterStripCommand}"
-                        IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        HeightRequest="44"
-                        Padding="12,0"
-                        StyleClass="ElevatedButton" />
-
-                <Button Grid.Row="0"
-                        Grid.Column="2"
-                        Text="{Binding ViewModeButtonText}"
-                        Command="{Binding ToggleViewModeCommand}"
-                        BackgroundColor="{StaticResource CardBackground}"
-                        HeightRequest="44"
-                        Padding="12,0"
-                        FontSize="14"
-                        StyleClass="ElevatedButton"
-                        ToolTipProperties.Text="{Binding ViewModeToolTip}" />
+                <controls:CardSearchBar Grid.Row="0"
+                                        Grid.ColumnSpan="3"
+                                        x:Name="SearchBar"
+                                        FiltersCommand="{Binding ToggleFilterStripCommand}" />
 
                 <!-- Status Bar -->
                 <Label Grid.Row="1"
@@ -268,32 +240,16 @@
         <!-- Card Grid (hidden when no results so empty state shows) -->
         <controls:CardGrid Grid.Row="3"
                            x:Name="CardGrid"
-                           IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
+                           IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBool}}"
                            Scrolled="OnGridScrolled"
                            IsDragEnabled="False" />
 
         <!-- Empty State -->
-        <VerticalStackLayout Grid.Row="3"
-                             IsVisible="{Binding IsEmpty}"
-                             VerticalOptions="Center"
-                             HorizontalOptions="Center"
-                             Spacing="8">
-            <Label FontFamily="FASolid"
-                   Text="{x:Static fa:Solid.MagnifyingGlass}"
-                   FontSize="44"
-                   TextColor="{StaticResource TextSecondary}"
-                   HorizontalOptions="Center" />
-            <Label Text="No cards found"
-                   FontSize="18"
-                   FontAttributes="Bold"
-                   TextColor="{StaticResource TextPrimary}"
-                   HorizontalOptions="Center" />
-            <Label Text="Try a different search or adjust your filters"
-                   FontSize="13"
-                   TextColor="{StaticResource TextSecondary}"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center" />
-        </VerticalStackLayout>
+        <controls:EmptyStateView Grid.Row="3"
+                                 IsVisible="{Binding IsEmpty}"
+                                 IconGlyph="{x:Static fa:Solid.MagnifyingGlass}"
+                                 Message="No cards found"
+                                 SecondaryMessage="Try a different search or adjust your filters" />
 
         </Grid>
 

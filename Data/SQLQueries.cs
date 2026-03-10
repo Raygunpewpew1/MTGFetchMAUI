@@ -536,5 +536,17 @@ public static class SQLQueries
     public const string CondNoVariations = "(c.variations IS NULL OR c.variations = '' OR c.variations = '[]')";
     /// <summary>Cards that can be a commander: Legendary Creature or text contains "can be your commander".</summary>
     public const string CondCommanderOnly =
-        "((c.type LIKE '%Legendary%' AND c.type LIKE '%Creature%') OR (c.text LIKE '%can be your commander%'))";
+        """
+        (
+            (
+                c.leadershipSkills IS NOT NULL
+                AND TRIM(c.leadershipSkills) != ''
+                AND (
+                    json_extract(c.leadershipSkills, '$.commander') = 1
+                )
+            )
+            OR
+            ((c.type LIKE '%Legendary%' AND c.type LIKE '%Creature%') OR (c.text LIKE '%can be your commander%'))
+        )
+        """;
 }

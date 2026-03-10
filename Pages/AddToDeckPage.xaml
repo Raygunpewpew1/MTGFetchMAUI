@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
              x:Class="AetherVault.Pages.AddToDeckPage"
              Title="Add to deck"
              BackgroundColor="{StaticResource Background}">
@@ -92,48 +93,8 @@
                     <!-- Quantity -->
                     <Border Style="{StaticResource CardStyle}" Padding="20,16">
                         <VerticalStackLayout Spacing="16">
-                            <Label Text="How many copies?"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}"
-                                   HorizontalOptions="Center" />
-                            <Grid ColumnDefinitions="Auto,*,Auto"
-                                  ColumnSpacing="20"
-                                  HorizontalOptions="Center">
-                                <Button x:Name="MinusBtn"
-                                        Text="−"
-                                        Clicked="OnMinusClicked"
-                                        FontSize="28"
-                                        FontAttributes="Bold"
-                                        WidthRequest="56"
-                                        HeightRequest="56"
-                                        CornerRadius="28"
-                                        BackgroundColor="{StaticResource Surface}"
-                                        TextColor="{StaticResource TextPrimary}" />
-                                <Label x:Name="QuantityLabel"
-                                       Grid.Column="1"
-                                       Text="1"
-                                       FontSize="36"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       HorizontalTextAlignment="Center"
-                                       VerticalTextAlignment="Center"
-                                       VerticalOptions="Center">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnQuantityTapped" />
-                                    </Label.GestureRecognizers>
-                                </Label>
-                                <Button Grid.Column="2"
-                                        Text="+"
-                                        Clicked="OnPlusClicked"
-                                        FontSize="28"
-                                        FontAttributes="Bold"
-                                        WidthRequest="56"
-                                        HeightRequest="56"
-                                        CornerRadius="28"
-                                        BackgroundColor="{StaticResource Accent}"
-                                        TextColor="Black" />
-                            </Grid>
+                            <controls:QuantitySelectorView x:Name="QuantitySelector"
+                                                           HeaderText="How many copies?" />
                             <Label Text="Tap the number to enter a custom amount"
                                    FontSize="11"
                                    TextColor="{StaticResource TextSecondary}"

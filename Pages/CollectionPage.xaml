@@ -11,13 +11,6 @@
              Title="Collection"
              BackgroundColor="{StaticResource Background}">
 
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
-        </ResourceDictionary>
-    </ContentPage.Resources>
-
-
     <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Header + summary card -->
@@ -219,28 +212,12 @@
                   VerticalOptions="Fill"
                   HorizontalOptions="Fill"
                   MinimumHeightRequest="200">
-                <VerticalStackLayout VerticalOptions="Center"
-                                     HorizontalOptions="Center"
-                                     Spacing="8">
-                    <Label FontFamily="FASolid"
-                           Text="{x:Static fa:Solid.BoxArchive}"
-                           FontSize="44"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalOptions="Center" />
-                    <Label Text="Your collection is empty"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           HorizontalOptions="Center" />
-                    <Label Text="Search for cards and long-press to add them"
-                           FontSize="13"
-                           TextColor="{StaticResource TextSecondary}"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
+                <controls:EmptyStateView IconGlyph="{x:Static fa:Solid.BoxArchive}"
+                                         Message="Your collection is empty"
+                                         SecondaryMessage="Search for cards and long-press to add them" />
             </Grid>
             <controls:CardGrid x:Name="CollectionGrid"
-                               IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBoolConverter}}"
+                               IsVisible="{Binding IsCollectionEmpty, Converter={StaticResource InvertedBool}}"
                                Scrolled="OnCollectionScrolled"
                                UseCompactGrid="True" />
         </Grid>

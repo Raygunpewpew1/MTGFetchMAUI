@@ -10,12 +10,6 @@
              BackgroundColor="{StaticResource Background}"
              x:DataType="vm:MTGJsonDecksViewModel">
 
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
-        </ResourceDictionary>
-    </ContentPage.Resources>
-
     <Grid RowDefinitions="Auto,Auto,*">
         <!-- Toolbar: Refresh -->
         <Grid Grid.Row="0" Padding="16,12" ColumnDefinitions="*,Auto">

@@ -59,10 +59,10 @@ public partial class DeckDetailPage : ContentPage
             }
         };
 
-        CommanderMenuButton.Clicked += OnCommanderMenuButtonClicked;
+        CommanderTabView.CommanderMenuRequested += OnCommanderMenuRequested;
     }
 
-    private async void OnCommanderMenuButtonClicked(object? sender, EventArgs e)
+    private async void OnCommanderMenuRequested(object? sender, EventArgs e)
     {
         if (_viewModel.FirstCommander == null) return;
         const string viewDetails = "View details";
@@ -184,6 +184,7 @@ public partial class DeckDetailPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        CommanderTabView.CommanderMenuRequested -= OnCommanderMenuRequested;
         _viewModel.ReloadCompleted -= RunDeferredLayoutPass;
         _viewModel.RequestShowQuickDetail -= OnRequestShowQuickDetail;
         _commanderArtImage?.Dispose();

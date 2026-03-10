@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
              x:Class="AetherVault.Pages.CollectionAddPage"
              BackgroundColor="{StaticResource Background}">
 
@@ -34,53 +35,8 @@
 
             <!-- Quantity Selector -->
             <VerticalStackLayout Spacing="6">
-                <Label x:Name="QuantityHeaderLabel"
-                       Text="Quantity"
-                       FontSize="13"
-                       TextColor="{StaticResource TextSecondary}"
-                       HorizontalTextAlignment="Center" />
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" HorizontalOptions="Center" WidthRequest="260">
-                    <Button x:Name="MinusBtn"
-                            Clicked="OnMinusClicked"
-                            FontSize="24"
-                            WidthRequest="56"
-                            HeightRequest="56"
-                            CornerRadius="28"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}">
-                        <Button.ImageSource>
-                            <FontImageSource FontFamily="FASolid"
-                                             Glyph="{x:Static fa:Solid.Minus}"
-                                             Size="18"
-                                             Color="{StaticResource TextPrimary}" />
-                        </Button.ImageSource>
-                    </Button>
-
-                    <Label x:Name="QuantityLabel"
-                           Grid.Column="1"
-                           Text="1"
-                           FontSize="36"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextPrimary}"
-                           HorizontalTextAlignment="Center"
-                           VerticalTextAlignment="Center" />
-
-                    <Button Grid.Column="2"
-                            Clicked="OnPlusClicked"
-                            FontSize="24"
-                            WidthRequest="56"
-                            HeightRequest="56"
-                            CornerRadius="28"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}">
-                        <Button.ImageSource>
-                            <FontImageSource FontFamily="FASolid"
-                                             Glyph="{x:Static fa:Solid.Plus}"
-                                             Size="18"
-                                             Color="{StaticResource TextPrimary}" />
-                        </Button.ImageSource>
-                    </Button>
-                </Grid>
+                <controls:QuantitySelectorView x:Name="QuantitySelector"
+                                               HeaderText="Quantity" />
                 <Label x:Name="RemoveWarningLabel"
                        Text="(will remove from collection)"
                        FontSize="11"

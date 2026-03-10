@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:converters="clr-namespace:AetherVault.Converters"
              x:Class="AetherVault.App">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Converters -->
+            <toolkit:InvertedBoolConverter x:Key="InvertedBool" />
+            <converters:LegalityToColorConverter x:Key="LegalityToColor" />
+
             <!-- Colors -->
             <Color x:Key="Primary">#6200EE</Color>
             <Color x:Key="PrimaryDark">#3700B3</Color>
@@ -17,6 +23,10 @@
             <Color x:Key="LegalGreen">#4CAF50</Color>
             <Color x:Key="BannedRed">#F44336</Color>
             <Color x:Key="RestrictedYellow">#FFC107</Color>
+            <Color x:Key="RarityCommon">#C0C0C0</Color>
+            <Color x:Key="RarityUncommon">#B0C4DE</Color>
+            <Color x:Key="RarityRare">#FFD700</Color>
+            <Color x:Key="RarityMythic">#FF8C00</Color>
 
             <!-- Styles -->
             <Style TargetType="Page" ApplyToDerivedTypes="True">
