@@ -102,13 +102,12 @@ public partial class LoadingViewModel : BaseViewModel
             if (_cardManager.DatabaseManager.IsConnected)
                 await _cardManager.DisconnectAsync();
 
-            bool dbExists = AppDataManager.MTGDatabaseExists();
-
-            // Kick off the network update check and local DB validation concurrently — they
-            // are independent (network I/O vs. local disk I/O) so there is no reason to sequence them.
-            var updateCheckTask = CheckForUpdateSafeAsync();
+            // Run file/network/DB I/O on thread pool to avoid blocking the main thread and causing ANR.
+            // Sync file I/O (MTGDatabaseExists, GetLocalDatabaseVersion) and network timeouts can block for seconds.
+            bool dbExists = await Task.Run(AppDataManager.MTGDatabaseExists);
+            var updateCheckTask = Task.Run(CheckForUpdateSafeAsync);
             var validationTask = dbExists
-                ? AppDataManager.ValidateMTGDatabaseAsync()
+                ? Task.Run(() => AppDataManager.ValidateMTGDatabaseAsync())
                 : Task.FromResult(false);
 
             // Await the update check first — its result determines whether we even need validation.

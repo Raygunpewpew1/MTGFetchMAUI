@@ -2,15 +2,17 @@ using AetherVault.Core.Layout;
 using AetherVault.Models;
 using AetherVault.Services;
 using AppoMobi.Maui.Gestures;
+using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
 namespace AetherVault.Controls;
 
+/// <summary>High-performance card grid rendered with SkiaSharp SKGLView (GPU-accelerated) for smoother scrolling on Android.</summary>
 public class CardGrid : ContentView
 {
-    private readonly SKCanvasView _canvas;
+    private readonly SKGLView _canvas;
     private readonly ScrollView _scrollView;
     private readonly GestureSpacerView _spacer;
     private readonly Channel<GridState> _stateChannel;
@@ -99,36 +101,37 @@ public class CardGrid : ContentView
             FullMode = BoundedChannelFullMode.DropOldest
         });
 
-        _canvas = new SKCanvasView
+        _canvas = new SKGLView
         {
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill,
             IgnorePixelScaling = true,
             EnableTouchEvents = false,
-            InputTransparent = true
+            InputTransparent = true,
+            HasRenderLoop = false
         };
         _canvas.PaintSurface += OnPaintSurface;
 
-        // _gestures must be created before _spacer because GestureSpacerView
-        // takes the handler as a constructor argument and wires scroll callbacks.
-        _gestures = new CardGridGestureHandler(Dispatcher, HitTest);
-        _spacer = new GestureSpacerView(_gestures);
-
+        // ScrollView first so gesture handler can read ScrollY (scroll-vs-tap discrimination).
         _scrollView = new ScrollView
         {
-            Content = _spacer,
             BackgroundColor = Colors.Transparent,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
         _scrollView.Scrolled += OnScrolled;
 
+        // _gestures before _spacer: GestureSpacerView takes the handler in its constructor.
+        _gestures = new CardGridGestureHandler(Dispatcher, HitTest, () => _scrollView.ScrollY);
+        _spacer = new GestureSpacerView(_gestures);
+        _scrollView.Content = _spacer;
+
         var grid = new Grid();
         grid.Add(_canvas);
         grid.Add(_scrollView);
         Content = grid;
 
-        _renderer = new CardGridRenderer(_canvas, cacheKey => _imageCache?.GetMemoryImage(cacheKey));
+        _renderer = new CardGridRenderer(() => _canvas.InvalidateSurface(), cacheKey => _imageCache?.GetMemoryImage(cacheKey));
         _gestures.Tapped += id => CardClicked?.Invoke(id);
         _gestures.LongPressed += id => CardLongPressed?.Invoke(id);
         _gestures.DragStarted += OnDragStarted;
@@ -463,9 +466,9 @@ public class CardGrid : ContentView
         MainThread.BeginInvokeOnMainThread(() => _renderer.UpdateSizing(isLargeScreen));
     }
 
-    private void OnPaintSurface(object? sender, SkiaSharp.Views.Maui.SKPaintSurfaceEventArgs e)
+    private void OnPaintSurface(object? sender, SKPaintGLSurfaceEventArgs e)
     {
-        _renderer.Paint(e, _currentRenderList, _lastState.Viewport.ScrollY, (float)(Width > 0 ? Width : 360), _dragState);
+        _renderer.Paint(e.Surface.Canvas, e.Info, _currentRenderList, _lastState.Viewport.ScrollY, (float)(Width > 0 ? Width : 360), _dragState);
 
         if (!_isLoaded) return;
 

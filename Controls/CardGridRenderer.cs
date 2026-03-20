@@ -1,8 +1,6 @@
 using AetherVault.Core.Layout;
 using AetherVault.Services;
 using SkiaSharp;
-using SkiaSharp.Views.Maui;
-using SkiaSharp.Views.Maui.Controls;
 using System.Diagnostics;
 
 namespace AetherVault.Controls;
@@ -13,7 +11,7 @@ namespace AetherVault.Controls;
 /// </summary>
 internal sealed class CardGridRenderer : IDisposable
 {
-    private readonly SKCanvasView _canvas;
+    private readonly Action _invalidateSurface;
     private readonly Func<string, SKImage?> _getImage;
 
     // Shimmer animation
@@ -50,11 +48,11 @@ internal sealed class CardGridRenderer : IDisposable
     private const float ListImgWidth = 55f;
     private const float ListImgHeight = ListImgWidth * 1.3968f; // ≈ 76.8px
 
-    /// <param name="canvas">Canvas to invalidate after sizing changes.</param>
+    /// <param name="invalidateSurface">Schedules a repaint (SKGLView / SKCanvasView InvalidateSurface).</param>
     /// <param name="getImage">Returns a cached SKImage for the given cache key, or null.</param>
-    public CardGridRenderer(SKCanvasView canvas, Func<string, SKImage?> getImage)
+    public CardGridRenderer(Action invalidateSurface, Func<string, SKImage?> getImage)
     {
-        _canvas = canvas;
+        _invalidateSurface = invalidateSurface;
         _getImage = getImage;
         _lastFrameTime = _animationStopwatch.ElapsedMilliseconds;
     }
@@ -102,7 +100,7 @@ internal sealed class CardGridRenderer : IDisposable
         _badgeFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Bold), isLargeScreen ? 13f : 11f);
         _secondaryTextFont = new SKFont(SKTypeface.FromFamilyName("sans-serif", SKFontStyle.Normal), isLargeScreen ? 13f : 11f);
 
-        _canvas.InvalidateSurface();
+        _invalidateSurface();
     }
 
     public void Dispose()
@@ -129,10 +127,9 @@ internal sealed class CardGridRenderer : IDisposable
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
 
-    public void Paint(SKPaintSurfaceEventArgs e, RenderList list, float scrollY, float viewWidth, DragState? dragState = null)
+    /// <summary>Draws the grid to a Skia canvas (GPU via SKGLView or CPU via SKCanvasView).</summary>
+    public void Paint(SKCanvas canvas, SKImageInfo info, RenderList list, float scrollY, float viewWidth, DragState? dragState = null)
     {
-        var canvas = e.Surface.Canvas;
-        var info = e.Info;
         if (info.Width <= 0 || info.Height <= 0)
         {
             canvas.Clear(ThemeBackground);

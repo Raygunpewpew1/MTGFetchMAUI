@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+               xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+               xmlns:core="clr-namespace:AetherVault.Core"
+               x:Class="AetherVault.Pages.SetPickerPopup"
+               x:Name="PopupRoot"
+               CanBeDismissedByTappingOutsideOfPopup="True">
+
+    <Border BackgroundColor="{StaticResource Surface}"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 20,20,0,0"
+            VerticalOptions="End"
+            HorizontalOptions="Fill"
+            MaximumHeightRequest="560">
+        <Border.Shadow>
+            <Shadow Brush="Black" Offset="0,-2" Radius="12" Opacity="0.3" />
+        </Border.Shadow>
+
+        <Grid RowDefinitions="Auto,Auto,*">
+            <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="24,20,24,12">
+                <Label Text="Select set"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <material:TextField x:Name="SearchEntry"
+                                 Grid.Row="1"
+                                 Title="Search sets..."
+                                 TitleColor="{StaticResource TextSecondary}"
+                                 AccentColor="{StaticResource Primary}"
+                                 Margin="16,0,16,8"
+                                 AllowClear="True" />
+
+            <CollectionView x:Name="SetsList"
+                           Grid.Row="2"
+                           SelectionMode="Single"
+                           SelectionChanged="OnSelectionChanged"
+                           Margin="8,0,8,16"
+                           MaximumHeightRequest="400">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="core:SetInfo">
+                        <Grid Padding="12,10"
+                              ColumnDefinitions="*,Auto">
+                            <Label Text="{Binding Name}"
+                                   FontSize="14"
+                                   TextColor="{StaticResource TextPrimary}"
+                                   VerticalOptions="Center"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding Code}"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Border>
+</toolkit:Popup>

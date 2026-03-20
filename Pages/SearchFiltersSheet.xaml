@@ -3,13 +3,17 @@
                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
                xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+               xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
                xmlns:controls="clr-namespace:AetherVault.Controls"
                xmlns:viewmodels="clr-namespace:AetherVault.ViewModels"
                xmlns:models="clr-namespace:AetherVault.Models"
                x:Class="AetherVault.Pages.SearchFiltersSheet"
                x:DataType="viewmodels:SearchFiltersViewModel"
                x:Name="SheetRoot"
-               CanBeDismissedByTappingOutsideOfPopup="True">
+               CanBeDismissedByTappingOutsideOfPopup="True"
+               HorizontalOptions="Fill"
+               VerticalOptions="End"
+               BackgroundColor="Transparent">
 
     <toolkit:Popup.Resources>
         <ResourceDictionary>
@@ -17,16 +21,19 @@
             <OnIdiom x:Key="BodyFontSize"   x:TypeArguments="x:Double" Phone="14" Tablet="16" Desktop="16" />
             <OnIdiom x:Key="SmallFontSize"  x:TypeArguments="x:Double" Phone="12" Tablet="14" Desktop="14" />
 
-            <!-- Section container: padding only, no nested card background -->
+            <!-- Section container: padding, margin; matches inline filter strip card style -->
             <Style x:Key="FilterSectionStyle" TargetType="Border">
                 <Setter Property="Padding" Value="18" />
-                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="Margin" Value="0,4,0,4" />
+                <Setter Property="BackgroundColor" Value="{StaticResource Background}" />
+                <Setter Property="Stroke" Value="Transparent" />
                 <Setter Property="StrokeThickness" Value="0" />
+                <Setter Property="StrokeShape" Value="RoundRectangle 8" />
             </Style>
 
-            <!-- Color filter item template: more margin so icons aren't cramped -->
+            <!-- Color filter item template: 44pt touch target, ~32pt visual, margin 6 -->
             <DataTemplate x:Key="ColorFilterItemTemplate" x:DataType="models:ColorFilterItem">
-                <Grid WidthRequest="48" HeightRequest="48" Margin="10"
+                <Grid WidthRequest="44" HeightRequest="44" Margin="6"
                       Opacity="0.5" Scale="1">
                     <Grid.GestureRecognizers>
                         <TapGestureRecognizer
@@ -35,8 +42,10 @@
                     </Grid.GestureRecognizers>
                     <controls:ManaSymbolView Symbol="{Binding Code}"
                                             InputTransparent="True"
-                                            VerticalOptions="Fill"
-                                            HorizontalOptions="Fill" />
+                                            WidthRequest="32"
+                                            HeightRequest="32"
+                                            VerticalOptions="Center"
+                                            HorizontalOptions="Center" />
                     <Grid.Triggers>
                         <DataTrigger TargetType="Grid" Binding="{Binding IsSelected}" Value="True">
                             <DataTrigger.Setters>
@@ -50,7 +59,7 @@
         </ResourceDictionary>
     </toolkit:Popup.Resources>
 
-    <Border BackgroundColor="{StaticResource Surface}"
+    <Border BackgroundColor="{StaticResource CardBackground}"
             StrokeThickness="0"
             StrokeShape="RoundRectangle 20,20,0,0"
             Margin="0"
@@ -64,50 +73,66 @@
               MinimumHeightRequest="420"
               MaximumHeightRequest="720">
 
-            <!-- Sheet header: drag handle + title -->
-            <VerticalStackLayout Grid.Row="0" Spacing="4" Padding="24,16,24,8"
+            <!-- Sheet header: drag handle + title + active filter badge -->
+            <VerticalStackLayout Grid.Row="0" Spacing="6" Padding="24,16,24,8"
                                 BackgroundColor="Transparent">
                 <BoxView HeightRequest="4" WidthRequest="40" HorizontalOptions="Center"
-                         Color="{StaticResource TextSecondary}" Opacity="0.6"
+                         Color="{StaticResource TextSecondary}" Opacity="0.8"
                          CornerRadius="2" />
                 <Label Text="Search filters"
                        FontSize="{StaticResource HeaderFontSize}"
                        FontAttributes="Bold"
                        TextColor="{StaticResource TextPrimary}"
                        HorizontalOptions="Center" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                      IsVisible="{Binding HasActiveFilters}">
+                    <Label Text="{Binding FiltersSummaryText}"
+                           FontSize="{StaticResource SmallFontSize}"
+                           TextColor="{StaticResource TextSecondary}"
+                           LineBreakMode="TailTruncation"
+                           MaxLines="2"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="Clear"
+                            Command="{Binding ClearAllCommand}"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Primary}"
+                            FontSize="{StaticResource SmallFontSize}"
+                            Padding="12,6"
+                            VerticalOptions="Center" />
+                </Grid>
             </VerticalStackLayout>
 
             <ScrollView Grid.Row="1" Padding="16,12,16,16">
-                <VerticalStackLayout Spacing="28">
+                <VerticalStackLayout Spacing="32">
 
                     <!-- Colors -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="16">
-                            <Label Text="Colors" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" Margin="0,0,0,4" />
+                        <uranium:ExpanderView IsExpanded="True">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Colors" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
                             <FlexLayout BindableLayout.ItemsSource="{Binding ColorFilters}"
                                         BindableLayout.ItemTemplate="{StaticResource ColorFilterItemTemplate}"
-                                        Wrap="Wrap" JustifyContent="Start" AlignItems="Start" />
-                        </VerticalStackLayout>
+                                        Wrap="Wrap" JustifyContent="Start" AlignItems="Start"
+                                        Margin="0,8,0,0" />
+                        </uranium:ExpanderView>
                     </Border>
 
-                    <!-- Card Text / Keywords -->
+                    <!-- Card Text / Type -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="0" Padding="0,8,0,8">
-                            <material:TextField Text="{Binding Keywords, Mode=TwoWay}"
-                                                Title="Card Text"
-                                                TitleColor="{StaticResource TextSecondary}"
-                                                AccentColor="{StaticResource Primary}"
-                                                MinimumHeightRequest="56" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- Card Type / Subtype / Supertype -->
-                    <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="20">
-                            <Label Text="Type" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" Margin="0,0,0,6" />
-                            <VerticalStackLayout Spacing="4">
+                        <uranium:ExpanderView IsExpanded="True">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Text &amp; type" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
+                            <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
+                                <material:TextField Text="{Binding Keywords, Mode=TwoWay}"
+                                                    Title="Card Text"
+                                                    TitleColor="{StaticResource TextSecondary}"
+                                                    AccentColor="{StaticResource Primary}"
+                                                    MinimumHeightRequest="56" />
                                 <material:PickerField SelectedIndex="{Binding SelectedTypeIndex, Mode=TwoWay}"
                                                        ItemsSource="{Binding TypeOptions}"
                                                        Title="Card Type"
@@ -116,14 +141,12 @@
                                                        AccentColor="{StaticResource Primary}"
                                                        MinimumHeightRequest="56"
                                                        Margin="0,6,0,6" />
-
                                 <material:TextField Text="{Binding Subtype, Mode=TwoWay}"
                                                     Title="Subtype"
                                                     TitleColor="{StaticResource TextSecondary}"
                                                     AccentColor="{StaticResource Primary}"
                                                     MinimumHeightRequest="56"
                                                     Margin="0,6,0,6" />
-
                                 <material:TextField Text="{Binding Supertype, Mode=TwoWay}"
                                                     Title="Supertype"
                                                     TitleColor="{StaticResource TextSecondary}"
@@ -131,18 +154,21 @@
                                                     MinimumHeightRequest="56"
                                                     Margin="0,6,0,6" />
                             </VerticalStackLayout>
-                        </VerticalStackLayout>
+                        </uranium:ExpanderView>
                     </Border>
 
                     <!-- Rarity -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="14">
-                            <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" Margin="0,0,0,4" />
+                        <uranium:ExpanderView IsExpanded="True">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Rarity" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
                             <Grid RowDefinitions="Auto,Auto"
                                   ColumnDefinitions="*,*"
                                   ColumnSpacing="20"
-                                  RowSpacing="12">
+                                  RowSpacing="12"
+                                  Margin="0,8,0,0">
                                 <material:CheckBox Grid.Row="0" Grid.Column="0"
                                                    IsChecked="{Binding ChkCommon, Mode=TwoWay}"
                                                    Text="Common"
@@ -160,15 +186,17 @@
                                                    Text="Mythic"
                                                    Color="{StaticResource Primary}" />
                             </Grid>
-                        </VerticalStackLayout>
+                        </uranium:ExpanderView>
                     </Border>
 
-                    <!-- CMC Range -->
+                    <!-- CMC Range: stacked vertically for mobile -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Mana value (CMC)" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" Margin="0,0,0,4" />
-                            <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="12">
+                        <uranium:ExpanderView IsExpanded="False">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Mana value (CMC)" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
+                            <VerticalStackLayout Spacing="8" Margin="0,8,0,0">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding CmcMinLabel}"
                                            FontSize="{StaticResource SmallFontSize}"
@@ -178,13 +206,11 @@
                                             ThumbColor="{StaticResource Primary}"
                                             MinimumTrackColor="{StaticResource Primary}" />
                                 </VerticalStackLayout>
-                                <Label Grid.Column="1"
-                                       Text="to"
-                                       VerticalOptions="End"
-                                       Margin="0,0,0,10"
+                                <Label Text="to"
                                        FontSize="{StaticResource BodyFontSize}"
-                                       TextColor="{StaticResource TextSecondary}" />
-                                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                       TextColor="{StaticResource TextSecondary}"
+                                       HorizontalOptions="Center" />
+                                <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding CmcMaxLabel}"
                                            FontSize="{StaticResource SmallFontSize}"
                                            TextColor="{StaticResource TextSecondary}" />
@@ -193,85 +219,120 @@
                                             ThumbColor="{StaticResource Primary}"
                                             MinimumTrackColor="{StaticResource Primary}" />
                                 </VerticalStackLayout>
-                            </Grid>
-                        </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </uranium:ExpanderView>
                     </Border>
 
-                    <!-- Power / Toughness -->
+                    <!-- Power / Toughness: stacked vertically for mobile -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
-                            <material:TextField Text="{Binding Power, Mode=TwoWay}"
-                                                Title="Power"
-                                                Keyboard="Numeric"
-                                                TitleColor="{StaticResource TextSecondary}"
-                                                AccentColor="{StaticResource Primary}"
-                                                MinimumHeightRequest="56"
-                                                Margin="0,4,0,4" />
-                            <material:TextField Grid.Column="1"
-                                                Text="{Binding Toughness, Mode=TwoWay}"
-                                                Title="Toughness"
-                                                Keyboard="Numeric"
-                                                TitleColor="{StaticResource TextSecondary}"
-                                                AccentColor="{StaticResource Primary}"
-                                                MinimumHeightRequest="56"
-                                                Margin="0,4,0,4" />
-                        </Grid>
+                        <uranium:ExpanderView IsExpanded="False">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Power &amp; toughness" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
+                            <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
+                                <material:TextField Text="{Binding Power, Mode=TwoWay}"
+                                                    Title="Power"
+                                                    Keyboard="Numeric"
+                                                    TitleColor="{StaticResource TextSecondary}"
+                                                    AccentColor="{StaticResource Primary}"
+                                                    MinimumHeightRequest="56"
+                                                    Margin="0,4,0,4" />
+                                <material:TextField Text="{Binding Toughness, Mode=TwoWay}"
+                                                    Title="Toughness"
+                                                    Keyboard="Numeric"
+                                                    TitleColor="{StaticResource TextSecondary}"
+                                                    AccentColor="{StaticResource Primary}"
+                                                    MinimumHeightRequest="56"
+                                                    Margin="0,4,0,4" />
+                            </VerticalStackLayout>
+                        </uranium:ExpanderView>
                     </Border>
 
                     <!-- Format / Set / Artist -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="20">
-                            <Label Text="Set &amp; format" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" Margin="0,0,0,6" />
-                            <material:PickerField SelectedIndex="{Binding SelectedFormatIndex, Mode=TwoWay}"
-                                                  ItemsSource="{Binding FormatOptions}"
-                                                  Title="Format"
-                                                  TextColor="{StaticResource TextPrimary}"
-                                                  TitleColor="{StaticResource TextSecondary}"
-                                                  AccentColor="{StaticResource Primary}"
-                                                  MinimumHeightRequest="56"
-                                                  Margin="0,6,0,6" />
+                        <uranium:ExpanderView IsExpanded="False">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Set &amp; format" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
+                            <VerticalStackLayout Spacing="20" Margin="0,8,0,0">
+                                <material:PickerField SelectedIndex="{Binding SelectedFormatIndex, Mode=TwoWay}"
+                                                       ItemsSource="{Binding FormatOptions}"
+                                                       Title="Format"
+                                                       TextColor="{StaticResource TextPrimary}"
+                                                       TitleColor="{StaticResource TextSecondary}"
+                                                       AccentColor="{StaticResource Primary}"
+                                                       MinimumHeightRequest="56"
+                                                       Margin="0,6,0,6" />
 
-                            <material:PickerField SelectedIndex="{Binding SelectedSetIndex, Mode=TwoWay}"
-                                                  ItemsSource="{Binding SetList}"
-                                                  Title="Set"
-                                                  TextColor="{StaticResource TextPrimary}"
-                                                  TitleColor="{StaticResource TextSecondary}"
-                                                  AccentColor="{StaticResource Primary}"
-                                                  MinimumHeightRequest="56"
-                                                  Margin="0,6,0,6" />
+                                <Grid Margin="0,6,0,6"
+                                      MinimumHeightRequest="56"
+                                      ColumnDefinitions="*"
+                                      RowDefinitions="Auto,*">
+                                    <Label Text="Set"
+                                           FontSize="12"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           Margin="0,0,0,4" />
+                                    <Border Grid.Row="1"
+                                            BackgroundColor="Transparent"
+                                            Padding="0,8,0,8"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 4">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnSetFieldTapped" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Text="{Binding SelectedSetDisplayName}"
+                                                   FontSize="14"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   VerticalOptions="Center"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Grid.Column="1"
+                                                   Text="˅"
+                                                   FontSize="12"
+                                                   TextColor="{StaticResource TextSecondary}"
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
 
-                            <material:TextField Text="{Binding Artist, Mode=TwoWay}"
-                                                Title="Artist"
-                                                TitleColor="{StaticResource TextSecondary}"
-                                                AccentColor="{StaticResource Primary}"
-                                                MinimumHeightRequest="56"
-                                                Margin="0,6,0,6" />
-                        </VerticalStackLayout>
+                                <material:TextField Text="{Binding Artist, Mode=TwoWay}"
+                                                    Title="Artist"
+                                                    TitleColor="{StaticResource TextSecondary}"
+                                                    AccentColor="{StaticResource Primary}"
+                                                    MinimumHeightRequest="56"
+                                                    Margin="0,6,0,6" />
+                            </VerticalStackLayout>
+                        </uranium:ExpanderView>
                     </Border>
 
                     <!-- Special Options -->
                     <Border Style="{StaticResource FilterSectionStyle}">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Options" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
-                                   TextColor="{StaticResource TextPrimary}" Margin="0,0,0,10" />
-                            <material:CheckBox IsChecked="{Binding ChkPrimarySide, Mode=TwoWay}"
-                                               Text="Primary side only"
-                                               Color="{StaticResource Primary}"
-                                               Margin="0,6,0,6" />
-                            <material:CheckBox IsChecked="{Binding ChkNoVariations, Mode=TwoWay}"
-                                               Text="Exclude variations"
-                                               Color="{StaticResource Primary}"
-                                               Margin="0,6,0,6" />
-                            <material:CheckBox IsChecked="{Binding ChkIncludeTokens, Mode=TwoWay}"
-                                               Text="Include tokens"
-                                               Color="{StaticResource Primary}"
-                                               Margin="0,6,0,6" />
-                            <material:CheckBox IsChecked="{Binding ChkCommanderOnly, Mode=TwoWay}"
-                                               Text="Can be commander only"
-                                               Color="{StaticResource Primary}"
-                                               Margin="0,6,0,6" />
-                        </VerticalStackLayout>
+                        <uranium:ExpanderView IsExpanded="False">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="Options" FontSize="{StaticResource BodyFontSize}" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                            </uranium:ExpanderView.Header>
+                            <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
+                                <material:CheckBox IsChecked="{Binding ChkPrimarySide, Mode=TwoWay}"
+                                                   Text="Primary side only"
+                                                   Color="{StaticResource Primary}"
+                                                   Margin="0,6,0,6" />
+                                <material:CheckBox IsChecked="{Binding ChkNoVariations, Mode=TwoWay}"
+                                                   Text="Exclude variations"
+                                                   Color="{StaticResource Primary}"
+                                                   Margin="0,6,0,6" />
+                                <material:CheckBox IsChecked="{Binding ChkIncludeTokens, Mode=TwoWay}"
+                                                   Text="Include tokens"
+                                                   Color="{StaticResource Primary}"
+                                                   Margin="0,6,0,6" />
+                                <material:CheckBox IsChecked="{Binding ChkCommanderOnly, Mode=TwoWay}"
+                                                   Text="Can be commander only"
+                                                   Color="{StaticResource Primary}"
+                                                   Margin="0,6,0,6" />
+                            </VerticalStackLayout>
+                        </uranium:ExpanderView>
                     </Border>
 
                 </VerticalStackLayout>
@@ -283,7 +344,7 @@
                   Padding="24,16,24,28"
                   ColumnDefinitions="*,*,*"
                   ColumnSpacing="12"
-                  BackgroundColor="{StaticResource Surface}">
+                  BackgroundColor="{StaticResource CardBackground}">
                 <Button Text="Reset"
                         Command="{Binding ResetCommand}"
                         BackgroundColor="Transparent"
@@ -292,6 +353,7 @@
                         BorderWidth="1"
                         HorizontalOptions="Fill"
                         FontSize="14"
+                        MinimumHeightRequest="44"
                         Padding="8,14" />
                 <Button Grid.Column="1"
                         Text="Cancel"
@@ -300,6 +362,7 @@
                         TextColor="{StaticResource TextPrimary}"
                         HorizontalOptions="Fill"
                         FontSize="14"
+                        MinimumHeightRequest="44"
                         Padding="8,14" />
                 <Button Grid.Column="2"
                         Text="Apply"
@@ -308,6 +371,7 @@
                         TextColor="White"
                         HorizontalOptions="Fill"
                         FontSize="14"
+                        MinimumHeightRequest="44"
                         Padding="8,14" />
             </Grid>
 

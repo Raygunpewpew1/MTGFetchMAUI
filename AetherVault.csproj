@@ -49,6 +49,8 @@
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-android|AnyCPU'">
 	  <AndroidKeyStore>False</AndroidKeyStore>
 	  <ApplicationIdGuid></ApplicationIdGuid>
+	  <!-- Workaround for Mono assertion jit-info.c:918 (!ji->async) crash on .NET 10 Android ARM64 (dotnet/runtime#122881). -->
+	  <RunAOTCompilation>false</RunAOTCompilation>
 	</PropertyGroup>
 
 	<ItemGroup>

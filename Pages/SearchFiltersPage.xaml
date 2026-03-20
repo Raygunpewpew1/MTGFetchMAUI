@@ -19,7 +19,7 @@
 
             <!-- Color filter item template: mana symbol with tap and selected state -->
             <DataTemplate x:Key="ColorFilterItemTemplate" x:DataType="models:ColorFilterItem">
-                <Grid WidthRequest="40" HeightRequest="40" Margin="4"
+                <Grid WidthRequest="20" HeightRequest="20" Margin="4"
                       Opacity="0.5" Scale="1">
                     <Grid.GestureRecognizers>
                         <TapGestureRecognizer

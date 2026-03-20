@@ -37,6 +37,7 @@ public partial class SearchFiltersViewModel : BaseViewModel
 
         TypeOptions = [.. TypeOptionsSource];
         SetList = [AnySet];
+        SetList.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SelectedSetDisplayName));
         ColorFilters = new ObservableCollection<ColorFilterItem>(
             ColorCodes.Select(c => new ColorFilterItem(c, false)));
     }
@@ -62,67 +63,88 @@ public partial class SearchFiltersViewModel : BaseViewModel
     private bool _isSpecialSectionExpanded;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CmcMinLabel))]
-    [NotifyPropertyChangedFor(nameof(CmcMaxLabel))]
+    [NotifyPropertyChangedFor(nameof(CmcMinLabel), nameof(CmcMaxLabel), nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private double _cmcMin;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CmcMinLabel))]
-    [NotifyPropertyChangedFor(nameof(CmcMaxLabel))]
+    [NotifyPropertyChangedFor(nameof(CmcMinLabel), nameof(CmcMaxLabel), nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private double _cmcMax = 16;
 
     public string CmcMinLabel => $"Min: {(int)CmcMin}";
     public string CmcMaxLabel => CmcMax >= 16 ? "Max: 16+" : $"Max: {(int)CmcMax}";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private int _selectedTypeIndex;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private int _selectedFormatIndex;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText), nameof(SelectedSetDisplayName))]
     private int _selectedSetIndex;
 
+    /// <summary>Display name of the selected set for the Set picker button.</summary>
+    public string SelectedSetDisplayName =>
+        SelectedSetIndex >= 0 && SelectedSetIndex < SetList.Count
+            ? SetList[SelectedSetIndex].Name
+            : "Any set";
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private string _keywords = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private string _subtype = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private string _supertype = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private string _power = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private string _toughness = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private string _artist = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkCommon;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkUncommon;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkRare;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkMythic;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkPrimarySide = true;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkNoVariations;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkIncludeTokens;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkCommanderOnly;
 
     /// <summary>When true, the advanced filter section (format/set/artist/special) is visible.</summary>
@@ -130,6 +152,15 @@ public partial class SearchFiltersViewModel : BaseViewModel
     private bool _isAdvancedVisible;
 
     public ObservableCollection<ColorFilterItem> ColorFilters { get; }
+
+    /// <summary>Number of active filters for the sticky header badge.</summary>
+    public int ActiveFilterCount => BuildSearchOptions().ActiveFilterCount;
+
+    /// <summary>True when any filters are active; used for summary row visibility.</summary>
+    public bool HasActiveFilters => ActiveFilterCount > 0;
+
+    /// <summary>Short summary of active filters for the sticky header.</summary>
+    public string FiltersSummaryText => BuildFiltersSummary(BuildSearchOptions());
 
     /// <summary>Call before showing the page. Loads sets and applies current options from the target.</summary>
     public void Configure(ISearchFilterTarget target, CardManager cardManager)
@@ -157,7 +188,12 @@ public partial class SearchFiltersViewModel : BaseViewModel
     {
         var item = ColorFilters.FirstOrDefault(c => c.Code == code);
         if (item != null)
+        {
             item.IsSelected = !item.IsSelected;
+            OnPropertyChanged(nameof(ActiveFilterCount));
+            OnPropertyChanged(nameof(HasActiveFilters));
+            OnPropertyChanged(nameof(FiltersSummaryText));
+        }
     }
 
     [RelayCommand]
@@ -211,6 +247,12 @@ public partial class SearchFiltersViewModel : BaseViewModel
     {
         LoadFromOptions(new SearchOptions());
         IsAdvancedVisible = false;
+    }
+
+    [RelayCommand]
+    private void ClearAll()
+    {
+        Reset();
     }
 
     [RelayCommand]
@@ -364,5 +406,88 @@ public partial class SearchFiltersViewModel : BaseViewModel
         ChkNoVariations = options.NoVariations;
         ChkIncludeTokens = options.IncludeTokens;
         ChkCommanderOnly = options.CommanderOnly;
+    }
+
+    private static string BuildFiltersSummary(SearchOptions options)
+    {
+        var parts = new List<string>();
+        AddTextAndTypeSummary(parts, options);
+        AddColorAndRaritySummary(parts, options);
+        AddCMCSummary(parts, options);
+        AddPowerToughnessSummary(parts, options);
+        AddFormatSetArtistSummary(parts, options);
+        AddSpecialSummary(parts, options);
+
+        if (parts.Count == 0)
+            return string.Empty;
+
+        var summary = string.Join(" • ", parts);
+        return summary.Length <= 120 ? summary : summary[..120] + "…";
+    }
+
+    private static void AddTextAndTypeSummary(List<string> parts, SearchOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.TextFilter))
+            parts.Add($"Text: \"{options.TextFilter}\"");
+
+        if (!string.IsNullOrWhiteSpace(options.TypeFilter) &&
+            !options.TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Type: {options.TypeFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.SubtypeFilter))
+            parts.Add($"Subtype: {options.SubtypeFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.SupertypeFilter))
+            parts.Add($"Supertype: {options.SupertypeFilter}");
+    }
+
+    private static void AddColorAndRaritySummary(List<string> parts, SearchOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.ColorFilter))
+            parts.Add($"Colors: {ColorFilterDisplay.ToDisplayString(options.ColorFilter)}");
+
+        if (options.RarityFilter.Count > 0)
+            parts.Add($"Rarity: {string.Join("/", options.RarityFilter)}");
+    }
+
+    private static void AddCMCSummary(List<string> parts, SearchOptions options)
+    {
+        if (options.UseCMCRange)
+            parts.Add($"CMC: {options.CMCMin}-{options.CMCMax}");
+        else if (options.UseCMCExact)
+            parts.Add($"CMC: {options.CMCExact}");
+    }
+
+    private static void AddPowerToughnessSummary(List<string> parts, SearchOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.PowerFilter))
+            parts.Add($"Power: {options.PowerFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.ToughnessFilter))
+            parts.Add($"Toughness: {options.ToughnessFilter}");
+    }
+
+    private static void AddFormatSetArtistSummary(List<string> parts, SearchOptions options)
+    {
+        if (options.UseLegalFormat)
+            parts.Add($"Format: {options.LegalFormat.ToDisplayName()}");
+
+        if (!string.IsNullOrWhiteSpace(options.SetFilter))
+            parts.Add($"Set: {options.SetFilter}");
+
+        if (!string.IsNullOrWhiteSpace(options.ArtistFilter))
+            parts.Add($"Artist: {options.ArtistFilter}");
+    }
+
+    private static void AddSpecialSummary(List<string> parts, SearchOptions options)
+    {
+        if (options.NoVariations)
+            parts.Add("No variations");
+
+        if (options.IncludeTokens)
+            parts.Add("Include tokens");
+
+        if (options.CommanderOnly)
+            parts.Add("Can be commander only");
     }
 }

@@ -4,6 +4,15 @@ namespace AetherVault.Controls;
 
 internal sealed class CardGridGestureHandler
 {
+    /// <summary>Minimum list scroll (Y) between touch down and up to treat the gesture as a scroll, not a tap.</summary>
+    private const double ScrollDeltaSuppressTap = 6d;
+
+    /// <summary>Squared distance (DIP) finger must move from press point to cancel a tap (thumb slop).</summary>
+    private const float TapCancelDistanceSquared = 10f * 10f;
+
+    /// <summary>Axis drift (DIP) that cancels long-press arming so ScrollView can take the pan.</summary>
+    private const float LongPressCancelAxisSlop = 8f;
+
     public event Action<string>? Tapped;
     public event Action<string>? LongPressed;
 
@@ -31,11 +40,18 @@ internal sealed class CardGridGestureHandler
 
     private readonly IDispatcher _dispatcher;
     private readonly Func<float, float, (string? uuid, int index)> _hitTest;
+    private readonly Func<double> _getScrollY;
 
-    public CardGridGestureHandler(IDispatcher dispatcher, Func<float, float, (string? uuid, int index)> hitTest)
+    private double _scrollYAtPress;
+
+    public CardGridGestureHandler(
+        IDispatcher dispatcher,
+        Func<float, float, (string? uuid, int index)> hitTest,
+        Func<double> getScrollY)
     {
         _dispatcher = dispatcher;
         _hitTest = hitTest;
+        _getScrollY = getScrollY;
         // Touch events are delivered by GestureSpacerView via OnGestureEvent.
     }
 
@@ -50,6 +66,7 @@ internal sealed class CardGridGestureHandler
 
         _pressPoint = new Point(x, y);
         _hasMovedBeyondTapThreshold = false;
+        _scrollYAtPress = _getScrollY();
         _gestureState = GestureState.PressTracking;
         _armedUuid = null;
         _armedIndex = -1;
@@ -88,17 +105,15 @@ internal sealed class CardGridGestureHandler
         switch (_gestureState)
         {
             case GestureState.PressTracking:
-                // Mark as moved for tap detection once the finger drifts a bit,
-                // but keep a slightly larger threshold for cancelling the
-                // long-press so users can still arm drag without it being
-                // overly fragile.
-                if (Math.Abs(x - _pressPoint.X) > 2 || Math.Abs(y - _pressPoint.Y) > 2)
                 {
-                    _hasMovedBeyondTapThreshold = true;
+                    float dx = x - (float)_pressPoint.X;
+                    float dy = y - (float)_pressPoint.Y;
+                    if (dx * dx + dy * dy > TapCancelDistanceSquared)
+                        _hasMovedBeyondTapThreshold = true;
                 }
 
-                // Cancel long-press if pointer drifts more (lets the ScrollView scroll)
-                if (Math.Abs(x - _pressPoint.X) > 4 || Math.Abs(y - _pressPoint.Y) > 4)
+                // Cancel long-press if pointer drifts (lets the ScrollView scroll)
+                if (Math.Abs(x - _pressPoint.X) > LongPressCancelAxisSlop || Math.Abs(y - _pressPoint.Y) > LongPressCancelAxisSlop)
                 {
                     _gestureState = GestureState.Idle;
                     _longPressTimer?.Stop();
@@ -130,11 +145,12 @@ internal sealed class CardGridGestureHandler
         switch (_gestureState)
         {
             case GestureState.PressTracking:
-                // Quick tap: fire Tapped and clear state, but only if the
-                // pointer has not drifted beyond the small tap threshold.
+                // Quick tap: only if finger stayed within slop and the list did not scroll
+                // (ScrollView often consumes pans, so we may not see pointer moves during scroll).
                 _gestureState = GestureState.Idle;
                 _longPressTimer?.Stop();
-                if (!_hasMovedBeyondTapThreshold)
+                bool scrolled = Math.Abs(_getScrollY() - _scrollYAtPress) >= ScrollDeltaSuppressTap;
+                if (!_hasMovedBeyondTapThreshold && !scrolled)
                 {
                     var tapPoint = _pressPoint;
                     MainThread.BeginInvokeOnMainThread(() =>

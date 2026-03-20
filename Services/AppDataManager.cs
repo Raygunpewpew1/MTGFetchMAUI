@@ -168,7 +168,8 @@ public static class AppDataManager
             // Location header, which encodes the release tag in its path segments:
             // .../releases/download/<TAG>/MTG_App_DB.zip
             using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(15), handler);
+            // Shorter timeout to avoid ANR window (10s) when device is offline; HEAD request is quick when online.
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(8), handler);
             using var request = new HttpRequestMessage(HttpMethod.Head, MTGConstants.DatabaseDownloadUrl);
             using var response = await client.SendAsync(request);
 

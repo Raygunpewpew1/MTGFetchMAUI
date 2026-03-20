@@ -55,7 +55,7 @@
 
             <!-- Tagline -->
             <Label x:Name="TaglineLabel"
-                   Text="Your Magic: The Gathering collection"
+                   Text="I Like Smurfs"
                    FontSize="15"
                    TextColor="{StaticResource SplashMuted}"
                    HorizontalOptions="Center"

@@ -161,7 +161,7 @@
                     </uranium:ExpanderView.Header>
                     <VerticalStackLayout Spacing="4" Padding="0,8,0,0">
                         <Label Text="AetherVault Mobile" FontSize="14" FontAttributes="Bold" />
-                        <Label Text="Version 1.0 (.NET MAUI)"
+                        <Label Text="Version 2.0 (.NET MAUI) Urainum UI 2.14.0"
                                FontSize="12" TextColor="{StaticResource TextSecondary}" />
                         <Label Text="Card data: MTGJSON | Images: Scryfall"
                                FontSize="11" TextColor="{StaticResource TextSecondary}" />
