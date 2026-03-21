@@ -42,6 +42,7 @@ Pages bind to ViewModels via MAUI data binding. ViewModels expose `ObservablePro
 - **DI Container**: All services, repositories, and ViewModels are registered in `MauiProgram.cs`. Register repositories via their interfaces (`ICardRepository`, etc.) to support testing.
 - **Navigation Context**: `Application.Current.MainPage` is obsolete in modern multi-window MAUI apps. Use `Application.Current!.Windows[0].Page!` or Shell navigation.
 - **ViewModel Navigation**: To resolve transient modal pages from a ViewModel without a Service Locator anti-pattern, inject `IServiceProvider` directly into the ViewModel's constructor and use `_serviceProvider.GetService<TPage>()`.
+- **Search filters UI**: Advanced search filters live in **`Pages/SearchFiltersSheet`** (Community Toolkit popup, UraniumUI fields), bound to **`SearchFiltersViewModel`**, opened via **`ISearchFiltersOpener`** / **`SearchFiltersOpenerService`**, registered transient in **`MauiProgram.cs`**. There is no `SearchFiltersPage`—that name is obsolete.
 
 ---
 

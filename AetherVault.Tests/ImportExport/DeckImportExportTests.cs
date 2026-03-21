@@ -14,7 +14,7 @@ public class DeckImportExportTests
         var deckRepo = new InMemoryDeckRepository();
         var cardRepo = new FakeCardRepository(new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase)
         {
-            ["uuid1"] = new Card { UUID = "uuid1", Name = "Opt", CardType = "Instant", Text = "", Legalities = LegalEverywhere() }
+            ["uuid1"] = new Card { Uuid = "uuid1", Name = "Opt", CardType = "Instant", Text = "", Legalities = LegalEverywhere() }
         });
 
         var validator = new DeckValidator(cardRepo);
@@ -47,8 +47,8 @@ public class DeckImportExportTests
         var deckRepo = new InMemoryDeckRepository();
         var cardRepo = new FakeCardRepository(new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase)
         {
-            ["uuidA"] = new Card { UUID = "uuidA", Name = "Shock", CardType = "Instant", Text = "", SetCode = "M21", Number = "159", ScryfallId = "s1", Legalities = LegalEverywhere() },
-            ["uuidB"] = new Card { UUID = "uuidB", Name = "Negate", CardType = "Instant", Text = "", SetCode = "M21", Number = "59", ScryfallId = "s2", Legalities = LegalEverywhere() },
+            ["uuidA"] = new Card { Uuid = "uuidA", Name = "Shock", CardType = "Instant", Text = "", SetCode = "M21", Number = "159", ScryfallId = "s1", Legalities = LegalEverywhere() },
+            ["uuidB"] = new Card { Uuid = "uuidB", Name = "Negate", CardType = "Instant", Text = "", SetCode = "M21", Number = "59", ScryfallId = "s2", Legalities = LegalEverywhere() },
         });
 
         var validator = new DeckValidator(cardRepo);
@@ -220,7 +220,7 @@ public class DeckImportExportTests
             _cards = cards;
         }
 
-        public Task<Card> GetCardByUUIDAsync(string uuid) => Task.FromResult(Get(uuid));
+        public Task<Card> GetCardByUuidAsync(string uuid) => Task.FromResult(Get(uuid));
         public Task<Card> GetCardDetailsAsync(string uuid) => Task.FromResult(Get(uuid));
         public Task<Card> GetCardWithLegalitiesAsync(string uuid) => Task.FromResult(Get(uuid));
         public Task<Card> GetCardWithRulingsAsync(string uuid) => Task.FromResult(Get(uuid));
@@ -233,7 +233,7 @@ public class DeckImportExportTests
         public Task<Card[]> GetCardWithOtherFacesAsync(string uuid) => Task.FromResult(new[] { Get(uuid) });
         public Task<Card[]> GetFullCardPackageAsync(string uuid) => Task.FromResult(new[] { Get(uuid) });
 
-        public Task<Dictionary<string, Card>> GetCardsByUUIDsAsync(string[] uuids)
+        public Task<Dictionary<string, Card>> GetCardsByUuiDsAsync(string[] uuids)
         {
             var result = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
             foreach (var u in uuids)
@@ -248,9 +248,9 @@ public class DeckImportExportTests
             Task.FromResult<IReadOnlyList<ImportLookupRow>>([]);
 
         public Task<Card[]> SearchCardsAsync(string searchText, int limit = 100) => throw new NotImplementedException();
-        public Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
-        public Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
-        public MTGSearchHelper CreateSearchHelper() => throw new NotImplementedException();
+        public Task<Card[]> SearchCardsAdvancedAsync(MtgSearchHelper searchHelper) => throw new NotImplementedException();
+        public Task<int> GetCountAdvancedAsync(MtgSearchHelper searchHelper) => throw new NotImplementedException();
+        public MtgSearchHelper CreateSearchHelper() => throw new NotImplementedException();
         public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
         public Task<bool> HasFtsAsync() => Task.FromResult(false);
         public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
@@ -270,7 +270,7 @@ public class DeckImportExportTests
         {
             if (_cards.TryGetValue(uuid, out var card))
                 return card;
-            return new Card { UUID = uuid, Name = uuid, CardType = "Instant", Text = "" };
+            return new Card { Uuid = uuid, Name = uuid, CardType = "Instant", Text = "" };
         }
     }
 }

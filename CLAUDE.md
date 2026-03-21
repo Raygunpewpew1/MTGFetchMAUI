@@ -75,7 +75,7 @@ AetherVault/
 ├── Pages/
 │   ├── SearchPage.xaml/.cs          # Main card search UI (UraniumUI Material Design inputs)
 │   ├── CardDetailPage.xaml/.cs      # Card detail display with swipe-to-navigate
-│   ├── SearchFiltersPage.xaml/.cs   # Advanced search filter UI
+│   ├── SearchFiltersSheet.xaml/.cs  # Advanced search filters (popup sheet)
 │   ├── CollectionPage.xaml/.cs      # User collection management
 │   ├── StatsPage.xaml/.cs           # Statistics and analytics
 │   ├── LoadingPage.xaml/.cs         # Splash/loading screen
@@ -88,8 +88,7 @@ AetherVault/
 │   ├── CardTextView.cs              # Custom text view (Android handler)
 │   ├── ManaCostView.cs              # Mana cost symbol strip
 │   ├── ManaSymbolView.cs            # Individual mana symbol renderer
-│   ├── SwipeGestureContainer.cs     # Swipe left/right gesture wrapper (AppoMobi gestures)
-│   └── GridCardData.cs              # Card data structure for grid rendering
+│   └── SwipeGestureContainer.cs     # Swipe left/right gesture wrapper (AppoMobi gestures)
 │
 ├── Core/
 │   ├── Enums.cs                     # Central enum definitions (see below)

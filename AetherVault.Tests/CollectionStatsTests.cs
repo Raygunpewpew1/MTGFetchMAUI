@@ -16,19 +16,19 @@ public class CollectionStatsTests
             new CollectionItem
             {
                 Quantity = 4,
-                Card = new Card { CMC = 2, CardType = "Creature", Rarity = CardRarity.Common }
+                Card = new Card { Cmc = 2, CardType = "Creature", Rarity = CardRarity.Common }
             },
             // 2x 3-CMC Instant (Spell)
             new CollectionItem
             {
                 Quantity = 2,
-                Card = new Card { CMC = 3, CardType = "Instant", Rarity = CardRarity.Uncommon }
+                Card = new Card { Cmc = 3, CardType = "Instant", Rarity = CardRarity.Uncommon }
             },
             // 4x Land (CMC 0)
             new CollectionItem
             {
                 Quantity = 4,
-                Card = new Card { CMC = 0, CardType = "Land", Rarity = CardRarity.Rare }
+                Card = new Card { Cmc = 0, CardType = "Land", Rarity = CardRarity.Rare }
             }
         };
 
@@ -50,26 +50,26 @@ public class CollectionStatsTests
         Assert.Equal(4, stats.RareCount);
 
         // Avg CMC (Non-Lands): (4*2 + 2*3) / (4 + 2) = (8 + 6) / 6 = 14/6 = 2.333...
-        Assert.Equal(2.33, stats.AvgCMC, 2);
+        Assert.Equal(2.33, stats.AvgCmc, 2);
     }
 
     [Fact]
-    public void CalculateStats_NoCards_ShouldReturnZeroAvgCMC()
+    public void CalculateStats_NoCards_ShouldReturnZeroAvgCmc()
     {
         var items = Array.Empty<CollectionItem>();
         var stats = CollectionRepository.CalculateStats(items);
-        Assert.Equal(0, stats.AvgCMC);
+        Assert.Equal(0, stats.AvgCmc);
     }
 
     [Fact]
-    public void CalculateStats_OnlyLands_ShouldReturnZeroAvgCMC()
+    public void CalculateStats_OnlyLands_ShouldReturnZeroAvgCmc()
     {
         var items = new[]
         {
-            new CollectionItem { Quantity = 4, Card = new Card { CMC = 0, CardType = "Land" } }
+            new CollectionItem { Quantity = 4, Card = new Card { Cmc = 0, CardType = "Land" } }
         };
         var stats = CollectionRepository.CalculateStats(items);
-        Assert.Equal(0, stats.AvgCMC);
+        Assert.Equal(0, stats.AvgCmc);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class CollectionStatsTests
     {
         var items = new[]
         {
-            new CollectionItem { Quantity = 2, Card = new Card { CMC = 5, CardType = "Creature", Rarity = CardRarity.Mythic } }
+            new CollectionItem { Quantity = 2, Card = new Card { Cmc = 5, CardType = "Creature", Rarity = CardRarity.Mythic } }
         };
         var stats = CollectionRepository.CalculateStats(items);
         Assert.Equal(2, stats.MythicCount);
@@ -92,7 +92,7 @@ public class CollectionStatsTests
         // Special and Bonus rarities fall through the switch — none of the four buckets increase
         var items = new[]
         {
-            new CollectionItem { Quantity = 1, Card = new Card { CMC = 3, CardType = "Creature", Rarity = CardRarity.Special } }
+            new CollectionItem { Quantity = 1, Card = new Card { Cmc = 3, CardType = "Creature", Rarity = CardRarity.Special } }
         };
         var stats = CollectionRepository.CalculateStats(items);
         Assert.Equal(0, stats.CommonCount);
@@ -111,7 +111,7 @@ public class CollectionStatsTests
             {
                 Quantity = 3,
                 IsFoil = true,
-                Card = new Card { CMC = 2, CardType = "Creature", Rarity = CardRarity.Rare }
+                Card = new Card { Cmc = 2, CardType = "Creature", Rarity = CardRarity.Rare }
             }
         };
         var stats = CollectionRepository.CalculateStats(items);
@@ -127,7 +127,7 @@ public class CollectionStatsTests
             {
                 Quantity = 1,
                 IsEtched = true,
-                Card = new Card { CMC = 2, CardType = "Instant", Rarity = CardRarity.Uncommon }
+                Card = new Card { Cmc = 2, CardType = "Instant", Rarity = CardRarity.Uncommon }
             }
         };
         var stats = CollectionRepository.CalculateStats(items);
@@ -137,18 +137,18 @@ public class CollectionStatsTests
     [Fact]
     public void CalculateStats_ZeroCMCNonLand_IncludedInAvgCalc()
     {
-        // A 0-CMC creature (e.g. Memnite) is not a land, so it IS counted in AvgCMC
+        // A 0-CMC creature (e.g. Memnite) is not a land, so it IS counted in AvgCmc
         // and brings the average down compared to not including it
         var items = new[]
         {
             // 4x 4-CMC creature
-            new CollectionItem { Quantity = 4, Card = new Card { CMC = 4, CardType = "Creature", Rarity = CardRarity.Common } },
+            new CollectionItem { Quantity = 4, Card = new Card { Cmc = 4, CardType = "Creature", Rarity = CardRarity.Common } },
             // 4x 0-CMC creature
-            new CollectionItem { Quantity = 4, Card = new Card { CMC = 0, CardType = "Creature", Rarity = CardRarity.Common } }
+            new CollectionItem { Quantity = 4, Card = new Card { Cmc = 0, CardType = "Creature", Rarity = CardRarity.Common } }
         };
         var stats = CollectionRepository.CalculateStats(items);
-        // AvgCMC = (4*4 + 4*0) / 8 = 16/8 = 2.0
-        Assert.Equal(2.0, stats.AvgCMC, 2);
+        // AvgCmc = (4*4 + 4*0) / 8 = 16/8 = 2.0
+        Assert.Equal(2.0, stats.AvgCmc, 2);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public class CollectionStatsTests
         // IsCreature is checked first in the if/else chain
         var items = new[]
         {
-            new CollectionItem { Quantity = 2, Card = new Card { CMC = 3, CardType = "Artifact Creature", Rarity = CardRarity.Common } }
+            new CollectionItem { Quantity = 2, Card = new Card { Cmc = 3, CardType = "Artifact Creature", Rarity = CardRarity.Common } }
         };
         var stats = CollectionRepository.CalculateStats(items);
         Assert.Equal(2, stats.CreatureCount);
@@ -171,7 +171,7 @@ public class CollectionStatsTests
         // Planeswalker is neither Creature nor Land — falls into SpellCount
         var items = new[]
         {
-            new CollectionItem { Quantity = 1, Card = new Card { CMC = 4, CardType = "Legendary Planeswalker", Rarity = CardRarity.Mythic } }
+            new CollectionItem { Quantity = 1, Card = new Card { Cmc = 4, CardType = "Legendary Planeswalker", Rarity = CardRarity.Mythic } }
         };
         var stats = CollectionRepository.CalculateStats(items);
         Assert.Equal(1, stats.SpellCount);

@@ -1,4 +1,4 @@
-namespace AetherVault;
+namespace AetherVault.Constants;
 
 /// <summary>
 /// Centralized user-facing status and error messages for consistency and easier localization.

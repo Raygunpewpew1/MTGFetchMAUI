@@ -82,16 +82,16 @@ public class SearchOptionsTests
     }
 
     [Fact]
-    public void ActiveFilterCount_WithUseCMCRange_IsOne()
+    public void ActiveFilterCount_WithUseCmcRange_IsOne()
     {
-        var options = new SearchOptions { UseCMCRange = true };
+        var options = new SearchOptions { UseCmcRange = true };
         Assert.Equal(1, options.ActiveFilterCount);
     }
 
     [Fact]
-    public void ActiveFilterCount_WithUseCMCExact_IsOne()
+    public void ActiveFilterCount_WithUseCmcExact_IsOne()
     {
-        var options = new SearchOptions { UseCMCExact = true };
+        var options = new SearchOptions { UseCmcExact = true };
         Assert.Equal(1, options.ActiveFilterCount);
     }
 

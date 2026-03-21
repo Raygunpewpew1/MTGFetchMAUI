@@ -29,7 +29,7 @@ public class DeckBuilderTests
         _cardRepo.AddCard(card);
 
         // Act
-        var result = await _service.AddCardAsync(deckId, card.UUID, 4);
+        var result = await _service.AddCardAsync(deckId, card.Uuid, 4);
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -47,7 +47,7 @@ public class DeckBuilderTests
         _cardRepo.AddCard(card);
 
         // Act
-        var result = await _service.AddCardAsync(deckId, card.UUID, 1);
+        var result = await _service.AddCardAsync(deckId, card.Uuid, 1);
 
         // Assert
         Assert.True(result.IsError);
@@ -65,8 +65,8 @@ public class DeckBuilderTests
         _cardRepo.AddCard(card);
 
         // Act
-        await _service.AddCardAsync(deckId, card.UUID, 4);
-        var result = await _service.AddCardAsync(deckId, card.UUID, 1);
+        await _service.AddCardAsync(deckId, card.Uuid, 4);
+        var result = await _service.AddCardAsync(deckId, card.Uuid, 1);
 
         // Assert
         Assert.True(result.IsError);
@@ -86,13 +86,13 @@ public class DeckBuilderTests
         _cardRepo.AddCard(commander);
 
         // Act
-        var result = await _service.SetCommanderAsync(deckId, commander.UUID);
+        var result = await _service.SetCommanderAsync(deckId, commander.Uuid);
 
         // Assert
         Assert.True(result.IsSuccess);
         var deck = await _deckRepo.GetDeckAsync(deckId);
         Assert.NotNull(deck);
-        Assert.Equal(commander.UUID, deck!.CommanderId);
+        Assert.Equal(commander.Uuid, deck!.CommanderId);
         Assert.Equal("WU", deck.ColorIdentity);
     }
 
@@ -107,14 +107,14 @@ public class DeckBuilderTests
         commander.Colors = "W"; // White only
         _cardRepo.AddCard(commander);
 
-        await _service.SetCommanderAsync(deckId, commander.UUID);
+        await _service.SetCommanderAsync(deckId, commander.Uuid);
 
         var redCard = CreateCard("red-1", "Red Card", DeckFormat.Commander, LegalityStatus.Legal);
         redCard.Colors = "R";
         _cardRepo.AddCard(redCard);
 
         // Act
-        var result = await _service.AddCardAsync(deckId, redCard.UUID, 1);
+        var result = await _service.AddCardAsync(deckId, redCard.Uuid, 1);
 
         // Assert
         Assert.True(result.IsError);
@@ -138,7 +138,7 @@ public class DeckBuilderTests
     {
         var card = CreateCard("uuid-x", "Some Card", DeckFormat.Standard, LegalityStatus.Legal);
         _cardRepo.AddCard(card);
-        var result = await _service.AddCardAsync(9999, card.UUID, 1);
+        var result = await _service.AddCardAsync(9999, card.Uuid, 1);
         Assert.True(result.IsError);
         Assert.Contains("Deck not found", result.Message);
     }
@@ -170,8 +170,8 @@ public class DeckBuilderTests
         land.CardType = "Basic Land — Forest"; // triggers IsBasicLand
         _cardRepo.AddCard(land);
 
-        await _service.AddCardAsync(deckId, land.UUID, 4);
-        var result = await _service.AddCardAsync(deckId, land.UUID, 20); // total 24
+        await _service.AddCardAsync(deckId, land.Uuid, 4);
+        var result = await _service.AddCardAsync(deckId, land.Uuid, 20); // total 24
 
         Assert.True(result.IsSuccess);
     }
@@ -218,8 +218,8 @@ public class DeckBuilderTests
         var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
         Assert.Equal(2, deckCards.Count);
 
-        var plainsQty = deckCards.First(c => c.CardId == plains.UUID).Quantity;
-        var islandQty = deckCards.First(c => c.CardId == island.UUID).Quantity;
+        var plainsQty = deckCards.First(c => c.CardId == plains.Uuid).Quantity;
+        var islandQty = deckCards.First(c => c.CardId == island.Uuid).Quantity;
 
         Assert.Equal(19, plainsQty);
         Assert.Equal(18, islandQty);
@@ -236,7 +236,7 @@ public class DeckBuilderTests
         commander.Colors = "W,U,B";
         _cardRepo.AddCard(commander);
 
-        var setResult = await _service.SetCommanderAsync(deckId, commander.UUID);
+        var setResult = await _service.SetCommanderAsync(deckId, commander.Uuid);
         Assert.True(setResult.IsSuccess);
 
         var deck = await _deckRepo.GetDeckAsync(deckId);
@@ -279,8 +279,8 @@ public class DeckBuilderTests
         relentless.Text = "A deck can have any number of cards named Relentless Rats.";
         _cardRepo.AddCard(relentless);
 
-        await _service.AddCardAsync(deckId, relentless.UUID, 4);
-        var result = await _service.AddCardAsync(deckId, relentless.UUID, 20);
+        await _service.AddCardAsync(deckId, relentless.Uuid, 4);
+        var result = await _service.AddCardAsync(deckId, relentless.Uuid, 20);
 
         Assert.True(result.IsSuccess);
     }
@@ -291,7 +291,7 @@ public class DeckBuilderTests
         var deckId = await _service.CreateDeckAsync("Vintage Deck", DeckFormat.Vintage);
         var restricted = new Card
         {
-            UUID = "restricted-1",
+            Uuid = "restricted-1",
             Name = "Black Lotus",
             CardType = "Artifact",
             Legalities = new CardLegalities(),
@@ -301,7 +301,7 @@ public class DeckBuilderTests
         restricted.Legalities[DeckFormat.Vintage] = LegalityStatus.Restricted;
         _cardRepo.AddCard(restricted);
 
-        var result = await _service.AddCardAsync(deckId, restricted.UUID, 1);
+        var result = await _service.AddCardAsync(deckId, restricted.Uuid, 1);
         Assert.True(result.IsSuccess);
     }
 
@@ -311,7 +311,7 @@ public class DeckBuilderTests
         var deckId = await _service.CreateDeckAsync("Vintage Deck", DeckFormat.Vintage);
         var restricted = new Card
         {
-            UUID = "restricted-2",
+            Uuid = "restricted-2",
             Name = "Ancestral Recall",
             CardType = "Instant",
             Legalities = new CardLegalities(),
@@ -321,8 +321,8 @@ public class DeckBuilderTests
         restricted.Legalities[DeckFormat.Vintage] = LegalityStatus.Restricted;
         _cardRepo.AddCard(restricted);
 
-        await _service.AddCardAsync(deckId, restricted.UUID, 1);
-        var result = await _service.AddCardAsync(deckId, restricted.UUID, 1); // total 2
+        await _service.AddCardAsync(deckId, restricted.Uuid, 1);
+        var result = await _service.AddCardAsync(deckId, restricted.Uuid, 1); // total 2
 
         Assert.True(result.IsError);
         Assert.Contains("Restricted", result.Message);
@@ -338,7 +338,7 @@ public class DeckBuilderTests
         card.CardType = "Legendary Creature";
         _cardRepo.AddCard(card);
 
-        var result = await _service.SetCommanderAsync(deckId, card.UUID);
+        var result = await _service.SetCommanderAsync(deckId, card.Uuid);
         Assert.True(result.IsError);
         Assert.Contains("format does not support commanders", result.Message);
     }
@@ -351,7 +351,7 @@ public class DeckBuilderTests
         card.CardType = "Creature — Bear"; // NOT Legendary
         _cardRepo.AddCard(card);
 
-        var result = await _service.SetCommanderAsync(deckId, card.UUID);
+        var result = await _service.SetCommanderAsync(deckId, card.Uuid);
         Assert.True(result.IsError);
         Assert.Contains("cannot be a commander", result.Message);
     }
@@ -362,7 +362,7 @@ public class DeckBuilderTests
         var deckId = await _service.CreateDeckAsync("Brawl Deck", DeckFormat.Brawl);
         var pw = new Card
         {
-            UUID = "pw-1",
+            Uuid = "pw-1",
             Name = "Jace, the Mind Sculptor",
             CardType = "Legendary Planeswalker — Jace",
             Legalities = new CardLegalities(),
@@ -372,7 +372,7 @@ public class DeckBuilderTests
         pw.Legalities[DeckFormat.Brawl] = LegalityStatus.Legal;
         _cardRepo.AddCard(pw);
 
-        var result = await _service.SetCommanderAsync(deckId, pw.UUID);
+        var result = await _service.SetCommanderAsync(deckId, pw.Uuid);
         Assert.True(result.IsSuccess);
     }
 
@@ -385,7 +385,7 @@ public class DeckBuilderTests
         card.Colors = "R";
         _cardRepo.AddCard(card);
 
-        var result = await _service.AddCardAsync(deckId, card.UUID, 1);
+        var result = await _service.AddCardAsync(deckId, card.Uuid, 1);
         Assert.True(result.IsSuccess);
     }
 
@@ -396,8 +396,8 @@ public class DeckBuilderTests
         var card = CreateCard("sol-ring", "Sol Ring", DeckFormat.Commander, LegalityStatus.Legal);
         _cardRepo.AddCard(card);
 
-        await _service.AddCardAsync(deckId, card.UUID, 1);
-        var result = await _service.AddCardAsync(deckId, card.UUID, 1); // total 2
+        await _service.AddCardAsync(deckId, card.Uuid, 1);
+        var result = await _service.AddCardAsync(deckId, card.Uuid, 1); // total 2
 
         Assert.True(result.IsError);
         Assert.Contains("more than 1 copies", result.Message);
@@ -411,9 +411,9 @@ public class DeckBuilderTests
         var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
         var card = CreateCard("uuid-rm1", "Card To Remove", DeckFormat.Standard, LegalityStatus.Legal);
         _cardRepo.AddCard(card);
-        await _service.AddCardAsync(deckId, card.UUID, 2);
+        await _service.AddCardAsync(deckId, card.Uuid, 2);
 
-        var result = await _service.UpdateQuantityAsync(deckId, card.UUID, 0, "Main");
+        var result = await _service.UpdateQuantityAsync(deckId, card.Uuid, 0, "Main");
 
         Assert.True(result.IsSuccess);
         var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
@@ -426,9 +426,9 @@ public class DeckBuilderTests
         var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
         var card = CreateCard("uuid-rm2", "Card To Remove", DeckFormat.Standard, LegalityStatus.Legal);
         _cardRepo.AddCard(card);
-        await _service.AddCardAsync(deckId, card.UUID, 2);
+        await _service.AddCardAsync(deckId, card.Uuid, 2);
 
-        var result = await _service.UpdateQuantityAsync(deckId, card.UUID, -1, "Main");
+        var result = await _service.UpdateQuantityAsync(deckId, card.Uuid, -1, "Main");
 
         Assert.True(result.IsSuccess);
         var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
@@ -441,9 +441,9 @@ public class DeckBuilderTests
         var deckId = await _service.CreateDeckAsync("Standard Deck", DeckFormat.Standard);
         var card = CreateCard("uuid-del1", "Removable Card", DeckFormat.Standard, LegalityStatus.Legal);
         _cardRepo.AddCard(card);
-        await _service.AddCardAsync(deckId, card.UUID, 2);
+        await _service.AddCardAsync(deckId, card.Uuid, 2);
 
-        await _service.RemoveCardAsync(deckId, card.UUID, "Main");
+        await _service.RemoveCardAsync(deckId, card.Uuid, "Main");
 
         var deckCards = await _deckRepo.GetDeckCardsAsync(deckId);
         Assert.Empty(deckCards);
@@ -458,11 +458,11 @@ public class DeckBuilderTests
         var card = CreateCard("uuid-multi", "Versatile Card", DeckFormat.Standard, LegalityStatus.Legal);
         _cardRepo.AddCard(card);
 
-        await _service.AddCardAsync(deckId, card.UUID, 4, "Main");
+        await _service.AddCardAsync(deckId, card.Uuid, 4, "Main");
         // Note: adding to sideboard after 4 in main will fail total-quantity check
         // because GetTotalQuantity sums across all sections.
         // This test documents the current behavior.
-        var sideResult = await _service.AddCardAsync(deckId, card.UUID, 1, "Sideboard");
+        var sideResult = await _service.AddCardAsync(deckId, card.Uuid, 1, "Sideboard");
 
         // Expect error: total across all sections (4+1=5) exceeds max 4
         Assert.True(sideResult.IsError);
@@ -473,7 +473,7 @@ public class DeckBuilderTests
     {
         var card = new Card
         {
-            UUID = uuid,
+            Uuid = uuid,
             Name = name,
             CardType = "Creature",
             Legalities = new CardLegalities(),
@@ -583,7 +583,7 @@ public class MockCardRepository : ICardRepository
 
     public void AddCard(Card card)
     {
-        _cards[card.UUID] = card;
+        _cards[card.Uuid] = card;
     }
 
     public Task<Card> GetCardDetailsAsync(string uuid)
@@ -592,7 +592,7 @@ public class MockCardRepository : ICardRepository
     }
 
     // Stub other methods
-    public Task<Card> GetCardByUUIDAsync(string uuid) => GetCardDetailsAsync(uuid);
+    public Task<Card> GetCardByUuidAsync(string uuid) => GetCardDetailsAsync(uuid);
     public Task<Card> GetCardWithLegalitiesAsync(string uuid) => GetCardDetailsAsync(uuid);
     public Task<Card> GetCardWithRulingsAsync(string uuid) => GetCardDetailsAsync(uuid);
     public Task<Card> GetCardByFaceNameAndSetAsync(string faceName, string setCode) => throw new NotImplementedException();
@@ -601,7 +601,7 @@ public class MockCardRepository : ICardRepository
     public Task<string[]> GetOtherFaceIdsAsync(string uuid) => throw new NotImplementedException();
     public Task<Card[]> GetCardWithOtherFacesAsync(string uuid) => throw new NotImplementedException();
     public Task<Card[]> GetFullCardPackageAsync(string uuid) => throw new NotImplementedException();
-    public Task<Dictionary<string, Card>> GetCardsByUUIDsAsync(string[] uuids)
+    public Task<Dictionary<string, Card>> GetCardsByUuiDsAsync(string[] uuids)
     {
         var dict = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
         foreach (var id in uuids)
@@ -622,7 +622,7 @@ public class MockCardRepository : ICardRepository
         return Task.FromResult(result);
     }
 
-    public Task<Card[]> SearchCardsAdvancedAsync(MTGSearchHelper searchHelper)
+    public Task<Card[]> SearchCardsAdvancedAsync(MtgSearchHelper searchHelper)
     {
         // Minimal interpretation of the helper's parameters for unit tests.
         // This intentionally does NOT try to execute SQL; it just honors the key filters used by DeckBuilderService.
@@ -652,8 +652,8 @@ public class MockCardRepository : ICardRepository
         return Task.FromResult(query.Take(1).ToArray());
     }
 
-    public Task<int> GetCountAdvancedAsync(MTGSearchHelper searchHelper) => throw new NotImplementedException();
-    public MTGSearchHelper CreateSearchHelper() => new();
+    public Task<int> GetCountAdvancedAsync(MtgSearchHelper searchHelper) => throw new NotImplementedException();
+    public MtgSearchHelper CreateSearchHelper() => new();
     public Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync() => Task.FromResult<IReadOnlyList<ImportLookupRow>>([]);
     public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
     public Task<bool> HasFtsAsync() => Task.FromResult(false);

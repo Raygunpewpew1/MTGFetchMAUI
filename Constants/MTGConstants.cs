@@ -1,6 +1,6 @@
 using AetherVault.Core;
 
-namespace AetherVault;
+namespace AetherVault.Constants;
 
 /// <summary>
 /// Centralized constants for the AetherVault application.
@@ -64,7 +64,7 @@ public static class MtgConstants
     public const string ImageSizeArtCrop = "art_crop";
     public const string ImageSizeBorderCrop = "border_crop";
 
-    // ── Scryfall API ────────────────────────────────────────────────
+    // ── Screwball API ────────────────────────────────────────────────
 
     public const string ScryfallImageUrlFormat =
         "https://api.scryfall.com/cards/{0}?format=image&version={1}";

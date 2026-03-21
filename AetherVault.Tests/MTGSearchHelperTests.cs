@@ -3,13 +3,13 @@ using AetherVault.Data;
 
 namespace AetherVault.Tests;
 
-public class MTGSearchHelperTests
+public class MtgSearchHelperTests
 {
     [Fact]
     public void OrderBy_Ascending_AppendsCorrectClause()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -26,7 +26,7 @@ public class MTGSearchHelperTests
     public void OrderBy_Descending_AppendsCorrectClause()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -42,7 +42,7 @@ public class MTGSearchHelperTests
     public void OrderBy_OverwritesPreviousCall()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -62,7 +62,7 @@ public class MTGSearchHelperTests
     {
         // Edge case: empty string field
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -79,7 +79,7 @@ public class MTGSearchHelperTests
     public void OrderBy_WithOtherClauses_PositionsCorrectly()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -104,7 +104,7 @@ public class MTGSearchHelperTests
     public void WhereColors_MultipleColors_UsesOR()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -122,7 +122,7 @@ public class MTGSearchHelperTests
     public void WhereLegalIn_UsesLike()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -138,7 +138,7 @@ public class MTGSearchHelperTests
     public void IncludeAllFaces_SkipsPrimarySideFilter()
     {
         // Arrange
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
 
         // Act
         helper.SearchCards()
@@ -155,7 +155,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereColors_EmptyString_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereColors("");
         var result = helper.Build();
         Assert.DoesNotContain("c.colors", result.sql);
@@ -164,7 +164,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereColors_WhitespaceOnly_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereColors("   ");
         var result = helper.Build();
         Assert.DoesNotContain("c.colors", result.sql);
@@ -173,7 +173,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereColors_SingleColor_SingleCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereColors("W");
         var result = helper.Build();
         Assert.Contains("c.colors LIKE", result.sql);
@@ -184,7 +184,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereColors_Colorless_UsesEmptyColorsCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereColors("C");
         var result = helper.Build();
         // Colorless cards have empty colors in MTGJSON, not "C"
@@ -196,7 +196,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereType_EmptyArray_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereType(Array.Empty<string>());
         var result = helper.Build();
         Assert.DoesNotContain("c.type LIKE", result.sql);
@@ -205,7 +205,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereSubtype_EmptyString_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereSubtype("");
         var result = helper.Build();
         Assert.DoesNotContain("c.subtypes", result.sql);
@@ -214,7 +214,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereSubtype_ArrayOfAllBlanks_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereSubtype(new[] { "  ", "\t", "" });
         var result = helper.Build();
         Assert.DoesNotContain("c.subtypes", result.sql);
@@ -223,7 +223,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereRarity_EmptyArray_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereRarity(Array.Empty<CardRarity>());
         var result = helper.Build();
         Assert.DoesNotContain("rarity", result.sql);
@@ -232,7 +232,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereLegalInAny_EmptyArray_AddsNoCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereLegalInAny(Array.Empty<DeckFormat>());
         var result = helper.Build();
         // No WHERE legality condition added, but SELECT still contains standard
@@ -245,7 +245,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereType_Array_MultipleTypes_UsesOR()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereType(new[] { "Creature", "Instant" });
         var result = helper.Build();
         Assert.Contains("OR", result.sql);
@@ -255,7 +255,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereRarity_Single_UsesINClause()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereRarity(CardRarity.Rare);
         var result = helper.Build();
         Assert.Contains("c.rarity IN (", result.sql);
@@ -264,7 +264,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereRarity_Multiple_AllInSingleINClause()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereRarity(new[] { CardRarity.Rare, CardRarity.Mythic });
         var result = helper.Build();
         // Should have one IN clause with both values
@@ -276,7 +276,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WherePower_AddsCondition()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WherePower("2");
         var result = helper.Build();
         Assert.Contains("c.power", result.sql);
@@ -284,11 +284,11 @@ public class MTGSearchHelperTests
     }
 
     [Fact]
-    public void WhereUUID_AddsCondition()
+    public void WhereUuid_AddsCondition()
     {
         var uuid = "abc-123";
-        var helper = new MTGSearchHelper();
-        helper.SearchCards().WhereUUID(uuid);
+        var helper = new MtgSearchHelper();
+        helper.SearchCards().WhereUuid(uuid);
         var result = helper.Build();
         Assert.Contains("c.uuid", result.sql);
         Assert.Single(result.parameters, p => p.value.Equals(uuid));
@@ -297,20 +297,20 @@ public class MTGSearchHelperTests
     // ── Numeric filter tests ──────────────────────────────────────────
 
     [Fact]
-    public void WhereCMC_ExactValue_AddsManaValueCondition()
+    public void WhereCmc_ExactValue_AddsManaValueCondition()
     {
-        var helper = new MTGSearchHelper();
-        helper.SearchCards().WhereCMC(3);
+        var helper = new MtgSearchHelper();
+        helper.SearchCards().WhereCmc(3);
         var result = helper.Build();
         Assert.Contains("manaValue", result.sql);
         Assert.Single(result.parameters, p => p.value.Equals(3.0));
     }
 
     [Fact]
-    public void WhereCMCBetween_AddsAndClause()
+    public void WhereCmcBetween_AddsAndClause()
     {
-        var helper = new MTGSearchHelper();
-        helper.SearchCards().WhereCMCBetween(2, 5);
+        var helper = new MtgSearchHelper();
+        helper.SearchCards().WhereCmcBetween(2, 5);
         var result = helper.Build();
         Assert.Contains("AND @", result.sql);
         Assert.Contains("manaValue", result.sql);
@@ -321,7 +321,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereManaValue_WithOperator_AddsCustomOperator()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereManaValue(3, "<");
         var result = helper.Build();
         Assert.Contains("c.manaValue <", result.sql);
@@ -332,7 +332,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereLegalIn_BannedStatus_UsesBannedParam()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereBannedIn(DeckFormat.Standard);
         var result = helper.Build();
         Assert.Contains("cl.standard", result.sql);
@@ -342,7 +342,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void WhereLegalInAny_MultipleFormats_UsesOR()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereLegalInAny(new[] { DeckFormat.Standard, DeckFormat.Modern });
         var result = helper.Build();
         Assert.Contains("cl.standard", result.sql);
@@ -355,7 +355,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void BuildCount_WrapsInCountQuery()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().WhereNameContains("Dragon");
         var result = helper.BuildCount();
         Assert.Contains("SELECT COUNT(*)", result.sql);
@@ -364,11 +364,11 @@ public class MTGSearchHelperTests
     [Fact]
     public void SearchMyCollection_UsesCollectionBase()
     {
-        var cardHelper = new MTGSearchHelper();
+        var cardHelper = new MtgSearchHelper();
         cardHelper.SearchCards();
         var cardSql = cardHelper.Build().sql;
 
-        var collHelper = new MTGSearchHelper();
+        var collHelper = new MtgSearchHelper();
         collHelper.SearchMyCollection();
         var collSql = collHelper.Build().sql;
 
@@ -378,7 +378,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void Limit_AppendsLimitClause()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().Limit(10);
         var result = helper.Build();
         Assert.Contains("LIMIT 10", result.sql);
@@ -387,7 +387,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void Offset_AppendsOffsetClause()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards().Offset(25);
         var result = helper.Build();
         Assert.Contains("OFFSET 25", result.sql);
@@ -398,7 +398,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void MultipleWhere_JoinedWithAND()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards()
               .WhereNameContains("Dragon")
               .WhereTextContains("flying");
@@ -411,7 +411,7 @@ public class MTGSearchHelperTests
     [Fact]
     public void Build_Default_AddsSidePrimaryFilter()
     {
-        var helper = new MTGSearchHelper();
+        var helper = new MtgSearchHelper();
         helper.SearchCards();
         var result = helper.Build();
         Assert.Contains("c.side", result.sql);

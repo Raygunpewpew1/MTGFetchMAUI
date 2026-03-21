@@ -1,117 +1,25 @@
-#-------------------------------------------------------------------------------#
-#               Qodana analysis is configured by qodana.yaml file               #
-#             https://www.jetbrains.com/help/qodana/qodana-yaml.html            #
-#-------------------------------------------------------------------------------#
-#################################################################################
-#              WARNING: Do not store sensitive information in this file,        #
-#               as its contents will be included in the Qodana report.          #
-#################################################################################
-version: "1.0"
-#Specify IDE code to run analysis without container (Applied in CI/CD pipeline)
-ide: QDNET
-#Specify inspection profile for code analysis
-profile:
-  name: qodana.starter
-include:
-  - name: ConvertIfStatementToReturnStatement
-  - name: ConvertIfStatementToConditionalTernaryExpression
-  - name: ArrangeStaticMemberQualifier
-  - name: AndroidDomInspection
-  - name: AsyncMethodWithoutAwait
-  - name: AutoPropertyCanBeMadeGetOnly.Global
-  - name: AsyncVoidEventHandlerMethod
-  - name: AsyncVoidMethod
-  - name: CanSimplifySetAddingWithSingleCall
-  - name: ChangeFieldTypeToSystemThreadingLock
-  - name: ClassNeverInstantiated.Global
-  - name: ConvertIfStatementToSwitchStatement
-  - name: ConvertConstructorToMemberInitializers
-  - name: ConvertToPrimaryConstructor
-  - name: ConvertToExtensionBlock
-  - name: UseAwaitUsing
-  - name: ConvertClosureToMethodGroup
-  - name: ConvertToConstant.Local
-  - name: ConvertToAutoPropertyWhenPossible
-  - name: CanSimplifyDictionaryTryGetValueWithGetValueOrDefault
-  - name: DuplicatedSequentialIfBodies
-  - name: EventNeverSubscribedTo.Global
-  - name: ExtractCommonBranchingCode
-  - name: FieldCanBeMadeReadOnly.Global
-  - name: FieldCanBeMadeReadOnly.Local
-  - name: ForCanBeConvertedToForeach
-  - name: ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
-  - name: InlineTemporaryVariable
-  - name: InvertIf
-  - name: TooWideLocalVariableScope
-  - name: LoopCanBeConvertedToQuery
-  - name: MemberCanBePrivate.Global
-  - name: MemberCanBeProtected.Global
-  - name: MemberCanBeMadeStatic.Global
-  - name: MemberCanBeMadeStatic.Local
-  - name: MergeIntoNegatedPattern
-  - name: MergeIntoPattern
-  - name: MergeIntoLogicalPattern
-  - name: MethodHasAsyncOverload
-  - name: MethodHasAsyncOverloadWithCancellation
-  - name: UnusedMethodReturnValue.Global
-  - name: MethodSupportsCancellation
-  - name: NotAccessedField.Global
-  - name: ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
-  - name: Xaml.PossibleNullReferenceException
-  - name: PreferConcreteValueOverDefault
-  - name: PropertyCanBeMadeInitOnly.Global
-  - name: PropertyCanBeMadeInitOnly.Local
-  - name: MoveLocalFunctionAfterJumpStatement
-  - name: RedundantLambdaSignatureParentheses
-  - name: ArrangeRedundantParentheses
-  - name: ReplaceSubstringWithRangeIndexer
-  - name: UseNullPropagation
-  - name: ReplaceWithFieldKeyword
-  - name: ReplaceWithPrimaryConstructorParameter
-  - name: SYSLIB1045
-  - name: MVVMTK0042
-  - name: SimilarAnonymousTypeNearby
-  - name: SimplifyConditionalTernaryExpression
-  - name: SimplifyLinqExpressionUseAll
-  - name: SwitchStatementMissingSomeEnumCasesNoDefault
-  - name: SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-  - name: UnusedType.Global
-  - name: UnusedMemberInSuper.Global
-  - name: UnusedMember.Global
-  - name: Xaml.BindingWithoutContextNotResolved
-  - name: UnusedParameter.Global
-  - name: UseSymbolAlias
-  - name: UseCollectionExpression
-  - name: ConvertToCompoundAssignment
-  - name: UseDeconstruction
-  - name: UseObjectOrCollectionInitializer
-  - name: SuggestVarOrType_Elsewhere
-  - name: SuggestVarOrType_BuiltInTypes
-  - name: SuggestVarOrType_SimpleTypes
-  - name: ArrangeTrailingCommaInMultilineLists
-  - name: ArrangeObjectCreationWhenTypeEvident
+# ------------------------------------------------------------------------------
+# Qodana (.NET) — AetherVault
+# Docs: https://www.jetbrains.com/help/qodana/qodana-dotnet.html
+# ------------------------------------------------------------------------------
+# Keep this file small: avoid huge custom `include:` lists — Qodana / IDE sync
+# tends to rewrite them. Prefer `profile` + optional `exclude:` for noise.
+# ------------------------------------------------------------------------------
 
-#Enable inspections
-#include:
-#  - name: <SomeEnabledInspectionId>
-#Disable inspections
-#exclude:
-#  - name: <SomeDisabledInspectionId>
-#    paths:
-#      - <path/where/not/run/inspection>
-#Execute shell command before Qodana execution (Applied in CI/CD pipeline)
-#bootstrap: sh ./prepare-qodana.sh
-#Install IDE plugins before Qodana execution (Applied in CI/CD pipeline)
-#plugins:
-#  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
-# Quality gate. Will fail the CI/CD pipeline if any condition is not met
-# severityThresholds - configures maximum thresholds for different problem severities
-# testCoverageThresholds - configures minimum code coverage on a whole project and newly added code
-# Code Coverage is available in Ultimate and Ultimate Plus plans
-#failureConditions:
-#  severityThresholds:
-#    any: 15
-#    critical: 5
-#  testCoverageThresholds:
-#    fresh: 70
-#    total: 50
+version: "1.0"
+
+# Rider-based .NET linter (QDNET)
+ide: QDNET
+
+profile:
+  # CI-friendly superset; use qodana.starter for fewer findings
+  name: qodana.recommended
+
+dotnet:
+  solution: AetherVault.sln
+  configuration: Release
+
+# Helps source generators / MAUI resolve packages inside the Qodana container.
+# If restore still fails on Linux, install workloads in CI before the scan step.
+bootstrap: |
+  dotnet restore AetherVault.sln --verbosity minimal

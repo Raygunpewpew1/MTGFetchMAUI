@@ -482,4 +482,6 @@ $RECYCLE.BIN/
 *.swp
 ONBOARDING.md
 delete-merged-branches.ps1
-qodana.yaml
+
+# Qodana local cache / IDE artifacts (keep root qodana.yaml in git)
+.qodana/
