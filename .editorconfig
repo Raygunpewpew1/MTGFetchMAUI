@@ -1,0 +1,7 @@
+# https://editorconfig.org
+root = true
+
+# MAUI: Android MainActivity/MainApplication and Windows App often use root or WinUI namespaces
+# on purpose; folder path would be AetherVault.Platforms.Android / AetherVault.Platforms.Windows.
+[Platforms/**/*.cs]
+resharper_check_namespace_highlighting = none
