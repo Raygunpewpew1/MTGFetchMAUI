@@ -15,8 +15,7 @@ Decks are slowly being added.
 - **Pattern:** MVVM (CommunityToolkit.Mvvm) + Repository pattern + DI
 - **Data access:** SQLite + Dapper
 - **Rendering:** SkiaSharp (custom card grid rendering)
-- **Platform target:** Android (`net10.0-android`)  
-  (some Windows files exist, but Android is primary)
+- **Platform target:** Android (`net10.0-android`)
 
 ---
 

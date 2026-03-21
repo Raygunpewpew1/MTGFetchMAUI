@@ -8,7 +8,7 @@ This file provides guidance for AI assistants (Claude Code and others) working i
 
 **AetherVault** is a .NET MAUI Android application for browsing, searching, and managing Magic: The Gathering card collections. It queries a local SQLite copy of the [MTGJSON](https://mtgjson.com/) database, renders card images fetched from the Scryfall CDN, and persists user collections in a separate SQLite database.
 
-- **Target Platform**: Android (primary), Windows (partial)
+- **Target Platform**: Android
 - **Target Framework**: `net10.0-android`
 - **Application ID**: `com.aethervault.mobile`
 - **Architecture**: MVVM with Repository pattern and DI
@@ -116,10 +116,9 @@ AetherVault/
 │   └── SVGSets/                     # Embedded SVG set symbol assets
 │
 ├── Platforms/
-│   ├── Android/
-│   │   └── AndroidManifest.xml      # Permissions: Network, Internet, External Storage, Camera
-│   └── Windows/
-│       └── Package.appxmanifest     # Windows app manifest
+│   └── Android/
+│       ├── AndroidManifest.xml      # Permissions: Network, Internet, External Storage, Camera
+│       └── MainActivity.cs          # Android activity (splash theme, config changes, focus handling)
 │
 ├── AetherVault.Tests/
 │   ├── AetherVault.Tests.csproj    # xUnit test project linked to main project source files
