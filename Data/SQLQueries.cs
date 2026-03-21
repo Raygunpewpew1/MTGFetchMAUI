@@ -176,11 +176,12 @@ public static class SqlQueries
     public const string PriceHistoryDeleteNonCollection =
         "DELETE FROM card_price_history WHERE uuid NOT IN (SELECT card_uuid FROM col.my_collection)";
 
+    // Aliases: Dapper maps columns to PascalCase properties; snake_case price_type does not match PriceType.
     public const string PricesGetByUuid =
-        "SELECT * FROM card_prices WHERE uuid = @uuid AND source = 'paper'";
+        "SELECT provider, price_type AS PriceType, finish, currency, price FROM card_prices WHERE uuid = @uuid AND source = 'paper'";
 
     public const string PricesGetHistoryByUuid =
-        "SELECT * FROM card_price_history WHERE uuid = @uuid AND source = 'paper' ORDER BY date ASC";
+        "SELECT provider, price_type AS PriceType, finish, date, price FROM card_price_history WHERE uuid = @uuid AND source = 'paper' ORDER BY date ASC";
 
     public const string PricesCount =
         "SELECT COUNT(*) FROM card_prices";
@@ -189,7 +190,7 @@ public static class SqlQueries
         "DELETE FROM card_prices";
 
     public const string PricesGetBulkByUuids =
-        "SELECT uuid, provider, price_type, finish, currency, price FROM card_prices WHERE uuid IN ({0}) AND source = 'paper'";
+        "SELECT uuid, provider, price_type AS PriceType, finish, currency, price FROM card_prices WHERE uuid IN ({0}) AND source = 'paper'";
 
     // ============================================================================
     // CARD QUERIES
@@ -324,12 +325,13 @@ public static class SqlQueries
     public const string CollectionAddIsFoil = "ALTER TABLE my_collection ADD COLUMN is_foil INTEGER NOT NULL DEFAULT 0";
     public const string CollectionAddIsEtched = "ALTER TABLE my_collection ADD COLUMN is_etched INTEGER NOT NULL DEFAULT 0";
 
+    // Aliases: Dapper matches column names to properties; snake_case columns do not map to PascalCase POCOs.
     public const string CollectionGetAll =
-        "SELECT card_uuid, quantity, date_added, sort_order, is_foil, is_etched FROM my_collection ORDER BY sort_order ASC, date_added DESC";
+        "SELECT card_uuid AS CardUuid, quantity, date_added AS DateAdded, sort_order AS SortOrder, is_foil AS IsFoil, is_etched AS IsEtched FROM my_collection ORDER BY sort_order ASC, date_added DESC";
 
     /// <summary>Minimal projection for pricing calculations — no ORDER BY, no unused columns.</summary>
     public const string CollectionGetForPricing =
-        "SELECT card_uuid, quantity, is_foil, is_etched FROM my_collection";
+        "SELECT card_uuid AS CardUuid, quantity, is_foil AS IsFoil, is_etched AS IsEtched FROM my_collection";
 
     public const string CollectionReorderItem =
         "UPDATE my_collection SET sort_order = @sortOrder WHERE card_uuid = @uuid";
