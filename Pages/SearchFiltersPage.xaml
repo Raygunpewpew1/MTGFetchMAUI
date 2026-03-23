@@ -190,53 +190,36 @@
                        Style="{StaticResource FilterSectionLabelStyle}"
                        Margin="16,20,16,0" />
                 <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="0,8,0,0" />
-                <Grid ColumnDefinitions="Auto,*,Auto"
-                      ColumnSpacing="12"
-                      Padding="16,14,16,14">
-                    <Button Text="−"
-                            Style="{StaticResource FilterCmcStepperButtonStyle}"
-                            Command="{Binding AdjustCmcCommand}"
-                            CommandParameter="min-" />
-                    <VerticalStackLayout VerticalOptions="Center">
+                <VerticalStackLayout Padding="16,14,16,14" Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*">
                         <Label Text="{Binding CmcMinLabel}"
-                               FontSize="15"
-                               TextColor="{StaticResource TextPrimary}"
-                               HorizontalOptions="Center" />
-                        <Label Text="Minimum"
-                               FontSize="11"
+                               FontSize="13"
                                TextColor="{StaticResource TextSecondary}"
-                               HorizontalOptions="Center" />
-                    </VerticalStackLayout>
-                    <Button Grid.Column="2"
-                            Text="+"
-                            Style="{StaticResource FilterCmcStepperButtonStyle}"
-                            Command="{Binding AdjustCmcCommand}"
-                            CommandParameter="min+" />
-                </Grid>
-                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="32,0" />
-                <Grid ColumnDefinitions="Auto,*,Auto"
-                      ColumnSpacing="12"
-                      Padding="16,14,16,14">
-                    <Button Text="−"
-                            Style="{StaticResource FilterCmcStepperButtonStyle}"
-                            Command="{Binding AdjustCmcCommand}"
-                            CommandParameter="max-" />
-                    <VerticalStackLayout VerticalOptions="Center">
+                               WidthRequest="72"
+                               VerticalOptions="Center" />
+                        <Slider Grid.Column="1"
+                                Value="{Binding CmcMin, Mode=TwoWay}"
+                                Minimum="0"
+                                Maximum="16"
+                                MinimumTrackColor="{StaticResource Primary}"
+                                MaximumTrackColor="{StaticResource FilterHairline}"
+                                ThumbColor="{StaticResource Primary}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
                         <Label Text="{Binding CmcMaxLabel}"
-                               FontSize="15"
-                               TextColor="{StaticResource TextPrimary}"
-                               HorizontalOptions="Center" />
-                        <Label Text="Maximum"
-                               FontSize="11"
+                               FontSize="13"
                                TextColor="{StaticResource TextSecondary}"
-                               HorizontalOptions="Center" />
-                    </VerticalStackLayout>
-                    <Button Grid.Column="2"
-                            Text="+"
-                            Style="{StaticResource FilterCmcStepperButtonStyle}"
-                            Command="{Binding AdjustCmcCommand}"
-                            CommandParameter="max+" />
-                </Grid>
+                               WidthRequest="72"
+                               VerticalOptions="Center" />
+                        <Slider Grid.Column="1"
+                                Value="{Binding CmcMax, Mode=TwoWay}"
+                                Minimum="0"
+                                Maximum="16"
+                                MinimumTrackColor="{StaticResource Primary}"
+                                MaximumTrackColor="{StaticResource FilterHairline}"
+                                ThumbColor="{StaticResource Primary}" />
+                    </Grid>
+                </VerticalStackLayout>
                 <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
 
                 <!-- ── Power & Toughness ── -->
