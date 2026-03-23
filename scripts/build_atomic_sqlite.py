@@ -21,6 +21,36 @@ from urllib.request import urlretrieve
 MTGJSON_ATOMIC_ZIP = "https://mtgjson.com/api/v5/AtomicCards.json.zip"
 OUT_DB = "AtomicCards.sqlite"
 
+# Must match CREATE TABLE atomic_cards columns except id (order matters for INSERT).
+INSERT_COLUMNS = [
+    "name",
+    "face_index",
+    "ascii_name",
+    "face_name",
+    "mana_cost",
+    "mana_value",
+    "type_line",
+    "oracle_text",
+    "power",
+    "toughness",
+    "loyalty",
+    "defense",
+    "layout",
+    "colors",
+    "color_identity",
+    "keywords",
+    "scryfall_id",
+    "scryfall_oracle_id",
+    "first_printing",
+    "printings_json",
+    "legalities_json",
+    "rulings_json",
+    "related_json",
+    "leadership_json",
+    "is_reserved",
+    "is_funny",
+]
+
 
 def load_atomic_json(path: Path) -> dict:
     if path.suffix.lower() == ".zip":
@@ -44,6 +74,42 @@ def join_colors(arr) -> str:
     if not arr:
         return ""
     return ",".join(str(x) for x in arr)
+
+
+def row_from_face(card_name: str, fi: int, face: dict) -> tuple:
+    ids = face.get("identifiers") or {}
+    if not isinstance(ids, dict):
+        ids = {}
+    scryfall_id = (ids.get("scryfallId") or "").strip()
+    scryfall_oracle_id = (ids.get("scryfallOracleId") or "").strip()
+    return (
+        card_name,
+        fi,
+        (face.get("asciiName") or "").strip() or None,
+        (face.get("faceName") or "").strip() or None,
+        (face.get("manaCost") or "").strip() or None,
+        float(face.get("manaValue") or face.get("convertedManaCost") or 0),
+        (face.get("type") or "").strip() or None,
+        (face.get("text") or "").strip() or None,
+        (face.get("power") or "").strip() or None,
+        (face.get("toughness") or "").strip() or None,
+        (face.get("loyalty") or "").strip() or None,
+        (face.get("defense") or "").strip() or None,
+        (face.get("layout") or "").strip() or "normal",
+        join_colors(face.get("colors") or []),
+        join_colors(face.get("colorIdentity") or []),
+        ",".join(face.get("keywords") or []) if face.get("keywords") else "",
+        scryfall_id,
+        scryfall_oracle_id,
+        (face.get("firstPrinting") or "").strip() or None,
+        jcompact(face.get("printings")),
+        jcompact(face.get("legalities")),
+        jcompact(face.get("rulings")),
+        jcompact(face.get("relatedCards")),
+        jcompact(face.get("leadershipSkills")),
+        1 if face.get("isReserved") else 0,
+        1 if face.get("isFunny") else 0,
+    )
 
 
 def main() -> None:
@@ -131,55 +197,17 @@ def main() -> None:
             for fi, face in enumerate(faces):
                 if not isinstance(face, dict):
                     continue
-                ids = face.get("identifiers") or {}
-                if not isinstance(ids, dict):
-                    ids = {}
-                scryfall_id = (ids.get("scryfallId") or "").strip()
-                scryfall_oracle_id = (ids.get("scryfallOracleId") or "").strip()
-
-                rows.append(
-                    (
-                        card_name,
-                        fi,
-                        (face.get("asciiName") or "").strip() or None,
-                        (face.get("faceName") or "").strip() or None,
-                        (face.get("manaCost") or "").strip() or None,
-                        float(face.get("manaValue") or face.get("convertedManaCost") or 0),
-                        (face.get("type") or "").strip() or None,
-                        (face.get("text") or "").strip() or None,
-                        (face.get("power") or "").strip() or None,
-                        (face.get("toughness") or "").strip() or None,
-                        (face.get("loyalty") or "").strip() or None,
-                        (face.get("defense") or "").strip() or None,
-                        (face.get("layout") or "").strip() or "normal",
-                        join_colors(face.get("colors") or []),
-                        join_colors(face.get("colorIdentity") or []),
-                        ",".join(face.get("keywords") or []) if face.get("keywords") else "",
-                        scryfall_id,
-                        scryfall_oracle_id,
-                        (face.get("firstPrinting") or "").strip() or None,
-                        jcompact(face.get("printings")),
-                        jcompact(face.get("legalities")),
-                        jcompact(face.get("rulings")),
-                        jcompact(face.get("relatedCards")),
-                        jcompact(face.get("leadershipSkills")),
-                        1 if face.get("isReserved") else 0,
-                        1 if face.get("isFunny") else 0,
+                row = row_from_face(card_name, fi, face)
+                if len(row) != len(INSERT_COLUMNS):
+                    raise SystemExit(
+                        f"Bug: row has {len(row)} values, INSERT_COLUMNS has {len(INSERT_COLUMNS)}"
                     )
-                )
+                rows.append(row)
 
-        cur.executemany(
-            """
-            INSERT INTO atomic_cards (
-              name, face_index, ascii_name, face_name, mana_cost, mana_value,
-              type_line, oracle_text, power, toughness, loyalty, defense, layout,
-              colors, color_identity, keywords, scryfall_id, scryfall_oracle_id,
-              first_printing, printings_json, legalities_json, rulings_json, related_json,
-              leadership_json, is_reserved, is_funny
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            rows,
-        )
+        cols_sql = ", ".join(INSERT_COLUMNS)
+        placeholders = ",".join(["?"] * len(INSERT_COLUMNS))
+        insert_sql = f"INSERT INTO atomic_cards ({cols_sql}) VALUES ({placeholders})"
+        cur.executemany(insert_sql, rows)
 
         cur.execute("INSERT INTO atomic_cards_fts(atomic_cards_fts) VALUES('rebuild')")
         cur.execute("PRAGMA user_version = 1")
