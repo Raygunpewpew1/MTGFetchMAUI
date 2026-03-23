@@ -8,8 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # Use Node 24 for JS actions (GitHub default after 2026-06-02); silences Node 20 deprecation warnings.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate Release Tag
         id: date
@@ -82,13 +85,14 @@ jobs:
         run: zip -9 MTG_App_DB.zip AllPrintings.sqlite
 
       - name: Publish to GitHub Releases
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.6.1
         with:
           tag_name: ${{ steps.date.outputs.tag }}
           name: MTG Database Update (${{ steps.date.outputs.tag }})
           files: MTG_App_DB.zip
           make_latest: true
 
+      # Action is archived (no Node 24 update); job env FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 runs it on Node 24.
       - name: Delete Old Releases
         uses: dev-drprasad/delete-older-releases@v0.3.4
         with:
