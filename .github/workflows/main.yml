@@ -21,8 +21,17 @@ jobs:
       - name: Extract Database
         run: unzip AllPrintings.sqlite.zip
 
+      # Requires scripts/normalize_mtg_sqlite_columns.py on the branch this workflow runs from (commit + push it).
       - name: Normalize list columns to JSON arrays
-        run: python3 scripts/normalize_mtg_sqlite_columns.py AllPrintings.sqlite
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ ! -f scripts/normalize_mtg_sqlite_columns.py ]; then
+            echo "::error title=Missing normalization script::Expected scripts/normalize_mtg_sqlite_columns.py after checkout — add it on this branch and push, or merge to default."
+            ls -la
+            ls -la scripts 2>/dev/null || echo "(no scripts/ directory)"
+            exit 1
+          fi
+          python3 scripts/normalize_mtg_sqlite_columns.py AllPrintings.sqlite
 
       - name: Drop Heavy Tables, Add FTS & Indexes, Vacuum
         run: |
