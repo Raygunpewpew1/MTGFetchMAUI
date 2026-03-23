@@ -25,6 +25,21 @@ public partial class SearchFiltersViewModel : BaseViewModel
         "Land", "Planeswalker", "Sorcery", "Kindred"
     ];
 
+    private static ObservableCollection<LayoutFilterItem> CreateLayoutFilterItems() =>
+        new(
+        [
+            new LayoutFilterItem(CardLayout.Transform, "Transform"),
+            new LayoutFilterItem(CardLayout.ModalDfc, "MDFC"),
+            new LayoutFilterItem(CardLayout.Split, "Split"),
+            new LayoutFilterItem(CardLayout.Flip, "Flip"),
+            new LayoutFilterItem(CardLayout.Adventure, "Adventure"),
+            new LayoutFilterItem(CardLayout.Saga, "Saga"),
+            new LayoutFilterItem(CardLayout.Meld, "Meld"),
+            new LayoutFilterItem(CardLayout.Token, "Token"),
+            new LayoutFilterItem(CardLayout.DoubleFacedToken, "DFC token"),
+            new LayoutFilterItem(CardLayout.ReversibleCard, "Reversible"),
+        ]);
+
     /// <summary>Raised when Apply or Cancel is used so the host can close the modal.</summary>
     public event Action? RequestClose;
 
@@ -40,6 +55,9 @@ public partial class SearchFiltersViewModel : BaseViewModel
         SetList.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SelectedSetDisplayName));
         ColorFilters = new ObservableCollection<ColorFilterItem>(
             ColorCodes.Select(c => new ColorFilterItem(c, false)));
+        ColorIdentityFilters = new ObservableCollection<ColorFilterItem>(
+            ColorCodes.Select(c => new ColorFilterItem(c, false)));
+        LayoutFilters = CreateLayoutFilterItems();
     }
 
     public IList<string> FormatOptions { get; }
@@ -77,7 +95,11 @@ public partial class SearchFiltersViewModel : BaseViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
-    private string _keywords = "";
+    private string _rulesText = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private string _oracleKeywords = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
@@ -143,7 +165,21 @@ public partial class SearchFiltersViewModel : BaseViewModel
     [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkAvailArena;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkFinishNonfoil;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkFinishFoil;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkFinishEtched;
+
     public ObservableCollection<ColorFilterItem> ColorFilters { get; }
+    public ObservableCollection<ColorFilterItem> ColorIdentityFilters { get; }
+    public ObservableCollection<LayoutFilterItem> LayoutFilters { get; }
 
     /// <summary>Number of active filters for the sticky header badge.</summary>
     public int ActiveFilterCount => BuildSearchOptions().ActiveFilterCount;
