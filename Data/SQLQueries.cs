@@ -552,7 +552,22 @@ public static class SqlQueries
 
     public const string BaseCards =
         """
-        SELECT c.*, ci.scryfallId, s.name as setName,
+        SELECT
+        c.artist, c.artistIds, c.asciiName, c.attractionLights, c.availability, c.boosterTypes,
+        c.borderColor, c.cardParts, c.colorIdentity, c.colorIndicator, c.colors, c.defense,
+        c.duelDeck, c.edhrecRank, c.edhrecSaltiness, c.faceConvertedManaCost,
+        c.faceFlavorName, c.faceManaValue, c.faceName, c.facePrintedName, c.finishes,
+        c.flavorName, c.flavorText, c.frameEffects, c.frameVersion, c.hand, c.hasAlternativeDeckLimit,
+        c.hasContentWarning, c.isAlternative, c.isFullArt, c.isFunny, c.isGameChanger,
+        c.isOnlineOnly, c.isOversized, c.isPromo, c.isRebalanced, c.isReprint, c.isReserved,
+        c.isStorySpotlight, c.isTextless, c.isTimeshifted, c.keywords, c.language, c.layout,
+        c.leadershipSkills, c.life, c.loyalty, c.manaCost, c.manaValue, c.name, c.number,
+        c.originalPrintings, c.originalReleaseDate, c.originalText, c.otherFaceIds, c.power,
+        c.printedName, c.printedText, c.printedType, c.printings, c.producedMana, c.promoTypes,
+        c.rarity, c.rebalancedPrintings, c.relatedCards, c.securityStamp, c.setCode, c.side,
+        c.signature, c.sourceProducts, c.subsets, c.subtypes, c.supertypes, c.text, c.toughness, c.type,
+        c.types, c.uuid, c.variations, c.watermark,
+        ci.scryfallId, s.name as setName,
         cl.alchemy, cl.brawl, cl.commander, cl.duel, cl.future, cl.gladiator,
         cl.historic, cl.legacy, cl.modern, cl.oathbreaker, cl.oldschool,
         cl.pauper, cl.paupercommander, cl.penny, cl.pioneer, cl.predh,

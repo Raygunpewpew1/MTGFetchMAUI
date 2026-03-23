@@ -1,3 +1,5 @@
+using System.Data;
+using System.Text.Json;
 using AetherVault.Services;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -31,6 +33,16 @@ public sealed class DatabaseManager : IDisposable
     /// </summary>
     public async Task<bool> ConnectAsync(string mtgDbPath, string collectionDbPath)
     {
+        #region agent log
+        AgentDebugLog("initial", "H1", "Data/DatabaseManager.cs:ConnectAsync:entry", "ConnectAsync entered", new
+        {
+            mtgDbPath,
+            collectionDbPath,
+            mtgExists = File.Exists(mtgDbPath),
+            collectionExists = File.Exists(collectionDbPath),
+            isConnected = _isConnected
+        });
+        #endregion
         await _connectionLock.WaitAsync();
         try
         {
@@ -77,10 +89,25 @@ public sealed class DatabaseManager : IDisposable
                     }
 
                     _isConnected = true;
+                    #region agent log
+                    AgentDebugLog("initial", "H1", "Data/DatabaseManager.cs:ConnectAsync:success", "ConnectAsync succeeded", new
+                    {
+                        mtgState = _mtgConnection?.State.ToString(),
+                        collectionState = _collectionConnection?.State.ToString(),
+                        isConnected = _isConnected
+                    });
+                    #endregion
                     return true;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    #region agent log
+                    AgentDebugLog("initial", "H1", "Data/DatabaseManager.cs:ConnectAsync:retry", "ConnectAsync retry due to exception", new
+                    {
+                        retryCount,
+                        error = ex.Message
+                    });
+                    #endregion
                     retryCount++;
                     if (retryCount >= MaxConnectionRetries) throw;
                     await Task.Delay(100 * retryCount);
@@ -293,11 +320,46 @@ public sealed class DatabaseManager : IDisposable
 
     private void DisconnectInternal()
     {
-        if (_mtgConnection is { State: System.Data.ConnectionState.Open })
-            _mtgConnection.Close();
-        if (_collectionConnection is { State: System.Data.ConnectionState.Open })
-            _collectionConnection.Close();
         _isConnected = false;
+
+        // Close + dispose so the OS releases file handles before we replace AllPrintings.sqlite
+        // (e.g. in-app DB update). A closed-but-not-disposed SqliteConnection can keep Android
+        // from deleting/overwriting the DB during extract, causing a long stall or failure.
+        if (_mtgConnection != null)
+        {
+            try
+            {
+                if (_mtgConnection.State == ConnectionState.Open)
+                    _mtgConnection.Close();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogStuff($"Disconnect: error closing MTG connection: {ex.Message}", LogLevel.Warning);
+            }
+            finally
+            {
+                _mtgConnection.Dispose();
+                _mtgConnection = null;
+            }
+        }
+
+        if (_collectionConnection != null)
+        {
+            try
+            {
+                if (_collectionConnection.State == ConnectionState.Open)
+                    _collectionConnection.Close();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogStuff($"Disconnect: error closing collection connection: {ex.Message}", LogLevel.Warning);
+            }
+            finally
+            {
+                _collectionConnection.Dispose();
+                _collectionConnection = null;
+            }
+        }
     }
 
     public void Dispose()
@@ -308,5 +370,18 @@ public sealed class DatabaseManager : IDisposable
         _mtgConnection?.Dispose();
         _collectionConnection?.Dispose();
         _connectionLock.Dispose();
+    }
+
+    private static void AgentDebugLog(string runId, string hypothesisId, string location, string message, object data)
+    {
+        try
+        {
+            var dataJson = JsonSerializer.Serialize(data);
+            Logger.LogStuff($"DBG|session=068b48|run={runId}|h={hypothesisId}|loc={location}|msg={message}|data={dataJson}", LogLevel.Info);
+        }
+        catch
+        {
+            // Never fail app flow for debug logging.
+        }
     }
 }

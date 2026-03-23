@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using AetherVault.Core;
 using AetherVault.Models;
 using AetherVault.Services;
@@ -184,6 +185,12 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     public async Task LoadCardAsync(string uuid)
     {
+        #region agent log
+        AgentDebugLog("initial", "H3", "ViewModels/CardDetailViewModel.cs:LoadCardAsync:entry", "Card detail load entered", new
+        {
+            uuid
+        });
+        #endregion
         if (!await _cardManager.EnsureInitializedAsync()) return;
 
         IsBusy = true;
@@ -196,9 +203,25 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             // Load full card with rulings
             var mainCard = await _cardManager.GetCardWithRulingsAsync(uuid);
             Card = mainCard;
+            #region agent log
+            AgentDebugLog("initial", "H3", "ViewModels/CardDetailViewModel.cs:LoadCardAsync:main-card", "Main card loaded", new
+            {
+                requestedUuid = uuid,
+                loadedUuid = mainCard.Uuid,
+                layout = mainCard.Layout.ToString(),
+                hasScryfall = !string.IsNullOrEmpty(mainCard.ScryfallId)
+            });
+            #endregion
 
             // Load faces
             var package = await _cardManager.GetFullCardPackageAsync(uuid);
+            #region agent log
+            AgentDebugLog("initial", "H4", "ViewModels/CardDetailViewModel.cs:LoadCardAsync:package", "Full card package loaded", new
+            {
+                requestedUuid = uuid,
+                packageLength = package.Length
+            });
+            #endregion
             if (package.Length > 0)
             {
                 // MELD CARD FILTER: Only show current card + meld result (not the other piece)
@@ -258,6 +281,13 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         catch (Exception ex)
         {
             Logger.LogStuff($"Card detail load error: {ex.Message}", LogLevel.Error);
+            #region agent log
+            AgentDebugLog("initial", "H3", "ViewModels/CardDetailViewModel.cs:LoadCardAsync:error", "Card detail load exception", new
+            {
+                uuid,
+                error = ex.Message
+            });
+            #endregion
         }
         finally
         {
@@ -654,5 +684,18 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         };
 
         return string.Join(separator, parts);
+    }
+
+    private static void AgentDebugLog(string runId, string hypothesisId, string location, string message, object data)
+    {
+        try
+        {
+            var dataJson = JsonSerializer.Serialize(data);
+            Logger.LogStuff($"DBG|session=068b48|run={runId}|h={hypothesisId}|loc={location}|msg={message}|data={dataJson}", LogLevel.Info);
+        }
+        catch
+        {
+            // Never fail app flow for debug logging.
+        }
     }
 }

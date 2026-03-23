@@ -108,7 +108,7 @@ public partial class LoadingViewModel : BaseViewModel
 
             if (dbExists)
             {
-                var isValid = await Task.Run(() => AppDataManager.ValidateMtgDatabaseAsync());
+                var isValid = await Task.Run(async () => await AppDataManager.ValidateMtgDatabaseAsync());
                 if (isValid)
                 {
                     if (AppDataManager.TryConsumePendingMtgDatabaseDownload())

@@ -360,16 +360,74 @@ public static class AppDataManager
 
         // Use a temp file for extraction to avoid locking the real DB if the app crashes mid-extract
         var tempDbPath = targetPath + ".tmp";
+        var dbFile = MtgConstants.FileAllPrintings;
+
+        try
+        {
+            if (File.Exists(tempDbPath))
+                File.Delete(tempDbPath);
+        }
+        catch (IOException ex)
+        {
+            Logger.LogStuff($"Extract: could not remove stale temp DB: {ex.Message}", LogLevel.Warning);
+        }
 
         using (var archive = ZipFile.OpenRead(zipPath))
         {
-            var entry = archive.Entries.FirstOrDefault(e => e.Name.Equals(MtgConstants.FileAllPrintings, StringComparison.OrdinalIgnoreCase));
+            ZipArchiveEntry? entry = null;
+            foreach (var e in archive.Entries)
+            {
+                if (e.Name.Equals(dbFile, StringComparison.OrdinalIgnoreCase) ||
+                    e.FullName.EndsWith(dbFile, StringComparison.OrdinalIgnoreCase))
+                {
+                    entry = e;
+                    break;
+                }
+            }
 
             if (entry == null)
-                throw new FileNotFoundException("AllPrintings.sqlite not found in downloaded archive.");
+                throw new FileNotFoundException($"{dbFile} not found in downloaded archive.");
 
-            // Extract to .tmp file first
-            entry.ExtractToFile(tempDbPath, overwrite: true);
+            // Stream extract with progress — ExtractToFile can sit at 95% for a long time on large DBs
+            // and looks hung; manual copy also avoids some platform-specific ExtractToFile stalls.
+            using (var entryStream = entry.Open())
+            using (var outStream = new FileStream(
+                       tempDbPath,
+                       FileMode.Create,
+                       FileAccess.Write,
+                       FileShare.None,
+                       bufferSize: 262_144,
+                       FileOptions.SequentialScan))
+            {
+                var buffer = new byte[262_144];
+                long written = 0;
+                var length = entry.Length;
+                var lastUiPct = 95;
+
+                int read;
+                while ((read = entryStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    outStream.Write(buffer, 0, read);
+                    written += read;
+
+                    if (length > 0)
+                    {
+                        var sub = (int)(written * 4 / length);
+                        if (sub > 4)
+                            sub = 4;
+                        var pct = 95 + sub;
+                        if (pct > lastUiPct)
+                        {
+                            lastUiPct = pct;
+                            var mb = written / (1024.0 * 1024.0);
+                            var totalMb = length / (1024.0 * 1024.0);
+                            UpdateProgress($"Extracting database... {mb:F1}/{totalMb:F1} MB", pct);
+                        }
+                    }
+                }
+
+                outStream.Flush(flushToDisk: true);
+            }
         }
 
         // Now swap the files safely

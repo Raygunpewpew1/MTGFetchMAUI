@@ -1,6 +1,8 @@
 using AetherVault.Models;
+using AetherVault.Services;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using System.Text.Json;
 
 namespace AetherVault.Data;
 
@@ -116,8 +118,22 @@ public class DeckRepository : IDeckRepository
         await _databaseManager.ConnectionLock.WaitAsync();
         try
         {
+            #region agent log
+            AgentDebugLog("initial", "H2", "Data/DeckRepository.cs:GetAllDecksAsync:before-query", "Fetching all decks", new
+            {
+                isConnected = _databaseManager.IsConnected,
+                connState = _databaseManager.CollectionConnection.State.ToString()
+            });
+            #endregion
             var result = await _databaseManager.CollectionConnection.QueryAsync<DeckEntity>(SqlQueries.DeckGetAll);
-            return result.ToList();
+            var list = result.ToList();
+            #region agent log
+            AgentDebugLog("initial", "H2", "Data/DeckRepository.cs:GetAllDecksAsync:after-query", "Fetched all decks", new
+            {
+                count = list.Count
+            });
+            #endregion
+            return list;
         }
         finally
         {
@@ -293,5 +309,18 @@ public class DeckRepository : IDeckRepository
             PartnerId = reader.IsDBNull(reader.GetOrdinal("PartnerId")) ? "" : reader.GetString(reader.GetOrdinal("PartnerId")),
             ColorIdentity = reader.IsDBNull(reader.GetOrdinal("ColorIdentity")) ? "" : reader.GetString(reader.GetOrdinal("ColorIdentity"))
         };
+    }
+
+    private static void AgentDebugLog(string runId, string hypothesisId, string location, string message, object data)
+    {
+        try
+        {
+            var dataJson = JsonSerializer.Serialize(data);
+            Logger.LogStuff($"DBG|session=068b48|run={runId}|h={hypothesisId}|loc={location}|msg={message}|data={dataJson}", LogLevel.Info);
+        }
+        catch
+        {
+            // Never fail app flow for debug logging.
+        }
     }
 }
