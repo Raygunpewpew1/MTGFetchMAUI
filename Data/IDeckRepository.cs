@@ -18,4 +18,9 @@ public interface IDeckRepository
 
     /// <summary>Returns card count per deck for the given deck IDs. Missing decks get count 0.</summary>
     Task<Dictionary<int, int>> GetDeckCardCountsAsync(IEnumerable<int> deckIds);
+
+    /// <summary>
+    /// Applies multiple card row changes in a single transaction. Caller coordinates validation.
+    /// </summary>
+    Task ApplyDeckCardMutationsAsync(int deckId, IReadOnlyList<DeckCardPersistenceMutation> mutations);
 }

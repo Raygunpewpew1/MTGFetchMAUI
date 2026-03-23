@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
              xmlns:controls="clr-namespace:AetherVault.Controls"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
@@ -16,11 +15,21 @@
              x:DataType="vm:DeckDetailViewModel">
 
     <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Select"
+                     Command="{Binding ToggleSelectionModeCommand}"
+                     Order="Primary"
+                     Priority="0" />
+        <ToolbarItem Text="Import"
+                     Clicked="OnImportCsvClicked"
+                     Order="Primary"
+                     Priority="1" />
         <ToolbarItem Text="Export"
-                     Clicked="OnExportDeckClicked" />
+                     Clicked="OnExportDeckClicked"
+                     Order="Primary"
+                     Priority="2" />
     </ContentPage.ToolbarItems>
 
-    <Grid x:Name="DeckDetailRoot" RowDefinitions="100,Auto,*,Auto">
+    <Grid x:Name="DeckDetailRoot" RowDefinitions="100,Auto,Auto,Auto,*,Auto">
 
         <!-- Row 0: Commander Art Header (gradient, shows commander name) -->
         <skia:SKCanvasView Grid.Row="0"
@@ -76,8 +85,87 @@
             </Border>
         </Grid>
 
-        <!-- Row 2: Tab content + floating add button -->
-        <Grid Grid.Row="2">
+        <!-- Row 2: Bulk edit toolbar (Main / Sideboard / Commander lists) -->
+        <Border Grid.Row="2"
+                Padding="8,6"
+                BackgroundColor="{StaticResource Surface}"
+                StrokeThickness="0"
+                IsVisible="{Binding IsSelectionMode}">
+            <ScrollView Orientation="Horizontal"
+                        HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Spacing="6"
+                                       VerticalOptions="Center">
+                    <Button Text="All"
+                            Command="{Binding SelectAllInCurrentSectionCommand}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                    <Button Text="None"
+                            Command="{Binding ClearDeckSelectionCommand}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                    <Button Text="-1"
+                            Command="{Binding BulkDecrementSelectionCommand}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                    <Button Text="+1"
+                            Command="{Binding BulkIncrementSelectionCommand}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="Black" />
+                    <Button Text="To Main"
+                            Command="{Binding BulkMoveSelectionToMainCommand}"
+                            IsVisible="{Binding IsSideboardTab}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                    <Button Text="To Side"
+                            Command="{Binding BulkMoveSelectionToSideboardCommand}"
+                            IsVisible="{Binding IsMainTab}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
+                    <Button Text="Remove"
+                            Command="{Binding BulkRemoveSelectionCommand}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="#B00020"
+                            TextColor="White" />
+                    <Button Text="Done"
+                            Command="{Binding ToggleSelectionModeCommand}"
+                            Padding="10,6"
+                            FontSize="12"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="White" />
+                </HorizontalStackLayout>
+            </ScrollView>
+        </Border>
+
+        <!-- Row 3: Quick find cards already in this deck -->
+        <Border Grid.Row="3"
+                Padding="12,6"
+                BackgroundColor="{StaticResource Background}"
+                StrokeThickness="0"
+                IsVisible="{Binding IsStatsTab, Converter={StaticResource InvertedBool}}">
+            <material:TextField Title="Find in deck…"
+                                Text="{Binding DeckListFilterText, Mode=TwoWay}"
+                                BackgroundColor="{StaticResource Surface}"
+                                TextColor="{StaticResource TextPrimary}"
+                                TitleColor="{StaticResource TextSecondary}"
+                                AccentColor="{StaticResource Primary}"
+                                AllowClear="True" />
+        </Border>
+
+        <!-- Row 4: Tab content + floating add button -->
+        <Grid Grid.Row="4">
             <views:DeckCommanderTabView x:Name="CommanderTabView"
                                          IsVisible="{Binding IsCommanderTab}" />
             <views:DeckMainTabView IsVisible="{Binding IsMainTab}" />
@@ -103,8 +191,8 @@
                     FontAttributes="Bold" />
         </Grid>
 
-        <!-- Row 3: Deck summary bar + status -->
-        <Grid Grid.Row="3"
+        <!-- Row 5: Deck summary bar + status -->
+        <Grid Grid.Row="5"
               RowDefinitions="Auto,Auto"
               Padding="12,8"
               BackgroundColor="{StaticResource Primary}"

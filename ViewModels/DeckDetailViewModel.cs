@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using AetherVault.Constants;
 using AetherVault.Core;
 using AetherVault.Data;
 using AetherVault.Models;
@@ -67,6 +68,40 @@ public partial class DeckCardDisplayItem : ObservableObject
 
     /// <summary>Dark tint for list row background based on card color identity (WUBRG).</summary>
     public Color StripBackgroundColor => DeckDetailViewModel.GetStripBackgroundColorFromIdentity(Card?.Colors ?? Card?.ColorIdentity ?? "");
+
+    /// <summary>Multi-select mode for bulk deck edits.</summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
+}
+
+/// <summary>Search result row in the add-cards sheet (staging + commander quick-add).</summary>
+public partial class DeckAddSearchResultRow : ObservableObject
+{
+    public DeckAddSearchResultRow(Card card, bool initiallyStaged)
+    {
+        Card = card;
+        IsStaged = initiallyStaged;
+    }
+
+    public Card Card { get; }
+
+    [ObservableProperty]
+    public partial bool IsStaged { get; set; }
+}
+
+/// <summary>Card queued for batch add from the add-cards sheet.</summary>
+public partial class StagedDeckAddItem : ObservableObject
+{
+    public StagedDeckAddItem(Card card, int quantity = 1)
+    {
+        Card = card;
+        Quantity = quantity;
+    }
+
+    public Card Card { get; }
+
+    [ObservableProperty]
+    public partial int Quantity { get; set; }
 }
 
 /// <summary>
@@ -120,6 +155,7 @@ public partial class DeckDetailViewModel(
     private int _deckId;
     private CancellationTokenSource? _addCardSearchCts;
     private int _addCardSearchGeneration;
+    private CancellationTokenSource? _deckListFilterCts;
 
     /// <summary>Raised on the main thread after deck data has been reloaded (so the page can force layout/redraw).</summary>
     public event Action? ReloadCompleted;
@@ -135,8 +171,15 @@ public partial class DeckDetailViewModel(
     [ObservableProperty]
     public partial ObservableCollection<DeckCardGroup> MainDeckGroups { get; set; } = [];
 
+    /// <summary>Main-deck groups after applying the in-deck filter (same item refs as Main when filter is empty).</summary>
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardGroup> FilteredMainDeckGroups { get; set; } = [];
+
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> SideboardCards { get; set; } = [];
+
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardDisplayItem> FilteredSideboardCards { get; set; } = [];
 
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> CommanderCards { get; set; } = [];
@@ -149,6 +192,26 @@ public partial class DeckDetailViewModel(
     /// <summary>Commander cards after the first (e.g. partner), for the compact list below the hero.</summary>
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> AdditionalCommanderCards { get; set; } = [];
+
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardDisplayItem> FilteredAdditionalCommanderCards { get; set; } = [];
+
+    /// <summary>False when deck filter text hides the primary commander art (name/type mismatch).</summary>
+    [ObservableProperty]
+    public partial bool IsCommanderHeroVisible { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowCommanderHiddenByFilterHint { get; set; }
+
+    /// <summary>Filter for cards already in this deck (Main / Sideboard / Commander lists).</summary>
+    [ObservableProperty]
+    public partial string DeckListFilterText { get; set; } = "";
+
+    /// <summary>Hero art + menu when commander exists and passes in-deck filter.</summary>
+    public bool ShowCommanderHeroArt => !HasNoCommander && IsCommanderHeroVisible;
+
+    /// <summary>Show partner / other commander rows when any remain after filter.</summary>
+    public bool ShowFilteredPartnersSection => FilteredAdditionalCommanderCards.Count > 0;
 
     [ObservableProperty]
     public partial DeckStats Stats { get; set; } = new();
@@ -230,14 +293,34 @@ public partial class DeckDetailViewModel(
     public partial string AddCardSearchText { get; set; } = "";
 
     [ObservableProperty]
-    public partial ObservableCollection<Card> AddCardSearchResults { get; set; } = [];
-
-    [ObservableProperty]
     public partial bool IsAddCardSearchBusy { get; set; }
 
     /// <summary>When true, add-card search only returns cards that are in the user's collection.</summary>
     [ObservableProperty]
     public partial bool AddCardSearchOnlyCollection { get; set; }
+
+    [ObservableProperty]
+    public partial ObservableCollection<DeckAddSearchResultRow> AddCardSearchResultRows { get; set; } = [];
+
+    [ObservableProperty]
+    public partial ObservableCollection<StagedDeckAddItem> StagedAddItems { get; set; } = [];
+
+    /// <summary>True when the add-cards sheet should show batch-add UI (Main / Sideboard).</summary>
+    public bool IsStagedAddActive => SelectedSectionIndex is 1 or 2;
+
+    /// <summary>Summary line for staged cards in the add sheet.</summary>
+    public string StagedAddSummaryText =>
+        StagedAddItems.Count == 0
+            ? "No cards staged."
+            : $"{StagedAddItems.Count} type(s) • {StagedAddItems.Sum(s => s.Quantity)} card(s) staged";
+
+    [ObservableProperty]
+    public partial bool IsSelectionMode { get; set; }
+
+    /// <summary>Selected rows in the current section (Commander / Main / Sideboard).</summary>
+    public int SelectedCardCount => GetSelectedVisibleItems().Count();
+
+    public bool HasSelection => SelectedCardCount > 0;
 
     private IAsyncRelayCommand? _undoLastAddedCommand;
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
@@ -246,6 +329,54 @@ public partial class DeckDetailViewModel(
     private IAsyncRelayCommand? _suggestLandsCommand;
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
     public IAsyncRelayCommand SuggestLandsCommand => _suggestLandsCommand ??= new AsyncRelayCommand(SuggestLandsAsync);
+
+    private IRelayCommand? _toggleSelectionModeCommand;
+    public IRelayCommand ToggleSelectionModeCommand => _toggleSelectionModeCommand ??= new RelayCommand(ToggleSelectionMode);
+
+    private IRelayCommand? _deckListItemTappedCommand;
+    public IRelayCommand DeckListItemTappedCommand => _deckListItemTappedCommand ??= new RelayCommand<DeckCardDisplayItem?>(DeckListItemTapped);
+
+    private IRelayCommand? _selectAllInCurrentSectionCommand;
+    public IRelayCommand SelectAllInCurrentSectionCommand => _selectAllInCurrentSectionCommand ??= new RelayCommand(SelectAllInCurrentSection);
+
+    private IRelayCommand? _clearDeckSelectionCommand;
+    public IRelayCommand ClearDeckSelectionCommand => _clearDeckSelectionCommand ??= new RelayCommand(ClearDeckSelection);
+
+    private IAsyncRelayCommand? _bulkRemoveSelectionCommand;
+    public IAsyncRelayCommand BulkRemoveSelectionCommand => _bulkRemoveSelectionCommand ??= new AsyncRelayCommand(BulkRemoveSelectionAsync);
+
+    private IAsyncRelayCommand? _bulkMoveSelectionToMainCommand;
+    public IAsyncRelayCommand BulkMoveSelectionToMainCommand => _bulkMoveSelectionToMainCommand ??= new AsyncRelayCommand(BulkMoveSelectionToMainAsync);
+
+    private IAsyncRelayCommand? _bulkMoveSelectionToSideboardCommand;
+    public IAsyncRelayCommand BulkMoveSelectionToSideboardCommand => _bulkMoveSelectionToSideboardCommand ??= new AsyncRelayCommand(BulkMoveSelectionToSideboardAsync);
+
+    private IAsyncRelayCommand? _bulkIncrementSelectionCommand;
+    public IAsyncRelayCommand BulkIncrementSelectionCommand => _bulkIncrementSelectionCommand ??= new AsyncRelayCommand(BulkIncrementSelectionAsync);
+
+    private IAsyncRelayCommand? _bulkDecrementSelectionCommand;
+    public IAsyncRelayCommand BulkDecrementSelectionCommand => _bulkDecrementSelectionCommand ??= new AsyncRelayCommand(BulkDecrementSelectionAsync);
+
+    private IAsyncRelayCommand? _moveCardRowToSideboardCommand;
+    public IAsyncRelayCommand MoveCardRowToSideboardCommand => _moveCardRowToSideboardCommand ??= new AsyncRelayCommand<DeckCardDisplayItem?>(MoveCardRowToSideboardAsync);
+
+    private IAsyncRelayCommand? _moveCardRowToMainCommand;
+    public IAsyncRelayCommand MoveCardRowToMainCommand => _moveCardRowToMainCommand ??= new AsyncRelayCommand<DeckCardDisplayItem?>(MoveCardRowToMainAsync);
+
+    private IRelayCommand? _toggleStagedSearchRowCommand;
+    public IRelayCommand ToggleStagedSearchRowCommand => _toggleStagedSearchRowCommand ??= new RelayCommand<DeckAddSearchResultRow?>(ToggleStagedSearchRow);
+
+    private IRelayCommand? _incrementStagedAddQuantityCommand;
+    public IRelayCommand IncrementStagedAddQuantityCommand => _incrementStagedAddQuantityCommand ??= new RelayCommand<StagedDeckAddItem?>(IncrementStagedAddQuantity);
+
+    private IRelayCommand? _decrementStagedAddQuantityCommand;
+    public IRelayCommand DecrementStagedAddQuantityCommand => _decrementStagedAddQuantityCommand ??= new RelayCommand<StagedDeckAddItem?>(DecrementStagedAddQuantity);
+
+    private IAsyncRelayCommand? _addStagedCardsToDeckCommand;
+    public IAsyncRelayCommand AddStagedCardsToDeckCommand => _addStagedCardsToDeckCommand ??= new AsyncRelayCommand(AddStagedCardsToDeckAsync);
+
+    private IRelayCommand? _clearStagedAddsCommand;
+    public IRelayCommand ClearStagedAddsCommand => _clearStagedAddsCommand ??= new RelayCommand(ClearStagedAdds);
 
     [RelayCommand]
     private void SelectCommander() => SelectedSectionIndex = 0;
@@ -280,6 +411,31 @@ public partial class DeckDetailViewModel(
             _ = ExecuteAddCardSearchAsync();
     }
 
+    partial void OnSelectedSectionIndexChanged(int value)
+    {
+        IsSelectionMode = false;
+        ClearDeckListSelection();
+        OnPropertyChanged(nameof(IsStagedAddActive));
+    }
+
+    partial void OnIsSelectionModeChanged(bool value)
+    {
+        if (!value)
+            ClearDeckListSelection();
+    }
+
+    partial void OnDeckListFilterTextChanged(string value)
+    {
+        _deckListFilterCts?.Cancel();
+        _deckListFilterCts = new CancellationTokenSource();
+        var token = _deckListFilterCts.Token;
+        Task.Delay(350, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+                MainThread.BeginInvokeOnMainThread(RefreshDeckListFilter);
+        }, TaskContinuationOptions.None);
+    }
+
     private IAsyncRelayCommand? _addCardSearchCommand;
     /// <summary>Explicit command for XAML compiled bindings (MAUIG2045).</summary>
     public IAsyncRelayCommand AddCardSearchCommand => _addCardSearchCommand ??= new AsyncRelayCommand(ExecuteAddCardSearchAsync);
@@ -297,7 +453,7 @@ public partial class DeckDetailViewModel(
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     if (myGen != _addCardSearchGeneration) return;
-                    AddCardSearchResults = [];
+                    AddCardSearchResultRows = [];
                 });
                 return;
             }
@@ -309,7 +465,9 @@ public partial class DeckDetailViewModel(
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
-                AddCardSearchResults = new ObservableCollection<Card>(cards);
+                var stagedUuids = new HashSet<string>(StagedAddItems.Select(s => s.Card.Uuid));
+                AddCardSearchResultRows = new ObservableCollection<DeckAddSearchResultRow>(
+                    cards.Select(c => new DeckAddSearchResultRow(c, stagedUuids.Contains(c.Uuid))));
             });
         }
         finally
@@ -324,8 +482,10 @@ public partial class DeckDetailViewModel(
     {
         _addCardSearchCts?.Cancel();
         AddCardSearchText = "";
-        AddCardSearchResults = [];
+        AddCardSearchResultRows = [];
+        StagedAddItems = [];
         IsAddCardSearchBusy = false;
+        OnPropertyChanged(nameof(StagedAddSummaryText));
     }
 
     private static void ApplyOwnedQuantities(List<DeckCardDisplayItem> items, Dictionary<string, int> qtyOwned)
@@ -478,6 +638,7 @@ public partial class DeckDetailViewModel(
                 Stats = stats;
                 OnPropertyChanged(nameof(HasNoCommander));
                 OnPropertyChanged(nameof(HasMultipleCommanders));
+                RefreshDeckListFilter();
                 StatusIsError = validation.Level == ValidationLevel.Error;
                 StatusMessage = statusMessage;
                 ReloadCompleted?.Invoke();
@@ -500,10 +661,55 @@ public partial class DeckDetailViewModel(
         return SelectedSectionIndex switch
         {
             0 => [.. CommanderCards.Select(x => x.CardUuid)],
-            1 => [.. MainDeckGroups.SelectMany(g => g).Select(x => x.CardUuid)],
-            2 => [.. SideboardCards.Select(x => x.CardUuid)],
+            1 => [.. FilteredMainDeckGroups.SelectMany(g => g).Select(x => x.CardUuid)],
+            2 => [.. FilteredSideboardCards.Select(x => x.CardUuid)],
             _ => []
         };
+    }
+
+    private static bool MatchesDeckListFilter(DeckCardDisplayItem item, string qTrimmed)
+    {
+        if (string.IsNullOrEmpty(qTrimmed)) return true;
+        return item.DisplayName.Contains(qTrimmed, StringComparison.OrdinalIgnoreCase)
+               || (item.CardTypeText ?? "").Contains(qTrimmed, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Rebuilds filtered collections from the authoritative lists (call after load and local mutations).</summary>
+    public void RefreshDeckListFilter()
+    {
+        var q = (DeckListFilterText ?? "").Trim();
+
+        if (string.IsNullOrEmpty(q))
+        {
+            FilteredMainDeckGroups = MainDeckGroups;
+            FilteredSideboardCards = SideboardCards;
+            FilteredAdditionalCommanderCards = AdditionalCommanderCards;
+            IsCommanderHeroVisible = FirstCommander != null;
+            ShowCommanderHiddenByFilterHint = false;
+        }
+        else
+        {
+            var filteredMain = new ObservableCollection<DeckCardGroup>();
+            foreach (var g in MainDeckGroups)
+            {
+                var items = g.Where(i => MatchesDeckListFilter(i, q)).ToList();
+                if (items.Count == 0) continue;
+                int groupQty = items.Sum(x => x.Entity.Quantity);
+                filteredMain.Add(new DeckCardGroup(g.GroupName, items, groupQty));
+            }
+
+            FilteredMainDeckGroups = filteredMain;
+            FilteredSideboardCards = new ObservableCollection<DeckCardDisplayItem>(
+                SideboardCards.Where(i => MatchesDeckListFilter(i, q)));
+            FilteredAdditionalCommanderCards = new ObservableCollection<DeckCardDisplayItem>(
+                AdditionalCommanderCards.Where(i => MatchesDeckListFilter(i, q)));
+
+            IsCommanderHeroVisible = FirstCommander != null && MatchesDeckListFilter(FirstCommander, q);
+            ShowCommanderHiddenByFilterHint = FirstCommander != null && !IsCommanderHeroVisible;
+        }
+
+        OnPropertyChanged(nameof(ShowCommanderHeroArt));
+        OnPropertyChanged(nameof(ShowFilteredPartnersSection));
     }
 
     private static (List<DeckCardDisplayItem> commander, List<DeckCardDisplayItem> main, List<DeckCardDisplayItem> sideboard)
@@ -584,6 +790,355 @@ public partial class DeckDetailViewModel(
         ApplyLocalPatchAfterQuantitySuccess(item, 0, section);
     }
 
+    private void ClearDeckListSelection()
+    {
+        foreach (var x in CommanderCards)
+            x.IsSelected = false;
+        foreach (var g in MainDeckGroups)
+        {
+            foreach (var x in g)
+                x.IsSelected = false;
+        }
+        foreach (var x in SideboardCards)
+            x.IsSelected = false;
+        NotifyDeckSelectionUi();
+    }
+
+    private void NotifyDeckSelectionUi()
+    {
+        OnPropertyChanged(nameof(SelectedCardCount));
+        OnPropertyChanged(nameof(HasSelection));
+    }
+
+    private IEnumerable<DeckCardDisplayItem> GetSelectedVisibleItems()
+    {
+        return SelectedSectionIndex switch
+        {
+            0 => CommanderCards.Where(i => i.IsSelected),
+            1 => FilteredMainDeckGroups.SelectMany(g => g).Where(i => i.IsSelected),
+            2 => FilteredSideboardCards.Where(i => i.IsSelected),
+            _ => []
+        };
+    }
+
+    private IEnumerable<DeckCardDisplayItem> GetAllItemsInCurrentSection()
+    {
+        return SelectedSectionIndex switch
+        {
+            0 => CommanderCards,
+            1 => FilteredMainDeckGroups.SelectMany(g => g),
+            2 => FilteredSideboardCards,
+            _ => []
+        };
+    }
+
+    private void ToggleSelectionMode()
+    {
+        IsSelectionMode = !IsSelectionMode;
+    }
+
+    private void DeckListItemTapped(DeckCardDisplayItem? item)
+    {
+        if (item == null) return;
+        if (IsSelectionMode)
+        {
+            item.IsSelected = !item.IsSelected;
+            NotifyDeckSelectionUi();
+            return;
+        }
+
+        ShowCardQuickDetailCommand.Execute(item);
+    }
+
+    private void SelectAllInCurrentSection()
+    {
+        foreach (var x in GetAllItemsInCurrentSection())
+            x.IsSelected = true;
+        NotifyDeckSelectionUi();
+    }
+
+    private void ClearDeckSelection()
+    {
+        foreach (var x in GetAllItemsInCurrentSection())
+            x.IsSelected = false;
+        NotifyDeckSelectionUi();
+    }
+
+    private async Task BulkRemoveSelectionAsync()
+    {
+        if (Deck == null) return;
+        var items = GetSelectedVisibleItems().ToList();
+        if (items.Count == 0) return;
+
+        var mutations = items
+            .Select(i => new DeckEditorMutation(DeckEditorMutationKind.Remove, i.Entity.CardId, i.Entity.Section))
+            .ToList();
+        var result = await _deckService.ApplyEditorMutationsAsync(Deck.Id, mutations);
+        if (result.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
+            return;
+        }
+
+        StatusIsError = false;
+        StatusMessage = $"Removed {items.Count} stack(s).";
+        IsSelectionMode = false;
+        await ReloadAsync(preserveState: true);
+    }
+
+    private async Task BulkMoveSelectionToMainAsync()
+    {
+        if (Deck == null) return;
+        var items = GetSelectedVisibleItems()
+            .Where(i => string.Equals(i.Entity.Section, "Sideboard", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (items.Count == 0) return;
+
+        var mutations = items
+            .Select(i => new DeckEditorMutation(DeckEditorMutationKind.Move, i.Entity.CardId, "Sideboard", "Main", 0))
+            .ToList();
+        await FinishBulkMoveAsync(mutations, "Main");
+    }
+
+    private async Task BulkMoveSelectionToSideboardAsync()
+    {
+        if (Deck == null) return;
+        var items = GetSelectedVisibleItems()
+            .Where(i => string.Equals(i.Entity.Section, "Main", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (items.Count == 0) return;
+
+        var mutations = items
+            .Select(i => new DeckEditorMutation(DeckEditorMutationKind.Move, i.Entity.CardId, "Main", "Sideboard", 0))
+            .ToList();
+        await FinishBulkMoveAsync(mutations, "Sideboard");
+    }
+
+    private async Task FinishBulkMoveAsync(List<DeckEditorMutation> mutations, string targetLabel)
+    {
+        if (Deck == null || mutations.Count == 0) return;
+
+        var result = await _deckService.ApplyEditorMutationsAsync(Deck.Id, mutations);
+        if (result.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
+            return;
+        }
+
+        StatusIsError = false;
+        StatusMessage = $"Moved {mutations.Count} stack(s) to {targetLabel}.";
+        IsSelectionMode = false;
+        await ReloadAsync(preserveState: true);
+    }
+
+    private async Task BulkIncrementSelectionAsync()
+    {
+        if (Deck == null) return;
+        var items = GetSelectedVisibleItems().ToList();
+        if (items.Count == 0) return;
+
+        var mutations = items
+            .Select(i => new DeckEditorMutation(DeckEditorMutationKind.Add, i.Entity.CardId, i.Entity.Section, null, 1))
+            .ToList();
+        var result = await _deckService.ApplyEditorMutationsAsync(Deck.Id, mutations);
+        if (result.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
+            return;
+        }
+
+        StatusIsError = false;
+        StatusMessage = $"+1 to {items.Count} stack(s).";
+        await ReloadAsync(preserveState: true);
+    }
+
+    private async Task BulkDecrementSelectionAsync()
+    {
+        if (Deck == null) return;
+        var items = GetSelectedVisibleItems().ToList();
+        if (items.Count == 0) return;
+
+        var mutations = items
+            .Select(i => new DeckEditorMutation(
+                DeckEditorMutationKind.SetQuantity,
+                i.Entity.CardId,
+                i.Entity.Section,
+                null,
+                Math.Max(0, i.Entity.Quantity - 1)))
+            .ToList();
+        var result = await _deckService.ApplyEditorMutationsAsync(Deck.Id, mutations);
+        if (result.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
+            return;
+        }
+
+        StatusIsError = false;
+        StatusMessage = $"-1 from {items.Count} stack(s).";
+        await ReloadAsync(preserveState: true);
+    }
+
+    private async Task MoveCardRowToSideboardAsync(DeckCardDisplayItem? item)
+    {
+        if (Deck == null || item == null) return;
+        if (!string.Equals(item.Entity.Section, "Main", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var result = await _deckService.ApplyEditorMutationsAsync(Deck.Id,
+        [
+            new DeckEditorMutation(DeckEditorMutationKind.Move, item.Entity.CardId, "Main", "Sideboard", 0)
+        ]);
+        if (result.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
+            return;
+        }
+
+        StatusIsError = false;
+        StatusMessage = $"Moved {item.DisplayName} to Sideboard.";
+        await ReloadAsync(preserveState: true);
+    }
+
+    private async Task MoveCardRowToMainAsync(DeckCardDisplayItem? item)
+    {
+        if (Deck == null || item == null) return;
+        if (!string.Equals(item.Entity.Section, "Sideboard", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var result = await _deckService.ApplyEditorMutationsAsync(Deck.Id,
+        [
+            new DeckEditorMutation(DeckEditorMutationKind.Move, item.Entity.CardId, "Sideboard", "Main", 0)
+        ]);
+        if (result.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = result.Message ?? UserMessages.CouldNotUpdateQuantity();
+            return;
+        }
+
+        StatusIsError = false;
+        StatusMessage = $"Moved {item.DisplayName} to Main.";
+        await ReloadAsync(preserveState: true);
+    }
+
+    private void ToggleStagedSearchRow(DeckAddSearchResultRow? row)
+    {
+        if (row == null || Deck == null) return;
+
+        if (SelectedSectionIndex == 0)
+        {
+            _ = AddCardFromSearchAsync(row.Card);
+            return;
+        }
+
+        if (row.IsStaged)
+        {
+            var existing = StagedAddItems.FirstOrDefault(s => s.Card.Uuid == row.Card.Uuid);
+            if (existing != null)
+                StagedAddItems.Remove(existing);
+            row.IsStaged = false;
+        }
+        else
+        {
+            StagedAddItems.Add(new StagedDeckAddItem(row.Card));
+            row.IsStaged = true;
+        }
+
+        OnPropertyChanged(nameof(StagedAddSummaryText));
+    }
+
+    private void IncrementStagedAddQuantity(StagedDeckAddItem? item)
+    {
+        if (item == null) return;
+        item.Quantity++;
+        OnPropertyChanged(nameof(StagedAddSummaryText));
+    }
+
+    private void DecrementStagedAddQuantity(StagedDeckAddItem? item)
+    {
+        if (item == null) return;
+        if (item.Quantity <= 1)
+        {
+            StagedAddItems.Remove(item);
+            SyncSearchRowStagedState(item.Card.Uuid, false);
+        }
+        else
+        {
+            item.Quantity--;
+        }
+
+        OnPropertyChanged(nameof(StagedAddSummaryText));
+    }
+
+    private void SyncSearchRowStagedState(string cardUuid, bool staged)
+    {
+        var row = AddCardSearchResultRows.FirstOrDefault(r => r.Card.Uuid == cardUuid);
+        if (row != null)
+            row.IsStaged = staged;
+    }
+
+    private async Task AddStagedCardsToDeckAsync()
+    {
+        if (Deck == null || StagedAddItems.Count == 0) return;
+
+        if (SelectedSectionIndex == 0)
+        {
+            var first = StagedAddItems[0].Card;
+            var result = await _deckService.SetCommanderAsync(Deck.Id, first.Uuid);
+            if (result.IsError)
+            {
+                StatusIsError = true;
+                StatusMessage = result.Message ?? UserMessages.CouldNotSetCommander();
+            }
+            else
+            {
+                StatusIsError = false;
+                StatusMessage = StagedAddItems.Count > 1
+                    ? $"{first.Name} set as commander. (Additional staged cards were not added.)"
+                    : $"{first.Name} set as commander.";
+                StagedAddItems.Clear();
+                AddCardSearchResultRows = [];
+                OnPropertyChanged(nameof(StagedAddSummaryText));
+                await ReloadAsync(preserveState: true);
+            }
+
+            return;
+        }
+
+        string section = SelectedSectionIndex == 2 ? "Sideboard" : "Main";
+        var mutations = StagedAddItems
+            .Select(s => new DeckEditorMutation(DeckEditorMutationKind.Add, s.Card.Uuid, section, null, s.Quantity))
+            .ToList();
+        var addResult = await _deckService.ApplyEditorMutationsAsync(Deck.Id, mutations);
+        if (addResult.IsError)
+        {
+            StatusIsError = true;
+            StatusMessage = addResult.Message ?? UserMessages.CouldNotAddCardToDeck();
+            return;
+        }
+
+        int total = StagedAddItems.Sum(s => s.Quantity);
+        StatusIsError = false;
+        StatusMessage = $"Added {total} card(s) to {section}.";
+        StagedAddItems.Clear();
+        AddCardSearchResultRows = [];
+        OnPropertyChanged(nameof(StagedAddSummaryText));
+        await ReloadAsync(preserveState: true);
+    }
+
+    private void ClearStagedAdds()
+    {
+        foreach (var row in AddCardSearchResultRows)
+            row.IsStaged = false;
+        StagedAddItems.Clear();
+        OnPropertyChanged(nameof(StagedAddSummaryText));
+    }
+
     private void ApplyLocalPatchAfterQuantitySuccess(DeckCardDisplayItem item, int newQty, string section)
     {
         if (newQty <= 0)
@@ -640,6 +1195,7 @@ public partial class DeckDetailViewModel(
             : [];
         OnPropertyChanged(nameof(HasNoCommander));
         OnPropertyChanged(nameof(HasMultipleCommanders));
+        RefreshDeckListFilter();
     }
 
     private List<DeckCardEntity> GatherEntitiesFromPresentation()
@@ -666,6 +1222,7 @@ public partial class DeckDetailViewModel(
         Stats = ComputeStats(entities, _cardMapCache);
         OnPropertyChanged(nameof(DeckSummaryText));
         OnPropertyChanged(nameof(SideboardHeaderText));
+        RefreshDeckListFilter();
         _ = ApplyValidationUiAsync();
     }
 

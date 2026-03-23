@@ -255,6 +255,69 @@ public class DeckRepository : IDeckRepository
         }
     }
 
+    public async Task ApplyDeckCardMutationsAsync(int deckId, IReadOnlyList<DeckCardPersistenceMutation> mutations)
+    {
+        if (mutations == null || mutations.Count == 0)
+            return;
+
+        if (!_databaseManager.IsConnected)
+            throw new InvalidOperationException("Database not connected.");
+
+        await WithDeckTransactionAsync(async (conn, transaction) =>
+        {
+            foreach (var m in mutations)
+            {
+                switch (m.Kind)
+                {
+                    case DeckCardPersistenceKind.Remove:
+                        await conn.ExecuteAsync(
+                            SqlQueries.DeckRemoveCard,
+                            new { DeckId = deckId, CardId = m.CardId, Section = m.Section },
+                            transaction);
+                        break;
+
+                    case DeckCardPersistenceKind.UpdateQuantity:
+                        if (m.Quantity <= 0)
+                        {
+                            await conn.ExecuteAsync(
+                                SqlQueries.DeckRemoveCard,
+                                new { DeckId = deckId, CardId = m.CardId, Section = m.Section },
+                                transaction);
+                        }
+                        else
+                        {
+                            await conn.ExecuteAsync(
+                                SqlQueries.DeckUpdateCardQuantity,
+                                new
+                                {
+                                    DeckId = deckId,
+                                    CardId = m.CardId,
+                                    Section = m.Section,
+                                    Quantity = m.Quantity
+                                },
+                                transaction);
+                        }
+                        break;
+
+                    case DeckCardPersistenceKind.InsertOrReplace:
+                        var dateAdded = (m.DateAdded ?? DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss");
+                        await conn.ExecuteAsync(
+                            SqlQueries.DeckAddCard,
+                            new
+                            {
+                                DeckId = deckId,
+                                CardId = m.CardId,
+                                Quantity = m.Quantity,
+                                Section = m.Section,
+                                DateAdded = dateAdded
+                            },
+                            transaction);
+                        break;
+                }
+            }
+        });
+    }
+
     private async Task<T> WithDeckTransactionAsync<T>(Func<SqliteConnection, SqliteTransaction, Task<T>> action)
     {
         await _databaseManager.ConnectionLock.WaitAsync();

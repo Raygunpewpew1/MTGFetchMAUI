@@ -49,7 +49,9 @@
     <Compile Include="..\Core\CardRuling.cs" Link="Models\CardRuling.cs" />
     <Compile Include="..\Models\DeckEntity.cs" Link="Models\DeckEntity.cs" />
     <Compile Include="..\Models\DeckCardEntity.cs" Link="Models\DeckCardEntity.cs" />
+    <Compile Include="..\Models\DeckCardPersistenceMutation.cs" Link="Models\DeckCardPersistenceMutation.cs" />
     <Compile Include="..\Models\CollectionItem.cs" Link="Models\CollectionItem.cs" />
+    <Compile Include="..\Services\DeckBuilder\DeckEditorMutation.cs" Link="Services\DeckBuilder\DeckEditorMutation.cs" />
     <Compile Include="..\Data\IDeckRepository.cs" Link="Data\IDeckRepository.cs" />
     <Compile Include="..\Data\ImportLookupRow.cs" Link="Data\ImportLookupRow.cs" />
     <Compile Include="..\Data\ICardRepository.cs" Link="Data\ICardRepository.cs" />

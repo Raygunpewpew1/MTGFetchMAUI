@@ -384,4 +384,244 @@ public class DeckBuilderService
             ? ValidationResult.Error(message)
             : ValidationResult.Warning(message);
     }
+
+    /// <summary>
+    /// Validates and applies multiple deck card edits in one transaction.
+    /// Mutations run in order; on first validation error nothing is persisted.
+    /// </summary>
+    public async Task<ValidationResult> ApplyEditorMutationsAsync(
+        int deckId,
+        IReadOnlyList<DeckEditorMutation> mutations,
+        bool skipLegalityCheck = false)
+    {
+        if (mutations == null || mutations.Count == 0)
+            return ValidationResult.Success();
+
+        var deck = await _repository.GetDeckAsync(deckId);
+        if (deck == null)
+            return ValidationResult.Error("Deck not found.");
+
+        var beforeSnapshot = CloneDeckCardList(await _repository.GetDeckCardsAsync(deckId));
+        var working = CloneDeckCardList(beforeSnapshot);
+
+        foreach (var m in mutations)
+        {
+            var step = await ApplyOneEditorMutationAsync(deckId, deck, working, m, skipLegalityCheck);
+            if (step.IsError)
+                return step;
+        }
+
+        var plan = BuildPersistencePlan(beforeSnapshot, working);
+        if (plan.Count > 0)
+            await _repository.ApplyDeckCardMutationsAsync(deckId, plan);
+
+        deck.DateModified = DateTime.Now;
+        await _repository.UpdateDeckAsync(deck);
+
+        return ValidationResult.Success();
+    }
+
+    private static List<DeckCardEntity> CloneDeckCardList(IEnumerable<DeckCardEntity> src) =>
+        src.Select(c => new DeckCardEntity
+        {
+            DeckId = c.DeckId,
+            CardId = c.CardId,
+            Quantity = c.Quantity,
+            Section = c.Section,
+            DateAdded = c.DateAdded
+        }).ToList();
+
+    private static DeckCardEntity? FindRow(List<DeckCardEntity> working, string cardId, string section) =>
+        working.FirstOrDefault(c => c.CardId == cardId && c.Section == section);
+
+    private async Task<ValidationResult> ApplyOneEditorMutationAsync(
+        int deckId,
+        DeckEntity deck,
+        List<DeckCardEntity> working,
+        DeckEditorMutation m,
+        bool skipLegalityCheck)
+    {
+        switch (m.Kind)
+        {
+            case DeckEditorMutationKind.Add:
+            {
+                int delta = m.Quantity <= 0 ? 1 : m.Quantity;
+                var card = await _cardRepository.GetCardDetailsAsync(m.CardId);
+                if (card == null)
+                    return ValidationResult.Error("Card not found.");
+
+                var vr = await _validator.ValidateCardAdditionAsync(deck, card, delta, working, skipLegalityCheck);
+                if (vr.IsError)
+                    return vr;
+
+                var ex = FindRow(working, m.CardId, m.Section);
+                if (ex != null)
+                    ex.Quantity += delta;
+                else
+                {
+                    working.Add(new DeckCardEntity
+                    {
+                        DeckId = deckId,
+                        CardId = m.CardId,
+                        Section = m.Section,
+                        Quantity = delta,
+                        DateAdded = DateTime.Now
+                    });
+                }
+
+                return ValidationResult.Success();
+            }
+
+            case DeckEditorMutationKind.SetQuantity:
+            {
+                var ex = FindRow(working, m.CardId, m.Section);
+                int oldQ = ex?.Quantity ?? 0;
+                int newQ = m.Quantity;
+                if (newQ < 0)
+                    newQ = 0;
+
+                int diff = newQ - oldQ;
+                if (diff > 0)
+                {
+                    var card = await _cardRepository.GetCardDetailsAsync(m.CardId);
+                    if (card == null)
+                        return ValidationResult.Error("Card not found.");
+
+                    var vr = await _validator.ValidateCardAdditionAsync(deck, card, diff, working, skipLegalityCheck);
+                    if (vr.IsError)
+                        return vr;
+                }
+
+                if (newQ <= 0)
+                {
+                    if (ex != null)
+                        working.Remove(ex);
+                }
+                else if (ex != null)
+                {
+                    ex.Quantity = newQ;
+                }
+                else
+                {
+                    working.Add(new DeckCardEntity
+                    {
+                        DeckId = deckId,
+                        CardId = m.CardId,
+                        Section = m.Section,
+                        Quantity = newQ,
+                        DateAdded = DateTime.Now
+                    });
+                }
+
+                return ValidationResult.Success();
+            }
+
+            case DeckEditorMutationKind.Remove:
+            {
+                var ex = FindRow(working, m.CardId, m.Section);
+                if (ex != null)
+                    working.Remove(ex);
+                return ValidationResult.Success();
+            }
+
+            case DeckEditorMutationKind.Move:
+            {
+                if (string.IsNullOrEmpty(m.TargetSection))
+                    return ValidationResult.Error("Move requires a target section.");
+
+                if (string.Equals(m.Section, m.TargetSection, StringComparison.OrdinalIgnoreCase))
+                    return ValidationResult.Error("Source and target section are the same.");
+
+                var from = FindRow(working, m.CardId, m.Section);
+                if (from == null || from.Quantity <= 0)
+                    return ValidationResult.Error("Nothing to move from source section.");
+
+                int amt = m.Quantity <= 0 ? from.Quantity : Math.Min(m.Quantity, from.Quantity);
+                if (amt <= 0)
+                    return ValidationResult.Error("Nothing to move.");
+
+                from.Quantity -= amt;
+                if (from.Quantity <= 0)
+                    working.Remove(from);
+
+                var card = await _cardRepository.GetCardDetailsAsync(m.CardId);
+                if (card == null)
+                    return ValidationResult.Error("Card not found.");
+
+                var addCheck = await _validator.ValidateCardAdditionAsync(deck, card, amt, working, skipLegalityCheck);
+                if (addCheck.IsError)
+                    return addCheck;
+
+                var to = FindRow(working, m.CardId, m.TargetSection);
+                if (to != null)
+                    to.Quantity += amt;
+                else
+                {
+                    working.Add(new DeckCardEntity
+                    {
+                        DeckId = deckId,
+                        CardId = m.CardId,
+                        Section = m.TargetSection,
+                        Quantity = amt,
+                        DateAdded = DateTime.Now
+                    });
+                }
+
+                return ValidationResult.Success();
+            }
+
+            default:
+                return ValidationResult.Error("Unknown mutation.");
+        }
+    }
+
+    private static List<DeckCardPersistenceMutation> BuildPersistencePlan(
+        List<DeckCardEntity> before,
+        List<DeckCardEntity> after)
+    {
+        static Dictionary<(string CardId, string Section), int> ToMap(List<DeckCardEntity> list)
+        {
+            var d = new Dictionary<(string, string), int>();
+            foreach (var c in list)
+                d[(c.CardId, c.Section)] = c.Quantity;
+            return d;
+        }
+
+        var bMap = ToMap(before);
+        var aMap = ToMap(after);
+        var keys = bMap.Keys.Union(aMap.Keys).ToList();
+        var plan = new List<DeckCardPersistenceMutation>();
+
+        foreach (var key in keys)
+        {
+            int bq = bMap.GetValueOrDefault(key);
+            int aq = aMap.GetValueOrDefault(key);
+            if (bq == aq)
+                continue;
+
+            if (aq <= 0)
+            {
+                plan.Add(new DeckCardPersistenceMutation(DeckCardPersistenceKind.Remove, key.CardId, key.Section));
+            }
+            else if (bq <= 0)
+            {
+                plan.Add(new DeckCardPersistenceMutation(
+                    DeckCardPersistenceKind.InsertOrReplace,
+                    key.CardId,
+                    key.Section,
+                    aq,
+                    DateTime.Now));
+            }
+            else
+            {
+                plan.Add(new DeckCardPersistenceMutation(
+                    DeckCardPersistenceKind.UpdateQuantity,
+                    key.CardId,
+                    key.Section,
+                    aq));
+            }
+        }
+
+        return plan;
+    }
 }

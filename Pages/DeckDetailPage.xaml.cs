@@ -1,10 +1,8 @@
+using AetherVault.Constants;
 using AetherVault.Services;
 using AetherVault.Services.DeckBuilder;
 using AetherVault.Services.ImportExport;
 using AetherVault.ViewModels;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Extensions;
-using CommunityToolkit.Maui.Views;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using System.Text;
@@ -18,6 +16,7 @@ public partial class DeckDetailPage : ContentPage
     private readonly IServiceProvider _serviceProvider;
     private readonly DeckBuilderService _deckService;
     private readonly DeckExporter _deckExporter;
+    private readonly DeckImporter _deckImporter;
     private readonly ImageDownloadService _imageDownloadService;
     private readonly CardGalleryContext _galleryContext;
 
@@ -37,6 +36,7 @@ public partial class DeckDetailPage : ContentPage
         IServiceProvider serviceProvider,
         DeckBuilderService deckService,
         DeckExporter deckExporter,
+        DeckImporter deckImporter,
         ImageDownloadService imageDownloadService,
         CardGalleryContext galleryContext)
     {
@@ -45,6 +45,7 @@ public partial class DeckDetailPage : ContentPage
         _serviceProvider = serviceProvider;
         _deckService = deckService;
         _deckExporter = deckExporter;
+        _deckImporter = deckImporter;
         _imageDownloadService = imageDownloadService;
         _galleryContext = galleryContext;
         BindingContext = viewModel;
@@ -67,15 +68,11 @@ public partial class DeckDetailPage : ContentPage
 
     private async void OnAddCardsClicked(object? sender, EventArgs e)
     {
-        var sheet = _serviceProvider.GetRequiredService<DeckAddCardsSheet>();
-        sheet.Init(_viewModel);
-        var options = new PopupOptions
-        {
-            Shape = null,
-            Shadow = null,
-            PageOverlayColor = Color.FromRgba(0, 0, 0, 0.5)
-        };
-        await this.ShowPopupAsync(sheet, options);
+        // Full-screen modal avoids Shell tab bar jumping with IME (AdjustResize); popup was resizing the whole window.
+        var page = _serviceProvider.GetRequiredService<DeckAddCardsPage>();
+        var nav = Navigation;
+        page.Init(_viewModel, async () => await nav.PopModalAsync());
+        await Navigation.PushModalAsync(page);
     }
 
     private async void OnCommanderMenuRequested(object? sender, EventArgs e)
@@ -98,6 +95,46 @@ public partial class DeckDetailPage : ContentPage
             uuids = [item.CardUuid];
         _galleryContext.SetContext(uuids, item.CardUuid);
         await Shell.Current.GoToAsync($"carddetail?uuid={Uri.EscapeDataString(item.CardUuid)}");
+    }
+
+    private async void OnImportCsvClicked(object? sender, EventArgs e)
+    {
+        if (_viewModel.Deck == null) return;
+
+        try
+        {
+            var pick = await FilePickerHelper.PickCsvFileAsync("Select a deck CSV file to import");
+            if (pick == null) return;
+
+            _viewModel.IsBusy = true;
+            _viewModel.StatusIsError = false;
+            _viewModel.StatusMessage = UserMessages.ImportingDecks;
+
+            using var stream = await pick.OpenReadAsync();
+            var importResult = await Task.Run(async () => await _deckImporter.ImportCsvAsync(stream));
+
+            if (importResult.Errors.Count > 0)
+                Logger.LogStuff($"Deck import: {importResult.Errors.Count} errors. First: {importResult.Errors[0]}", LogLevel.Warning);
+            if (importResult.Warnings.Count > 0)
+                Logger.LogStuff($"Deck import: {importResult.Warnings.Count} warnings. First: {importResult.Warnings[0]}", LogLevel.Warning);
+
+            _viewModel.StatusIsError = importResult.Errors.Count > 0;
+            _viewModel.StatusMessage = importResult.Errors.Count > 0
+                ? UserMessages.ImportFailed(importResult.Errors[0])
+                : UserMessages.ImportedDecksToast(importResult.ImportedDecks, importResult.ImportedCards);
+
+            await _viewModel.ReloadAsync(preserveState: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Deck detail import failed: {ex.Message}", LogLevel.Error);
+            _viewModel.StatusIsError = true;
+            _viewModel.StatusMessage = UserMessages.ImportFailed(ex.Message);
+        }
+        finally
+        {
+            _viewModel.IsBusy = false;
+        }
     }
 
     private async void OnExportDeckClicked(object? sender, EventArgs e)

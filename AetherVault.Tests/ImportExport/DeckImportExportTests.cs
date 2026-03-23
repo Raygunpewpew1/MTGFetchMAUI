@@ -175,6 +175,71 @@ public class DeckImportExportTests
             return Task.FromResult(result);
         }
 
+        public Task ApplyDeckCardMutationsAsync(int deckId, IReadOnlyList<DeckCardPersistenceMutation> mutations)
+        {
+            foreach (var m in mutations)
+            {
+                switch (m.Kind)
+                {
+                    case DeckCardPersistenceKind.Remove:
+                        _cards.RemoveAll(c =>
+                            c.DeckId == deckId &&
+                            string.Equals(c.CardId, m.CardId, StringComparison.OrdinalIgnoreCase) &&
+                            string.Equals(c.Section, m.Section, StringComparison.OrdinalIgnoreCase));
+                        break;
+                    case DeckCardPersistenceKind.UpdateQuantity:
+                        {
+                            var idx = _cards.FindIndex(c =>
+                                c.DeckId == deckId &&
+                                string.Equals(c.CardId, m.CardId, StringComparison.OrdinalIgnoreCase) &&
+                                string.Equals(c.Section, m.Section, StringComparison.OrdinalIgnoreCase));
+                            if (m.Quantity <= 0)
+                            {
+                                if (idx >= 0)
+                                    _cards.RemoveAt(idx);
+                            }
+                            else if (idx >= 0)
+                            {
+                                var row = _cards[idx];
+                                row.Quantity = m.Quantity;
+                                _cards[idx] = row;
+                            }
+                            else
+                            {
+                                _cards.Add(new DeckCardEntity
+                                {
+                                    DeckId = deckId,
+                                    CardId = m.CardId,
+                                    Section = m.Section,
+                                    Quantity = m.Quantity,
+                                    DateAdded = m.DateAdded ?? DateTime.Now
+                                });
+                            }
+
+                            break;
+                        }
+                    case DeckCardPersistenceKind.InsertOrReplace:
+                        {
+                            _cards.RemoveAll(c =>
+                                c.DeckId == deckId &&
+                                string.Equals(c.CardId, m.CardId, StringComparison.OrdinalIgnoreCase) &&
+                                string.Equals(c.Section, m.Section, StringComparison.OrdinalIgnoreCase));
+                            _cards.Add(new DeckCardEntity
+                            {
+                                DeckId = deckId,
+                                CardId = m.CardId,
+                                Section = m.Section,
+                                Quantity = m.Quantity,
+                                DateAdded = m.DateAdded ?? DateTime.Now
+                            });
+                            break;
+                        }
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         private static DeckEntity Clone(DeckEntity d) => new()
         {
             Id = d.Id,

@@ -31,6 +31,19 @@ public class MtgJsonDeckImporter
         _cardRepo = cardRepo;
     }
 
+    private static bool SupportsMultipleCommanders(Card? commanderCard)
+    {
+        if (commanderCard == null)
+            return false;
+
+        // Keep this intentionally permissive for valid multi-commander mechanics.
+        return commanderCard.HasKeyword("Partner")
+            || commanderCard.Text.Contains("Partner", StringComparison.OrdinalIgnoreCase)
+            || commanderCard.Text.Contains("choose a Background", StringComparison.OrdinalIgnoreCase)
+            || commanderCard.Text.Contains("Doctor's companion", StringComparison.OrdinalIgnoreCase)
+            || commanderCard.Text.Contains("Friends forever", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Maps MTGJSON deck type strings to the closest internal DeckFormat.
     /// MTGJSON uses type names like "Theme Deck", "Commander", "Preconstructed", etc.
@@ -98,12 +111,11 @@ public class MtgJsonDeckImporter
             if (c != null)
                 allCards.Add(("Sideboard", c));
         }
-        foreach (var c in deck.Commander ?? [])
-        {
-            if (c != null)
-                allCards.Add(("Commander", c));
-        }
-        foreach (var c in deck.DisplayCommander ?? [])
+        var commanderCards = deck.Commander;
+        if (commanderCards == null || commanderCards.Count == 0)
+            commanderCards = deck.DisplayCommander;
+
+        foreach (var c in commanderCards ?? [])
         {
             if (c != null)
                 allCards.Add(("Commander", c));
@@ -148,9 +160,8 @@ public class MtgJsonDeckImporter
             return null;
         }
 
-        var commanderCards = deck.Commander ?? [];
         Card? firstCommanderCard = null;
-        if (commanderCards.Count > 0)
+        if ((commanderCards?.Count ?? 0) > 0)
             firstCommanderCard = await ResolveCardAsync(commanderCards[0]);
         if (firstCommanderCard != null && !string.IsNullOrEmpty(firstCommanderCard.Uuid))
         {
@@ -158,6 +169,8 @@ public class MtgJsonDeckImporter
             await _deckService.SetCommanderAsync(deckId, firstCommanderCard.Uuid);
             result.CardsAdded += 1;
         }
+
+        var allowMultipleCommanders = SupportsMultipleCommanders(firstCommanderCard);
 
         foreach (var (section, mtgCard) in allCards)
         {
@@ -167,6 +180,8 @@ public class MtgJsonDeckImporter
                 continue;
             if (section == "Commander" && firstCommanderCard != null && card.Uuid == firstCommanderCard.Uuid)
                 continue; // already added by SetCommanderAsync
+            if (section == "Commander" && !allowMultipleCommanders)
+                continue; // safety guard: non-partner commander decks should not import a second commander
 
             var quantity = mtgCard.Count < 1 ? 1 : mtgCard.Count;
             // skipLegalityCheck: MTGJSON deck files are authoritative — trust the source.

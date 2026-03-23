@@ -483,6 +483,72 @@ public class DeckBuilderTests
         card.Legalities[format] = legality;
         return card;
     }
+
+    [Fact]
+    public async Task ApplyEditorMutations_BatchAddTwoCards_SucceedsAtomically()
+    {
+        var deckId = await _service.CreateDeckAsync("Batch", DeckFormat.Standard);
+        var a = CreateCard("a1", "Card A", DeckFormat.Standard, LegalityStatus.Legal);
+        var b = CreateCard("b1", "Card B", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(a);
+        _cardRepo.AddCard(b);
+
+        var mutations = new DeckEditorMutation[]
+        {
+            new(DeckEditorMutationKind.Add, a.Uuid, "Main", null, 2),
+            new(DeckEditorMutationKind.Add, b.Uuid, "Main", null, 1),
+        };
+
+        var result = await _service.ApplyEditorMutationsAsync(deckId, mutations);
+
+        Assert.True(result.IsSuccess);
+        var cards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Equal(2, cards.Count);
+        Assert.Equal(2, cards.Single(c => c.CardId == "a1").Quantity);
+        Assert.Equal(1, cards.Single(c => c.CardId == "b1").Quantity);
+    }
+
+    [Fact]
+    public async Task ApplyEditorMutations_SecondCardInvalid_NoPartialApply()
+    {
+        var deckId = await _service.CreateDeckAsync("Partial", DeckFormat.Standard);
+        var legal = CreateCard("ok", "Ok", DeckFormat.Standard, LegalityStatus.Legal);
+        var banned = CreateCard("bad", "Bad", DeckFormat.Standard, LegalityStatus.Banned);
+        _cardRepo.AddCard(legal);
+        _cardRepo.AddCard(banned);
+
+        var mutations = new DeckEditorMutation[]
+        {
+            new(DeckEditorMutationKind.Add, legal.Uuid, "Main", null, 1),
+            new(DeckEditorMutationKind.Add, banned.Uuid, "Main", null, 1),
+        };
+
+        var result = await _service.ApplyEditorMutationsAsync(deckId, mutations);
+
+        Assert.True(result.IsError);
+        var cards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.Empty(cards);
+    }
+
+    [Fact]
+    public async Task ApplyEditorMutations_MoveMainToSideboard_PreservesTotalCopies()
+    {
+        var deckId = await _service.CreateDeckAsync("Move", DeckFormat.Standard);
+        var card = CreateCard("m1", "Mover", DeckFormat.Standard, LegalityStatus.Legal);
+        _cardRepo.AddCard(card);
+        await _service.AddCardAsync(deckId, card.Uuid, 3, "Main");
+
+        var result = await _service.ApplyEditorMutationsAsync(deckId,
+        [
+            new DeckEditorMutation(DeckEditorMutationKind.Move, card.Uuid, "Main", "Sideboard", 0)
+        ]);
+
+        Assert.True(result.IsSuccess);
+        var cards = await _deckRepo.GetDeckCardsAsync(deckId);
+        Assert.DoesNotContain(cards, c => c.Section == "Main");
+        var sb = cards.Single(c => c.Section == "Sideboard");
+        Assert.Equal(3, sb.Quantity);
+    }
 }
 
 // ── Mocks ─────────────────────────────────────────────────────────────
@@ -574,6 +640,62 @@ public class MockDeckRepository : IDeckRepository
     {
         var result = deckIds.ToDictionary(id => id, id => _deckCards.Where(c => c.DeckId == id).Sum(c => c.Quantity));
         return Task.FromResult(result);
+    }
+
+    public Task ApplyDeckCardMutationsAsync(int deckId, IReadOnlyList<DeckCardPersistenceMutation> mutations)
+    {
+        foreach (var m in mutations)
+        {
+            switch (m.Kind)
+            {
+                case DeckCardPersistenceKind.Remove:
+                    _deckCards.RemoveAll(c => c.DeckId == deckId && c.CardId == m.CardId && c.Section == m.Section);
+                    break;
+                case DeckCardPersistenceKind.UpdateQuantity:
+                    {
+                        var row = _deckCards.FirstOrDefault(c => c.DeckId == deckId && c.CardId == m.CardId && c.Section == m.Section);
+                        if (m.Quantity <= 0)
+                        {
+                            if (row != null)
+                                _deckCards.Remove(row);
+                        }
+                        else if (row != null)
+                        {
+                            row.Quantity = m.Quantity;
+                        }
+                        else
+                        {
+                            _deckCards.Add(new DeckCardEntity
+                            {
+                                DeckId = deckId,
+                                CardId = m.CardId,
+                                Section = m.Section,
+                                Quantity = m.Quantity,
+                                DateAdded = m.DateAdded ?? DateTime.Now
+                            });
+                        }
+
+                        break;
+                    }
+                case DeckCardPersistenceKind.InsertOrReplace:
+                    {
+                        var old = _deckCards.FirstOrDefault(c => c.DeckId == deckId && c.CardId == m.CardId && c.Section == m.Section);
+                        if (old != null)
+                            _deckCards.Remove(old);
+                        _deckCards.Add(new DeckCardEntity
+                        {
+                            DeckId = deckId,
+                            CardId = m.CardId,
+                            Section = m.Section,
+                            Quantity = m.Quantity,
+                            DateAdded = m.DateAdded ?? DateTime.Now
+                        });
+                        break;
+                    }
+            }
+        }
+
+        return Task.CompletedTask;
     }
 }
 

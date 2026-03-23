@@ -228,7 +228,7 @@ public class MtgJsonDeckListService
                     break;
                 }
             }
-            foreach (var name in new[] { "commander", "displayCommander", "display_commander" })
+            foreach (var name in new[] { "commander" })
             {
                 if (dataEl.TryGetProperty(name, out var arr))
                     AddCardsFromArray(arr, commander);

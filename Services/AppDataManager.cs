@@ -12,6 +12,11 @@ public static class AppDataManager
     private const int ResponseTimeoutSeconds = 300;
     private const long MinValidDatabaseSize = 1_000_000; // 1 MB
     private const string VersionFile = "main_db_version.txt";
+    /// <summary>
+    /// Persisted fingerprint after a successful PRAGMA quick_check; avoids re-running quick_check every cold start.
+    /// Format: <c>localVersion|fileLength|lastWriteUtcTicks</c> (single line).
+    /// </summary>
+    private const string QuickCheckMarkerFile = "mtg_db_quick_check.marker";
 
     // 1. ADDED: The Semaphore to prevent concurrent downloads
     private static readonly SemaphoreSlim DownloadLock = new SemaphoreSlim(1, 1);
@@ -60,6 +65,112 @@ public static class AppDataManager
 
     public static string GetVersionFilePath() =>
         Path.Combine(GetAppDataPath(), VersionFile);
+
+    private static string GetQuickCheckMarkerPath() =>
+        Path.Combine(GetAppDataPath(), QuickCheckMarkerFile);
+
+    /// <summary>
+    /// Builds the expected marker line from <see cref="GetLocalDatabaseVersion"/> and current MTG DB file metadata.
+    /// Returns null if the database file is missing.
+    /// </summary>
+    private static string? BuildQuickCheckMarkerFingerprint()
+    {
+        var path = GetMtgDatabasePath();
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            var fi = new FileInfo(path);
+            var version = GetLocalDatabaseVersion();
+            return $"{version}|{fi.Length}|{fi.LastWriteTimeUtc.Ticks}";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// True when the on-disk marker matches the current DB file and recorded version tag (startup fast path).
+    /// </summary>
+    public static bool IsMtgDatabaseQuickCheckMarkerCurrent()
+    {
+        var expected = BuildQuickCheckMarkerFingerprint();
+        if (expected == null)
+            return false;
+
+        try
+        {
+            var markerPath = GetQuickCheckMarkerPath();
+            if (!File.Exists(markerPath))
+                return false;
+
+            var stored = File.ReadAllText(markerPath).Trim();
+            return string.Equals(stored, expected, StringComparison.Ordinal);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Writes the quick_check marker after a successful validation (must match current DB + version file).
+    /// </summary>
+    public static void WriteMtgDatabaseQuickCheckMarker()
+    {
+        var expected = BuildQuickCheckMarkerFingerprint();
+        if (expected == null)
+            return;
+
+        try
+        {
+            File.WriteAllText(GetQuickCheckMarkerPath(), expected);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogStuff($"Could not write MTG DB quick_check marker: {ex.Message}", LogLevel.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Removes the marker (e.g. after failed validation or corrupted DB).
+    /// </summary>
+    public static void ClearMtgDatabaseQuickCheckMarker()
+    {
+        try
+        {
+            var p = GetQuickCheckMarkerPath();
+            if (File.Exists(p))
+                File.Delete(p);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogStuff($"Could not clear MTG DB quick_check marker: {ex.Message}", LogLevel.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Startup path: skips <see cref="ValidateMtgDatabaseAsync"/> when the marker matches;
+    /// otherwise runs quick_check and updates or clears the marker.
+    /// </summary>
+    public static async Task<bool> EnsureMtgDatabaseValidForStartupAsync(CancellationToken ct = default)
+    {
+        if (IsMtgDatabaseQuickCheckMarkerCurrent())
+        {
+            Logger.LogStuff("MTG DB: quick_check skipped (validation marker matches).", LogLevel.Info);
+            return true;
+        }
+
+        var ok = await ValidateMtgDatabaseAsync(ct);
+        if (ok)
+            WriteMtgDatabaseQuickCheckMarker();
+        else
+            ClearMtgDatabaseQuickCheckMarker();
+
+        return ok;
+    }
 
     // ── Database Checks ──────────────────────────────────────────────
 
@@ -281,6 +392,7 @@ public static class AppDataManager
             if (!valid)
             {
                 UpdateProgress("Database is corrupted after download. Please try again.", 0);
+                ClearMtgDatabaseQuickCheckMarker();
 
                 // Best-effort cleanup of the bad DB so the next attempt starts fresh
                 try
@@ -305,6 +417,9 @@ public static class AppDataManager
             {
                 SetLocalDatabaseVersion(remoteVersion);
             }
+
+            // Marker must be written after version file is updated so startup fingerprint matches.
+            WriteMtgDatabaseQuickCheckMarker();
 
             var exists = MtgDatabaseExists();
             if (exists)

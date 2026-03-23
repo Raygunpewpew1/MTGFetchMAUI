@@ -1,3 +1,15 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-    <rect width="512" height="512" rx="115" fill="#1C1B22" />
+  <defs>
+    <linearGradient id="baseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16022E"/>
+      <stop offset="55%" stop-color="#0F0028"/>
+      <stop offset="100%" stop-color="#080014"/>
+    </linearGradient>
+    <radialGradient id="baseGlow" cx="50%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#1A0A32" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0F0028" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#baseGrad)"/>
+  <rect width="512" height="512" rx="115" fill="url(#baseGlow)"/>
 </svg>

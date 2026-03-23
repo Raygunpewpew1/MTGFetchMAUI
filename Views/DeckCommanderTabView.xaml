@@ -34,12 +34,19 @@
                        MaxLines="3" />
             </VerticalStackLayout>
 
+            <Label Text="Commander is hidden by your filter — clear “Find in deck” to show."
+                   FontSize="12"
+                   TextColor="{StaticResource TextSecondary}"
+                   LineBreakMode="WordWrap"
+                   IsVisible="{Binding ShowCommanderHiddenByFilterHint}"
+                   Margin="0,4,0,0" />
+
             <!-- Commander: single full-size card -->
-            <Grid IsVisible="{Binding HasNoCommander, Converter={StaticResource InvertedBool}}"
+            <Grid IsVisible="{Binding ShowCommanderHeroArt}"
                   HorizontalOptions="Start"
                   Margin="0,0,0,12">
                 <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding ShowCardQuickDetailCommand}"
+                    <TapGestureRecognizer Command="{Binding DeckListItemTappedCommand}"
                                           CommandParameter="{Binding FirstCommander}" />
                 </Grid.GestureRecognizers>
                 <Border WidthRequest="220"
@@ -73,8 +80,8 @@
             </Grid>
 
             <!-- Additional commander cards (e.g. partner) -->
-            <CollectionView IsVisible="{Binding HasMultipleCommanders}"
-                            ItemsSource="{Binding AdditionalCommanderCards}"
+            <CollectionView IsVisible="{Binding ShowFilteredPartnersSection}"
+                            ItemsSource="{Binding FilteredAdditionalCommanderCards}"
                             SelectionMode="None">
                 <CollectionView.Header>
                     <Label Text="Partner / other"
@@ -98,8 +105,14 @@
                                     Margin="0,6"
                                     Padding="12,10"
                                     MinimumHeightRequest="48">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource Accent}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowCardQuickDetailCommand}"
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DeckListItemTappedCommand}"
                                                          CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="Auto,Auto,*"
