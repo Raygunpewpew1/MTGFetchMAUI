@@ -192,6 +192,91 @@ public static class SqlQueries
     public const string PricesGetBulkByUuids =
         "SELECT uuid, provider, price_type AS PriceType, finish, currency, price FROM card_prices WHERE uuid IN ({0}) AND source = 'paper'";
 
+    /// <summary>
+    /// Computes total collection value by joining attached collection DB (alias: col) with card_prices.
+    /// Provider priority is passed via @v1..@v4 and finish fallback mirrors PriceDisplayHelper.GetNumericPrice().
+    /// </summary>
+    public const string PricesGetCollectionTotalValue =
+        """
+        WITH price_rows AS (
+            SELECT
+                mc.card_uuid,
+                mc.quantity,
+                mc.is_foil,
+                mc.is_etched,
+                MAX(CASE WHEN p.provider = @v1 AND p.finish = 'normal' THEN p.price ELSE 0 END) AS v1_normal,
+                MAX(CASE WHEN p.provider = @v1 AND p.finish = 'foil' THEN p.price ELSE 0 END) AS v1_foil,
+                MAX(CASE WHEN p.provider = @v1 AND p.finish = 'etched' THEN p.price ELSE 0 END) AS v1_etched,
+                MAX(CASE WHEN p.provider = @v2 AND p.finish = 'normal' THEN p.price ELSE 0 END) AS v2_normal,
+                MAX(CASE WHEN p.provider = @v2 AND p.finish = 'foil' THEN p.price ELSE 0 END) AS v2_foil,
+                MAX(CASE WHEN p.provider = @v2 AND p.finish = 'etched' THEN p.price ELSE 0 END) AS v2_etched,
+                MAX(CASE WHEN p.provider = @v3 AND p.finish = 'normal' THEN p.price ELSE 0 END) AS v3_normal,
+                MAX(CASE WHEN p.provider = @v3 AND p.finish = 'foil' THEN p.price ELSE 0 END) AS v3_foil,
+                MAX(CASE WHEN p.provider = @v3 AND p.finish = 'etched' THEN p.price ELSE 0 END) AS v3_etched,
+                MAX(CASE WHEN p.provider = @v4 AND p.finish = 'normal' THEN p.price ELSE 0 END) AS v4_normal,
+                MAX(CASE WHEN p.provider = @v4 AND p.finish = 'foil' THEN p.price ELSE 0 END) AS v4_foil,
+                MAX(CASE WHEN p.provider = @v4 AND p.finish = 'etched' THEN p.price ELSE 0 END) AS v4_etched
+            FROM col.my_collection mc
+            LEFT JOIN card_prices p
+                ON p.uuid = mc.card_uuid
+               AND p.source = 'paper'
+               AND p.price_type = 'retail'
+            GROUP BY mc.card_uuid, mc.quantity, mc.is_foil, mc.is_etched
+        )
+        SELECT COALESCE(SUM(quantity * COALESCE(
+            CASE
+                WHEN (v1_normal > 0 OR v1_foil > 0 OR v1_etched > 0) THEN
+                    CASE
+                        WHEN is_etched != 0 AND v1_etched > 0 THEN v1_etched
+                        WHEN is_foil != 0 AND v1_foil > 0 THEN v1_foil
+                        WHEN v1_normal > 0 THEN v1_normal
+                        WHEN v1_foil > 0 THEN v1_foil
+                        WHEN v1_etched > 0 THEN v1_etched
+                        ELSE 0
+                    END
+                ELSE NULL
+            END,
+            CASE
+                WHEN (v2_normal > 0 OR v2_foil > 0 OR v2_etched > 0) THEN
+                    CASE
+                        WHEN is_etched != 0 AND v2_etched > 0 THEN v2_etched
+                        WHEN is_foil != 0 AND v2_foil > 0 THEN v2_foil
+                        WHEN v2_normal > 0 THEN v2_normal
+                        WHEN v2_foil > 0 THEN v2_foil
+                        WHEN v2_etched > 0 THEN v2_etched
+                        ELSE 0
+                    END
+                ELSE NULL
+            END,
+            CASE
+                WHEN (v3_normal > 0 OR v3_foil > 0 OR v3_etched > 0) THEN
+                    CASE
+                        WHEN is_etched != 0 AND v3_etched > 0 THEN v3_etched
+                        WHEN is_foil != 0 AND v3_foil > 0 THEN v3_foil
+                        WHEN v3_normal > 0 THEN v3_normal
+                        WHEN v3_foil > 0 THEN v3_foil
+                        WHEN v3_etched > 0 THEN v3_etched
+                        ELSE 0
+                    END
+                ELSE NULL
+            END,
+            CASE
+                WHEN (v4_normal > 0 OR v4_foil > 0 OR v4_etched > 0) THEN
+                    CASE
+                        WHEN is_etched != 0 AND v4_etched > 0 THEN v4_etched
+                        WHEN is_foil != 0 AND v4_foil > 0 THEN v4_foil
+                        WHEN v4_normal > 0 THEN v4_normal
+                        WHEN v4_foil > 0 THEN v4_foil
+                        WHEN v4_etched > 0 THEN v4_etched
+                        ELSE 0
+                    END
+                ELSE NULL
+            END,
+            0
+        )), 0.0)
+        FROM price_rows
+        """;
+
     // ============================================================================
     // CARD QUERIES
     // ============================================================================

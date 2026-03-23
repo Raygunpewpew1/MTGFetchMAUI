@@ -137,6 +137,65 @@ public class CardPriceDatabase : IDisposable
         }
     }
 
+    /// <summary>
+    /// Computes collection total value directly in SQLite using provider priority and finish fallback.
+    /// Expects the collection DB to be attached as alias "col" (attached on demand if needed).
+    /// </summary>
+    public async Task<double> GetCollectionTotalValueAsync(IReadOnlyList<PriceVendor> vendorPriority)
+    {
+        if (vendorPriority.Count == 0)
+            return 0;
+
+        // Ensure we always have 4 providers so SQL can bind @v1..@v4.
+        var providers = new List<string>(4);
+        foreach (var vendor in vendorPriority)
+        {
+            var provider = ToProviderName(vendor);
+            if (!providers.Contains(provider, StringComparer.Ordinal))
+                providers.Add(provider);
+        }
+
+        var defaults = new[] { "tcgplayer", "cardmarket", "cardkingdom", "manapool" };
+        foreach (var provider in defaults)
+        {
+            if (providers.Count >= 4) break;
+            if (!providers.Contains(provider, StringComparer.Ordinal))
+                providers.Add(provider);
+        }
+
+        while (providers.Count < 4)
+            providers.Add(defaults[providers.Count]);
+
+        await _lock.WaitAsync();
+        try
+        {
+            if (!IsConnected) return 0;
+
+            await EnsureCollectionAttachedAsync(_connection!);
+
+            var total = await _connection!.ExecuteScalarAsync<double>(
+                SQLQueries.PricesGetCollectionTotalValue,
+                new
+                {
+                    v1 = providers[0],
+                    v2 = providers[1],
+                    v3 = providers[2],
+                    v4 = providers[3]
+                });
+
+            return total;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"GetCollectionTotalValue failed: {ex.Message}", LogLevel.Warning);
+            return 0;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     private static async Task<Dictionary<string, CardPriceData>> QueryChunkAsync(string dbPath, List<string> chunk)
     {
         var connStr = new SqliteConnectionStringBuilder
@@ -286,8 +345,29 @@ public class CardPriceDatabase : IDisposable
     private static PriceCurrency ParseCurrency(string s) =>
         s.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? PriceCurrency.Eur : PriceCurrency.Usd;
 
+    private static string ToProviderName(PriceVendor vendor) => vendor switch
+    {
+        PriceVendor.TCGPlayer => "tcgplayer",
+        PriceVendor.Cardmarket => "cardmarket",
+        PriceVendor.CardKingdom => "cardkingdom",
+        PriceVendor.ManaPool => "manapool",
+        _ => "tcgplayer"
+    };
+
     private async Task ExecuteAsync(string sql)
     {
         await _connection!.ExecuteAsync(sql);
+    }
+
+    private static async Task EnsureCollectionAttachedAsync(SqliteConnection conn)
+    {
+        var attached = await conn.ExecuteScalarAsync<string?>(
+            "SELECT name FROM pragma_database_list WHERE name = 'col' LIMIT 1");
+
+        if (!string.Equals(attached, "col", StringComparison.Ordinal))
+        {
+            var collectionDbPath = AppDataManager.GetCollectionDatabasePath().Replace("'", "''");
+            await conn.ExecuteAsync($"ATTACH DATABASE '{collectionDbPath}' AS col");
+        }
     }
 }

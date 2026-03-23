@@ -118,6 +118,14 @@ public class CardPriceManager : IDisposable
     }
 
     /// <summary>
+    /// Computes collection total value directly in SQLite for the given vendor priority.
+    /// </summary>
+    public async Task<double> GetCollectionTotalValueAsync(IReadOnlyList<PriceVendor> vendorPriority)
+    {
+        return await _database.GetCollectionTotalValueAsync(vendorPriority);
+    }
+
+    /// <summary>
     /// Returns true if the price database has any data.
     /// </summary>
     public async Task<bool> HasPriceDataAsync()

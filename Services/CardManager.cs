@@ -24,6 +24,7 @@ public class CardManager : IDisposable
 
     private double _cachedTotalValue;
     private DateTime _totalValueCacheExpiry = DateTime.MinValue;
+    private string _cachedTotalValueVendorKey = "";
     private static readonly TimeSpan TotalValueCacheTtl = TimeSpan.FromMinutes(5);
     private bool? _ftsAvailable;
     private int _collectionVersion;
@@ -412,29 +413,25 @@ public class CardManager : IDisposable
     {
         if (_priceManager == null) return 0;
 
-        if (DateTime.UtcNow < _totalValueCacheExpiry)
+        var vendorPriority = PriceDisplayHelper.GetVendorPriority();
+        var vendorKey = string.Join(",", vendorPriority.Select(v => v.ToString()));
+
+        if (DateTime.UtcNow < _totalValueCacheExpiry &&
+            string.Equals(vendorKey, _cachedTotalValueVendorKey, StringComparison.Ordinal))
             return _cachedTotalValue;
 
-        var entries = await _collectionRepository.GetCollectionEntriesForPricingAsync();
-        if (entries.Count == 0) return 0;
-
-        var uuids = entries.Select(e => e.Uuid).Distinct().ToList();
-        var pricesMap = await _priceManager.GetCardPricesBulkAsync(uuids);
-        double total = 0;
-        foreach (var (uuid, quantity, isFoil, isEtched) in entries)
-        {
-            if (pricesMap.TryGetValue(uuid, out var data))
-                total += quantity * PriceDisplayHelper.GetNumericPrice(data, isFoil, isEtched);
-        }
+        var total = await _priceManager.GetCollectionTotalValueAsync(vendorPriority);
 
         _cachedTotalValue = total;
         _totalValueCacheExpiry = DateTime.UtcNow.Add(TotalValueCacheTtl);
+        _cachedTotalValueVendorKey = vendorKey;
         return total;
     }
 
     private void InvalidateTotalValueCache()
     {
         _totalValueCacheExpiry = DateTime.MinValue;
+        _cachedTotalValueVendorKey = "";
         BumpCollectionVersion();
     }
 
