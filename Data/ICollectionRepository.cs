@@ -19,5 +19,7 @@ public interface ICollectionRepository
     Task<CollectionStats> GetCollectionStatsAsync();
     Task<bool> IsInCollectionAsync(string cardUuid);
     Task<int> GetQuantityAsync(string cardUuid);
+    /// <summary>Returns owned quantity per UUID (0 for cards not in collection).</summary>
+    Task<Dictionary<string, int>> GetQuantitiesByUuidsAsync(IEnumerable<string> cardUuids);
     Task ReorderAsync(IList<string> orderedUuids);
 }

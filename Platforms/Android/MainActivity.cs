@@ -1,5 +1,7 @@
 using Android.App;
 using Android.Content.PM;
+using Android.OS;
+using Android.Views;
 
 namespace AetherVault;
 
@@ -16,6 +18,13 @@ namespace AetherVault;
                            ConfigChanges.LayoutDirection)]
 public class MainActivity : MauiAppCompatActivity
 {
+    protected override void OnCreate(Bundle? savedInstanceState)
+    {
+        base.OnCreate(savedInstanceState);
+        // Shrink/pad the usable area when the IME opens so popups and entries stay usable.
+        Window?.SetSoftInputMode(SoftInput.AdjustResize);
+    }
+
     // Raised when the activity window regains input focus (e.g. after minimize/restore).
     // More reliable than MAUI OnAppearing on Android 14+ (Galaxy S24 / One UI 7),
     // where onWindowFocusChanged fires even when OnAppearing is skipped.

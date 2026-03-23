@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using AetherVault.Core;
 using AetherVault.Data;
 using AetherVault.Models;
@@ -5,17 +7,23 @@ using AetherVault.Services;
 using AetherVault.Services.DeckBuilder;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Collections.ObjectModel;
 
 namespace AetherVault.ViewModels;
 
 /// <summary>
 /// Represents a single card row in the deck editor list.
 /// </summary>
-public class DeckCardDisplayItem
+public partial class DeckCardDisplayItem : ObservableObject
 {
-    public DeckCardEntity Entity { get; set; } = null!;
-    public Card Card { get; set; } = null!;
+    [ObservableProperty]
+    public partial DeckCardEntity Entity { get; set; } = null!;
+
+    [ObservableProperty]
+    public partial Card Card { get; set; } = null!;
+
+    /// <summary>Copies of this printing in the user's collection (0 if none).</summary>
+    [ObservableProperty]
+    public partial int OwnedQuantity { get; set; }
 
     public string DisplayName => Card?.Name ?? Entity.CardId;
     public string ManaCostText => Card?.ManaCost ?? "";
@@ -33,6 +41,30 @@ public class DeckCardDisplayItem
     /// <summary>e.g. "2 in Main" for quick-detail popup.</summary>
     public string InDeckSummary => $"{Entity.Quantity} in {Entity.Section}";
 
+    /// <summary>Quantity badge binding; use <see cref="SetDeckQuantity"/> so the UI updates without a full reload.</summary>
+    public string DeckQtyLabel => Entity.Quantity.ToString();
+
+    /// <summary>Short collection hint for list rows.</summary>
+    public string OwnedShortText => OwnedQuantity <= 0 ? "—" : $"Own {OwnedQuantity}";
+
+    /// <summary>True when the deck plays more copies than the user owns (both must be &gt; 0).</summary>
+    public bool IsOverCollection => OwnedQuantity > 0 && Entity.Quantity > OwnedQuantity;
+
+    partial void OnOwnedQuantityChanged(int value)
+    {
+        OnPropertyChanged(nameof(OwnedShortText));
+        OnPropertyChanged(nameof(IsOverCollection));
+    }
+
+    /// <summary>Updates in-deck quantity and notifies quantity-related bindings.</summary>
+    public void SetDeckQuantity(int quantity)
+    {
+        Entity.Quantity = quantity;
+        OnPropertyChanged(nameof(InDeckSummary));
+        OnPropertyChanged(nameof(DeckQtyLabel));
+        OnPropertyChanged(nameof(IsOverCollection));
+    }
+
     /// <summary>Dark tint for list row background based on card color identity (WUBRG).</summary>
     public Color StripBackgroundColor => DeckDetailViewModel.GetStripBackgroundColorFromIdentity(Card?.Colors ?? Card?.ColorIdentity ?? "");
 }
@@ -40,22 +72,51 @@ public class DeckCardDisplayItem
 /// <summary>
 /// Grouped list of DeckCardDisplayItems for CollectionView IsGrouped support.
 /// </summary>
-public class DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items, int count)
-    : ObservableCollection<DeckCardDisplayItem>(items)
+public class DeckCardGroup : ObservableCollection<DeckCardDisplayItem>
 {
-    public string GroupName { get; } = name;
+    private int _totalQuantity;
+
+    public string GroupName { get; }
+
     /// <summary>Sum of Entity.Quantity for all items in this group (e.g. for "Creatures (32)" header).</summary>
-    public int TotalQuantity { get; } = count;
+    public int TotalQuantity
+    {
+        get => _totalQuantity;
+        private set
+        {
+            if (_totalQuantity == value) return;
+            _totalQuantity = value;
+            base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(TotalQuantity)));
+            base.OnPropertyChanged(new PropertyChangedEventArgs(nameof(HeaderText)));
+        }
+    }
+
     /// <summary>e.g. "Creatures (32)" for section header.</summary>
     public string HeaderText => $"{GroupName} ({TotalQuantity})";
+
+    public DeckCardGroup(string name, IEnumerable<DeckCardDisplayItem> items, int count)
+        : base([.. items])
+    {
+        GroupName = name;
+        _totalQuantity = count;
+    }
+
+    public void RecalculateTotal() => TotalQuantity = this.Sum(i => i.Entity.Quantity);
 }
 
-public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRepository cardRepository, CardManager cardManager, IToastService toast) : BaseViewModel
+public partial class DeckDetailViewModel(
+    DeckBuilderService deckService,
+    ICardRepository cardRepository,
+    ICollectionRepository collectionRepository,
+    CardManager cardManager,
+    IToastService toast) : BaseViewModel
 {
     private readonly DeckBuilderService _deckService = deckService;
     private readonly ICardRepository _cardRepository = cardRepository;
+    private readonly ICollectionRepository _collectionRepository = collectionRepository;
     private readonly CardManager _cardManager = cardManager;
     private readonly IToastService _toast = toast;
+    private Dictionary<string, Card> _cardMapCache = [];
     private int _deckId;
     private CancellationTokenSource? _addCardSearchCts;
     private int _addCardSearchGeneration;
@@ -109,11 +170,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     [NotifyPropertyChangedFor(nameof(Tab1Indicator))]
     [NotifyPropertyChangedFor(nameof(Tab2Indicator))]
     [NotifyPropertyChangedFor(nameof(Tab3Indicator))]
-    [NotifyPropertyChangedFor(nameof(IsAddCardSearchVisible))]
     public partial int SelectedSectionIndex { get; set; } = 1; // Default to Main tab
-
-    /// <summary>True when the inline "add card" search bar and results are shown (Commander, Main, Sideboard tabs).</summary>
-    public bool IsAddCardSearchVisible => SelectedSectionIndex is 0 or 1 or 2;
 
     public bool IsCommanderTab => SelectedSectionIndex == 0;
     public bool IsMainTab => SelectedSectionIndex == 1;
@@ -262,6 +319,21 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         }
     }
 
+    /// <summary>Clears add-card search state when the sheet closes.</summary>
+    public void ClearAddCardSearch()
+    {
+        _addCardSearchCts?.Cancel();
+        AddCardSearchText = "";
+        AddCardSearchResults = [];
+        IsAddCardSearchBusy = false;
+    }
+
+    private static void ApplyOwnedQuantities(List<DeckCardDisplayItem> items, Dictionary<string, int> qtyOwned)
+    {
+        foreach (var item in items)
+            item.OwnedQuantity = qtyOwned.GetValueOrDefault(item.Entity.CardId, 0);
+    }
+
     [RelayCommand]
     private async Task AddCardFromSearchAsync(Card? card)
     {
@@ -376,6 +448,11 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
 
             var (commander, main, sideboard) = MapEntitiesToSectionLists(cardEntities, cardMap);
 
+            var qtyOwned = await _collectionRepository.GetQuantitiesByUuidsAsync(uuids);
+            ApplyOwnedQuantities(commander, qtyOwned);
+            ApplyOwnedQuantities(main, qtyOwned);
+            ApplyOwnedQuantities(sideboard, qtyOwned);
+
             var mainDeckGroups = BuildGroups(main);
             int mainDeckCount = main.Sum(i => i.Entity.Quantity);
             int sideboardCount = sideboard.Sum(i => i.Entity.Quantity);
@@ -383,6 +460,8 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
             var stats = ComputeStats(cardEntities, cardMap);
             var validation = await _deckService.ValidateDeckAsync(deckId);
             var statusMessage = GetValidationStatusMessage(validation, totalCardCount);
+
+            _cardMapCache = cardMap;
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
@@ -468,14 +547,11 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     private async Task IncrementCardAsync(DeckCardDisplayItem item)
     {
         if (Deck == null) return;
+        int prev = item.Entity.Quantity;
         var result = await _deckService.UpdateQuantityAsync(
-            Deck.Id, item.Entity.CardId, item.Entity.Quantity + 1, item.Entity.Section);
+            Deck.Id, item.Entity.CardId, prev + 1, item.Entity.Section);
         if (result.IsSuccess)
-        {
-            StatusIsError = false;
-            StatusMessage = UserMessages.UpdatedQuantity(item.DisplayName);
-            await ReloadAsync(preserveState: true);
-        }
+            ApplyLocalPatchAfterQuantitySuccess(item, prev + 1, item.Entity.Section);
         else
         {
             StatusIsError = true;
@@ -491,11 +567,7 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
         var result = await _deckService.UpdateQuantityAsync(
             Deck.Id, item.Entity.CardId, newQty, item.Entity.Section);
         if (result.IsSuccess)
-        {
-            StatusIsError = false;
-            StatusMessage = UserMessages.UpdatedQuantity(item.DisplayName);
-            await ReloadAsync(preserveState: true);
-        }
+            ApplyLocalPatchAfterQuantitySuccess(item, newQty, item.Entity.Section);
         else
         {
             StatusIsError = true;
@@ -507,8 +579,105 @@ public partial class DeckDetailViewModel(DeckBuilderService deckService, ICardRe
     private async Task RemoveCardAsync(DeckCardDisplayItem item)
     {
         if (Deck == null) return;
-        await _deckService.RemoveCardAsync(Deck.Id, item.Entity.CardId, item.Entity.Section);
-        await ReloadAsync(preserveState: true);
+        string section = item.Entity.Section;
+        await _deckService.RemoveCardAsync(Deck.Id, item.Entity.CardId, section);
+        ApplyLocalPatchAfterQuantitySuccess(item, 0, section);
+    }
+
+    private void ApplyLocalPatchAfterQuantitySuccess(DeckCardDisplayItem item, int newQty, string section)
+    {
+        if (newQty <= 0)
+            RemoveDisplayItemFromPresentation(item, section);
+        else
+        {
+            item.SetDeckQuantity(newQty);
+            if (section == "Main")
+                FindGroupContaining(item)?.RecalculateTotal();
+        }
+
+        FinalizePresentationMutation();
+    }
+
+    private void RemoveDisplayItemFromPresentation(DeckCardDisplayItem item, string section)
+    {
+        switch (section)
+        {
+            case "Commander":
+                CommanderCards.Remove(item);
+                SyncCommanderHero();
+                break;
+            case "Sideboard":
+                SideboardCards.Remove(item);
+                break;
+            default:
+                var g = FindGroupContaining(item);
+                if (g != null)
+                {
+                    g.Remove(item);
+                    g.RecalculateTotal();
+                    if (g.Count == 0)
+                        MainDeckGroups.Remove(g);
+                }
+                break;
+        }
+    }
+
+    private DeckCardGroup? FindGroupContaining(DeckCardDisplayItem item)
+    {
+        foreach (var g in MainDeckGroups)
+        {
+            if (g.Contains(item))
+                return g;
+        }
+        return null;
+    }
+
+    private void SyncCommanderHero()
+    {
+        FirstCommander = CommanderCards.Count > 0 ? CommanderCards[0] : null;
+        AdditionalCommanderCards = CommanderCards.Count > 1
+            ? new ObservableCollection<DeckCardDisplayItem>([.. CommanderCards.Skip(1)])
+            : [];
+        OnPropertyChanged(nameof(HasNoCommander));
+        OnPropertyChanged(nameof(HasMultipleCommanders));
+    }
+
+    private List<DeckCardEntity> GatherEntitiesFromPresentation()
+    {
+        var list = new List<DeckCardEntity>();
+        foreach (var x in CommanderCards)
+            list.Add(x.Entity);
+        foreach (var g in MainDeckGroups)
+        {
+            foreach (var x in g)
+                list.Add(x.Entity);
+        }
+        foreach (var x in SideboardCards)
+            list.Add(x.Entity);
+        return list;
+    }
+
+    private void FinalizePresentationMutation()
+    {
+        var entities = GatherEntitiesFromPresentation();
+        MainDeckCount = MainDeckGroups.Sum(g => g.Sum(i => i.Entity.Quantity));
+        SideboardCount = SideboardCards.Sum(i => i.Entity.Quantity);
+        TotalCardCount = entities.Sum(e => e.Quantity);
+        Stats = ComputeStats(entities, _cardMapCache);
+        OnPropertyChanged(nameof(DeckSummaryText));
+        OnPropertyChanged(nameof(SideboardHeaderText));
+        _ = ApplyValidationUiAsync();
+    }
+
+    private async Task ApplyValidationUiAsync()
+    {
+        var v = await _deckService.ValidateDeckAsync(_deckId);
+        int total = TotalCardCount;
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            StatusIsError = v.Level == ValidationLevel.Error;
+            StatusMessage = GetValidationStatusMessage(v, total);
+        });
     }
 
     private async Task SuggestLandsAsync()

@@ -1,3 +1,4 @@
+using System.Text;
 using AetherVault.Core;
 using AetherVault.Models;
 using AetherVault.Services;
@@ -336,6 +337,49 @@ public class CollectionRepository : ICollectionRepository
         {
             _lock.Release();
         }
+    }
+
+    public async Task<Dictionary<string, int>> GetQuantitiesByUuidsAsync(IEnumerable<string> cardUuids)
+    {
+        var distinct = cardUuids.Where(static u => !string.IsNullOrEmpty(u)).Distinct(StringComparer.Ordinal).ToArray();
+        var map = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (distinct.Length == 0)
+            return map;
+
+        await _lock.WaitAsync();
+        try
+        {
+            // Microsoft.Data.Sqlite does not accept Dapper's "IN @uuids" expansion; build explicit placeholders.
+            var sql = new StringBuilder("SELECT card_uuid AS CardUuid, quantity AS Quantity FROM my_collection WHERE card_uuid IN (");
+            var dp = new DynamicParameters();
+            for (int i = 0; i < distinct.Length; i++)
+            {
+                if (i > 0) sql.Append(',');
+                string p = $"p{i}";
+                sql.Append('@').Append(p);
+                dp.Add(p, distinct[i]);
+            }
+
+            sql.Append(')');
+            var rows = await _db.CollectionConnection.QueryAsync<CollectionQtyRow>(sql.ToString(), dp);
+            foreach (var row in rows)
+            {
+                if (!string.IsNullOrEmpty(row.CardUuid))
+                    map[row.CardUuid] = row.Quantity;
+            }
+
+            return map;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    private sealed class CollectionQtyRow
+    {
+        public string CardUuid { get; set; } = "";
+        public int Quantity { get; set; }
     }
 
     public async Task ReorderAsync(IList<string> orderedUuids)

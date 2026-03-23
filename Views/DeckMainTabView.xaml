@@ -44,12 +44,23 @@
                         <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto"
                               ColumnSpacing="8"
                               VerticalOptions="Center">
-                            <Label Grid.Column="0"
-                                   Text="{Binding DisplayName}"
-                                   TextColor="{StaticResource TextPrimary}"
-                                   FontSize="14"
-                                   LineBreakMode="TailTruncation"
-                                   VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="0"
+                                                 Spacing="2"
+                                                 VerticalOptions="Center">
+                                <Label Text="{Binding DisplayName}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontSize="14"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding OwnedShortText}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource TextSecondary}">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsOverCollection}" Value="True">
+                                            <Setter Property="TextColor" Value="#FFB74D" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </VerticalStackLayout>
                             <controls:ManaCostView Grid.Column="1"
                                                    ManaText="{Binding ManaCostText}"
                                                    SymbolSize="12"
@@ -61,7 +72,7 @@
                                     Stroke="Transparent"
                                     VerticalOptions="Center"
                                     MinimumWidthRequest="24">
-                                <Label Text="{Binding Entity.Quantity}"
+                                <Label Text="{Binding DeckQtyLabel}"
                                        TextColor="{StaticResource TextPrimary}"
                                        FontSize="12"
                                        FontAttributes="Bold"

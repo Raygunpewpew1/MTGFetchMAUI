@@ -20,7 +20,7 @@
                      Clicked="OnExportDeckClicked" />
     </ContentPage.ToolbarItems>
 
-    <Grid x:Name="DeckDetailRoot" RowDefinitions="100,Auto,Auto,*,Auto">
+    <Grid x:Name="DeckDetailRoot" RowDefinitions="100,Auto,*,Auto">
 
         <!-- Row 0: Commander Art Header (gradient, shows commander name) -->
         <skia:SKCanvasView Grid.Row="0"
@@ -76,79 +76,35 @@
             </Border>
         </Grid>
 
-        <!-- Row 2: Inline add-card search (visible on Commander, Main, Sideboard tabs) -->
-        <VerticalStackLayout Grid.Row="2"
-                            IsVisible="{Binding IsAddCardSearchVisible}"
-                            Spacing="4"
-                            Padding="12,8,12,8"
-                            BackgroundColor="{StaticResource Background}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <material:TextField Title="Search to add card…"
-                                    Text="{Binding AddCardSearchText, Mode=TwoWay}"
-                                    ReturnCommand="{Binding AddCardSearchCommand}"
-                                    BackgroundColor="{StaticResource Surface}"
-                                    TextColor="{StaticResource TextPrimary}"
-                                    TitleColor="{StaticResource TextSecondary}"
-                                    AccentColor="{StaticResource Primary}"
-                                    AllowClear="True" />
-                <ActivityIndicator Grid.Column="1"
-                                   IsRunning="{Binding IsAddCardSearchBusy}"
-                                   IsVisible="{Binding IsAddCardSearchBusy}"
-                                   HeightRequest="24"
-                                   WidthRequest="24"
-                                   VerticalOptions="Center"
-                                   Color="{StaticResource Primary}" />
-            </Grid>
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,0,0">
-                <Label Text="Only my collection"
-                       TextColor="{StaticResource TextSecondary}"
-                       FontSize="13"
-                       VerticalOptions="Center" />
-                <Switch Grid.Column="1"
-                        IsToggled="{Binding AddCardSearchOnlyCollection, Mode=TwoWay}"
-                        OnColor="{StaticResource Primary}"
-                        VerticalOptions="Center" />
-            </Grid>
-            <Border MaximumHeightRequest="220"
-                    Stroke="Transparent"
-                    StrokeShape="RoundRectangle 4"
-                    BackgroundColor="{StaticResource Surface}"
-                    Padding="0,4">
-                <CollectionView ItemsSource="{Binding AddCardSearchResults}"
-                               SelectionMode="None">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:Card">
-                            <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" BackgroundColor="Transparent">
-                                <Grid.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.AddCardFromSearchCommand}"
-                                                         CommandParameter="{Binding .}" />
-                                </Grid.GestureRecognizers>
-                                <Border Grid.Column="0" WidthRequest="36" HeightRequest="50" BackgroundColor="{StaticResource CardBackground}" StrokeShape="RoundRectangle 4" Stroke="Transparent">
-                                    <controls:CachedCardImage CardUuid="{Binding ImageId}" HorizontalOptions="Fill" VerticalOptions="Fill" />
-                                </Border>
-                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
-                                    <Label Text="{Binding Name}" TextColor="{StaticResource TextPrimary}" FontSize="14" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding CardType}" TextColor="{StaticResource TextSecondary}" FontSize="11" LineBreakMode="TailTruncation" />
-                                </VerticalStackLayout>
-                                <controls:ManaCostView Grid.Column="2" ManaText="{Binding ManaCost}" SymbolSize="12" VerticalOptions="Center" />
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Border>
-        </VerticalStackLayout>
-
-        <!-- Row 3: Tab content views -->
-        <Grid Grid.Row="3">
+        <!-- Row 2: Tab content + floating add button -->
+        <Grid Grid.Row="2">
             <views:DeckCommanderTabView x:Name="CommanderTabView"
                                          IsVisible="{Binding IsCommanderTab}" />
             <views:DeckMainTabView IsVisible="{Binding IsMainTab}" />
             <views:DeckSideboardTabView IsVisible="{Binding IsSideboardTab}" />
             <views:DeckStatsTabView IsVisible="{Binding IsStatsTab}" />
+
+            <Button Clicked="OnAddCardsClicked"
+                    HorizontalOptions="End"
+                    VerticalOptions="End"
+                    Margin="0,0,20,20"
+                    WidthRequest="56"
+                    HeightRequest="56"
+                    CornerRadius="28"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="Black"
+                    FontSize="28"
+                    Padding="0"
+                    LineBreakMode="NoWrap"
+                    ZIndex="100"
+                    IsVisible="{Binding IsStatsTab, Converter={StaticResource InvertedBool}}"
+                    SemanticProperties.Hint="Search and add cards to this deck"
+                    Text="+"
+                    FontAttributes="Bold" />
         </Grid>
 
-        <!-- Row 4: Deck summary bar + status -->
-        <Grid Grid.Row="4"
+        <!-- Row 3: Deck summary bar + status -->
+        <Grid Grid.Row="3"
               RowDefinitions="Auto,Auto"
               Padding="12,8"
               BackgroundColor="{StaticResource Primary}"

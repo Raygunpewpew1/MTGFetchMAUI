@@ -2,6 +2,9 @@ using AetherVault.Services;
 using AetherVault.Services.DeckBuilder;
 using AetherVault.Services.ImportExport;
 using AetherVault.ViewModels;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Extensions;
+using CommunityToolkit.Maui.Views;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using System.Text;
@@ -60,6 +63,19 @@ public partial class DeckDetailPage : ContentPage
         };
 
         CommanderTabView.CommanderMenuRequested += OnCommanderMenuRequested;
+    }
+
+    private async void OnAddCardsClicked(object? sender, EventArgs e)
+    {
+        var sheet = _serviceProvider.GetRequiredService<DeckAddCardsSheet>();
+        sheet.Init(_viewModel);
+        var options = new PopupOptions
+        {
+            Shape = null,
+            Shadow = null,
+            PageOverlayColor = Color.FromRgba(0, 0, 0, 0.5)
+        };
+        await this.ShowPopupAsync(sheet, options);
     }
 
     private async void OnCommanderMenuRequested(object? sender, EventArgs e)
