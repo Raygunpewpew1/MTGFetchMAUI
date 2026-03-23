@@ -72,19 +72,18 @@
                        Style="{StaticResource FilterSectionLabelStyle}"
                        Margin="16,20,16,0" />
                 <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="0,8,0,0" />
-                <FlexLayout Wrap="Wrap"
-                            JustifyContent="Start"
-                            AlignItems="Start"
-                            Padding="16,12,8,6">
+                <FlexLayout Wrap="NoWrap"
+                            JustifyContent="SpaceEvenly"
+                            AlignItems="Center"
+                            Padding="16,10,16,10">
                     <Border StrokeShape="RoundRectangle 20"
                             StrokeThickness="1"
-                            Padding="14,10"
-                            Margin="0,0,8,8">
+                            Padding="10,6">
                         <Border.Stroke><SolidColorBrush Color="{StaticResource RarityCommon}" /></Border.Stroke>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="C" />
                         </Border.GestureRecognizers>
-                        <Label Text="Common" FontSize="13" TextColor="{StaticResource RarityCommon}" />
+                        <Label Text="Common" FontSize="12" TextColor="{StaticResource RarityCommon}" />
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding ChkCommon}" Value="True">
                                 <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
@@ -94,13 +93,12 @@
                     </Border>
                     <Border StrokeShape="RoundRectangle 20"
                             StrokeThickness="1"
-                            Padding="14,10"
-                            Margin="0,0,8,8">
+                            Padding="10,6">
                         <Border.Stroke><SolidColorBrush Color="{StaticResource RarityUncommon}" /></Border.Stroke>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="U" />
                         </Border.GestureRecognizers>
-                        <Label Text="Uncommon" FontSize="13" TextColor="{StaticResource RarityUncommon}" />
+                        <Label Text="Uncommon" FontSize="12" TextColor="{StaticResource RarityUncommon}" />
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding ChkUncommon}" Value="True">
                                 <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
@@ -110,13 +108,12 @@
                     </Border>
                     <Border StrokeShape="RoundRectangle 20"
                             StrokeThickness="1"
-                            Padding="14,10"
-                            Margin="0,0,8,8">
+                            Padding="10,6">
                         <Border.Stroke><SolidColorBrush Color="{StaticResource RarityRare}" /></Border.Stroke>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="R" />
                         </Border.GestureRecognizers>
-                        <Label Text="Rare" FontSize="13" TextColor="{StaticResource RarityRare}" />
+                        <Label Text="Rare" FontSize="12" TextColor="{StaticResource RarityRare}" />
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding ChkRare}" Value="True">
                                 <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
@@ -126,13 +123,12 @@
                     </Border>
                     <Border StrokeShape="RoundRectangle 20"
                             StrokeThickness="1"
-                            Padding="14,10"
-                            Margin="0,0,8,8">
+                            Padding="10,6">
                         <Border.Stroke><SolidColorBrush Color="{StaticResource RarityMythic}" /></Border.Stroke>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="M" />
                         </Border.GestureRecognizers>
-                        <Label Text="Mythic" FontSize="13" TextColor="{StaticResource RarityMythic}" />
+                        <Label Text="Mythic" FontSize="12" TextColor="{StaticResource RarityMythic}" />
                         <Border.Triggers>
                             <DataTrigger TargetType="Border" Binding="{Binding ChkMythic}" Value="True">
                                 <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
