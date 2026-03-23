@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
+             xmlns:viewmodels="clr-namespace:AetherVault.ViewModels"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             x:Class="AetherVault.Pages.SearchFiltersPage"
+             x:DataType="viewmodels:SearchFiltersViewModel"
+             BackgroundColor="{StaticResource Background}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="12"
+              Padding="8,44,16,12"
+              BackgroundColor="{StaticResource Surface}">
+            <Button Grid.Column="0"
+                    FontFamily="FASolid"
+                    Text="{x:Static fa:Solid.Xmark}"
+                    Command="{Binding CancelCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource TextPrimary}"
+                    FontSize="18"
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    Padding="0"
+                    CornerRadius="0" />
+            <Label Grid.Column="1"
+                   Text="Search Filters"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}"
+                   VerticalOptions="Center" />
+            <Border Grid.Column="2"
+                    BackgroundColor="{StaticResource Primary}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12"
+                    Padding="10,4"
+                    IsVisible="{Binding HasActiveFilters}"
+                    VerticalOptions="Center">
+                <Label Text="{Binding ActiveFilterCount}"
+                       FontSize="12"
+                       FontAttributes="Bold"
+                       TextColor="White" />
+            </Border>
+        </Grid>
+        <BoxView Grid.Row="0"
+                 VerticalOptions="End"
+                 HeightRequest="1"
+                 Color="{StaticResource FilterHairline}" />
+
+        <!-- All filters in one scrollable list -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="0">
+
+                <!-- ── COLORS ── -->
+                <Label Text="COLORS"
+                       Style="{StaticResource FilterSectionLabelStyle}"
+                       Margin="16,20,16,0" />
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="0,8,0,0" />
+                <VerticalStackLayout Padding="16,14,16,14">
+                    <controls:ManaColorFilterRow ItemsSource="{Binding ColorFilters}"
+                                                 ToggleColorCommand="{Binding ToggleColorCommand}" />
+                </VerticalStackLayout>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── RARITY ── -->
+                <Label Text="RARITY"
+                       Style="{StaticResource FilterSectionLabelStyle}"
+                       Margin="16,20,16,0" />
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="0,8,0,0" />
+                <FlexLayout Wrap="Wrap"
+                            JustifyContent="Start"
+                            AlignItems="Start"
+                            Padding="16,12,8,6">
+                    <Border StrokeShape="RoundRectangle 20"
+                            StrokeThickness="1"
+                            Padding="14,10"
+                            Margin="0,0,8,8">
+                        <Border.Stroke><SolidColorBrush Color="{StaticResource RarityCommon}" /></Border.Stroke>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="C" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Common" FontSize="13" TextColor="{StaticResource RarityCommon}" />
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding ChkCommon}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
+                                <Setter Property="StrokeThickness" Value="2" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                    </Border>
+                    <Border StrokeShape="RoundRectangle 20"
+                            StrokeThickness="1"
+                            Padding="14,10"
+                            Margin="0,0,8,8">
+                        <Border.Stroke><SolidColorBrush Color="{StaticResource RarityUncommon}" /></Border.Stroke>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="U" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Uncommon" FontSize="13" TextColor="{StaticResource RarityUncommon}" />
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding ChkUncommon}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
+                                <Setter Property="StrokeThickness" Value="2" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                    </Border>
+                    <Border StrokeShape="RoundRectangle 20"
+                            StrokeThickness="1"
+                            Padding="14,10"
+                            Margin="0,0,8,8">
+                        <Border.Stroke><SolidColorBrush Color="{StaticResource RarityRare}" /></Border.Stroke>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="R" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Rare" FontSize="13" TextColor="{StaticResource RarityRare}" />
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding ChkRare}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
+                                <Setter Property="StrokeThickness" Value="2" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                    </Border>
+                    <Border StrokeShape="RoundRectangle 20"
+                            StrokeThickness="1"
+                            Padding="14,10"
+                            Margin="0,0,8,8">
+                        <Border.Stroke><SolidColorBrush Color="{StaticResource RarityMythic}" /></Border.Stroke>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleRarityCommand}" CommandParameter="M" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Mythic" FontSize="13" TextColor="{StaticResource RarityMythic}" />
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding ChkMythic}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource FilterChipSelectedFill}" />
+                                <Setter Property="StrokeThickness" Value="2" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                    </Border>
+                </FlexLayout>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Card type ── -->
+                <Grid Padding="16,0,16,0">
+                    <material:PickerField SelectedIndex="{Binding SelectedTypeIndex, Mode=TwoWay}"
+                                          ItemsSource="{Binding TypeOptions}"
+                                          Title="Card type"
+                                          TextColor="{StaticResource TextPrimary}"
+                                          TitleColor="{StaticResource TextSecondary}"
+                                          AccentColor="{StaticResource Primary}"
+                                          MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Subtype ── -->
+                <Grid Padding="16,0,16,0">
+                    <material:TextField Text="{Binding Subtype, Mode=TwoWay}"
+                                        Title="Subtype"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}"
+                                        MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Supertype ── -->
+                <Grid Padding="16,0,16,0">
+                    <material:TextField Text="{Binding Supertype, Mode=TwoWay}"
+                                        Title="Supertype"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}"
+                                        MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Rules text ── -->
+                <Grid Padding="16,0,16,0">
+                    <material:TextField Text="{Binding Keywords, Mode=TwoWay}"
+                                        Title="Rules text"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}"
+                                        MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── MANA VALUE (CMC) ── -->
+                <Label Text="MANA VALUE (CMC)"
+                       Style="{StaticResource FilterSectionLabelStyle}"
+                       Margin="16,20,16,0" />
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="0,8,0,0" />
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="12"
+                      Padding="16,14,16,14">
+                    <Button Text="−"
+                            Style="{StaticResource FilterCmcStepperButtonStyle}"
+                            Command="{Binding AdjustCmcCommand}"
+                            CommandParameter="min-" />
+                    <VerticalStackLayout VerticalOptions="Center">
+                        <Label Text="{Binding CmcMinLabel}"
+                               FontSize="15"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalOptions="Center" />
+                        <Label Text="Minimum"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="2"
+                            Text="+"
+                            Style="{StaticResource FilterCmcStepperButtonStyle}"
+                            Command="{Binding AdjustCmcCommand}"
+                            CommandParameter="min+" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="32,0" />
+                <Grid ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="12"
+                      Padding="16,14,16,14">
+                    <Button Text="−"
+                            Style="{StaticResource FilterCmcStepperButtonStyle}"
+                            Command="{Binding AdjustCmcCommand}"
+                            CommandParameter="max-" />
+                    <VerticalStackLayout VerticalOptions="Center">
+                        <Label Text="{Binding CmcMaxLabel}"
+                               FontSize="15"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalOptions="Center" />
+                        <Label Text="Maximum"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                    <Button Grid.Column="2"
+                            Text="+"
+                            Style="{StaticResource FilterCmcStepperButtonStyle}"
+                            Command="{Binding AdjustCmcCommand}"
+                            CommandParameter="max+" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Power & Toughness ── -->
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="12"
+                      Padding="16,0,16,0">
+                    <material:TextField Text="{Binding Power, Mode=TwoWay}"
+                                        Title="Power"
+                                        Keyboard="Numeric"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}"
+                                        MinimumHeightRequest="56" />
+                    <material:TextField Grid.Column="1"
+                                        Text="{Binding Toughness, Mode=TwoWay}"
+                                        Title="Toughness"
+                                        Keyboard="Numeric"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}"
+                                        MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Format legality ── -->
+                <Grid Padding="16,0,16,0">
+                    <material:PickerField SelectedIndex="{Binding SelectedFormatIndex, Mode=TwoWay}"
+                                          ItemsSource="{Binding FormatOptions}"
+                                          Title="Format legality"
+                                          TextColor="{StaticResource TextPrimary}"
+                                          TitleColor="{StaticResource TextSecondary}"
+                                          AccentColor="{StaticResource Primary}"
+                                          MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Set ── -->
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="8"
+                      Padding="16,0,16,0"
+                      MinimumHeightRequest="56">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSetFieldTapped" />
+                    </Grid.GestureRecognizers>
+                    <Label Text="Set"
+                           FontSize="14"
+                           TextColor="{StaticResource TextSecondary}"
+                           VerticalOptions="Center" />
+                    <HorizontalStackLayout Grid.Column="1"
+                                           Spacing="6"
+                                           VerticalOptions="Center">
+                        <Label Text="{Binding SelectedSetDisplayName}"
+                               FontSize="14"
+                               TextColor="{StaticResource TextPrimary}"
+                               VerticalOptions="Center" />
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.ChevronDown}"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── Artist ── -->
+                <Grid Padding="16,0,16,0">
+                    <material:TextField Text="{Binding Artist, Mode=TwoWay}"
+                                        Title="Artist"
+                                        TitleColor="{StaticResource TextSecondary}"
+                                        AccentColor="{StaticResource Primary}"
+                                        MinimumHeightRequest="56" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <!-- ── OPTIONS ── -->
+                <Label Text="OPTIONS"
+                       Style="{StaticResource FilterSectionLabelStyle}"
+                       Margin="16,20,16,0" />
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" Margin="0,8,0,0" />
+
+                <Grid ColumnDefinitions="*,Auto"
+                      Padding="16,14"
+                      ColumnSpacing="12">
+                    <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                        <Label Text="Primary side only"
+                               FontSize="14"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Exclude back faces of double-sided cards"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding ChkPrimarySide, Mode=TwoWay}"
+                            OnColor="{StaticResource Primary}"
+                            VerticalOptions="Center" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <Grid ColumnDefinitions="*,Auto"
+                      Padding="16,14"
+                      ColumnSpacing="12">
+                    <Label Text="Exclude variations"
+                           FontSize="14"
+                           TextColor="{StaticResource TextPrimary}"
+                           VerticalOptions="Center" />
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding ChkNoVariations, Mode=TwoWay}"
+                            OnColor="{StaticResource Primary}"
+                            VerticalOptions="Center" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <Grid ColumnDefinitions="*,Auto"
+                      Padding="16,14"
+                      ColumnSpacing="12">
+                    <Label Text="Include tokens"
+                           FontSize="14"
+                           TextColor="{StaticResource TextPrimary}"
+                           VerticalOptions="Center" />
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding ChkIncludeTokens, Mode=TwoWay}"
+                            OnColor="{StaticResource Primary}"
+                            VerticalOptions="Center" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <Grid ColumnDefinitions="*,Auto"
+                      Padding="16,14"
+                      ColumnSpacing="12">
+                    <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                        <Label Text="Can be commander only"
+                               FontSize="14"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Legendary creatures and planeswalkers"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding ChkCommanderOnly, Mode=TwoWay}"
+                            OnColor="{StaticResource Primary}"
+                            VerticalOptions="Center" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <BoxView HeightRequest="16" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Footer -->
+        <VerticalStackLayout Grid.Row="2"
+                             BackgroundColor="{StaticResource Surface}"
+                             Spacing="0">
+            <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+            <Grid ColumnDefinitions="*,*"
+                  ColumnSpacing="12"
+                  Padding="16,12,16,28">
+                <Button Text="RESET"
+                        Command="{Binding ResetCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource ErrorColor}"
+                        BorderColor="{StaticResource ErrorColor}"
+                        BorderWidth="1"
+                        CornerRadius="10"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Fill"
+                        MinimumHeightRequest="52"
+                        Padding="8,12" />
+                <Button Grid.Column="1"
+                        Text="APPLY"
+                        Command="{Binding ApplyCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White"
+                        CornerRadius="10"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        HorizontalOptions="Fill"
+                        MinimumHeightRequest="52"
+                        Padding="8,12" />
+            </Grid>
+        </VerticalStackLayout>
+
+    </Grid>
+</ContentPage>

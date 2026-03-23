@@ -6,14 +6,12 @@ using AetherVault.Models;
 using AetherVault.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Collections.ObjectModel;
 
 namespace AetherVault.ViewModels;
 
 /// <summary>
 /// ViewModel for the Search tab. Handles search execution, pagination, and image loading for the card grid.
 /// The Page binds to SearchText, SearchCommand, ClearCommand, and the grid; this class does the actual work.
-/// Port of TSearchPresenter + TScrollHandler from MainUnit.Search.Custom.pas.
 /// </summary>
 public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 {
@@ -24,17 +22,8 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     private int _currentPage;
     private bool _isLoadingPage;
     private CardGrid? _grid;
-    private bool _isLoadingFromOptions;
 
-    private static readonly string[] StripTypeOptions =
-    [
-        "Any", "Artifact", "Battle", "Creature", "Enchantment", "Instant",
-        "Land", "Planeswalker", "Sorcery", "Kindred"
-    ];
-
-    private static readonly string[] ColorCodes = ["W", "U", "B", "R", "G", "C"];
-
-    // ── Bindable properties (XAML uses these via {Binding PropertyName}) ──
+    // ── Bindable properties ──
 
     [ObservableProperty]
     private string _filtersSummaryText = "";
@@ -51,32 +40,16 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
 
-    /// <summary>When true, the inline filter strip below the search bar is visible.</summary>
-    [ObservableProperty]
-    private bool _isFilterStripExpanded;
-
     public SearchOptions CurrentOptions { get; set; } = new();
-
-    /// <summary>Color chips for the inline filter strip. Synced with CurrentOptions.ColorFilter.</summary>
-    public ObservableCollection<ColorFilterItem> ColorFilters { get; }
-
-    public IList<string> TypeOptions { get; }
-
-    [ObservableProperty]
-    private int _selectedTypeIndex;
 
     public string FiltersButtonText
     {
         get
         {
-            if (IsFilterStripExpanded)
-                return "Hide filters";
             int count = CurrentOptions.ActiveFilterCount;
             return count > 0 ? $"Filters ({count})" : "Filters";
         }
     }
-
-    partial void OnIsFilterStripExpandedChanged(bool value) => OnPropertyChanged(nameof(FiltersButtonText));
 
     public bool HasNonTextFilters
     {
@@ -91,7 +64,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
     private const int PageSize = 50;
 
-    /// <summary>Raised when a search finishes (e.g. so the filters page can refresh).</summary>
+    /// <summary>Raised when a search finishes.</summary>
     public event Action? SearchCompleted;
 
     public SearchViewModel(CardManager cardManager, IGridPriceLoadService gridPriceLoadService, ISearchFiltersOpener filtersOpener)
@@ -100,11 +73,6 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         _gridPriceLoadService = gridPriceLoadService;
         _filtersOpener = filtersOpener;
 
-        TypeOptions = [.. StripTypeOptions];
-        ColorFilters = new ObservableCollection<ColorFilterItem>(
-            ColorCodes.Select(c => new ColorFilterItem(c, false)));
-
-        // Subscribe to CardManager events for status updates
         _cardManager.OnProgress += (msg, pct) =>
         {
             MainThread.BeginInvokeOnMainThread(() => StatusMessage = msg);
@@ -122,7 +90,6 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         };
         _cardManager.OnPricesUpdated += () =>
         {
-            // If we have cards, refresh the grid to show prices
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 if (_grid != null)
@@ -134,7 +101,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         };
     }
 
-    /// <summary>Called by SearchPage when the card grid is created. We need the grid reference for pagination and visible-range updates.</summary>
+    /// <summary>Called by SearchPage when the card grid is created.</summary>
     public void AttachGrid(CardGrid grid)
     {
         _grid = grid;
@@ -166,16 +133,15 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     [RelayCommand]
     private async Task SearchAsync()
     {
-        await PerformSearchAsync(options: null, collapseFilterStrip: true);
+        await PerformSearchAsync();
     }
 
-    /// <summary>Clear search box, filters, grid, and reset state. Bound to the Clear button.</summary>
+    /// <summary>Clear search box, filters, grid, and reset state.</summary>
     [RelayCommand]
     private void Clear()
     {
         SearchText = "";
         CurrentOptions = new SearchOptions();
-        RefreshFilterStripFromOptions();
         _grid?.ClearCards();
         TotalResults = 0;
         HasMorePages = false;
@@ -186,96 +152,23 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         SearchCompleted?.Invoke();
     }
 
-    /// <summary>Toggles the inline filter strip. Bound to the Filters button.</summary>
-    [RelayCommand]
-    private void ToggleFilterStrip()
-    {
-        IsFilterStripExpanded = !IsFilterStripExpanded;
-    }
-
-    /// <summary>Opens the full filters modal (set, artist, format, special options). Call from "More filters…" in the strip.</summary>
+    /// <summary>Opens the full-screen filters page.</summary>
     [RelayCommand]
     private async Task GoToFiltersAsync()
     {
         await _filtersOpener.OpenAsync(this, _cardManager);
     }
 
-    /// <summary>Toggles a color in the strip and runs search. Bound to color chip tap.</summary>
-    [RelayCommand]
-    private void ToggleColor(string? code)
-    {
-        if (string.IsNullOrEmpty(code)) return;
-        var item = ColorFilters.FirstOrDefault(c => c.Code == code);
-        if (item != null)
-        {
-            item.IsSelected = !item.IsSelected;
-            SyncStripToOptionsAndSearch();
-        }
-    }
-
-    /// <summary>Syncs strip state (colors, type only; CMC/rarity live in the filters sheet) into CurrentOptions and runs search.</summary>
-    private void SyncStripToOptionsAndSearch()
-    {
-        var selectedColors = ColorFilters.Where(c => c.IsSelected).Select(c => c.Code).ToList();
-        CurrentOptions.ColorFilter = selectedColors.Count > 0 ? string.Join(", ", selectedColors) : "";
-
-        if (SelectedTypeIndex > 0 && SelectedTypeIndex < TypeOptions.Count)
-            CurrentOptions.TypeFilter = TypeOptions[SelectedTypeIndex];
-        else
-            CurrentOptions.TypeFilter = "";
-
-        UpdateFilterState();
-        _ = PerformSearchAsync();
-    }
-
-    /// <summary>Refreshes strip UI from CurrentOptions. Call when returning from the full filters modal.</summary>
-    public void RefreshFilterStripFromOptions()
-    {
-        _isLoadingFromOptions = true;
-        try
-        {
-            var colors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (!string.IsNullOrEmpty(CurrentOptions.ColorFilter))
-            {
-                foreach (var c in CurrentOptions.ColorFilter.Split(','))
-                    colors.Add(c.Trim());
-            }
-            foreach (var item in ColorFilters)
-                item.IsSelected = colors.Contains(item.Code);
-
-            if (string.IsNullOrEmpty(CurrentOptions.TypeFilter) || CurrentOptions.TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase))
-                SelectedTypeIndex = 0;
-            else
-            {
-                var idx = Array.FindIndex(StripTypeOptions, s => string.Equals(s, CurrentOptions.TypeFilter, StringComparison.OrdinalIgnoreCase));
-                SelectedTypeIndex = idx >= 0 ? idx : 0;
-            }
-
-        }
-        finally
-        {
-            _isLoadingFromOptions = false;
-        }
-    }
-
-    partial void OnSelectedTypeIndexChanged(int value)
-    {
-        if (_isLoadingFromOptions) return;
-        SyncStripToOptionsAndSearch();
-    }
-
     public async Task ApplyFiltersAndSearchAsync(SearchOptions options)
     {
-        await PerformSearchAsync(options, collapseFilterStrip: true);
+        await PerformSearchAsync(options);
     }
 
-    /// <summary>Runs the search: builds query via MTGSearchHelper, executes via CardManager, then updates the grid. Handles first page and total count.</summary>
-    /// <param name="collapseFilterStrip">When true, collapses the inline filter strip so results get more screen space (search bar / sheet apply; not strip tweaks).</param>
-    public async Task PerformSearchAsync(SearchOptions? options = null, bool collapseFilterStrip = false)
+    /// <summary>Runs the search: builds query via MTGSearchHelper, executes via CardManager, then updates the grid.</summary>
+    public async Task PerformSearchAsync(SearchOptions? options = null)
     {
         if (IsBusy) return;
 
-        // No search term and no filters → prompt user (allow search with filters only)
         if (options == null)
         {
             CurrentOptions.NameFilter = SearchText ?? "";
@@ -292,11 +185,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
             return;
         }
 
-        // Ensure prices are initialized
         await _cardManager.InitializePricesAsync();
-
-        if (collapseFilterStrip)
-            IsFilterStripExpanded = false;
 
         IsBusy = true;
         IsEmpty = false;
@@ -304,17 +193,14 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         StatusMessage = UserMessages.Searching;
 
         if (options != null)
-        {
             CurrentOptions = options;
-            RefreshFilterStripFromOptions();
-        }
+
         UpdateFilterState();
 
         _currentPage = 1;
 
         try
         {
-            // Build parameterized SQL via the fluent helper (never concatenate user input into SQL)
             var helper = _cardManager.CreateSearchHelper();
             helper.SearchCards(CurrentOptions.IncludeTokens);
             SearchOptionsApplier.Apply(helper, CurrentOptions);
@@ -329,7 +215,6 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
             }
             else
             {
-                // Get total count
                 var countHelper = _cardManager.CreateSearchHelper();
                 countHelper.SearchCards(CurrentOptions.IncludeTokens);
                 SearchOptionsApplier.Apply(countHelper, CurrentOptions);
@@ -337,7 +222,6 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
                 HasMorePages = TotalResults > results.Length;
             }
 
-            // Set empty state before updating grid so empty-state overlay shows (and grid hides) before grid repaints
             IsEmpty = TotalResults == 0;
             _grid?.SetCards(results);
             _cardManager.ImageService.CancelPendingDownloads();
@@ -393,7 +277,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         }
     }
 
-    /// <summary>Loads the next page of results and appends to the grid. Called when user scrolls near the bottom.</summary>
+    /// <summary>Loads the next page of results and appends to the grid.</summary>
     public async Task LoadNextPageAsync()
     {
         if (_isLoadingPage || !HasMorePages || _grid == null) return;
@@ -410,24 +294,18 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
                   .Limit(PageSize)
                   .Offset((_currentPage - 1) * PageSize);
 
-            // 1. Await directly. No Task.Run needed for true async I/O.
             var results = await _cardManager.ExecuteSearchAsync(helper);
 
             if (results.Length > 0)
-            {
-                // 2. Use the new chunked Add method so the UI doesn't stutter 
                 await _grid.AddCardsAsync(results);
-            }
 
             if (results.Length < PageSize)
-            {
                 HasMorePages = false;
-            }
         }
         catch (Exception ex)
         {
             Logger.LogStuff($"Page load error: {ex.Message}", LogLevel.Error);
-            _currentPage--; // Rollback on failure so the user can try again
+            _currentPage--;
         }
         finally
         {
@@ -437,7 +315,6 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
     public void OnScrollChanged(float scrollY, float viewportHeight, float contentHeight)
     {
-        // Infinite scroll: load next page when near bottom
         if (HasMorePages && !_isLoadingPage)
         {
             if (scrollY + viewportHeight > contentHeight - 500)

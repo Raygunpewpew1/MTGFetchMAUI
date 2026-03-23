@@ -74,24 +74,12 @@ public partial class SearchPage : ContentPage
     {
         base.OnAppearing();
         CardGrid.OnResume();
-        // Sync inline filter strip from CurrentOptions when returning (e.g. from full filters modal)
-        _viewModel.RefreshFilterStripFromOptions();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         CardGrid.OnSleep();
-    }
-
-    protected override bool OnBackButtonPressed()
-    {
-        if (_viewModel.IsFilterStripExpanded)
-        {
-            _viewModel.IsFilterStripExpanded = false;
-            return true;
-        }
-        return base.OnBackButtonPressed();
     }
 
     private void OnGridScrolled(object? sender, ScrolledEventArgs e)

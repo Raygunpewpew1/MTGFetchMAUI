@@ -46,16 +46,6 @@ public partial class SearchFiltersViewModel : BaseViewModel
     public IList<string> TypeOptions { get; }
     public ObservableCollection<SetInfo> SetList { get; }
 
-    /// <summary>Active category tab in the filter sheet (0 General, 1 Mana, 2 Print, 3 Options).</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFilterGeneralVisible), nameof(IsFilterManaVisible), nameof(IsFilterPrintVisible), nameof(IsFilterOptionsVisible))]
-    private int _selectedFilterCategory;
-
-    public bool IsFilterGeneralVisible => SelectedFilterCategory == 0;
-    public bool IsFilterManaVisible => SelectedFilterCategory == 1;
-    public bool IsFilterPrintVisible => SelectedFilterCategory == 2;
-    public bool IsFilterOptionsVisible => SelectedFilterCategory == 3;
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CmcMinLabel), nameof(CmcMaxLabel), nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private double _cmcMin;
@@ -157,7 +147,6 @@ public partial class SearchFiltersViewModel : BaseViewModel
     {
         _target = target;
         _cardManager = cardManager;
-        SelectedFilterCategory = 0;
         LoadFromOptions(target.CurrentOptions);
         _ = LoadSetsAsync();
     }
@@ -185,19 +174,6 @@ public partial class SearchFiltersViewModel : BaseViewModel
             OnPropertyChanged(nameof(HasActiveFilters));
             OnPropertyChanged(nameof(FiltersSummaryText));
         }
-    }
-
-    [RelayCommand]
-    private void SelectCategory(object? parameter)
-    {
-        var idx = parameter switch
-        {
-            int i => i,
-            string s when int.TryParse(s, out var n) => n,
-            _ => -1
-        };
-        if (idx is >= 0 and <= 3)
-            SelectedFilterCategory = idx;
     }
 
     [RelayCommand]
@@ -264,7 +240,6 @@ public partial class SearchFiltersViewModel : BaseViewModel
     private void Reset()
     {
         LoadFromOptions(new SearchOptions());
-        SelectedFilterCategory = 0;
     }
 
     [RelayCommand]

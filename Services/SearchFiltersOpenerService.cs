@@ -1,14 +1,11 @@
 using AetherVault.Pages;
 using AetherVault.ViewModels;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Extensions;
-using CommunityToolkit.Maui.Views;
 
 namespace AetherVault.Services;
 
 /// <summary>
-/// Opens the Search Filters sheet by resolving SearchFiltersSheet from DI, initialising it
-/// with the caller's target and CardManager, then showing it as a bottom sheet.
+/// Opens the full-screen Search Filters page by resolving SearchFiltersPage from DI,
+/// initialising it with the caller's target and CardManager, then pushing it as a modal.
 /// </summary>
 public sealed class SearchFiltersOpenerService : ISearchFiltersOpener
 {
@@ -21,24 +18,14 @@ public sealed class SearchFiltersOpenerService : ISearchFiltersOpener
 
     public async Task OpenAsync(ISearchFilterTarget target, CardManager cardManager)
     {
-        var sheet = _serviceProvider.GetRequiredService<SearchFiltersSheet>();
+        var page = _serviceProvider.GetRequiredService<SearchFiltersPage>();
+        page.Init(target, cardManager);
 
-        // Prefer topmost modal page so the sheet appears above CardSearchPickerPage when active
-        var page = Shell.Current?.Navigation?.ModalStack.LastOrDefault()
-                   ?? Shell.Current?.CurrentPage
-                   ?? Application.Current?.Windows.FirstOrDefault()?.Page;
+        var currentPage = Shell.Current?.Navigation?.ModalStack.LastOrDefault()
+                          ?? Shell.Current?.CurrentPage
+                          ?? Application.Current?.Windows.FirstOrDefault()?.Page;
 
-        sheet.Init(target, cardManager, page);
-
-        if (page != null)
-        {
-            var options = new PopupOptions
-            {
-                Shape = null,
-                Shadow = null,
-                PageOverlayColor = Color.FromRgba(0, 0, 0, 0.5)
-            };
-            await page.ShowPopupAsync(sheet, options);
-        }
+        if (currentPage != null)
+            await currentPage.Navigation.PushModalAsync(page, animated: true);
     }
 }

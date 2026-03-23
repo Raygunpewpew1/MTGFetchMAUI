@@ -11,9 +11,9 @@
              BackgroundColor="{StaticResource Background}">
 
     <Grid>
-        <Grid RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,*">
 
-            <!-- Search + status + active filters (single card) -->
+            <!-- Search + status + active filters -->
             <Border Grid.Row="0"
                     Style="{StaticResource CardStyle}"
                     Margin="8,8,8,4">
@@ -24,7 +24,7 @@
                     <controls:CardSearchBar Grid.Row="0"
                                             Grid.ColumnSpan="3"
                                             x:Name="SearchBar"
-                                            FiltersCommand="{Binding ToggleFilterStripCommand}" />
+                                            FiltersCommand="{Binding GoToFiltersCommand}" />
 
                     <Label Grid.Row="1"
                            Grid.Column="0"
@@ -82,44 +82,13 @@
                 </Grid>
             </Border>
 
-            <!-- Quick strip: colors + type + open full sheet -->
-            <Border Grid.Row="1"
-                    Margin="8,0,8,4"
-                    Style="{StaticResource CardStyle}"
-                    IsVisible="{Binding IsFilterStripExpanded}">
-                <VerticalStackLayout Spacing="14" Padding="6,4">
-                    <Label Text="Colors"
-                           FontSize="12"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextSecondary}" />
-                    <controls:ManaColorFilterRow ItemsSource="{Binding ColorFilters}"
-                                                 ToggleColorCommand="{Binding ToggleColorCommand}" />
-
-                    <material:PickerField SelectedIndex="{Binding SelectedTypeIndex, Mode=TwoWay}"
-                                          ItemsSource="{Binding TypeOptions}"
-                                          Title="Card type"
-                                          TextColor="{StaticResource TextPrimary}"
-                                          TitleColor="{StaticResource TextSecondary}"
-                                          AccentColor="{StaticResource Primary}"
-                                          MinimumHeightRequest="52" />
-
-                    <Button Text="All filters — mana, rarity, set, format…"
-                            Command="{Binding GoToFiltersCommand}"
-                            BackgroundColor="{StaticResource Surface}"
-                            TextColor="{StaticResource Primary}"
-                            FontSize="13"
-                            CornerRadius="10"
-                            Padding="14,12" />
-                </VerticalStackLayout>
-            </Border>
-
-            <controls:CardGrid Grid.Row="2"
+            <controls:CardGrid Grid.Row="1"
                                x:Name="CardGrid"
                                IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBool}}"
                                Scrolled="OnGridScrolled"
                                IsDragEnabled="False" />
 
-            <controls:EmptyStateView Grid.Row="2"
+            <controls:EmptyStateView Grid.Row="1"
                                      IsVisible="{Binding IsEmpty}"
                                      IconGlyph="{x:Static fa:Solid.MagnifyingGlass}"
                                      Message="No cards found"
