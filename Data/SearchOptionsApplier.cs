@@ -17,6 +17,9 @@ public static class SearchOptionsApplier
         if (!string.IsNullOrEmpty(options.TextFilter))
             helper.WhereTextContains(options.TextFilter);
 
+        if (!string.IsNullOrWhiteSpace(options.KeywordsFilter))
+            helper.WhereKeywordTermsAll(options.KeywordsFilter);
+
         if (!string.IsNullOrEmpty(options.TypeFilter) &&
             !options.TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase))
             helper.WhereType(options.TypeFilter);
@@ -30,11 +33,17 @@ public static class SearchOptionsApplier
         if (!string.IsNullOrEmpty(options.ColorFilter))
             helper.WhereColors(options.ColorFilter);
 
+        if (!string.IsNullOrWhiteSpace(options.ColorIdentityFilter))
+            helper.WhereColorIdentityAny(options.ColorIdentityFilter);
+
         if (options.RarityFilter.Count > 0)
             helper.WhereRarity([.. options.RarityFilter]);
 
         if (!string.IsNullOrEmpty(options.SetFilter))
             helper.WhereSet(options.SetFilter);
+
+        if (options.LayoutFilter.Count > 0)
+            helper.WhereLayout([.. options.LayoutFilter]);
 
         if (options.UseCmcExact)
             helper.WhereCmc(options.CmcExact);
@@ -66,5 +75,11 @@ public static class SearchOptionsApplier
 
         if (options.CommanderOnly)
             helper.WhereCommanderOnly();
+
+        if (options.AvailabilityFilter.Count > 0)
+            helper.WhereAvailabilityAny(options.AvailabilityFilter);
+
+        if (options.FinishesFilter.Count > 0)
+            helper.WhereFinishesAny(options.FinishesFilter);
     }
 }

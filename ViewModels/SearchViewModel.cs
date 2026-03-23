@@ -342,6 +342,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         AddCmcSummary(parts, options);
         AddPowerToughnessSummary(parts, options);
         AddFormatSetArtistSummary(parts, options);
+        AddAvailabilitySummary(parts, options);
         AddSpecialSummary(parts, options);
 
         if (parts.Count == 0)
@@ -403,6 +404,21 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         if (!string.IsNullOrWhiteSpace(options.ArtistFilter))
             parts.Add($"Artist: {options.ArtistFilter}");
+    }
+
+    private static void AddAvailabilitySummary(List<string> parts, SearchOptions options)
+    {
+        if (options.AvailabilityFilter.Count == 0) return;
+        var labels = options.AvailabilityFilter
+            .Select(static t => t.ToLowerInvariant() switch
+            {
+                "paper" => "Paper",
+                "mtgo" => "MTGO",
+                "arena" => "Arena",
+                _ => t
+            })
+            .Distinct();
+        parts.Add($"Available: {string.Join("/", labels)}");
     }
 
     private static void AddSpecialSummary(List<string> parts, SearchOptions options)

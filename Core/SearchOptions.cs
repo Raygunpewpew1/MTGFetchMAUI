@@ -10,6 +10,8 @@ public class SearchOptions
     // Text filters
     public string NameFilter { get; set; } = "";
     public string TextFilter { get; set; } = "";
+    /// <summary>MTGJSON <c>keywords</c> array (comma-separated; all terms must match).</summary>
+    public string KeywordsFilter { get; set; } = "";
     public string ArtistFilter { get; set; } = "";
 
     // Type filters
@@ -44,10 +46,23 @@ public class SearchOptions
     /// <summary>When true, only cards that can be a commander (Legendary Creature or "can be your commander").</summary>
     public bool CommanderOnly { get; set; }
 
+    /// <summary>
+    /// MTGJSON <c>availability</c> tokens to require (lowercase: paper, mtgo, arena).
+    /// When non-empty, a row matches if it lists <b>any</b> of these platforms.
+    /// </summary>
+    public List<string> AvailabilityFilter { get; set; } = [];
+
+    /// <summary>When non-empty, layout must be one of these values (OR).</summary>
+    public List<CardLayout> LayoutFilter { get; set; } = [];
+
+    /// <summary>MTGJSON <c>finishes</c> tokens (e.g. nonfoil, foil, etched); row matches if it has <b>any</b> selected.</summary>
+    public List<string> FinishesFilter { get; set; } = [];
+
     public void Clear()
     {
         NameFilter = "";
         TextFilter = "";
+        KeywordsFilter = "";
         ArtistFilter = "";
         TypeFilter = "";
         SubtypeFilter = "";
@@ -70,6 +85,9 @@ public class SearchOptions
         IncludeAllFaces = false;
         IncludeTokens = false;
         CommanderOnly = false;
+        AvailabilityFilter = [];
+        LayoutFilter = [];
+        FinishesFilter = [];
     }
 
     public int ActiveFilterCount
@@ -79,6 +97,7 @@ public class SearchOptions
             int count = 0;
             if (!string.IsNullOrWhiteSpace(NameFilter)) count++;
             if (!string.IsNullOrWhiteSpace(TextFilter)) count++;
+            if (!string.IsNullOrWhiteSpace(KeywordsFilter)) count++;
             if (!string.IsNullOrWhiteSpace(TypeFilter) && !TypeFilter.Equals("Any", StringComparison.OrdinalIgnoreCase)) count++;
             if (!string.IsNullOrWhiteSpace(SubtypeFilter)) count++;
             if (!string.IsNullOrWhiteSpace(SupertypeFilter)) count++;
@@ -93,6 +112,9 @@ public class SearchOptions
             if (!string.IsNullOrWhiteSpace(ArtistFilter)) count++;
             if (IncludeTokens) count++;
             if (CommanderOnly) count++;
+            if (AvailabilityFilter.Count > 0) count++;
+            if (LayoutFilter.Count > 0) count++;
+            if (FinishesFilter.Count > 0) count++;
             return count;
         }
     }
@@ -100,6 +122,7 @@ public class SearchOptions
     public bool HasActiveFilters =>
         !string.IsNullOrEmpty(NameFilter) ||
         !string.IsNullOrEmpty(TextFilter) ||
+        !string.IsNullOrWhiteSpace(KeywordsFilter) ||
         !string.IsNullOrEmpty(ArtistFilter) ||
         !string.IsNullOrEmpty(TypeFilter) ||
         !string.IsNullOrEmpty(SubtypeFilter) ||
@@ -114,7 +137,10 @@ public class SearchOptions
         !string.IsNullOrEmpty(ToughnessFilter) ||
         UseLegalFormat ||
         IncludeTokens ||
-        CommanderOnly;
+        CommanderOnly ||
+        AvailabilityFilter.Count > 0 ||
+        LayoutFilter.Count > 0 ||
+        FinishesFilter.Count > 0;
 
     public static SearchOptions Default() => new();
 }

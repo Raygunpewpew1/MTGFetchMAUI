@@ -301,6 +301,56 @@ public class MtgSearchHelper
         return this;
     }
 
+    /// <summary>
+    /// Matches if <c>colorIdentity</c> contains any selected mana symbol (WUBRG), or colorless when <c>C</c> is included.
+    /// Comma-separated; same UX as <see cref="WhereColors"/>.
+    /// </summary>
+    public MtgSearchHelper WhereColorIdentityAny(string colorCsv)
+    {
+        if (string.IsNullOrWhiteSpace(colorCsv)) return this;
+
+        var colorList = colorCsv.Split(',');
+        var conditions = new List<string>();
+
+        foreach (var color in colorList)
+        {
+            var trimmed = color.Trim();
+            if (string.IsNullOrEmpty(trimmed)) continue;
+            if (string.Equals(trimmed, "C", StringComparison.OrdinalIgnoreCase))
+            {
+                conditions.Add(SqlQueries.CondColorIdentityColorless);
+                continue;
+            }
+            var param = NextParam("ColorId" + trimmed);
+            conditions.Add("c.colorIdentity LIKE @" + param);
+            _params.Add(param, "%" + trimmed + "%");
+        }
+
+        if (conditions.Count > 0)
+            _whereConditions.Add("(" + string.Join(" OR ", conditions) + ")");
+        return this;
+    }
+
+    /// <summary>
+    /// Each comma-separated term must appear as an entry in the JSON <c>keywords</c> array (case-insensitive substring).
+    /// </summary>
+    public MtgSearchHelper WhereKeywordTermsAll(string commaSeparatedTerms)
+    {
+        if (string.IsNullOrWhiteSpace(commaSeparatedTerms)) return this;
+
+        var terms = commaSeparatedTerms.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        foreach (var term in terms)
+        {
+            if (string.IsNullOrWhiteSpace(term)) continue;
+            var param = NextParam("Kw");
+            _whereConditions.Add(
+                "EXISTS (SELECT 1 FROM json_each(c.keywords) WHERE LOWER(CAST(json_each.value AS TEXT)) LIKE @" + param + ")");
+            _params.Add(param, "%" + term.Trim().ToLowerInvariant() + "%");
+        }
+
+        return this;
+    }
+
     /// <summary>Restricts results to cards that can be a commander (Legendary Creature or "can be your commander").</summary>
     public MtgSearchHelper WhereCommanderOnly()
     {
@@ -456,6 +506,61 @@ public class MtgSearchHelper
         _whereConditions.Add(SqlQueries.CondSidePrimary);
         return this;
     }
+
+    /// <summary>
+    /// Restricts to rows whose JSON <c>availability</c> array contains <b>any</b> of the given MTGJSON tokens
+    /// (<c>paper</c>, <c>mtgo</c>, <c>arena</c>). Unknown values are ignored.
+    /// </summary>
+    public MtgSearchHelper WhereAvailabilityAny(IReadOnlyList<string> platforms)
+    {
+        if (platforms == null || platforms.Count == 0) return this;
+
+        var allowed = AllowedAvailabilityTokens;
+        var parts = new List<string>();
+        foreach (var raw in platforms)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            var p = raw.Trim().ToLowerInvariant();
+            if (!allowed.Contains(p)) continue;
+            var param = NextParam("Avail");
+            _params.Add(param, p);
+            parts.Add("EXISTS (SELECT 1 FROM json_each(c.availability) WHERE json_each.value = @" + param + ")");
+        }
+
+        if (parts.Count > 0)
+            _whereConditions.Add("(" + string.Join(" OR ", parts) + ")");
+        return this;
+    }
+
+    private static readonly HashSet<string> AllowedAvailabilityTokens =
+        new(StringComparer.Ordinal) { "paper", "mtgo", "arena" };
+
+    /// <summary>
+    /// Restricts to rows whose JSON <c>finishes</c> array contains <b>any</b> of the given MTGJSON finish tokens.
+    /// </summary>
+    public MtgSearchHelper WhereFinishesAny(IReadOnlyList<string> finishes)
+    {
+        if (finishes == null || finishes.Count == 0) return this;
+
+        var allowed = AllowedFinishTokens;
+        var parts = new List<string>();
+        foreach (var raw in finishes)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            var p = raw.Trim().ToLowerInvariant();
+            if (!allowed.Contains(p)) continue;
+            var param = NextParam("Finish");
+            _params.Add(param, p);
+            parts.Add("EXISTS (SELECT 1 FROM json_each(c.finishes) WHERE json_each.value = @" + param + ")");
+        }
+
+        if (parts.Count > 0)
+            _whereConditions.Add("(" + string.Join(" OR ", parts) + ")");
+        return this;
+    }
+
+    private static readonly HashSet<string> AllowedFinishTokens =
+        new(StringComparer.Ordinal) { "nonfoil", "foil", "etched" };
 
     //public MTGSearchHelper WhereCustom(string condition)
     //{

@@ -417,6 +417,36 @@ public class MtgSearchHelperTests
         Assert.Contains("c.side", result.sql);
     }
 
+    [Fact]
+    public void WhereAvailabilityAny_AddsJsonEachOrClauses()
+    {
+        var helper = new MtgSearchHelper();
+        helper.SearchCards().WhereAvailabilityAny(["paper", "arena"]);
+        var result = helper.Build();
+        Assert.Contains("json_each(c.availability)", result.sql);
+        Assert.Contains(" OR ", result.sql);
+        Assert.Contains("paper", result.parameters.Select(p => p.value).OfType<string>());
+        Assert.Contains("arena", result.parameters.Select(p => p.value).OfType<string>());
+    }
+
+    [Fact]
+    public void WhereAvailabilityAny_Empty_DoesNotAddJsonEach()
+    {
+        var helper = new MtgSearchHelper();
+        helper.SearchCards().WhereAvailabilityAny([]);
+        var result = helper.Build();
+        Assert.DoesNotContain("json_each", result.sql);
+    }
+
+    [Fact]
+    public void WhereAvailabilityAny_IgnoresUnknownTokens()
+    {
+        var helper = new MtgSearchHelper();
+        helper.SearchCards().WhereAvailabilityAny(["notaplatform"]);
+        var result = helper.Build();
+        Assert.DoesNotContain("json_each", result.sql);
+    }
+
     // ── Helper ────────────────────────────────────────────────────────
 
     private static int CountOccurrences(string source, string substring)

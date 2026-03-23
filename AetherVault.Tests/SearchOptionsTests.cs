@@ -131,6 +131,20 @@ public class SearchOptionsTests
     }
 
     [Fact]
+    public void ActiveFilterCount_WithAvailability_IsOne()
+    {
+        var options = new SearchOptions { AvailabilityFilter = ["arena"] };
+        Assert.Equal(1, options.ActiveFilterCount);
+    }
+
+    [Fact]
+    public void HasActiveFilters_WithAvailability_IsTrue()
+    {
+        var options = new SearchOptions { AvailabilityFilter = ["paper"] };
+        Assert.True(options.HasActiveFilters);
+    }
+
+    [Fact]
     public void ActiveFilterCount_MultipleFilters_SumsCorrectly()
     {
         var options = new SearchOptions

@@ -634,6 +634,9 @@ public static class SqlQueries
     public const string CondColors = "c.colors LIKE @";
     /// <summary>Matches colorless cards (MTGJSON stores empty colors, not "C").</summary>
     public const string CondColorless = "(c.colors IS NULL OR c.colors = '' OR TRIM(c.colors) = '' OR c.colors = '[]')";
+    /// <summary>Matches colorless color identity (empty JSON array in MTGJSON).</summary>
+    public const string CondColorIdentityColorless =
+        "(c.colorIdentity IS NULL OR c.colorIdentity = '' OR TRIM(c.colorIdentity) = '' OR c.colorIdentity = '[]')";
     public const string CondManaValue = "c.manaValue = @";
     public const string CondManaValueBetween = "c.manaValue BETWEEN @";
     public const string CondPower = "c.power = @";

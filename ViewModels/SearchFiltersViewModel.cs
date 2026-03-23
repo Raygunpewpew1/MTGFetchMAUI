@@ -131,6 +131,18 @@ public partial class SearchFiltersViewModel : BaseViewModel
     [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkCommanderOnly;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkAvailPaper;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkAvailMtgo;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkAvailArena;
+
     public ObservableCollection<ColorFilterItem> ColorFilters { get; }
 
     /// <summary>Number of active filters for the sticky header badge.</summary>
@@ -216,6 +228,23 @@ public partial class SearchFiltersViewModel : BaseViewModel
                 break;
             case "M":
                 ChkMythic = !ChkMythic;
+                break;
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleAvailability(string? key)
+    {
+        switch (key)
+        {
+            case "paper":
+                ChkAvailPaper = !ChkAvailPaper;
+                break;
+            case "mtgo":
+                ChkAvailMtgo = !ChkAvailMtgo;
+                break;
+            case "arena":
+                ChkAvailArena = !ChkAvailArena;
                 break;
         }
     }
@@ -328,6 +357,10 @@ public partial class SearchFiltersViewModel : BaseViewModel
         options.IncludeTokens = ChkIncludeTokens;
         options.CommanderOnly = ChkCommanderOnly;
 
+        if (ChkAvailPaper) options.AvailabilityFilter.Add("paper");
+        if (ChkAvailMtgo) options.AvailabilityFilter.Add("mtgo");
+        if (ChkAvailArena) options.AvailabilityFilter.Add("arena");
+
         return options;
     }
 
@@ -393,6 +426,11 @@ public partial class SearchFiltersViewModel : BaseViewModel
         ChkNoVariations = options.NoVariations;
         ChkIncludeTokens = options.IncludeTokens;
         ChkCommanderOnly = options.CommanderOnly;
+
+        var av = new HashSet<string>(options.AvailabilityFilter, StringComparer.OrdinalIgnoreCase);
+        ChkAvailPaper = av.Contains("paper");
+        ChkAvailMtgo = av.Contains("mtgo");
+        ChkAvailArena = av.Contains("arena");
     }
 
     private static string BuildFiltersSummary(SearchOptions options)
@@ -403,6 +441,7 @@ public partial class SearchFiltersViewModel : BaseViewModel
         AddCmcSummary(parts, options);
         AddPowerToughnessSummary(parts, options);
         AddFormatSetArtistSummary(parts, options);
+        AddAvailabilitySummary(parts, options);
         AddSpecialSummary(parts, options);
 
         if (parts.Count == 0)
@@ -464,6 +503,21 @@ public partial class SearchFiltersViewModel : BaseViewModel
 
         if (!string.IsNullOrWhiteSpace(options.ArtistFilter))
             parts.Add($"Artist: {options.ArtistFilter}");
+    }
+
+    private static void AddAvailabilitySummary(List<string> parts, SearchOptions options)
+    {
+        if (options.AvailabilityFilter.Count == 0) return;
+        var labels = options.AvailabilityFilter
+            .Select(static t => t.ToLowerInvariant() switch
+            {
+                "paper" => "Paper",
+                "mtgo" => "MTGO",
+                "arena" => "Arena",
+                _ => t
+            })
+            .Distinct();
+        parts.Add($"Available: {string.Join("/", labels)}");
     }
 
     private static void AddSpecialSummary(List<string> parts, SearchOptions options)

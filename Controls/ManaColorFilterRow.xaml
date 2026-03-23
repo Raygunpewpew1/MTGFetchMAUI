@@ -12,7 +12,7 @@
             <DataTemplate>
                 <Grid WidthRequest="44"
                       HeightRequest="44"
-                      Margin="4"
+                      Margin="2"
                       Opacity="0.5"
                       Scale="1">
                     <Grid.GestureRecognizers>
