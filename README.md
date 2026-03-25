@@ -1,92 +1,10 @@
 # AetherVault
 
-AetherVault is a .NET MAUI app for browsing, searching, and managing **Magic: The Gathering** cards and personal collections.
+A Magic: The Gathering collection manager for Android. Search any card in the game, track what you own, build decks, and get stats on your collection — all stored locally on your device.
 
-It uses a local SQLite copy of MTGJSON data, downloads card images from Scryfall, and stores user collection/deck data in a separate local database.
-
-Decks are slowly being added.
+Still in active development. If you play Magic and have an Android phone, I'm always looking for people to try it out and tell me what's broken or missing.
 
 ---
-
-## What this repo is built with
-
-- **Language/Runtime:** C# on .NET 10 (preview features enabled)
-- **UI:** .NET MAUI + XAML
-- **Pattern:** MVVM (CommunityToolkit.Mvvm) + Repository pattern + DI
-- **Data access:** SQLite + Dapper
-- **Rendering:** SkiaSharp (custom card grid rendering)
-- **Platform target:** Android (`net10.0-android`)
-
----
-
-## Requirements
-
-To build this project locally, you need:
-
-1. **.NET 10 SDK** (preview-compatible for this project)
-2. **.NET MAUI workload** (including Android)
-3. **Android SDK** (API 21+ supported by project settings)
-4. **Java JDK** required by MAUI/Android toolchain
-5. Internet access on first app launch (for initial MTG database download)
-
----
-
-## Quick start (build + run)
-
-From repo root:
-
-```bash
-dotnet workload install maui
-dotnet workload install maui-android
-dotnet restore AetherVault.sln
-dotnet build AetherVault.csproj -f net10.0-android -m
-```
-
-To run on Android emulator/device:
-
-```bash
-dotnet build AetherVault.csproj -t:Run -f net10.0-android -m
-```
-
-**Faster builds:** Use `-m` for parallel MSBuild (uses all cores). Debug builds use Fast Deployment by default (only changed assemblies are redeployed), so incremental build+deploy is quicker. For a single full APK (e.g. for sharing or devices where Fast Deployment fails), set `EmbedAssembliesIntoApk` to `True` in the Debug property group in `AetherVault.csproj`.
-
----
-
-## Run tests
-
-Use the test project directly:
-
-```bash
-dotnet test AetherVault.Tests/AetherVault.Tests.csproj
-```
-
----
-
-## How the app works (high level)
-
-- On startup, the app checks for the MTG master database (`MTG_App_DB.zip`) and downloads it if needed.
-- Two SQLite databases are used:
-  - **Read-only MTG database** for card/search data
-  - **Read-write collection database** for user-owned cards and decks
-- `CardManager` coordinates repository/services.
-- Search uses `MTGSearchHelper` to build parameterized SQL queries safely.
-- Card grid rendering is performance-focused via SkiaSharp custom controls.
-
----
-
-## Repo structure (short)
-
-- `Data/` – repositories, SQL query definitions, database manager
-- `Services/` – app services (image cache/download, card manager, deck builder, etc.)
-- `ViewModels/` – MVVM view models
-- `Pages/` – MAUI XAML pages
-- `Controls/` – custom UI controls and renderer code
-- `Core/` – shared models/enums/utility logic
-- `AetherVault.Tests/` – xUnit tests
-
----
-
-## Screenshots
 
 <table>
   <tr>
@@ -103,12 +21,81 @@ dotnet test AetherVault.Tests/AetherVault.Tests.csproj
 
 ---
 
-## CI / database update automation
+## What it does
 
-GitHub Actions workflow (`.github/workflows/main.yml`) runs weekly and can be triggered manually to:
+- Search the full MTG card database with filters for color, type, rarity, format legality, and more
+- Browse card details, rulings, and legalities
+- Track your collection and see what you own at a glance
+- Build and manage decks
+- Collection stats — mana curve, color breakdown, total value, etc.
+- Card images loaded from Scryfall and cached locally so they don't reload every time
+- Swipe between cards in search results without going back to the list
 
-1. Download MTGJSON SQLite data
-2. Trim/optimize it
-3. Publish `MTG_App_DB.zip` to GitHub Releases
+Everything runs locally. No account needed, no data sent anywhere.
 
-The app then consumes that release artifact for local DB setup.
+---
+
+## Interested in testing?
+
+The app isn't on the Play Store yet. If you want to try it, open an issue or reach out and I can send you an APK.
+
+Feedback on anything — crashes, missing features, things that feel off — is genuinely helpful at this stage.
+
+---
+
+## Building it yourself
+
+You'll need:
+- .NET 10 SDK
+- .NET MAUI workload with Android support
+- Android SDK (API 21+)
+- Java JDK
+
+```bash
+dotnet workload install maui-android
+dotnet restore AetherVault.sln
+dotnet build AetherVault.csproj -f net10.0-android -m
+```
+
+To run directly on a device or emulator:
+
+```bash
+dotnet build AetherVault.csproj -t:Run -f net10.0-android -m
+```
+
+Use `-m` to build in parallel — makes a noticeable difference. For a standalone APK, set `EmbedAssembliesIntoApk` to `True` in the Debug property group in `AetherVault.csproj`.
+
+---
+
+## Tests
+
+```bash
+dotnet test AetherVault.Tests/AetherVault.Tests.csproj
+```
+
+---
+
+## How it works under the hood
+
+On first launch the app downloads the MTG database from GitHub Releases (~50MB zip). After that everything is local.
+
+Two SQLite databases:
+- A read-only copy of MTGJSON data for all card info
+- A separate read-write database for your collection and decks
+
+The card grid is rendered with SkiaSharp rather than standard MAUI controls — it handles large card lists without slowing down.
+
+The database is rebuilt weekly via GitHub Actions whenever MTGJSON publishes updates.
+
+---
+
+## Repo layout
+
+```
+Data/        repositories, SQL queries, database manager
+Services/    image cache, card manager, deck builder
+ViewModels/  MVVM view models
+Pages/       MAUI XAML pages
+Controls/    custom controls and card grid renderer
+Core/        shared models, enums, utilities
+```
