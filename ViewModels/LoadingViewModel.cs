@@ -338,7 +338,10 @@ public partial class LoadingViewModel : BaseViewModel
         _ = InitializePricesSafeAsync();
 
         // Switch to main app and create toast overlay (deferred from CreateWindow to avoid Android startup crash).
-        MainThread.BeginInvokeOnMainThread(SwitchToShellWithToastOverlay);
+        // Awaited so that any exception in SwitchToShellWithToastOverlay propagates to the caller
+        // (LoadingPage.OnAppearing catch) rather than being silently swallowed by the dispatcher —
+        // which was causing the loading screen to stay frozen after an in-app DB update.
+        await MainThread.InvokeOnMainThreadAsync(SwitchToShellWithToastOverlay);
 
         // Check for DB updates in background after the shell is visible so the network request
         // does not block or delay startup.
