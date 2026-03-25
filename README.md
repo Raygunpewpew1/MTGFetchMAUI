@@ -35,11 +35,13 @@ Everything runs locally. No account needed, no data sent anywhere.
 
 ---
 
-## Interested in testing?
+## Try it
 
-The app isn't on the Play Store yet. If you want to try it, open an issue or reach out and I can send you an APK.
+The app is available through Firebase App Distribution — no Play Store needed.
 
-Feedback on anything — crashes, missing features, things that feel off — is genuinely helpful at this stage.
+**[Download the beta](https://appdistribution.firebase.dev/i/3f7cde07e1510353)**
+
+Open that link on your Android device, install the Firebase App Tester app when prompted, and you're in. Any feedback — crashes, things that feel broken, features you'd want — is welcome. Open an issue or just reach out directly.
 
 ---
 
