@@ -28,9 +28,11 @@ public partial class CollectionViewModel : BaseViewModel
     // ── Bindable properties ──
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CollectionStatsSummary))]
     public partial int TotalCards { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CollectionStatsSummary))]
     public partial int UniqueCards { get; set; }
 
     [ObservableProperty]
@@ -44,6 +46,9 @@ public partial class CollectionViewModel : BaseViewModel
 
     /// <summary>Labels for the sort-mode picker (Manual, Name, CMC, etc.).</summary>
     public List<string> SortModeOptions { get; } = ["Manual", "Name", "CMC", "Rarity", "Color"];
+
+    /// <summary>Single-line summary for the collection toolbar (card totals).</summary>
+    public string CollectionStatsSummary => $"{TotalCards} cards · {UniqueCards} unique";
 
     public int SortModeIndex
     {
@@ -90,7 +95,10 @@ public partial class CollectionViewModel : BaseViewModel
     public void AttachGrid(CardGrid grid)
     {
         _grid = grid;
+        _grid.ViewMode = ViewMode;
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
+        if (_hasLoadedOnce)
+            _ = ApplyFilterAndSortAsync(immediate: true);
     }
 
     protected override void OnViewModeUpdated(ViewMode value)

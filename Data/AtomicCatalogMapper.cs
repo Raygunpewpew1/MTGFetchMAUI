@@ -47,6 +47,22 @@ public static class AtomicCatalogMapper
         public string? MtgjsonFoilVersionId { get; init; }
     }
 
+    private static string? JsonStringCi(JsonElement root, ReadOnlySpan<string> names)
+    {
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.String)
+                continue;
+            foreach (var n in names)
+            {
+                if (prop.Name.Equals(n, StringComparison.OrdinalIgnoreCase))
+                    return prop.Value.GetString();
+            }
+        }
+
+        return null;
+    }
+
     private static IdentifiersDoc? TryParseIdentifiers(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -57,22 +73,24 @@ public static class AtomicCatalogMapper
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
                 return null;
-            static string? str(JsonElement el, string name) =>
-                el.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String
-                    ? p.GetString()
-                    : null;
             return new IdentifiersDoc
             {
-                ScryfallId = str(root, "scryfallId"),
-                MtgjsonV4Id = str(root, "mtgjsonV4Id"),
-                MtgjsonNonFoilVersionId = str(root, "mtgjsonNonFoilVersionId"),
-                MtgjsonFoilVersionId = str(root, "mtgjsonFoilVersionId")
+                ScryfallId = JsonStringCi(root, ["scryfallId", "scryfall_id"]),
+                MtgjsonV4Id = JsonStringCi(root, ["mtgjsonV4Id", "mtgjson_v4_id"]),
+                MtgjsonNonFoilVersionId = JsonStringCi(root, ["mtgjsonNonFoilVersionId", "mtgjson_non_foil_version_id"]),
+                MtgjsonFoilVersionId = JsonStringCi(root, ["mtgjsonFoilVersionId", "mtgjson_foil_version_id"])
             };
         }
         catch
         {
             return null;
         }
+    }
+
+    private static string? TrimPrintingId(string? s)
+    {
+        var t = (s ?? "").Trim();
+        return t.Length == 0 ? null : t;
     }
 
     /// <summary>
@@ -146,9 +164,9 @@ public static class AtomicCatalogMapper
     public static Card ToCard(AtomicRow r)
     {
         var ids = TryParseIdentifiers(r.identifiers_json);
-        var sidCol = (r.scryfall_id ?? "").Trim();
-        var sidJson = (ids?.ScryfallId ?? "").Trim();
-        var effectiveScryfallCardId = !string.IsNullOrEmpty(sidCol) ? sidCol : sidJson;
+        // Printing-specific Scryfall UUID (required for cards.scryfall.io). Prefer columns, then identifiers JSON.
+        var printingRaw = TrimPrintingId(r.scryfall_id) ?? TrimPrintingId(ids?.ScryfallId);
+        var printingCdn = string.IsNullOrEmpty(printingRaw) ? "" : printingRaw.ToLowerInvariant();
 
         var mtgv4 = (ids?.MtgjsonV4Id ?? "").Trim();
         var mtgNf = (ids?.MtgjsonNonFoilVersionId ?? "").Trim();
@@ -160,16 +178,14 @@ public static class AtomicCatalogMapper
                 ? mtgNf
                 : !string.IsNullOrEmpty(mtgF)
                     ? mtgF
-                    : !string.IsNullOrEmpty(effectiveScryfallCardId)
-                        ? effectiveScryfallCardId
+                    : !string.IsNullOrEmpty(printingRaw)
+                        ? printingRaw
                         : $"atomic:{r.id}";
-
-        var imageKey = effectiveScryfallCardId;
 
         var card = new Card
         {
             Uuid = publicUuid,
-            ScryfallId = effectiveScryfallCardId,
+            ScryfallId = printingCdn,
             Name = r.name ?? "",
             PrintedName = r.face_name ?? "",
             ManaCost = r.mana_cost ?? "",
@@ -192,9 +208,9 @@ public static class AtomicCatalogMapper
             IsReserved = r.is_reserved != 0,
             IsFunny = r.is_funny != 0,
             Legalities = ParseLegalities(r.legalities_json),
-            ImageUrl = string.IsNullOrEmpty(imageKey)
+            ImageUrl = string.IsNullOrEmpty(printingCdn)
                 ? ""
-                : ScryfallCdn.GetImageUrl(imageKey, ScryfallSize.Small, ScryfallFace.Front)
+                : ScryfallCdn.GetImageUrl(printingCdn, ScryfallSize.Small, ScryfallFace.Front)
         };
 
         return card;

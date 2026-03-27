@@ -364,6 +364,13 @@ public partial class LoadingViewModel : BaseViewModel
             return;
         }
 
+        // Preload collection before the shell so the Collection tab has data on first open.
+        // CollectionViewModel.ApplyFilterAndSort runs before CardGrid exists; AttachGrid replays apply to fill the grid.
+        StatusMessage = UserMessages.LoadingCollection;
+        StatusIsError = false;
+        var collectionVm = _serviceProvider.GetRequiredService<CollectionViewModel>();
+        await collectionVm.LoadCollectionAsync();
+
         // Start prices in background (non-critical; app continues to function without price data)
         _ = InitializePricesSafeAsync();
 

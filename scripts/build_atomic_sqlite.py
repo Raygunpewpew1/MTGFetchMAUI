@@ -81,8 +81,12 @@ def row_from_face(card_name: str, fi: int, face: dict) -> tuple:
     ids = face.get("identifiers") or {}
     if not isinstance(ids, dict):
         ids = {}
-    scryfall_id = (ids.get("scryfallId") or "").strip()
-    scryfall_oracle_id = (ids.get("scryfallOracleId") or "").strip()
+    scryfall_id = (
+        ids.get("scryfallId") or ids.get("scryfall_id") or ""
+    ).strip()
+    scryfall_oracle_id = (
+        ids.get("scryfallOracleId") or ids.get("scryfall_oracle_id") or ""
+    ).strip()
     return (
         card_name,
         fi,
@@ -195,6 +199,9 @@ def main() -> None:
 
         rows = []
         for card_name, faces in atomic.items():
+            # Record<string, CardAtomic[]> — but accept legacy single object.
+            if isinstance(faces, dict):
+                faces = [faces]
             if not isinstance(faces, list):
                 continue
             for fi, face in enumerate(faces):

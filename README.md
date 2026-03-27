@@ -35,6 +35,22 @@ Everything runs locally. No account needed, no data sent anywhere.
 
 ---
 
+## Platforms and cross-device use
+
+**Android today.** The shipped beta targets Android only.
+
+When people ask about PC support or “cross-platform,” they often mean different things:
+
+1. **The same app on more OSes** (for example a Windows install) — mostly a packaging problem, separate from keeping data in sync.
+2. **Data portability** — importing and exporting so you can use your list elsewhere or round-trip with other tools. AetherVault supports **CSV import and export** with a **Moxfield-style** column layout so you can back up, edit in a spreadsheet, or move data without lock-in.
+3. **Live sync** — your phone and another surface (PC or browser) always show the same collection and decks without emailing files. That needs identity, hosted storage, and rules for conflicting edits. **That is not in the app today.**
+
+Many players also say they want **a web page on PC**, not another installed catalog program. A browser companion or cloud sync would be a **separate milestone** from a desktop build; shipping Windows alone would not by itself give “open a tab anywhere” or automatic sync.
+
+**How to describe AetherVault honestly:** local-first Android, full **offline search** against the bundled MTG database, no account. CSV is the bridge to the rest of your workflow until any future sync exists.
+
+---
+
 ## Try it
 
 The app is available through Firebase App Distribution — no Play Store needed.
@@ -42,6 +58,11 @@ The app is available through Firebase App Distribution — no Play Store needed.
 **[Download the beta](https://appdistribution.firebase.dev/i/3f7cde07e1510353)**
 
 Open that link on your Android device, install the Firebase App Tester app when prompted, and you're in. Any feedback — crashes, things that feel broken, features you'd want — is welcome. Open an issue or just reach out directly.
+
+**Help prioritize what to build next** (copy/paste or answer wherever you send feedback):
+
+- Would you prefer **automatic sync across devices** (sign-in and dependence on cloud/services) or staying **local-only** with **periodic CSV export/import**?
+- For using your collection on a PC, does a **browser-based** experience matter more to you than a **Windows (or other desktop) app**?
 
 ---
 

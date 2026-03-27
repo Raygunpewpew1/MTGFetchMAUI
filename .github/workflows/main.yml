@@ -88,6 +88,7 @@ jobs:
         run: |
           curl -L -o AtomicCards.json.zip "https://mtgjson.com/api/v5/AtomicCards.json.zip"
           python3 scripts/build_atomic_sqlite.py AtomicCards.json.zip
+          sqlite3 AtomicCards.sqlite "SELECT 1 FROM pragma_table_info('atomic_cards') WHERE name='identifiers_json' LIMIT 1;" | grep -q .
           zip -9 AtomicCards.sqlite.zip AtomicCards.sqlite
 
       - name: Publish to GitHub Releases

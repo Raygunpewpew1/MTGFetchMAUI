@@ -137,7 +137,7 @@ public partial class CollectionPage : ContentPage
         await _viewModel.ReorderCollectionAsync(fromIndex, toIndex);
     }
 
-    private async void OnClearCollectionClicked(object? sender, EventArgs e)
+    private async void OnClearCollectionMenuClicked(object? sender, EventArgs e)
     {
         bool confirmed = await DisplayAlertAsync(
             UserMessages.ClearCollectionTitle,

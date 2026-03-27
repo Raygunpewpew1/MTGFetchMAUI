@@ -223,6 +223,8 @@ public static class AppDataManager
         if (!File.Exists(path))
             return false;
 
+        TryMigrateAtomicIdentifiersJsonColumn(path);
+
         try
         {
             var builder = new SqliteConnectionStringBuilder
@@ -288,7 +290,7 @@ public static class AppDataManager
                     if (col is null || col is DBNull)
                     {
                         Logger.LogStuff(
-                            "MTG DB: atomic_cards missing identifiers_json; download the latest compact catalog.",
+                            "MTG DB: atomic_cards missing identifiers_json after migration attempt; download the latest compact catalog.",
                             LogLevel.Error);
                         return false;
                     }
@@ -561,7 +563,11 @@ public static class AppDataManager
             }
 
             if (entry == null)
+            {
+                var sample = string.Join("; ", archive.Entries.Take(12).Select(e => e.FullName));
+                Logger.LogStuff($"Extract: {dbFile} missing from zip; first entries: {sample}", LogLevel.Warning);
                 throw new FileNotFoundException($"{dbFile} not found in downloaded archive.");
+            }
 
             // Stream extract with progress — ExtractToFile can sit at 95% for a long time on large DBs
             // and looks hung; manual copy also avoids some platform-specific ExtractToFile stalls.
@@ -612,14 +618,76 @@ public static class AppDataManager
             {
                 File.Delete(targetPath);
             }
-            catch (IOException)
+            catch (IOException io)
             {
-                // If we can't delete it, it's locked. We can't proceed.
-                throw new IOException($"Cannot replace database. The file {targetPath} is currently in use.");
+                Logger.LogStuff($"Cannot replace database (file in use): {targetPath} — {io.Message}", LogLevel.Warning);
+                throw new IOException($"Cannot replace database. The file {targetPath} is currently in use.", io);
             }
         }
 
         File.Move(tempDbPath, targetPath);
+        TryMigrateAtomicIdentifiersJsonColumn(targetPath);
+    }
+
+    /// <summary>
+    /// Older GitHub-published compact catalogs omitted <c>identifiers_json</c>. Add the column and backfill
+    /// from <c>scryfall_id</c> / <c>scryfall_oracle_id</c> so collection UUID and image keys still resolve.
+    /// </summary>
+    private static void TryMigrateAtomicIdentifiersJsonColumn(string dbPath)
+    {
+        try
+        {
+            var cs = new SqliteConnectionStringBuilder
+            {
+                DataSource = dbPath,
+                Mode = SqliteOpenMode.ReadWriteCreate
+            };
+            using var conn = new SqliteConnection(cs.ConnectionString);
+            conn.Open();
+            using (var probe = conn.CreateCommand())
+            {
+                probe.CommandText =
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='atomic_cards' LIMIT 1;";
+                if (probe.ExecuteScalar() is null or DBNull)
+                    return;
+
+                probe.CommandText =
+                    "SELECT 1 FROM pragma_table_info('atomic_cards') WHERE name = 'identifiers_json' LIMIT 1;";
+                if (probe.ExecuteScalar() is not null and not DBNull)
+                    return;
+            }
+
+            Logger.LogStuff(
+                "Compact catalog: upgrading legacy atomic_cards (ADD identifiers_json, backfill from Scryfall id columns).",
+                LogLevel.Info);
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "ALTER TABLE atomic_cards ADD COLUMN identifiers_json TEXT;";
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = """
+                    UPDATE atomic_cards
+                    SET identifiers_json = json_object(
+                      'scryfallId', NULLIF(TRIM(scryfall_id), ''),
+                      'scryfallOracleId', NULLIF(TRIM(scryfall_oracle_id), '')
+                    )
+                    WHERE (identifiers_json IS NULL OR TRIM(COALESCE(identifiers_json, '')) = '')
+                      AND (
+                        (scryfall_id IS NOT NULL AND TRIM(scryfall_id) != '')
+                        OR (scryfall_oracle_id IS NOT NULL AND TRIM(scryfall_oracle_id) != '')
+                      );
+                    """;
+                cmd.ExecuteNonQuery();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Atomic identifiers_json migration failed: {ex.Message}", LogLevel.Error);
+        }
     }
 
     private static void UpdateProgress(string message, int percent)

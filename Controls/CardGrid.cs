@@ -451,6 +451,7 @@ public class CardGrid : ContentView
     private void EnqueueImageLoad(string scryfallId)
     {
         if (_imageCache == null) return;
+        if (string.IsNullOrWhiteSpace(scryfallId)) return;
 
         var cacheKey = ImageDownloadService.GetCacheKey(scryfallId, "normal", "");
 
