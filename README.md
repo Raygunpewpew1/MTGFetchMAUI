@@ -37,17 +37,17 @@ Everything runs locally. No account needed, no data sent anywhere.
 
 ## Platforms and cross-device use
 
-The shipped beta is **Android only**. “PC support” and “cross-platform” usually mean one of three different goals:
+The beta I’m shipping is **Android only**. Fair warning: when someone asks for “PC” or “cross-platform,” they might mean any of three different things — and they’re not the same project.
 
-| Goal | Notes |
-|------|--------|
-| **Same app on more OSes** (e.g. a Windows build) | Mostly packaging and distribution; it does not by itself keep data in sync across machines. |
-| **Data portability** | **CSV import and export** with a **Moxfield-style** column layout — back up, edit in a spreadsheet, or round-trip with other tools without lock-in. |
-| **Live sync** | Same collection and decks on phone and another surface (PC or browser) without swapping files. That requires accounts, hosted storage, and conflict handling. **Not in the app today.** |
+Putting the **same app on Windows** (or another desktop) is mostly packaging. Useful on its own, but it doesn’t magically keep your phone and your PC in sync.
 
-A **browser-based** companion is a different product milestone than a **desktop installer**: a Windows build alone does not provide “open a tab anywhere” or automatic sync.
+**Moving your data** is a separate idea. That’s what **CSV** is for: **import and export** with a **Moxfield-style** column layout, so you can back up, tweak things in a spreadsheet, or hand the list to another tool without lock-in.
 
-**In short:** AetherVault is **local-first** on Android, with **offline search** against the bundled MTG database and **no account**. **CSV** is the supported way to move data into the rest of your workflow until any future sync ships.
+**Live sync** — your collection and decks always matching on your phone and somewhere else without emailing files — needs sign-in, hosted storage, and real rules for conflicting edits. **That isn’t in the app today.**
+
+A lot of people tell me they want a **web page on PC**, not another installed catalog. A browser companion (or actual cloud sync) is its own milestone beside a desktop build; **Windows alone** wouldn’t give you “open a tab anywhere” or automatic sync.
+
+So the straight answer: **local-first** Android, **offline search** against the bundled MTG database once it’s on your device, **no account**. **CSV** is the bridge to the rest of your workflow until sync is a thing.
 
 ---
 
