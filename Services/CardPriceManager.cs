@@ -44,8 +44,6 @@ public class CardPriceManager : IDisposable
     {
         await _database.EnsureDatabaseAsync();
 
-        _sync.CollectionDbPath = AppDataManager.GetCollectionDatabasePath();
-
         _sync.OnComplete = (success, count, error) =>
         {
             if (success)

@@ -6,7 +6,7 @@ using System.IO.Compression;
 namespace AetherVault.Services;
 
 /// <summary>
-/// Syncs price data from a downloaded AllPricesToday.sqlite.zip into the local prices database.
+/// Syncs current price data from a downloaded AllPricesToday.sqlite.zip into the local prices database.
 /// Uses SQLite's ATTACH DATABASE to copy rows directly without any JSON parsing.
 /// Replaces the old CardPriceImporter streaming JSON approach.
 /// </summary>
@@ -14,12 +14,6 @@ public class CardPriceSqLiteSync
 {
     public Action<bool, int, string>? OnComplete { get; set; }
     public Action<string, int>? OnProgress { get; set; }
-
-    /// <summary>
-    /// Path to the collection SQLite database. When set and the file exists, price history is
-    /// restricted to owned cards only, keeping the history table small.
-    /// </summary>
-    public string? CollectionDbPath { get; set; }
 
     /// <summary>
     /// Extracts the SQLite file from the downloaded ZIP, syncs it into the local prices database,
@@ -86,26 +80,13 @@ public class CardPriceSqLiteSync
         await MigrateIfNeededAsync(conn);
 
         await ExecuteAsync(conn, SqlQueries.CreatePricesTable);
-        await ExecuteAsync(conn, SqlQueries.CreatePriceHistoryTable);
         await ExecuteAsync(conn, SqlQueries.CreatePricesIndex);
-        await ExecuteAsync(conn, SqlQueries.CreatePriceHistoryIndex);
 
         // ATTACH outside the transaction — SQLite allows this but keep it clean
         var escapedPath = sourceSqlitePath.Replace("'", "''");
         await ExecuteAsync(conn, $"ATTACH DATABASE '{escapedPath}' AS today");
 
-        bool collectionAttached = false;
-        if (!string.IsNullOrEmpty(CollectionDbPath) && File.Exists(CollectionDbPath))
-        {
-            var escapedCollPath = CollectionDbPath.Replace("'", "''");
-            await ExecuteAsync(conn, $"ATTACH DATABASE '{escapedCollPath}' AS col");
-            collectionAttached = true;
-            Logger.LogStuff("[PriceSync] Collection DB attached; history restricted to owned cards.", LogLevel.Info);
-        }
-        else
-        {
-            Logger.LogStuff("[PriceSync] No collection DB available; history unrestricted.", LogLevel.Info);
-        }
+        var hasHistoryTable = await TableExistsAsync(conn, "card_price_history");
 
         try
         {
@@ -122,31 +103,12 @@ public class CardPriceSqLiteSync
             Logger.LogStuff("[PriceSync] Step 2: INSERT from attached DB", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SqlQueries.PricesSyncFromAttached);
 
-            // Drop history secondary index before bulk insert — rebuilt at end
-            await ExecuteTransactedAsync(conn, trans, SqlQueries.DropPriceHistoryIndex);
+            Logger.LogStuff("[PriceSync] Step 3: DROP legacy price history table", LogLevel.Info);
+            await ExecuteTransactedAsync(conn, trans, SqlQueries.DropPriceHistoryTable);
 
-            if (collectionAttached)
-            {
-                Logger.LogStuff("[PriceSync] Step 3: DELETE non-collection history", LogLevel.Info);
-                await ExecuteTransactedAsync(conn, trans, SqlQueries.PriceHistoryDeleteNonCollection);
-
-                Logger.LogStuff("[PriceSync] Step 4: INSERT history for owned cards only", LogLevel.Info);
-                await ExecuteTransactedAsync(conn, trans, SqlQueries.PriceHistorySyncCollectionOnly);
-            }
-            else
-            {
-                Logger.LogStuff("[PriceSync] Step 3/4: INSERT history (unfiltered fallback)", LogLevel.Info);
-                await ExecuteTransactedAsync(conn, trans, SqlQueries.PriceHistorySyncFromAttached);
-            }
-
-            Logger.LogStuff("[PriceSync] Step 5: Trim old history", LogLevel.Info);
-            await ExecuteTransactedAsync(conn, trans,
-                string.Format(SqlQueries.PriceHistoryTrimOld, MtgConstants.PriceHistoryRetentionDays));
-
-            // Rebuild both secondary indexes in a single pass now that all data is in place
+            // Rebuild index in a single pass now that all data is in place
             Logger.LogStuff("[PriceSync] Rebuilding indexes...", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SqlQueries.CreatePricesIndex);
-            await ExecuteTransactedAsync(conn, trans, SqlQueries.CreatePriceHistoryIndex);
 
             Logger.LogStuff("[PriceSync] Committing transaction...", LogLevel.Info);
             await trans.CommitAsync();
@@ -160,18 +122,13 @@ public class CardPriceSqLiteSync
         }
         finally
         {
-            if (collectionAttached)
-            {
-                try { await ExecuteAsync(conn, "DETACH DATABASE col"); }
-                catch (Exception ex) { Logger.LogStuff($"[PriceSync] DETACH col failed (non-fatal): {ex.Message}", LogLevel.Warning); }
-            }
             try { await ExecuteAsync(conn, "DETACH DATABASE today"); }
             catch (Exception ex) { Logger.LogStuff($"[PriceSync] DETACH today failed (non-fatal): {ex.Message}", LogLevel.Warning); }
         }
 
-        // Reclaim freed pages after deleting non-collection history.
+        // Reclaim freed pages after dropping legacy history.
         // VACUUM cannot run inside a transaction or while databases are attached — both are clear here.
-        if (collectionAttached)
+        if (hasHistoryTable)
         {
             Logger.LogStuff("[PriceSync] VACUUMing price DB to reclaim freed space...", LogLevel.Info);
             await ExecuteAsync(conn, "VACUUM");
@@ -217,8 +174,7 @@ public class CardPriceSqLiteSync
     }
 
     /// <summary>
-    /// Detects the old wide-column schema and drops both price tables so they can be recreated.
-    /// History is lost, but the next sync immediately repopulates it.
+    /// Detects the old wide-column schema and drops old price tables so they can be recreated.
     /// </summary>
     private static async Task MigrateIfNeededAsync(SqliteConnection conn)
     {
@@ -240,5 +196,13 @@ public class CardPriceSqLiteSync
     private static async Task ExecuteTransactedAsync(SqliteConnection conn, SqliteTransaction trans, string sql)
     {
         await conn.ExecuteAsync(sql, transaction: trans);
+    }
+
+    private static async Task<bool> TableExistsAsync(SqliteConnection conn, string tableName)
+    {
+        var exists = await conn.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = @tableName",
+            new { tableName });
+        return exists > 0;
     }
 }
