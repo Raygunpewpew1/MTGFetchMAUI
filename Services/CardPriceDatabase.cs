@@ -297,6 +297,11 @@ public class CardPriceDatabase : IDisposable
         ManaPool = BuildVendorPrices(rows, "manapool")
     };
 
+    // Backward-compatible shim for any stale 2-arg call sites left during transition
+    // away from persisted history. The second argument is intentionally ignored.
+    private static PaperPlatform BuildPaperPlatform(List<PriceRow> rows, object? _) =>
+        BuildPaperPlatform(rows);
+
     private static VendorPrices BuildVendorPrices(List<PriceRow> rows, string provider)
     {
         var vendorRows = rows.Where(r => r.Provider == provider).ToList();
