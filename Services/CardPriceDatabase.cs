@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 namespace AetherVault.Services;
 
 /// <summary>
-/// SQLite database for card price data.
+/// SQLite database for current card price data.
 /// Reads from the normalized schema (uuid, source, provider, price_type, finish, currency, price).
 /// Port of TCardPriceDatabase from CardPriceDatabase.pas.
 /// </summary>
@@ -42,15 +42,12 @@ public class CardPriceDatabase : IDisposable
 
         // Create schema (no-ops if already correct; migration handled by sync)
         await ExecuteAsync(SqlQueries.CreatePricesTable);
-        await ExecuteAsync(SqlQueries.CreatePriceHistoryTable);
         await ExecuteAsync(SqlQueries.CreatePricesIndex);
-        await ExecuteAsync(SqlQueries.CreatePriceHistoryIndex);
         await ExecuteAsync(SqlQueries.CreatePricesUuidSourceIndex);
-        await ExecuteAsync(SqlQueries.CreatePriceHistoryUuidSourceIndex);
     }
 
     /// <summary>
-    /// Looks up all paper price data for a single card UUID, including history.
+    /// Looks up all paper price data for a single card UUID.
     /// </summary>
     public async Task<(bool found, CardPriceData prices)> GetCardPricesAsync(string uuid)
     {
@@ -64,13 +61,10 @@ public class CardPriceDatabase : IDisposable
 
             if (currentRows.Count == 0) return (false, CardPriceData.Empty);
 
-            var historyRows = (await _connection!.QueryAsync<HistoryRow>(
-                SqlQueries.PricesGetHistoryByUuid, new { uuid })).ToList();
-
             return (true, new CardPriceData
             {
                 Uuid = uuid,
-                Paper = BuildPaperPlatform(currentRows, historyRows),
+                Paper = BuildPaperPlatform(currentRows),
                 LastUpdated = DateTime.Now
             });
         }
@@ -226,7 +220,7 @@ public class CardPriceDatabase : IDisposable
             result[g.Key] = new CardPriceData
             {
                 Uuid = g.Key,
-                Paper = BuildPaperPlatform(g.Cast<PriceRow>().ToList(), []),
+                Paper = BuildPaperPlatform(g.Cast<PriceRow>().ToList()),
                 LastUpdated = DateTime.Now
             };
         }
@@ -293,26 +287,17 @@ public class CardPriceDatabase : IDisposable
         public double Price { get; set; }
     }
 
-    public class HistoryRow
-    {
-        public string Provider { get; set; } = "";
-        public string PriceType { get; set; } = "";
-        public string Finish { get; set; } = "";
-        public string Date { get; set; } = "";
-        public double Price { get; set; }
-    }
-
     // ── Pivot Helpers ─────────────────────────────────────────────────
 
-    private static PaperPlatform BuildPaperPlatform(List<PriceRow> rows, List<HistoryRow> history) => new()
+    private static PaperPlatform BuildPaperPlatform(List<PriceRow> rows) => new()
     {
-        TcgPlayer = BuildVendorPrices(rows, history, "tcgplayer"),
-        Cardmarket = BuildVendorPrices(rows, history, "cardmarket"),
-        CardKingdom = BuildVendorPrices(rows, history, "cardkingdom"),
-        ManaPool = BuildVendorPrices(rows, history, "manapool")
+        TcgPlayer = BuildVendorPrices(rows, "tcgplayer"),
+        Cardmarket = BuildVendorPrices(rows, "cardmarket"),
+        CardKingdom = BuildVendorPrices(rows, "cardkingdom"),
+        ManaPool = BuildVendorPrices(rows, "manapool")
     };
 
-    private static VendorPrices BuildVendorPrices(List<PriceRow> rows, List<HistoryRow> history, string provider)
+    private static VendorPrices BuildVendorPrices(List<PriceRow> rows, string provider)
     {
         var vendorRows = rows.Where(r => r.Provider == provider).ToList();
         if (vendorRows.Count == 0) return VendorPrices.Empty;
@@ -327,20 +312,9 @@ public class CardPriceDatabase : IDisposable
             RetailEtched = new PriceEntry(DateTime.Now, Get("retail", "etched")),
             BuylistNormal = new PriceEntry(DateTime.Now, Get("buylist", "normal")),
             BuylistEtched = new PriceEntry(DateTime.Now, Get("buylist", "etched")),
-            Currency = ParseCurrency(vendorRows[0].Currency),
-            RetailNormalHistory = BuildHistoryList(history, provider, "retail", "normal"),
-            RetailFoilHistory = BuildHistoryList(history, provider, "retail", "foil"),
-            RetailEtchedHistory = BuildHistoryList(history, provider, "retail", "etched"),
-            BuylistNormalHistory = BuildHistoryList(history, provider, "buylist", "normal"),
-            BuylistEtchedHistory = BuildHistoryList(history, provider, "buylist", "etched"),
+            Currency = ParseCurrency(vendorRows[0].Currency)
         };
     }
-
-    private static List<PriceEntry> BuildHistoryList(
-        List<HistoryRow> history, string provider, string priceType, string finish) =>
-        [.. history
-            .Where(h => h.Provider == provider && h.PriceType == priceType && h.Finish == finish)
-            .Select(h => new PriceEntry(PriceDateParser.ParseIso8601Date(h.Date), h.Price))];
 
     private static PriceCurrency ParseCurrency(string s) =>
         s.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? PriceCurrency.Eur : PriceCurrency.Usd;

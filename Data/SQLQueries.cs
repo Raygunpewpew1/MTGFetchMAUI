@@ -104,37 +104,15 @@ public static class SqlQueries
         )
         """;
 
-    public const string CreatePriceHistoryTable =
-        """
-        CREATE TABLE IF NOT EXISTS card_price_history (
-            uuid       TEXT NOT NULL,
-            source     TEXT NOT NULL,
-            provider   TEXT NOT NULL,
-            price_type TEXT NOT NULL,
-            finish     TEXT NOT NULL,
-            date       TEXT NOT NULL,
-            currency   TEXT NOT NULL,
-            price      REAL NOT NULL,
-            PRIMARY KEY (uuid, source, provider, price_type, finish, date)
-        )
-        """;
-
     public const string CreatePricesIndex =
         "CREATE INDEX IF NOT EXISTS idx_prices_uuid ON card_prices(uuid)";
-
-    public const string CreatePriceHistoryIndex =
-        "CREATE INDEX IF NOT EXISTS idx_history_uuid ON card_price_history(uuid)";
 
     /// <summary>Composite index matching common pattern WHERE uuid = @uuid AND source = 'paper'.</summary>
     public const string CreatePricesUuidSourceIndex =
         "CREATE INDEX IF NOT EXISTS idx_prices_uuid_source ON card_prices(uuid, source)";
 
-    /// <summary>Composite index for history lookups by uuid + source.</summary>
-    public const string CreatePriceHistoryUuidSourceIndex =
-        "CREATE INDEX IF NOT EXISTS idx_history_uuid_source ON card_price_history(uuid, source)";
-
     public const string DropPricesIndex = "DROP INDEX IF EXISTS idx_prices_uuid";
-    public const string DropPriceHistoryIndex = "DROP INDEX IF EXISTS idx_history_uuid";
+    public const string DropPriceHistoryTable = "DROP TABLE IF EXISTS card_price_history";
 
     // Detects old wide-column schema (pre-refactor). Used for one-time migration.
     public const string PricesSchemaCheck =
@@ -150,38 +128,9 @@ public static class SqlQueries
         WHERE price IS NOT NULL AND price > 0
         """;
 
-    public const string PriceHistorySyncFromAttached =
-        """
-        INSERT OR IGNORE INTO card_price_history (uuid, source, provider, price_type, finish, date, currency, price)
-        SELECT uuid, source, provider, priceType, finish, date, currency, price
-        FROM today.prices
-        WHERE price IS NOT NULL AND price > 0
-        """;
-
-    // Trim history older than N days. Use string.Format to inject the retention constant.
-    public const string PriceHistoryTrimOld =
-        "DELETE FROM card_price_history WHERE date < date('now', '-{0} days')";
-
-    // Insert history only for cards in the user's collection (col = attached collection DB).
-    public const string PriceHistorySyncCollectionOnly =
-        """
-        INSERT OR IGNORE INTO card_price_history (uuid, source, provider, price_type, finish, date, currency, price)
-        SELECT p.uuid, p.source, p.provider, p.priceType, p.finish, p.date, p.currency, p.price
-        FROM today.prices p
-        WHERE p.price IS NOT NULL AND p.price > 0
-          AND p.uuid IN (SELECT card_uuid FROM col.my_collection)
-        """;
-
-    // Remove existing history for cards not in the user's collection (col = attached collection DB).
-    public const string PriceHistoryDeleteNonCollection =
-        "DELETE FROM card_price_history WHERE uuid NOT IN (SELECT card_uuid FROM col.my_collection)";
-
     // Aliases: Dapper maps columns to PascalCase properties; snake_case price_type does not match PriceType.
     public const string PricesGetByUuid =
         "SELECT provider, price_type AS PriceType, finish, currency, price FROM card_prices WHERE uuid = @uuid AND source = 'paper'";
-
-    public const string PricesGetHistoryByUuid =
-        "SELECT provider, price_type AS PriceType, finish, date, price FROM card_price_history WHERE uuid = @uuid AND source = 'paper' ORDER BY date ASC";
 
     public const string PricesCount =
         "SELECT COUNT(*) FROM card_prices";
