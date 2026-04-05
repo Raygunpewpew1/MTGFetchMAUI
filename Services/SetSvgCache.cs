@@ -8,6 +8,8 @@ namespace AetherVault.Services;
 /// </summary>
 public static class SetSvgCache
 {
+    private const string FallbackResourceKey = "fallback";
+
     private static readonly SvgCacheEngine Engine = new(
         typeof(SetSvgCache).Assembly,
         s => s.ToLowerInvariant(),
@@ -23,9 +25,16 @@ public static class SetSvgCache
 
     /// <summary>
     /// Gets the cached SKPicture for a set symbol, loading it if necessary.
-    /// Returns null if the symbol SVG doesn't exist.
+    /// Uses <c>Assets/SVGSets/fallback.svg</c> when no SVG exists for <paramref name="setCode"/>.
+    /// Returns null only when <paramref name="setCode"/> is empty/whitespace or fallback load fails.
     /// </summary>
-    public static SKPicture? GetSymbol(string setCode) => Engine.GetSymbol(setCode);
+    public static SKPicture? GetSymbol(string setCode)
+    {
+        var picture = Engine.GetSymbol(setCode);
+        if (picture != null) return picture;
+        if (string.IsNullOrWhiteSpace(setCode)) return null;
+        return Engine.GetSymbol(FallbackResourceKey);
+    }
 
     /// <summary>
     /// Draws a set symbol SVG onto the canvas at the specified position and size.
