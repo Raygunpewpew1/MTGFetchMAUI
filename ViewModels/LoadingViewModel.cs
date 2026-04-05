@@ -11,6 +11,13 @@ namespace AetherVault.ViewModels;
 /// </summary>
 public partial class LoadingViewModel : BaseViewModel
 {
+    /// <summary>
+    /// Caps how long <see cref="FinalizeStartupAsync"/> waits for splash entrance animations.
+    /// After a long DB download, the animation task should already have finished; if it never completes
+    /// (platform animation stall), we must not block leaving the loading screen forever.
+    /// </summary>
+    private static readonly TimeSpan MinimumDisplayWaitCap = TimeSpan.FromSeconds(6);
+
     private readonly CardManager _cardManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly IDialogService _dialogService;
@@ -194,7 +201,9 @@ public partial class LoadingViewModel : BaseViewModel
         AppDataManager.RequestPendingMtgDatabaseDownload();
 
         // Navigate back to the loading screen — its OnAppearing will kick off the download flow.
-        MainThread.BeginInvokeOnMainThread(() =>
+        // Await the dispatcher so the swap is applied before this method returns; BeginInvoke-only
+        // ordering was racy with lifecycle and could strand a fresh LoadingPage without a running InitAsync.
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
             if (Application.Current?.Windows.Count > 0)
                 Application.Current.Windows[0].Page = _serviceProvider.GetRequiredService<LoadingPage>();
@@ -319,8 +328,17 @@ public partial class LoadingViewModel : BaseViewModel
         IsBusy = true;
         StopTipLoop();
 
-        // Ensure the entrance animation has finished before navigating away.
-        await _minimumDisplayTask;
+        // Ensure the entrance animation has finished before navigating away (usually already done
+        // while the download ran). Cap the wait so a stalled FadeToAsync cannot trap the user here forever.
+        var minDisplay = _minimumDisplayTask ?? Task.CompletedTask;
+        if (!minDisplay.IsCompleted)
+        {
+            var finished = await Task.WhenAny(minDisplay, Task.Delay(MinimumDisplayWaitCap)).ConfigureAwait(false);
+            if (finished != minDisplay)
+                Logger.LogStuff(
+                    $"Splash entrance animation wait exceeded {MinimumDisplayWaitCap.TotalSeconds:F0}s; continuing startup.",
+                    LogLevel.Warning);
+        }
 
         // Connect to the DB
         bool connected = await _cardManager.InitializeAsync();

@@ -392,7 +392,10 @@ public static class AppDataManager
 
             UpdateProgress("Verifying database...", 97);
 
-            var valid = await ValidateMtgDatabaseAsync(ct);
+            // Run validation off the caller's sync context so a UI-thread-affined continuation cannot
+            // compete with BeginInvokeOnMainThread progress updates during quick_check on a large DB.
+            var valid = await Task.Run(async () => await ValidateMtgDatabaseAsync(ct).ConfigureAwait(false), ct)
+                .ConfigureAwait(false);
             if (!valid)
             {
                 UpdateProgress("Database is corrupted after download. Please try again.", 0);

@@ -12,6 +12,7 @@ public partial class LoadingPage : ContentPage
 {
     private readonly LoadingViewModel _viewModel;
     private bool _entranceDone;
+    private Task? _initTask;
 
     public LoadingPage(LoadingViewModel viewModel)
     {
@@ -24,6 +25,12 @@ public partial class LoadingPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Android can deliver OnAppearing more than once; a second run would see TryBeginStartup==false
+        // and return without work while the visible page never leaves the loading state.
+        if (_initTask is { IsCompleted: false })
+            return;
+
         var entranceTask = RunEntranceAnimationsAsync();
         _viewModel.SetMinimumDisplayTask(entranceTask);
         // Defer init until after the first frame is painted so the loading screen is visible
@@ -31,7 +38,8 @@ public partial class LoadingPage : ContentPage
         await Task.Delay(100);
         try
         {
-            await _viewModel.InitAsync();
+            _initTask = _viewModel.InitAsync();
+            await _initTask;
         }
         catch (Exception ex)
         {
