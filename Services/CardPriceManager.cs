@@ -15,6 +15,7 @@ public class CardPriceManager : IDisposable
     private readonly SemaphoreSlim _updateLock = new(1, 1);
 
     private const string MtgjsonMetaUrl = "https://mtgjson.com/api/v5/Meta.json";
+    /// <summary>Full MTGJSON price zip; used only when GitHub trimmed bundle meta is unavailable.</summary>
     private const string MtgjsonPricesUrl = "https://mtgjson.com/api/v5/AllPricesToday.sqlite.zip";
     private const int ConnectionTimeoutSeconds = 15;
     private const int ResponseTimeoutSeconds = 300;
@@ -170,41 +171,80 @@ public class CardPriceManager : IDisposable
 
     private async Task DoCheckAndUpdateAsync()
     {
-        // 1. Fetch MTGJSON metadata
+        // 1. MTGJSON metadata (card DB version check + fallback price date)
         var meta = await FetchMetaAsync();
         if (string.IsNullOrEmpty(meta.Date))
-        {
-            Logger.LogStuff("Could not fetch MTGJSON metadata.", LogLevel.Warning);
-            return;
-        }
+            Logger.LogStuff("Could not fetch MTGJSON metadata (card DB version check may be skipped).", LogLevel.Warning);
 
-        // 2. Compare with local meta date or check if DB is empty
-        var localDate = GetLocalMetaDate();
-        var hasData = await HasPriceDataAsync();
-
-        if (!hasData || !meta.Date.Equals(localDate, StringComparison.OrdinalIgnoreCase))
+        // 2. Price bundle: prefer CI-trimmed GitHub release; fall back to full MTGJSON zip
+        var (remotePriceDate, pricesZipUrl) = await ResolvePriceDownloadSourceAsync(meta);
+        if (string.IsNullOrEmpty(remotePriceDate))
         {
-            Logger.LogStuff($"Prices out of date or missing. Local: {localDate}, Remote: {meta.Date}, HasData: {hasData}", LogLevel.Info);
-            OnProgress?.Invoke("Downloading price data...", 0);
-            var downloaded = await DownloadAndSyncPricesAsync();
-            if (downloaded)
-            {
-                Logger.LogStuff("Price download and sync successful.", LogLevel.Info);
-                SaveLocalMetaDate(meta.Date);
-            }
-            else
-            {
-                OnProgress?.Invoke("Price download failed.", 0);
-            }
+            Logger.LogStuff("Could not resolve remote price bundle date; skipping price update.", LogLevel.Warning);
         }
         else
         {
-            OnProgress?.Invoke("Prices up to date.", 100);
-            PricePreferences.SetSyncPending(false);
+            var localDate = GetLocalMetaDate();
+            var hasData = await HasPriceDataAsync();
+
+            if (!hasData || !remotePriceDate.Equals(localDate, StringComparison.OrdinalIgnoreCase))
+            {
+                Logger.LogStuff(
+                    $"Prices out of date or missing. Local: {localDate}, Remote: {remotePriceDate}, HasData: {hasData}, Zip: {pricesZipUrl}",
+                    LogLevel.Info);
+                OnProgress?.Invoke("Downloading price data...", 0);
+                var downloaded = await DownloadAndSyncPricesAsync(pricesZipUrl);
+                if (downloaded)
+                {
+                    Logger.LogStuff("Price download and sync successful.", LogLevel.Info);
+                    SaveLocalMetaDate(remotePriceDate);
+                }
+                else
+                {
+                    OnProgress?.Invoke("Price download failed.", 0);
+                }
+            }
+            else
+            {
+                OnProgress?.Invoke("Prices up to date.", 100);
+                PricePreferences.SetSyncPending(false);
+            }
         }
 
         // 3. Check for DB version update (weekly)
-        CheckDatabaseVersion(meta.Version);
+        if (!string.IsNullOrEmpty(meta.Version))
+            CheckDatabaseVersion(meta.Version);
+    }
+
+    /// <summary>
+    /// Uses <see cref="MtgConstants.PricesBundleMetaUrl"/> when present; otherwise MTGJSON meta date + full price zip.
+    /// </summary>
+    private static async Task<(string date, string zipUrl)> ResolvePriceDownloadSourceAsync(MetaInfo mtgjsonMeta)
+    {
+        try
+        {
+            using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ConnectionTimeoutSeconds));
+            using var response = await client.GetAsync(MtgConstants.PricesBundleMetaUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                var text = (await response.Content.ReadAsStringAsync()).Trim();
+                if (text.Length > 0)
+                {
+                    Logger.LogStuff("Using trimmed price bundle from GitHub release.", LogLevel.Info);
+                    return (text, MtgConstants.PricesBundleDownloadUrl);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Trimmed price bundle meta fetch failed, using MTGJSON: {ex.Message}", LogLevel.Info);
+        }
+
+        if (string.IsNullOrEmpty(mtgjsonMeta.Date))
+            return ("", MtgjsonPricesUrl);
+
+        Logger.LogStuff("Using full MTGJSON AllPricesToday zip.", LogLevel.Info);
+        return (mtgjsonMeta.Date, MtgjsonPricesUrl);
     }
 
     private async Task<MetaInfo> FetchMetaAsync()
@@ -231,7 +271,7 @@ public class CardPriceManager : IDisposable
         }
     }
 
-    private async Task<bool> DownloadAndSyncPricesAsync()
+    private async Task<bool> DownloadAndSyncPricesAsync(string pricesZipUrl)
     {
         await _updateLock.WaitAsync();
         PricePreferences.SetSyncPending(true);
@@ -245,7 +285,7 @@ public class CardPriceManager : IDisposable
                     if (attempt > 1)
                         OnProgress?.Invoke($"Retrying price download (attempt {attempt})...", 0);
 
-                    if (await DoDownloadAndSyncAsync())
+                    if (await DoDownloadAndSyncAsync(pricesZipUrl))
                         return true;
                 }
                 catch (Exception ex)
@@ -268,14 +308,14 @@ public class CardPriceManager : IDisposable
         }
     }
 
-    private async Task<bool> DoDownloadAndSyncAsync()
+    private async Task<bool> DoDownloadAndSyncAsync(string pricesZipUrl)
     {
         var zipPath = Path.Combine(AppDataManager.GetAppDataPath(), MtgConstants.FilePricesTempZip);
 
         try
         {
             using var client = NetworkHelper.CreateHttpClient(TimeSpan.FromSeconds(ResponseTimeoutSeconds));
-            using var response = await client.GetAsync(MtgjsonPricesUrl, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await client.GetAsync(pricesZipUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
             await using (var contentStream = await response.Content.ReadAsStreamAsync())

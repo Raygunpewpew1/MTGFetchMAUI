@@ -43,13 +43,6 @@ public record VendorPrices
     public PriceEntry RetailEtched { get; init; }
     public PriceEntry BuylistEtched { get; init; }
 
-    // Historical data
-    public List<PriceEntry> RetailNormalHistory { get; init; } = [];
-    public List<PriceEntry> RetailFoilHistory { get; init; } = [];
-    public List<PriceEntry> RetailEtchedHistory { get; init; } = [];
-    public List<PriceEntry> BuylistNormalHistory { get; init; } = [];
-    public List<PriceEntry> BuylistEtchedHistory { get; init; } = [];
-
     public bool IsValid => RetailNormal.Price > 0 || RetailFoil.Price > 0 || RetailEtched.Price > 0;
 
     public static readonly VendorPrices Empty = new()

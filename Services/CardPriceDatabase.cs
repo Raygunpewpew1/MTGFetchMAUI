@@ -85,7 +85,7 @@ public class CardPriceDatabase : IDisposable
     }
 
     /// <summary>
-    /// Looks up paper price data for multiple card UUIDs. History is omitted for performance.
+    /// Looks up paper price data for multiple card UUIDs.
     /// Chunks are queried in parallel using short-lived read-only connections (WAL mode allows concurrent readers).
     /// </summary>
     public async Task<Dictionary<string, CardPriceData>> GetCardPricesBulkAsync(IEnumerable<string> uuids)
@@ -151,7 +151,7 @@ public class CardPriceDatabase : IDisposable
                 result[g.Key] = new CardPriceData
                 {
                     Uuid = g.Key,
-                    Paper = BuildPaperPlatform(g.Cast<PriceRow>().ToList(), []),
+                    Paper = BuildPaperPlatform(g.Cast<PriceRow>().ToList()),
                     LastUpdated = DateTime.Now
                 };
             }

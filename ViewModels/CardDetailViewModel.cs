@@ -11,7 +11,6 @@ using System.Windows.Input;
 
 namespace AetherVault.ViewModels;
 
-public record PriceHistoryPoint(string Label, List<PriceEntry> Points);
 public record PurchaseLink(string Label, string Url);
 public record LegalityItem(string Format, LegalityStatus Status)
 {
@@ -72,7 +71,6 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     public partial bool IsPriceVisible { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPriceHistory))]
     public partial CardPriceData PriceData { get; set; } = CardPriceData.Empty;
 
     [ObservableProperty]
@@ -106,9 +104,6 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     public partial bool IsFlavorVisible { get; set; }
 
     [ObservableProperty]
-    public partial List<PriceHistoryPoint> DisplayPriceHistory { get; set; } = [];
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasPurchaseLinks))]
     public partial List<PurchaseLink> PurchaseLinks { get; set; } = [];
 
@@ -122,8 +117,6 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             await Launcher.OpenAsync(uri);
         }
     });
-
-    public bool HasPriceHistory => DisplayPriceHistory.Count > 0;
 
     public bool HasRulings => Card?.Rulings != null && Card.Rulings.Count > 0;
 
@@ -351,33 +344,7 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
         // Legalities
         Legalities = GetLegalityList();
-
-        // Price History
-        PopulateHistory();
     }
-
-    private void PopulateHistory()
-    {
-        var points = new List<PriceHistoryPoint>();
-        if (PriceData == CardPriceData.Empty)
-        {
-            DisplayPriceHistory = points;
-            return;
-        }
-
-        var tcgHistory = PriceData.Paper.TcgPlayer.RetailNormalHistory;
-        var cmHistory = PriceData.Paper.Cardmarket.RetailNormalHistory;
-
-        if (tcgHistory.Count > 0)
-            points.Add(new PriceHistoryPoint("TCGPlayer Retail", tcgHistory.Skip(Math.Max(0, tcgHistory.Count - 5)).ToList()));
-
-        if (cmHistory.Count > 0)
-            points.Add(new PriceHistoryPoint("Cardmarket Retail", cmHistory.Skip(Math.Max(0, cmHistory.Count - 5)).ToList()));
-
-        DisplayPriceHistory = points;
-        OnPropertyChanged(nameof(HasPriceHistory));
-    }
-
 
     private void UpdateGalleryState()
     {

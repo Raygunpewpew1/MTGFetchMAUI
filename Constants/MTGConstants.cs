@@ -75,6 +75,16 @@ public static class MtgConstants
     public const string DbDriverSqlite = "SQLite";
     public const string DatabaseDownloadUrl = "https://github.com/Raygunpewpew1/AetherVault/releases/latest/download/MTG_App_DB.zip";
 
+    /// <summary>
+    /// Trimmed AllPrices (paper, app vendors, retail) from daily CI on tag <c>aethervault-prices-rolling</c> (not latest).
+    /// </summary>
+    public const string PricesBundleDownloadUrl =
+        "https://github.com/Raygunpewpew1/AetherVault/releases/download/aethervault-prices-rolling/AetherVault_Prices.sqlite.zip";
+
+    /// <summary>MTGJSON meta date for the rolling bundle; updated when the daily workflow runs.</summary>
+    public const string PricesBundleMetaUrl =
+        "https://github.com/Raygunpewpew1/AetherVault/releases/download/aethervault-prices-rolling/prices_bundle_meta.txt";
+
     // ── MTGJSON Decks (catalog + individual deck download) ──────────────
 
     /// <summary>URL to download the full deck list catalog (zip containing DeckList.json).</summary>

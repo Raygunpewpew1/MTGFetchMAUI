@@ -86,8 +86,6 @@ public class CardPriceSqLiteSync
         var escapedPath = sourceSqlitePath.Replace("'", "''");
         await ExecuteAsync(conn, $"ATTACH DATABASE '{escapedPath}' AS today");
 
-        var hasHistoryTable = await TableExistsAsync(conn, "card_price_history");
-
         try
         {
             OnProgress?.Invoke("Writing prices...", 60);
@@ -102,9 +100,6 @@ public class CardPriceSqLiteSync
 
             Logger.LogStuff("[PriceSync] Step 2: INSERT from attached DB", LogLevel.Info);
             await ExecuteTransactedAsync(conn, trans, SqlQueries.PricesSyncFromAttached);
-
-            Logger.LogStuff("[PriceSync] Step 3: DROP legacy price history table", LogLevel.Info);
-            await ExecuteTransactedAsync(conn, trans, SqlQueries.DropPriceHistoryTable);
 
             // Rebuild index in a single pass now that all data is in place
             Logger.LogStuff("[PriceSync] Rebuilding indexes...", LogLevel.Info);
@@ -124,15 +119,6 @@ public class CardPriceSqLiteSync
         {
             try { await ExecuteAsync(conn, "DETACH DATABASE today"); }
             catch (Exception ex) { Logger.LogStuff($"[PriceSync] DETACH today failed (non-fatal): {ex.Message}", LogLevel.Warning); }
-        }
-
-        // Reclaim freed pages after dropping legacy history.
-        // VACUUM cannot run inside a transaction or while databases are attached — both are clear here.
-        if (hasHistoryTable)
-        {
-            Logger.LogStuff("[PriceSync] VACUUMing price DB to reclaim freed space...", LogLevel.Info);
-            await ExecuteAsync(conn, "VACUUM");
-            Logger.LogStuff("[PriceSync] VACUUM complete.", LogLevel.Info);
         }
 
         // Report row count from the now-updated local table
@@ -166,11 +152,35 @@ public class CardPriceSqLiteSync
 
             var count = await conn.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM today.prices");
             Logger.LogStuff($"[PriceSync] today.prices row count: {count}", LogLevel.Info);
+
+            // Row mix (informs sync filter; see PricesSyncFromAttached in SQLQueries).
+            foreach (var row in await conn.QueryAsync<GroupCountRow>(
+                    "SELECT source AS Name, COUNT(*) AS Cnt FROM today.prices GROUP BY source ORDER BY Cnt DESC"))
+                Logger.LogStuff($"[PriceSync] today.prices by source: {row.Name} = {row.Cnt}", LogLevel.Info);
+
+            foreach (var row in await conn.QueryAsync<GroupCountRow>(
+                    "SELECT provider AS Name, COUNT(*) AS Cnt FROM today.prices GROUP BY provider ORDER BY Cnt DESC"))
+                Logger.LogStuff($"[PriceSync] today.prices by provider: {row.Name} = {row.Cnt}", LogLevel.Info);
+
+            foreach (var row in await conn.QueryAsync<GroupCountRow>(
+                    "SELECT priceType AS Name, COUNT(*) AS Cnt FROM today.prices GROUP BY priceType ORDER BY Cnt DESC"))
+                Logger.LogStuff($"[PriceSync] today.prices by priceType: {row.Name} = {row.Cnt}", LogLevel.Info);
+
+            var filtered = await conn.ExecuteScalarAsync<long>(SqlQueries.PricesCountFilteredInAttached);
+            Logger.LogStuff(
+                $"[PriceSync] rows matching sync filter (paper, app providers, retail, normal/foil/etched): {filtered} (~{100.0 * filtered / Math.Max(1, count):F1}% of total)",
+                LogLevel.Info);
         }
         else
         {
             Logger.LogStuff("[PriceSync] WARNING: 'prices' table not found in attached DB!", LogLevel.Warning);
         }
+    }
+
+    private sealed class GroupCountRow
+    {
+        public string Name { get; set; } = "";
+        public long Cnt { get; set; }
     }
 
     /// <summary>
@@ -196,13 +206,5 @@ public class CardPriceSqLiteSync
     private static async Task ExecuteTransactedAsync(SqliteConnection conn, SqliteTransaction trans, string sql)
     {
         await conn.ExecuteAsync(sql, transaction: trans);
-    }
-
-    private static async Task<bool> TableExistsAsync(SqliteConnection conn, string tableName)
-    {
-        var exists = await conn.ExecuteScalarAsync<long>(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = @tableName",
-            new { tableName });
-        return exists > 0;
     }
 }

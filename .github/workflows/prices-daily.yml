@@ -1,0 +1,73 @@
+# Trimmed MTGJSON prices — daily so clients stay in sync with AllPricesToday without pulling the full zip.
+# Publishes to a fixed rolling release (not "latest") so weekly MTG_App_DB releases stay the default.
+name: Daily trimmed prices
+on:
+  schedule:
+    # 14:30 UTC daily; adjust if MTGJSON publish time shifts
+    - cron: '30 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-trimmed-prices:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Build trimmed price database
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json
+          import urllib.request
+          with urllib.request.urlopen("https://mtgjson.com/api/v5/Meta.json", timeout=120) as r:
+              j = json.load(r)
+          data = j.get("data") or j.get("meta") or j
+          date = (data.get("date") or "").strip()
+          open("prices_bundle_meta.txt", "w", encoding="utf-8").write(date)
+          print("prices_bundle_meta.txt:", repr(date))
+          PY
+          curl -fL --retry 3 --retry-delay 5 -o AllPricesToday.sqlite.zip \
+            "https://mtgjson.com/api/v5/AllPricesToday.sqlite.zip"
+          unzip -j -o AllPricesToday.sqlite.zip -d .
+          shopt -s nullglob
+          srcs=(./*.sqlite)
+          if [ "${#srcs[@]}" -ne 1 ]; then
+            echo "::error::Expected one .sqlite after unzip, found: ${#srcs[@]}"
+            ls -la
+            exit 1
+          fi
+          SRC="${srcs[0]}"
+          echo "Source DB: $SRC"
+          sqlite3 AetherVault_Prices.sqlite <<SQLEOF
+          ATTACH DATABASE '$SRC' AS src;
+          CREATE TABLE prices AS
+          SELECT uuid, source, provider, priceType, finish, currency, price
+          FROM src.prices
+          WHERE price IS NOT NULL AND price > 0
+            AND lower(source) = 'paper'
+            AND lower(provider) IN ('tcgplayer', 'cardmarket', 'cardkingdom', 'manapool')
+            AND lower(priceType) = 'retail'
+            AND lower(finish) IN ('normal', 'foil', 'etched');
+          DETACH DATABASE src;
+          SQLEOF
+          zip -9 AetherVault_Prices.sqlite.zip AetherVault_Prices.sqlite
+          rm -f AllPricesToday.sqlite.zip "$SRC" AetherVault_Prices.sqlite
+
+      - name: Publish rolling prices release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=aethervault-prices-rolling
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" AetherVault_Prices.sqlite.zip prices_bundle_meta.txt --clobber
+            gh release edit "$TAG" --notes "Daily trimmed MTGJSON prices (paper, retail, app vendors). Last run: $(date -u +%Y-%m-%dT%H:%MZ)."
+          else
+            gh release create "$TAG" AetherVault_Prices.sqlite.zip prices_bundle_meta.txt \
+              --title "Rolling trimmed prices" \
+              --notes "Daily trimmed MTGJSON prices. Card database uses dated releases (latest)." \
+              --latest=false
+          fi

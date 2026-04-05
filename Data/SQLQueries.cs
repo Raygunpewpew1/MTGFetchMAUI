@@ -112,7 +112,6 @@ public static class SqlQueries
         "CREATE INDEX IF NOT EXISTS idx_prices_uuid_source ON card_prices(uuid, source)";
 
     public const string DropPricesIndex = "DROP INDEX IF EXISTS idx_prices_uuid";
-    public const string DropPriceHistoryTable = "DROP TABLE IF EXISTS card_price_history";
 
     // Detects old wide-column schema (pre-refactor). Used for one-time migration.
     public const string PricesSchemaCheck =
@@ -120,12 +119,28 @@ public static class SqlQueries
 
     // ATTACH-based sync from a downloaded AllPricesToday.sqlite (attached as 'today').
     // 'priceType' is the camelCase column name used by MTGJSON; we map it to snake_case locally.
+    // Filter: paper only, vendors used by PriceDisplayHelper, retail only, finishes shown in UI.
     public const string PricesSyncFromAttached =
         """
         INSERT OR REPLACE INTO card_prices (uuid, source, provider, price_type, finish, currency, price)
         SELECT uuid, source, provider, priceType, finish, currency, price
         FROM today.prices
         WHERE price IS NOT NULL AND price > 0
+          AND lower(source) = 'paper'
+          AND lower(provider) IN ('tcgplayer', 'cardmarket', 'cardkingdom', 'manapool')
+          AND lower(priceType) = 'retail'
+          AND lower(finish) IN ('normal', 'foil', 'etched')
+        """;
+
+    /// <summary>Diagnostic count against attached <c>today</c>; must match <see cref="PricesSyncFromAttached"/> filter.</summary>
+    public const string PricesCountFilteredInAttached =
+        """
+        SELECT COUNT(*) FROM today.prices
+        WHERE price IS NOT NULL AND price > 0
+          AND lower(source) = 'paper'
+          AND lower(provider) IN ('tcgplayer', 'cardmarket', 'cardkingdom', 'manapool')
+          AND lower(priceType) = 'retail'
+          AND lower(finish) IN ('normal', 'foil', 'etched')
         """;
 
     // Aliases: Dapper maps columns to PascalCase properties; snake_case price_type does not match PriceType.
@@ -143,7 +158,7 @@ public static class SqlQueries
 
     /// <summary>
     /// All paper price rows for distinct cards in the user's collection (requires collection DB attached as <c>col</c>).
-    /// Single round-trip for collection-wide price sort / cache warm; history omitted.
+    /// Single round-trip for collection-wide price sort / cache warm.
     /// </summary>
     public const string PricesGetAllForCollection =
         """

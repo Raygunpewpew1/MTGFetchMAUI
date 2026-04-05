@@ -93,11 +93,13 @@ jobs:
             MTG_App_DB.zip
           make_latest: true
 
+      # Only prune dated card-DB releases (YYYY-MM-DD). Rolling price release uses tag aethervault-prices-rolling.
       # Action is archived (no Node 24 update); job env FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 runs it on Node 24.
       - name: Delete Old Releases
         uses: dev-drprasad/delete-older-releases@v0.3.4
         with:
           keep_latest: 3
           delete_tags: true
+          delete_tag_pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

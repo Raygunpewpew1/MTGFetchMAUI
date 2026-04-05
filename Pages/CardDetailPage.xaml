@@ -7,7 +7,6 @@
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              xmlns:models="clr-namespace:AetherVault.Models"
              xmlns:core="clr-namespace:AetherVault.Core"
-             xmlns:services="clr-namespace:AetherVault.Services"
              xmlns:viewmodels="clr-namespace:AetherVault.ViewModels"
              x:Class="AetherVault.Pages.CardDetailPage"
              x:Name="DetailScreen"
@@ -148,36 +147,6 @@
                                FontSize="14"
                                TextColor="{StaticResource TextPrimary}"
                                IsVisible="{Binding IsPtVisible}" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <Border x:Name="PriceHistoryBorder"
-                        Style="{StaticResource CardStyle}"
-                        IsVisible="{Binding HasPriceHistory}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Price Trend (Last 90 Days)"
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               Margin="0,0,0,4" />
-                        <VerticalStackLayout x:Name="HistoryStack" Spacing="4" BindableLayout.ItemsSource="{Binding DisplayPriceHistory}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="viewmodels:PriceHistoryPoint">
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label Text="{Binding Label}" FontSize="13" FontAttributes="Bold" Margin="0,4,0,2" />
-                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Points}">
-                                            <BindableLayout.ItemTemplate>
-                                                <DataTemplate x:DataType="services:PriceEntry">
-                                                    <Grid ColumnDefinitions="*,Auto">
-                                                        <Label Text="{Binding Date, StringFormat='{0:d}'}" FontSize="12" TextColor="#A0A0A0" />
-                                                        <Label Text="{Binding Price, StringFormat='${0:F2}'}" FontSize="12" HorizontalTextAlignment="End" Grid.Column="1" />
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </BindableLayout.ItemTemplate>
-                                        </VerticalStackLayout>
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
