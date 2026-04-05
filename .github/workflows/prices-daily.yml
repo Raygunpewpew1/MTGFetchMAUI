@@ -16,6 +16,9 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
+      # gh release needs a git checkout to resolve the target repository
+      - uses: actions/checkout@v6
+
       - name: Build trimmed price database
         env:
           # MTGJSON returns 403 for generic Python-urllib / empty UA; match app-style identification.
