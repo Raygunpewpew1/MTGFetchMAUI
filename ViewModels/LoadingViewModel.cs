@@ -2,6 +2,7 @@ using AetherVault.Pages;
 using AetherVault.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Diagnostics;
 
 namespace AetherVault.ViewModels;
 
@@ -12,34 +13,43 @@ namespace AetherVault.ViewModels;
 public partial class LoadingViewModel : BaseViewModel
 {
     /// <summary>
-    /// Caps how long <see cref="FinalizeStartupAsync"/> waits for splash entrance animations.
+    /// Caps how long <see cref="FinalizeStartupAsync"/> waits for splash entrance animations after a download.
     /// After a long DB download, the animation task should already have finished; if it never completes
     /// (platform animation stall), we must not block leaving the loading screen forever.
     /// </summary>
     private static readonly TimeSpan MinimumDisplayWaitCap = TimeSpan.FromSeconds(6);
 
+    /// <summary>
+    /// On warm launch (no download), cap splash animation wait so daily startup is not held ~1s for branding.
+    /// </summary>
+    private static readonly TimeSpan FastConnectAnimationCap = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>DB connect faster than this is treated as a warm launch for animation trimming.</summary>
+    private static readonly TimeSpan FastConnectThreshold = TimeSpan.FromMilliseconds(300);
+
     private readonly CardManager _cardManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly IDialogService _dialogService;
     private CancellationTokenSource? _tipCts;
+    private Stopwatch? _startupTiming;
 
     private static readonly string[] LoadingTips =
     [
-        "Magic fact: The first Magic: The Gathering set, Alpha, was released in 1993.",
-        "Tip: In Commander, your deck (including your commander) must contain exactly 100 cards.",
-        "Magic fact: The five colors of Magic are white, blue, black, red, and green—often abbreviated as WUBRG.",
-        "Tip: A good limited deck usually runs around 17 lands in a 40-card build.",
-        "Magic fact: The color pie helps keep the game balanced by giving each color its own strengths and weaknesses.",
-        "Tip: In Commander, you can only include cards that match your commander’s color identity.",
-        "Magic fact: The legendary card \"Black Lotus\" is part of the original Power Nine.",
-        "Tip: Removal spells are as important as powerful creatures when building a deck.",
-        "Magic fact: Evergreen keywords like flying, trample, and lifelink appear in most sets.",
-        "Tip: Try to keep your mana curve low so you can spend your mana efficiently every turn.",
-        "Magic fact: Basic lands—Plains, Island, Swamp, Mountain, and Forest—are the only cards you can play any number of in constructed formats.",
-        "Tip: When in doubt during combat, think through blocks from your opponent’s perspective first.",
-        "Magic fact: The Commander format was originally known as Elder Dragon Highlander (EDH).",
-        "Tip: In multiplayer games, card advantage and politics can matter more than early damage.",
-        "Magic fact: Double-faced cards have been used for mechanics like transform, daybound/nightbound, and modal double-faced cards."
+        "The first Magic: The Gathering set, Alpha, was released in 1993.",
+        "In Commander, your deck (including your commander) must contain exactly 100 cards.",
+        "The five colors of Magic are white, blue, black, red, and green—often abbreviated as WUBRG.",
+        "A good limited deck usually runs around 17 lands in a 40-card build.",
+        "The color pie helps keep the game balanced by giving each color its own strengths and weaknesses.",
+        "In Commander, you can only include cards that match your commander’s color identity.",
+        "The legendary card \"Black Lotus\" is part of the original Power Nine.",
+        "Removal spells are as important as powerful creatures when building a deck.",
+        "Evergreen keywords like flying, trample, and lifelink appear in most sets.",
+        "Try to keep your mana curve low so you can spend your mana efficiently every turn.",
+        "Basic lands—Plains, Island, Swamp, Mountain, and Forest—are the only cards you can play any number of in constructed formats.",
+        "When in doubt during combat, think through blocks from your opponent’s perspective first.",
+        "The Commander format was originally known as Elder Dragon Highlander (EDH).",
+        "In multiplayer games, card advantage and politics can matter more than early damage.",
+        "Double-faced cards have been used for mechanics like transform, daybound/nightbound, and modal double-faced cards."
     ];
 
     [ObservableProperty]
@@ -95,15 +105,20 @@ public partial class LoadingViewModel : BaseViewModel
             return;
         }
 
+        _startupTiming = Stopwatch.StartNew();
+
         try
         {
             // If the DB is already connected (e.g. back-stack recreation after a successful
             // init), navigate straight to the shell — no re-initialization needed.
             if (_cardManager.DatabaseManager.IsConnected)
             {
+                LogStartupPhase("already_connected");
                 // Await the shell swap so EndStartup() does not run first and so failures surface
                 // to LoadingPage.OnAppearing (same pattern as FinalizeStartupAsync).
                 await MainThread.InvokeOnMainThreadAsync(SwitchToShellWithToastOverlay);
+                LogStartupPhase("shell_swap");
+                _ = WarmUpAfterShellVisibleAsync();
                 return;
             }
 
@@ -115,7 +130,10 @@ public partial class LoadingViewModel : BaseViewModel
             // Ensure disconnected before checking/downloading to avoid locks.
             // Unlikely to be connected at this point, but safe practice.
             if (_cardManager.DatabaseManager.IsConnected)
+            {
+                await _cardManager.PrepareForMtgDatabaseReplacementAsync();
                 await _cardManager.DisconnectAsync();
+            }
 
             // Run file/DB I/O on thread pool to avoid blocking the main thread and causing ANR.
             bool dbExists = await Task.Run(AppDataManager.MtgDatabaseExists);
@@ -123,6 +141,7 @@ public partial class LoadingViewModel : BaseViewModel
             if (dbExists)
             {
                 var isValid = await Task.Run(async () => await AppDataManager.EnsureMtgDatabaseValidForStartupAsync());
+                LogStartupPhase("db_validate");
                 if (isValid)
                 {
                     if (AppDataManager.TryConsumePendingMtgDatabaseDownload())
@@ -169,6 +188,14 @@ public partial class LoadingViewModel : BaseViewModel
         }
     }
 
+    private void LogStartupPhase(string phase)
+    {
+        if (_startupTiming == null)
+            return;
+
+        Logger.LogStuff($"[Startup] phase={phase} ms={_startupTiming.ElapsedMilliseconds}", LogLevel.Info);
+    }
+
     private async Task<(bool updateAvailable, string localVersion, string remoteVersion)> CheckForUpdateSafeAsync()
     {
         try
@@ -200,6 +227,9 @@ public partial class LoadingViewModel : BaseViewModel
 
         if (!shouldUpdate) return;
 
+        // Stop singleton grids/queries before disconnect so ConnectionLock can drain safely.
+        await _cardManager.PrepareForMtgDatabaseReplacementAsync();
+
         // Disconnect so ExtractDatabase can replace the file; keep the existing DB on disk until
         // DownloadDatabaseAsync succeeds (atomic swap). Pending flag forces InitAsync to download
         // even though MtgDatabaseExists — without deleting first, download failure still offers
@@ -212,8 +242,13 @@ public partial class LoadingViewModel : BaseViewModel
         // ordering was racy with lifecycle and could strand a fresh LoadingPage without a running InitAsync.
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            if (Application.Current?.Windows.Count > 0)
-                Application.Current.Windows[0].Page = _serviceProvider.GetRequiredService<LoadingPage>();
+            if (Application.Current?.Windows.Count is not > 0)
+                return;
+
+            if (Application.Current.Windows[0].Page is AppShell oldShell)
+                AppShell.DetachAllTabContent(oldShell);
+
+            Application.Current.Windows[0].Page = _serviceProvider.GetRequiredService<LoadingPage>();
         });
     }
 
@@ -248,7 +283,7 @@ public partial class LoadingViewModel : BaseViewModel
 
         if (success)
         {
-            await FinalizeStartupAsync();
+            await FinalizeStartupAsync(checkForUpdatesAfter: false, afterDownload: true);
         }
         else
         {
@@ -260,7 +295,7 @@ public partial class LoadingViewModel : BaseViewModel
                     "Retry");
                 if (useExisting)
                 {
-                    await FinalizeStartupAsync();
+                    await FinalizeStartupAsync(checkForUpdatesAfter: false, afterDownload: true);
                     return;
                 }
             }
@@ -329,37 +364,16 @@ public partial class LoadingViewModel : BaseViewModel
         TipText = next;
     }
 
-    private async Task FinalizeStartupAsync()
+    private async Task FinalizeStartupAsync(bool checkForUpdatesAfter = true, bool afterDownload = false)
     {
         StatusMessage = UserMessages.Initializing;
         IsBusy = true;
         StopTipLoop();
 
-        // Ensure the entrance animation has finished before navigating away (usually already done
-        // while the download ran). Cap the wait so a stalled FadeToAsync cannot trap the user here forever.
-        var minDisplay = _minimumDisplayTask ?? Task.CompletedTask;
-        if (!minDisplay.IsCompleted)
-        {
-            // Do not ConfigureAwait(false) here: staying on the UI sync context keeps the rest of
-            // this method (including SwitchToShell) ordered predictably with the MAUI dispatcher
-            // on Android after a long DB download / in-app update.
-            var finished = await Task.WhenAny(minDisplay, Task.Delay(MinimumDisplayWaitCap));
-            if (finished != minDisplay)
-                Logger.LogStuff(
-                    $"Splash entrance animation wait exceeded {MinimumDisplayWaitCap.TotalSeconds:F0}s; continuing startup.",
-                    LogLevel.Warning);
-        }
-
-        if (minDisplay.IsFaulted)
-        {
-            var inner = minDisplay.Exception?.GetBaseException();
-            Logger.LogStuff(
-                $"Splash entrance animation task faulted (non-fatal): {inner?.GetType().Name}: {inner?.Message}",
-                LogLevel.Warning);
-        }
-
-        // Connect to the DB
+        var connectSw = Stopwatch.StartNew();
         bool connected = await _cardManager.InitializeAsync();
+        connectSw.Stop();
+        LogStartupPhase("db_connect");
 
         if (!connected)
         {
@@ -370,36 +384,88 @@ public partial class LoadingViewModel : BaseViewModel
             return;
         }
 
-        // Preload collection before the shell so the Collection tab has data on first open.
-        // CollectionViewModel.ApplyFilterAndSort runs before CardGrid exists; AttachGrid replays apply to fill the grid.
-        StatusMessage = UserMessages.LoadingCollection;
-        StatusIsError = false;
-        var collectionVm = _serviceProvider.GetRequiredService<CollectionViewModel>();
-        await collectionVm.LoadCollectionAsync();
+        await WaitForMinimumDisplayAsync(afterDownload, connectSw.Elapsed);
 
-        if (PricePreferences.PricesDataEnabled && PricePreferences.CollectionPriceDisplayEnabled)
-        {
-            StatusMessage = UserMessages.LoadingCollectionPrices;
-            StatusIsError = false;
-            try
-            {
-                await _cardManager.WarmCollectionPriceCachesAsync();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogStuff($"Collection price prefetch failed: {ex.Message}", LogLevel.Warning);
-            }
-        }
-
-        // Switch to main app and create toast overlay (deferred from CreateWindow to avoid Android startup crash).
+        // Switch to main app (deferred from CreateWindow to avoid Android startup crash).
         // Awaited so that any exception in SwitchToShellWithToastOverlay propagates to the caller
         // (LoadingPage.OnAppearing catch) rather than being silently swallowed by the dispatcher —
         // which was causing the loading screen to stay frozen after an in-app DB update.
         await MainThread.InvokeOnMainThreadAsync(SwitchToShellWithToastOverlay);
+        LogStartupPhase("shell_swap");
+
+        IsBusy = false;
+
+        // Collection + price warm-up after the shell is visible so Search is interactive immediately.
+        _ = WarmUpAfterShellVisibleAsync();
 
         // Check for DB updates in background after the shell is visible so the network request
-        // does not block or delay startup.
-        _ = CheckForUpdateAfterStartupAsync();
+        // does not block or delay startup. Skip right after a successful in-app download.
+        if (checkForUpdatesAfter)
+            _ = CheckForUpdateAfterStartupAsync();
+    }
+
+    /// <summary>
+    /// Loads collection data and optionally warms price caches without blocking navigation to AppShell.
+    /// </summary>
+    private async Task WarmUpAfterShellVisibleAsync()
+    {
+        var warmSw = Stopwatch.StartNew();
+        try
+        {
+            var collectionVm = _serviceProvider.GetRequiredService<CollectionViewModel>();
+            await collectionVm.LoadCollectionAsync();
+            LogStartupPhase("collection_warmup");
+
+            if (PricePreferences.PricesDataEnabled && PricePreferences.CollectionPriceDisplayEnabled)
+            {
+                try
+                {
+                    await _cardManager.WarmCollectionPriceCachesAsync();
+                    LogStartupPhase("price_warmup");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogStuff($"Collection price prefetch failed: {ex.Message}", LogLevel.Warning);
+                }
+            }
+
+            Logger.LogStuff(
+                $"[Startup] background_warmup_total ms={warmSw.ElapsedMilliseconds}",
+                LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Background collection warm-up failed: {ex.Message}", LogLevel.Warning);
+        }
+    }
+
+    private async Task WaitForMinimumDisplayAsync(bool afterDownload, TimeSpan dbConnectElapsed)
+    {
+        var minDisplay = _minimumDisplayTask ?? Task.CompletedTask;
+        if (minDisplay.IsCompleted)
+            return;
+
+        var useFastCap = !afterDownload && dbConnectElapsed < FastConnectThreshold;
+        var cap = useFastCap ? FastConnectAnimationCap : MinimumDisplayWaitCap;
+
+        // Do not ConfigureAwait(false) here: staying on the UI sync context keeps SwitchToShell
+        // ordered predictably with the MAUI dispatcher on Android after a long DB download.
+        var finished = await Task.WhenAny(minDisplay, Task.Delay(cap));
+        if (finished != minDisplay)
+        {
+            var capLabel = useFastCap ? "fast" : "full";
+            Logger.LogStuff(
+                $"Splash entrance animation wait ({capLabel} cap {cap.TotalMilliseconds:F0}ms) ended before animation; continuing startup.",
+                LogLevel.Debug);
+        }
+
+        if (minDisplay.IsFaulted)
+        {
+            var inner = minDisplay.Exception?.GetBaseException();
+            Logger.LogStuff(
+                $"Splash entrance animation task faulted (non-fatal): {inner?.GetType().Name}: {inner?.Message}",
+                LogLevel.Warning);
+        }
     }
 
     private void SwitchToShellWithToastOverlay()
@@ -407,9 +473,13 @@ public partial class LoadingViewModel : BaseViewModel
         if (Application.Current == null || Application.Current.Windows.Count == 0)
             return;
         var window = Application.Current.Windows[0];
+        // Fresh AppShell (transient) so Android ShellItemRenderer/fragments are not reused after LoadingPage.
         var appShell = _serviceProvider.GetRequiredService<AppShell>();
-        if (window.Page is AppShell)
+        if (window.Page is AppShell existing && ReferenceEquals(existing, appShell))
             return;
+
+        appShell.PrepareForWindowActivation();
+
         // Set shell as window page directly. MAUI requires "Parent of a Page must also be a Page",
         // so we cannot put AppShell inside a Grid. Toasts use CommunityToolkit when overlay is not set.
         window.Page = appShell;

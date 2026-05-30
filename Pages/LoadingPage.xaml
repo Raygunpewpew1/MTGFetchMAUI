@@ -55,7 +55,7 @@
 
             <!-- Tagline -->
             <Label x:Name="TaglineLabel"
-                   Text="I Like Smurfs"
+                   Text="No account, no cloud, no life-counter"
                    FontSize="15"
                    TextColor="{StaticResource SplashMuted}"
                    HorizontalOptions="Center"

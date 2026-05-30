@@ -131,4 +131,16 @@ public class SearchOptionsApplierTests
     [Fact]
     public void Apply_TypeAny_DoesNotAddTypePredicate() =>
         Assert.DoesNotContain("c.type LIKE", BuildSql(o => o.TypeFilter = "Any"), StringComparison.OrdinalIgnoreCase);
+
+    [Fact]
+    public void Apply_DefaultCatalogSearch_CollapsesReprints() =>
+        Assert.Contains("av_oracle_rn", BuildSql(), StringComparison.OrdinalIgnoreCase);
+
+    [Fact]
+    public void Apply_SetFilter_SkipsReprintCollapse() =>
+        Assert.DoesNotContain("av_oracle_rn", BuildSql(o => o.SetFilter = "mhm"), StringComparison.OrdinalIgnoreCase);
+
+    [Fact]
+    public void Apply_ShowAllPrintings_SkipsReprintCollapse() =>
+        Assert.DoesNotContain("av_oracle_rn", BuildSql(o => o.ShowAllPrintings = true), StringComparison.OrdinalIgnoreCase);
 }

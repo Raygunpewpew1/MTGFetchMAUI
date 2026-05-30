@@ -13,31 +13,78 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Header: title and status -->
+        <!-- Header: title, status, layout toggle -->
         <Border Grid.Row="0"
                 Style="{StaticResource CardStyle}"
                 Margin="16,12,16,8"
                 Padding="16,12">
-            <VerticalStackLayout Spacing="4">
-                <Label Text="My Decks"
-                       FontSize="22"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}" />
-                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                    <ActivityIndicator IsRunning="{Binding IsBusy}"
-                                       IsVisible="{Binding IsBusy}"
-                                       HeightRequest="16"
-                                       WidthRequest="16"
-                                       Color="{StaticResource Accent}" />
-                    <Label Text="{Binding StatusDisplayText}"
-                           FontSize="13"
-                           TextColor="{Binding StatusTextColor}"
-                           VerticalOptions="Center" />
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                    <Label Text="My Decks"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                           IsVisible="{Binding IsBusy}"
+                                           HeightRequest="16"
+                                           WidthRequest="16"
+                                           Color="{StaticResource Accent}" />
+                        <Label Text="{Binding StatusDisplayText}"
+                               FontSize="13"
+                               TextColor="{Binding StatusTextColor}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                <HorizontalStackLayout Grid.Column="1"
+                                       Spacing="4"
+                                       VerticalOptions="Center">
+                    <Button Command="{Binding SelectDeckHubLayoutListCommand}"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            Padding="0"
+                            CornerRadius="10"
+                            FontFamily="FASolid"
+                            FontSize="16"
+                            Text="{x:Static fa:Solid.List}"
+                            TextColor="{StaticResource TextPrimary}"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            SemanticProperties.Description="List layout">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsDeckHubLayoutList}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                                <Setter Property="TextColor" Value="Black" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                    <Button Command="{Binding SelectDeckHubLayoutTilesCommand}"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            Padding="0"
+                            CornerRadius="10"
+                            FontFamily="FASolid"
+                            FontSize="16"
+                            Text="{x:Static fa:Solid.TableCells}"
+                            TextColor="{StaticResource TextPrimary}"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            SemanticProperties.Description="Tile layout">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button"
+                                         Binding="{Binding IsDeckHubLayoutTiles}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                                <Setter Property="TextColor" Value="Black" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </HorizontalStackLayout>
-            </VerticalStackLayout>
+            </Grid>
         </Border>
 
-        <!-- Primary CTA + deck tools (import/export in one sheet) -->
+        <!-- Primary CTA + deck tools -->
         <VerticalStackLayout Grid.Row="1"
                              Margin="16,0,16,8"
                              Spacing="8">
@@ -73,9 +120,22 @@
         <!-- Content area -->
         <Grid Grid.Row="2" BackgroundColor="{StaticResource Background}">
 
-            <!-- Deck grid: art-forward tiles (ManaBox-style hub) -->
+            <!-- List layout -->
             <CollectionView ItemsSource="{Binding Decks}"
-                            IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBool}}"
+                            IsVisible="{Binding IsDeckHubListVisible}"
+                            SelectionMode="Single"
+                            SelectionChanged="OnDeckSelectionChanged"
+                            Margin="12,0,12,8">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:DeckEntity">
+                        <controls:DeckListItem OverflowMenuRequested="OnDeckListOverflowMenuRequested" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Tile layout -->
+            <CollectionView ItemsSource="{Binding Decks}"
+                            IsVisible="{Binding IsDeckHubTilesVisible}"
                             SelectionMode="Single"
                             SelectionChanged="OnDeckSelectionChanged"
                             Margin="12,0,12,8">
@@ -87,14 +147,12 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:DeckEntity">
-                        <Border HeightRequest="196"
-                                Padding="0"
-                                StrokeShape="RoundRectangle 14"
-                                Stroke="{StaticResource CardBackground}"
-                                StrokeThickness="1"
-                                BackgroundColor="{StaticResource Surface}">
+                        <controls:DeckHubTileView Padding="0"
+                                                  StrokeShape="RoundRectangle 14"
+                                                  Stroke="{StaticResource CardBackground}"
+                                                  StrokeThickness="1"
+                                                  BackgroundColor="{StaticResource Surface}">
                             <Grid>
-                                <!-- Base + art: gradient was so opaque that tiles read as solid black; keep a visible fallback under failed loads. -->
                                 <Grid IsVisible="{Binding HasPreviewImage}"
                                       BackgroundColor="{StaticResource CardBackground}">
                                     <controls:CachedCardImage CardUuid="{Binding PreviewImageId}"
@@ -133,53 +191,22 @@
                                                FontSize="14"
                                                FontAttributes="Bold"
                                                VerticalOptions="Start" />
-                                        <HorizontalStackLayout Grid.Column="1"
-                                                               Spacing="2"
-                                                               VerticalOptions="Start">
-                                            <Button Clicked="OnDeckHubPictureButtonClicked"
-                                                    BackgroundColor="#99000000"
-                                                    Padding="6"
-                                                    HeightRequest="36"
-                                                    WidthRequest="36"
-                                                    CornerRadius="18"
-                                                    CommandParameter="{Binding .}"
-                                                    SemanticProperties.Hint="{x:Static constants:UserMessages.DeckHubPictureButtonSemanticHint}">
-                                                <Button.ImageSource>
-                                                    <FontImageSource FontFamily="FASolid"
-                                                                     Glyph="{x:Static fa:Solid.Image}"
-                                                                     Size="14"
-                                                                     Color="White" />
-                                                </Button.ImageSource>
-                                            </Button>
-                                            <Button Clicked="OnRenameDeckButtonClicked"
-                                                    BackgroundColor="#99000000"
-                                                    Padding="6"
-                                                    HeightRequest="36"
-                                                    WidthRequest="36"
-                                                    CornerRadius="18"
-                                                    CommandParameter="{Binding .}">
-                                                <Button.ImageSource>
-                                                    <FontImageSource FontFamily="FASolid"
-                                                                     Glyph="{x:Static fa:Solid.PenToSquare}"
-                                                                     Size="14"
-                                                                     Color="White" />
-                                                </Button.ImageSource>
-                                            </Button>
-                                            <Button Clicked="OnDeleteDeckButtonClicked"
-                                                    BackgroundColor="#99000000"
-                                                    Padding="6"
-                                                    HeightRequest="36"
-                                                    WidthRequest="36"
-                                                    CornerRadius="18"
-                                                    CommandParameter="{Binding .}">
-                                                <Button.ImageSource>
-                                                    <FontImageSource FontFamily="FASolid"
-                                                                     Glyph="{x:Static fa:Solid.TrashCan}"
-                                                                     Size="14"
-                                                                     Color="#FFAB91" />
-                                                </Button.ImageSource>
-                                            </Button>
-                                        </HorizontalStackLayout>
+                                        <Button Grid.Column="1"
+                                                Clicked="OnDeckTileOverflowClicked"
+                                                BackgroundColor="#99000000"
+                                                Padding="6"
+                                                HeightRequest="36"
+                                                WidthRequest="36"
+                                                CornerRadius="18"
+                                                CommandParameter="{Binding .}"
+                                                SemanticProperties.Hint="Deck actions">
+                                            <Button.ImageSource>
+                                                <FontImageSource FontFamily="FASolid"
+                                                                 Glyph="{x:Static fa:Solid.EllipsisVertical}"
+                                                                 Size="14"
+                                                                 Color="White" />
+                                            </Button.ImageSource>
+                                        </Button>
                                     </Grid>
                                     <Grid Grid.Row="2"
                                           ColumnDefinitions="*,Auto"
@@ -187,7 +214,8 @@
                                           VerticalOptions="End">
                                         <Label Grid.Column="0"
                                                VerticalOptions="Center"
-                                               LineBreakMode="TailTruncation">
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1">
                                             <Label.FormattedText>
                                                 <FormattedString>
                                                     <Span Text="{Binding FormatDisplay}"
@@ -207,14 +235,16 @@
                                         </Label>
                                         <controls:ManaCostView Grid.Column="1"
                                                                 ManaText="{Binding ColorIdentityManaText}"
-                                                                SymbolSize="18"
+                                                                SymbolSize="16"
                                                                 InputTransparent="True"
                                                                 VerticalOptions="Center"
+                                                                HorizontalOptions="End"
+                                                                MaximumWidthRequest="96"
                                                                 IsVisible="{Binding HasColorIdentity}" />
                                     </Grid>
                                 </Grid>
                             </Grid>
-                        </Border>
+                        </controls:DeckHubTileView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

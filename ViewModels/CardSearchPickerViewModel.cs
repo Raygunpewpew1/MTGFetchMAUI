@@ -183,6 +183,7 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
                     ArtistFilter = CurrentOptions.ArtistFilter,
                     PrimarySideOnly = CurrentOptions.PrimarySideOnly,
                     NoVariations = CurrentOptions.NoVariations,
+                    ShowAllPrintings = CurrentOptions.ShowAllPrintings,
                     IncludeAllFaces = CurrentOptions.IncludeAllFaces,
                     IncludeTokens = CurrentOptions.IncludeTokens,
                     CommanderOnly = CurrentOptions.CommanderOnly,
@@ -203,10 +204,17 @@ public partial class CardSearchPickerViewModel : BaseViewModel, ISearchFilterTar
             }
             else
             {
+                var helper = _cardManager.CreateSearchHelper();
                 if (SearchCollectionOnly)
-                    _allCards = await _cardManager.SearchInCollectionAsync(query);
+                    helper.SearchMyCollection();
                 else
-                    _allCards = await _cardManager.SearchCardsAsync(query, 100);
+                    helper.SearchCards(CurrentOptions.IncludeTokens);
+
+                var options = CurrentOptions.Clone();
+                options.NameFilter = query;
+                SearchOptionsApplier.Apply(helper, options);
+                helper.OrderBy("c.name").Limit(100);
+                _allCards = await _cardManager.ExecuteSearchAsync(helper);
             }
 
             if (myGen != _searchGeneration) return;

@@ -678,7 +678,8 @@ public static class SqlQueries
         cl.pauper, cl.paupercommander, cl.penny, cl.pioneer, cl.predh,
         cl.premodern, cl.standard, cl.standardbrawl, cl.timeless, cl.vintage,
         cp.cardKingdom, cp.cardKingdomFoil, cp.cardKingdomEtched,
-        cp.cardmarket, cp.tcgplayer, cp.tcgplayerEtched
+        cp.cardmarket, cp.tcgplayer, cp.tcgplayerEtched,
+        ci.scryfallOracleId AS scryfallOracleId, s.releaseDate AS setReleaseDate
         FROM cards c
         LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid
         LEFT JOIN sets s ON c.setCode = s.code
@@ -708,7 +709,8 @@ public static class SqlQueries
         NULL as pauper, NULL as paupercommander, NULL as penny, NULL as pioneer, NULL as predh,
         NULL as premodern, NULL as standard, NULL as standardbrawl, NULL as timeless, NULL as vintage,
         NULL as cardKingdom, NULL as cardKingdomFoil, NULL as cardKingdomEtched,
-        NULL as cardmarket, NULL as tcgplayer, NULL as tcgplayerEtched
+        NULL as cardmarket, NULL as tcgplayer, NULL as tcgplayerEtched,
+        ci.scryfallOracleId AS scryfallOracleId, s.releaseDate AS setReleaseDate
         FROM tokens c
         LEFT JOIN tokenIdentifiers ci ON c.uuid = ci.uuid
         LEFT JOIN sets s ON c.setCode = s.code
@@ -742,14 +744,14 @@ public static class SqlQueries
         if (isCards)
         {
             s = Regex.Replace(s,
-                @"cp\.tcgplayerEtched\s+FROM cards c\s+LEFT JOIN cardIdentifiers ci ON c\.uuid = ci\.uuid",
-                "cp.tcgplayerEtched,\n        mc.quantity\n        FROM cards c\n        INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid\n        LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid");
+                @"cp\.tcgplayerEtched,\s*\r?\n\s*ci\.scryfallOracleId AS scryfallOracleId, s\.releaseDate AS setReleaseDate\s+FROM cards c\s+LEFT JOIN cardIdentifiers ci ON c\.uuid = ci\.uuid",
+                "cp.tcgplayerEtched,\n        ci.scryfallOracleId AS scryfallOracleId, s.releaseDate AS setReleaseDate,\n        mc.quantity\n        FROM cards c\n        INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid\n        LEFT JOIN cardIdentifiers ci ON c.uuid = ci.uuid");
         }
         else
         {
             s = Regex.Replace(s,
-                @"NULL as tcgplayerEtched\s+FROM tokens c\s+LEFT JOIN tokenIdentifiers ci ON c\.uuid = ci\.uuid",
-                "NULL as tcgplayerEtched,\n        mc.quantity\n        FROM tokens c\n        INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid\n        LEFT JOIN tokenIdentifiers ci ON c.uuid = ci.uuid");
+                @"NULL as tcgplayerEtched,\s*\r?\n\s*ci\.scryfallOracleId AS scryfallOracleId, s\.releaseDate AS setReleaseDate\s+FROM tokens c\s+LEFT JOIN tokenIdentifiers ci ON c\.uuid = ci\.uuid",
+                "NULL as tcgplayerEtched,\n        ci.scryfallOracleId AS scryfallOracleId, s.releaseDate AS setReleaseDate,\n        mc.quantity\n        FROM tokens c\n        INNER JOIN col.my_collection mc ON c.uuid = mc.card_uuid\n        LEFT JOIN tokenIdentifiers ci ON c.uuid = ci.uuid");
         }
 
         return s;
@@ -759,6 +761,26 @@ public static class SqlQueries
 
     /// <summary>Code and name for set filter dropdown; ordered by name.</summary>
     public const string SelectSetsForFilter = "SELECT code AS Code, name AS Name FROM sets ORDER BY name";
+
+    /// <summary>
+    /// Set browse list: metadata + primary-face counts in <c>cards</c> and <c>tokens</c>. Newest releases first.
+    /// </summary>
+    public const string SelectSetsBrowse = """
+        SELECT
+            s.code AS Code,
+            s.name AS Name,
+            s.releaseDate AS ReleaseDate,
+            s.parentCode AS ParentCode,
+            p.name AS ParentSetName,
+            CASE WHEN COALESCE(s.isPartialPreview, 0) = 1 THEN 1 ELSE 0 END AS IsPartialPreview,
+            (
+                (SELECT COUNT(*) FROM cards c WHERE c.setCode = s.code AND (c.side = 'a' OR c.side IS NULL))
+                + (SELECT COUNT(*) FROM tokens t WHERE t.setCode = s.code AND (t.side = 'a' OR t.side IS NULL))
+            ) AS CardCount
+        FROM sets s
+        LEFT JOIN sets p ON p.code = s.parentCode
+        ORDER BY s.releaseDate DESC NULLS LAST, s.name COLLATE NOCASE
+        """;
 
     // Where condition fragments
     public const string CondName = "c.name LIKE @";
@@ -797,4 +819,22 @@ public static class SqlQueries
 
     /// <summary>MTGJSON Commander game changer flag (tokens union uses NULL → no match).</summary>
     public const string CondGameChangerOnly = "(c.isGameChanger = 1)";
+
+    /// <summary>Other paper printings sharing the same Scryfall oracle id (primary face only).</summary>
+    public const string SelectOtherPrintingsByOracleId = """
+        SELECT
+            c.uuid AS Uuid,
+            c.setCode AS SetCode,
+            s.name AS SetName,
+            c.number AS Number,
+            c.rarity AS Rarity,
+            s.releaseDate AS SetReleaseDate
+        FROM cards c
+        INNER JOIN cardIdentifiers ci ON c.uuid = ci.uuid
+        LEFT JOIN sets s ON c.setCode = s.code
+        WHERE ci.scryfallOracleId = @OracleId
+          AND (c.side = 'a' OR c.side IS NULL OR TRIM(c.side) = '')
+        ORDER BY s.releaseDate DESC NULLS LAST, c.setCode COLLATE NOCASE, c.number
+        LIMIT 200
+        """;
 }

@@ -16,12 +16,23 @@ public partial class DecksViewModel : BaseViewModel
     private readonly DeckImporter _deckImporter;
     private readonly DeckUrlImporter _deckUrlImporter;
     private readonly DeckExporter _deckExporter;
+    private bool _deckHubLayoutPrefLoaded;
+
+    private const string PrefDeckHubLayoutMode = DeckHubLayoutDefaults.PreferenceKey;
 
     [ObservableProperty]
     public partial ObservableCollection<DeckEntity> Decks { get; set; } = [];
 
     [ObservableProperty]
     public partial bool IsEmpty { get; set; }
+
+    [ObservableProperty]
+    public partial DeckHubLayoutMode DeckHubLayoutMode { get; set; }
+
+    public bool IsDeckHubLayoutList => DeckHubLayoutMode == DeckHubLayoutMode.List;
+    public bool IsDeckHubLayoutTiles => DeckHubLayoutMode == DeckHubLayoutMode.Tiles;
+    public bool IsDeckHubListVisible => !IsEmpty && IsDeckHubLayoutList;
+    public bool IsDeckHubTilesVisible => !IsEmpty && IsDeckHubLayoutTiles;
 
     public DecksViewModel(
         DeckBuilderService deckService,
@@ -33,7 +44,54 @@ public partial class DecksViewModel : BaseViewModel
         _deckImporter = deckImporter;
         _deckUrlImporter = deckUrlImporter;
         _deckExporter = deckExporter;
+        EnsureDeckHubLayoutPreferenceLoaded();
     }
+
+    partial void OnDeckHubLayoutModeChanged(DeckHubLayoutMode value)
+    {
+        OnPropertyChanged(nameof(IsDeckHubLayoutList));
+        OnPropertyChanged(nameof(IsDeckHubLayoutTiles));
+        OnPropertyChanged(nameof(IsDeckHubListVisible));
+        OnPropertyChanged(nameof(IsDeckHubTilesVisible));
+        if (!_deckHubLayoutPrefLoaded)
+            return;
+
+        try
+        {
+            Preferences.Default.Set(PrefDeckHubLayoutMode, value.ToString());
+        }
+        catch
+        {
+            // Preference write is best-effort.
+        }
+    }
+
+    private void EnsureDeckHubLayoutPreferenceLoaded()
+    {
+        if (_deckHubLayoutPrefLoaded)
+            return;
+
+        _deckHubLayoutPrefLoaded = true;
+        try
+        {
+            var defaultMode = DeckHubLayoutDefaults.GetDefaultForDevice(DeviceInfo.Idiom);
+            string stored = Preferences.Default.Get(PrefDeckHubLayoutMode, defaultMode.ToString());
+            if (Enum.TryParse(stored, out DeckHubLayoutMode layoutMode))
+                DeckHubLayoutMode = layoutMode;
+            else
+                DeckHubLayoutMode = defaultMode;
+        }
+        catch
+        {
+            DeckHubLayoutMode = DeckHubLayoutDefaults.GetDefaultForDevice(DeviceInfo.Idiom);
+        }
+    }
+
+    [RelayCommand]
+    private void SelectDeckHubLayoutList() => DeckHubLayoutMode = DeckHubLayoutMode.List;
+
+    [RelayCommand]
+    private void SelectDeckHubLayoutTiles() => DeckHubLayoutMode = DeckHubLayoutMode.Tiles;
 
     [RelayCommand]
     public async Task LoadDecksAsync()
@@ -73,6 +131,8 @@ public partial class DecksViewModel : BaseViewModel
         {
             Decks = collection;
             IsEmpty = isEmpty;
+            OnPropertyChanged(nameof(IsDeckHubListVisible));
+            OnPropertyChanged(nameof(IsDeckHubTilesVisible));
             if (updateStatusLineWithDeckCount)
                 StatusMessage = countStatus;
         });
@@ -88,6 +148,8 @@ public partial class DecksViewModel : BaseViewModel
             {
                 Decks.Remove(deck);
                 IsEmpty = Decks.Count == 0;
+                OnPropertyChanged(nameof(IsDeckHubListVisible));
+                OnPropertyChanged(nameof(IsDeckHubTilesVisible));
                 StatusMessage = Decks.Count == 0 ? UserMessages.StatusClear : FormatDeckCount(Decks.Count);
             });
         }

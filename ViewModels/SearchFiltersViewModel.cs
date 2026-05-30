@@ -153,6 +153,10 @@ public partial class SearchFiltersViewModel : BaseViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
+    private bool _chkShowAllPrintings;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFilterCount), nameof(HasActiveFilters), nameof(FiltersSummaryText))]
     private bool _chkIncludeTokens;
 
     [ObservableProperty]
@@ -488,6 +492,7 @@ public partial class SearchFiltersViewModel : BaseViewModel
 
         options.PrimarySideOnly = ChkPrimarySide;
         options.NoVariations = ChkNoVariations;
+        options.ShowAllPrintings = ChkShowAllPrintings;
         options.IncludeTokens = ChkIncludeTokens;
         options.CommanderOnly = ChkCommanderOnly;
 
@@ -571,6 +576,7 @@ public partial class SearchFiltersViewModel : BaseViewModel
 
         ChkPrimarySide = options.PrimarySideOnly;
         ChkNoVariations = options.NoVariations;
+        ChkShowAllPrintings = options.ShowAllPrintings;
         ChkIncludeTokens = options.IncludeTokens;
         ChkCommanderOnly = options.CommanderOnly;
 
@@ -719,6 +725,9 @@ public partial class SearchFiltersViewModel : BaseViewModel
     {
         if (options.NoVariations)
             parts.Add("No variations");
+
+        if (options.ShowAllPrintings)
+            parts.Add("All printings");
 
         if (options.IncludeTokens)
             parts.Add("Include tokens");

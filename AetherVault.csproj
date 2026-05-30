@@ -89,6 +89,7 @@
 	<ItemGroup>
 		<EmbeddedResource Include="Resources\Images\mana_*.svg" />
 		<EmbeddedResource Include="Assets\SVGSets\*.svg" />
+		<EmbeddedResource Include="Core\MtgjsonKeywordSummaries.json" />
 	</ItemGroup>
 
 	<ItemGroup>

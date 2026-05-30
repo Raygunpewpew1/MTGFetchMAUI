@@ -32,9 +32,10 @@ public partial class AddToDeckPage : ContentPage
         InitializeComponent();
         _deckService = deckService;
         _serviceProvider = serviceProvider;
-        SectionPicker.SelectedIndex = 0; // "Main"
-        SectionPicker.SelectedIndexChanged += (_, _) => UpdateConfirmText();
-        DeckPicker.SelectedIndexChanged += (_, _) => UpdateConfirmText();
+        SectionPicker.ItemsSource = new[] { "Main", "Sideboard", "Commander" };
+        SectionPicker.SelectedIndex = 0;
+        SectionPicker.SelectedValueChanged += (_, _) => UpdateConfirmText();
+        DeckPicker.SelectedValueChanged += (_, _) => UpdateConfirmText();
     }
 
     protected override async void OnAppearing()
@@ -122,11 +123,11 @@ public partial class AddToDeckPage : ContentPage
             section = lastSection;
         }
 
-        if (!string.IsNullOrWhiteSpace(section))
+        if (!string.IsNullOrWhiteSpace(section) && SectionPicker.ItemsSource is IList<string> sections)
         {
-            for (int i = 0; i < SectionPicker.Items.Count; i++)
+            for (int i = 0; i < sections.Count; i++)
             {
-                if (string.Equals(SectionPicker.Items[i], section, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(sections[i], section, StringComparison.OrdinalIgnoreCase))
                 {
                     SectionPicker.SelectedIndex = i;
                     break;
@@ -156,11 +157,18 @@ public partial class AddToDeckPage : ContentPage
 
     private void UpdateConfirmText()
     {
-        string section = SectionPicker.SelectedIndex >= 0
-            ? SectionPicker.Items[SectionPicker.SelectedIndex]
-            : "Main";
-
+        string section = GetSelectedSection();
         ConfirmButton.Text = $"Add to {section}";
+    }
+
+    private string GetSelectedSection()
+    {
+        if (SectionPicker.ItemsSource is IList<string> sections)
+            return SectionPicker.SelectedIndex >= 0 && SectionPicker.SelectedIndex < sections.Count
+                ? sections[SectionPicker.SelectedIndex]
+                : "Main";
+
+        return "Main";
     }
 
     private void OnQuickAddOneClicked(object? sender, EventArgs e)
@@ -202,9 +210,7 @@ public partial class AddToDeckPage : ContentPage
         }
 
         var deck = _decks[DeckPicker.SelectedIndex];
-        string section = SectionPicker.SelectedIndex >= 0
-            ? SectionPicker.Items[SectionPicker.SelectedIndex]
-            : "Main";
+        string section = GetSelectedSection();
         _tcs.TrySetResult(new AddToDeckResult(deck.Id, deck.Name, section, QuantitySelector.Quantity));
         await Navigation.PopModalAsync();
     }

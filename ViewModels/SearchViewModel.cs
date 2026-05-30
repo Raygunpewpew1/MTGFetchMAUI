@@ -20,9 +20,11 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     private readonly IGridPriceLoadService _gridPriceLoadService;
     private readonly ISearchFiltersOpener _filtersOpener;
     private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _searchCts;
     private int _currentPage;
     private bool _isLoadingPage;
     private CardGrid? _grid;
+    private List<SetBrowseRow> _setsBrowseCache = [];
 
     // ── Bindable properties ──
 
@@ -30,22 +32,70 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     private string _filtersSummaryText = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowRecentSearchesPanel))]
+    [NotifyPropertyChangedFor(nameof(ShowCardGridEmptyState))]
     public partial string SearchText { get; set; } = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowCardGridResults))]
+    [NotifyPropertyChangedFor(nameof(ShowRecentSearchesPanel))]
+    [NotifyPropertyChangedFor(nameof(ShowRecentSearchesShortcut))]
+    [NotifyPropertyChangedFor(nameof(ShowCardGridEmptyState))]
     public partial int TotalResults { get; set; }
 
     [ObservableProperty]
     public partial bool HasMorePages { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowCardGridResults))]
+    [NotifyPropertyChangedFor(nameof(ShowCardGridEmptyState))]
     public partial bool IsEmpty { get; set; }
 
+    /// <summary>Card grid visible on the Cards tab when a search returned at least one card.</summary>
+    public bool ShowCardGridResults => !IsSetsSearchTab && TotalResults > 0;
+
+    /// <summary>Empty state on the Cards tab when there are no recents to show instead.</summary>
+    public bool ShowCardGridEmptyState => !IsSetsSearchTab && IsEmpty && TotalResults == 0 && !ShowRecentSearchesPanel;
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowRecentSearchesPanel))]
+    [NotifyPropertyChangedFor(nameof(ShowRecentSearchesShortcut))]
+    [NotifyPropertyChangedFor(nameof(ShowCardGridEmptyState))]
     public partial bool HasRecentSearches { get; set; }
+
+    /// <summary>Idle home list — not while results or a search is in flight.</summary>
+    public bool ShowRecentSearchesPanel =>
+        HasRecentSearches
+        && !IsSetsSearchTab
+        && string.IsNullOrWhiteSpace(SearchText)
+        && TotalResults == 0
+        && !IsBusy;
+
+    /// <summary>Compact status-row link to pick a recent search without clearing results.</summary>
+    public bool ShowRecentSearchesShortcut =>
+        HasRecentSearches && !IsSetsSearchTab && TotalResults > 0;
+
+    /// <summary>Active filter summary row hidden on the Sets tab.</summary>
+    public bool ShowFiltersSummaryStrip => HasNonTextFilters && !IsSetsSearchTab;
 
     /// <summary>Most-recent plain name searches (no extra filters); tap to re-run.</summary>
     public ObservableCollection<string> RecentSearches { get; } = [];
+
+    /// <summary>Sets tab: filtered rows from <see cref="_setsBrowseCache"/>.</summary>
+    public ObservableCollection<SetBrowseRow> FilteredSets { get; } = [];
+
+    [ObservableProperty]
+    public partial bool IsSetsSearchTab { get; set; }
+
+    [ObservableProperty]
+    public partial string SetListFilterText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial bool IsLoadingSets { get; set; }
+
+    /// <summary>Sets tab list is empty after filter (or DB returned nothing).</summary>
+    [ObservableProperty]
+    public partial bool SetsListIsEmpty { get; set; }
 
     public SearchOptions CurrentOptions { get; set; } = new();
 
@@ -95,6 +145,8 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         {
             MainThread.BeginInvokeOnMainThread(() => StatusMessage = UserMessages.DatabaseReady);
         };
+        _cardManager.MtgDatabaseReplacing += OnMtgDatabaseReplacing;
+        _cardManager.MtgDatabaseReplaced += OnMtgDatabaseReplaced;
         _cardManager.OnPricesUpdated += () =>
         {
             MainThread.BeginInvokeOnMainThread(() =>
@@ -108,6 +160,31 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         };
 
         RefreshRecentSearches();
+
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IsBusy))
+                OnPropertyChanged(nameof(ShowRecentSearchesPanel));
+        };
+    }
+
+    private void OnMtgDatabaseReplacing()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchCts?.Cancel();
+        _setsBrowseCache.Clear();
+        FilteredSets.Clear();
+        IsBusy = false;
+        IsEmpty = true;
+        TotalResults = 0;
+        HasMorePages = false;
+        _grid?.ResetForDatabaseReload();
+    }
+
+    private void OnMtgDatabaseReplaced()
+    {
+        _setsBrowseCache.Clear();
+        FilteredSets.Clear();
     }
 
     /// <summary>Called by SearchPage when the card grid is created.</summary>
@@ -120,6 +197,12 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     // Debounce: wait 750ms after user stops typing before running search
     partial void OnSearchTextChanged(string value)
     {
+        OnPropertyChanged(nameof(ShowRecentSearchesPanel));
+        OnPropertyChanged(nameof(ShowCardGridEmptyState));
+
+        if (IsSetsSearchTab)
+            return;
+
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = new CancellationTokenSource();
         var token = _searchDebounceCts.Token;
@@ -132,6 +215,19 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
             if (t.IsCanceled) return;
             MainThread.BeginInvokeOnMainThread(() => SearchCommand.Execute(null));
         });
+    }
+
+    partial void OnSetListFilterTextChanged(string value) => ApplySetListFilter();
+
+    partial void OnIsSetsSearchTabChanged(bool value)
+    {
+        if (value && _setsBrowseCache.Count > 0)
+            ApplySetListFilter();
+        OnPropertyChanged(nameof(ShowRecentSearchesPanel));
+        OnPropertyChanged(nameof(ShowRecentSearchesShortcut));
+        OnPropertyChanged(nameof(ShowFiltersSummaryStrip));
+        OnPropertyChanged(nameof(ShowCardGridEmptyState));
+        OnPropertyChanged(nameof(ShowCardGridResults));
     }
 
     protected override void OnViewModeUpdated(ViewMode value)
@@ -154,6 +250,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         _searchDebounceCts?.Cancel();
         _searchDebounceCts = null;
+        IsSetsSearchTab = false;
         SearchText = query.Trim();
         // Setting SearchText schedules a debounced search; cancel that — we run immediately below.
         _searchDebounceCts?.Cancel();
@@ -165,6 +262,11 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     private void Clear()
     {
         SearchText = "";
+        SetListFilterText = "";
+        IsSetsSearchTab = false;
+        _setsBrowseCache.Clear();
+        FilteredSets.Clear();
+        SetsListIsEmpty = false;
         CurrentOptions = new SearchOptions();
         _grid?.ClearCards();
         TotalResults = 0;
@@ -187,7 +289,107 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     {
         // SearchFiltersViewModel sets SearchText first, which schedules a debounced search — cancel it.
         _searchDebounceCts?.Cancel();
+        IsSetsSearchTab = false;
         await PerformSearchAsync(options);
+    }
+
+    /// <summary>Search tab: Cards vs Sets (loads set list on first visit to Sets).</summary>
+    [RelayCommand]
+    private async Task SwitchSearchTabAsync(string? mode)
+    {
+        bool toSets = string.Equals(mode, "sets", StringComparison.OrdinalIgnoreCase);
+        if (toSets == IsSetsSearchTab)
+            return;
+
+        IsSetsSearchTab = toSets;
+        if (toSets)
+            await EnsureSetsListLoadedAsync();
+    }
+
+    /// <summary>From Sets list: filter the grid to this printing code and return to the Cards tab.</summary>
+    [RelayCommand]
+    private async Task OpenSetFromBrowseAsync(SetBrowseRow? row)
+    {
+        if (row is null || string.IsNullOrWhiteSpace(row.Code))
+            return;
+
+        _searchDebounceCts?.Cancel();
+        SearchText = "";
+        SetListFilterText = "";
+        IsSetsSearchTab = false;
+
+        var o = CurrentOptions.Clone();
+        o.NameFilter = "";
+        o.SetFilter = row.Code;
+        o.IncludeTokens = true;
+
+        await PerformSearchAsync(o);
+    }
+
+    private async Task EnsureSetsListLoadedAsync()
+    {
+        if (_setsBrowseCache.Count > 0)
+        {
+            ApplySetListFilter();
+            return;
+        }
+
+        if (!await _cardManager.EnsureInitializedAsync())
+        {
+            StatusMessage = UserMessages.DatabaseNotFound;
+            return;
+        }
+
+        IsLoadingSets = true;
+        StatusIsError = false;
+        StatusMessage = UserMessages.Searching;
+        try
+        {
+            var list = await _cardManager.GetSetsBrowseAsync();
+            _setsBrowseCache = [.. list];
+            ApplySetListFilter();
+            StatusMessage = $"{_setsBrowseCache.Count} sets loaded";
+        }
+        catch (Exception ex)
+        {
+            StatusIsError = true;
+            StatusMessage = UserMessages.SearchFailed(ex.Message);
+            Logger.LogStuff($"Set browse load error: {ex.Message}", LogLevel.Error);
+        }
+        finally
+        {
+            IsLoadingSets = false;
+        }
+    }
+
+    private void ApplySetListFilter()
+    {
+        FilteredSets.Clear();
+        var q = (SetListFilterText ?? "").Trim();
+        if (_setsBrowseCache.Count == 0)
+        {
+            SetsListIsEmpty = true;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(q))
+        {
+            foreach (var r in _setsBrowseCache)
+                FilteredSets.Add(r);
+        }
+        else
+        {
+            foreach (var r in _setsBrowseCache)
+            {
+                if (r.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    r.Code.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    FilteredSets.Add(r);
+                }
+            }
+        }
+
+        SetsListIsEmpty = FilteredSets.Count == 0;
     }
 
     /// <summary>Runs the search: builds query via MTGSearchHelper, executes via CardManager, then updates the grid.</summary>
@@ -225,6 +427,10 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         _currentPage = 1;
 
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var searchToken = _searchCts.Token;
+
         try
         {
             var helper = _cardManager.CreateSearchHelper();
@@ -232,7 +438,10 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
             SearchOptionsApplier.Apply(helper, CurrentOptions);
             helper.OrderBy("c.name").Limit(PageSize).Offset(0);
 
-            var (results, totalCount) = await Task.Run(() => _cardManager.ExecuteSearchWithResultTotalAsync(helper));
+            var (results, totalCount) = await Task.Run(() => _cardManager.ExecuteSearchWithResultTotalAsync(helper), searchToken);
+            if (searchToken.IsCancellationRequested)
+                return;
+
             TotalResults = totalCount;
             HasMorePages = totalCount > results.Length;
 
@@ -244,6 +453,18 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
             RecordRecentPlainSearchIfApplicable();
             SearchCompleted?.Invoke();
         }
+        catch (OperationCanceledException)
+        {
+            // Search superseded or MTG DB replacement in progress.
+        }
+        catch (Exception ex) when (ex is ObjectDisposedException or InvalidOperationException)
+        {
+            if (searchToken.IsCancellationRequested)
+                return;
+            StatusIsError = true;
+            StatusMessage = UserMessages.SearchFailed(ex.Message);
+            Logger.LogStuff($"Search error: {ex.Message}", LogLevel.Error);
+        }
         catch (Exception ex)
         {
             StatusIsError = true;
@@ -252,7 +473,8 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         }
         finally
         {
-            IsBusy = false;
+            if (!searchToken.IsCancellationRequested)
+                IsBusy = false;
         }
     }
 
@@ -299,9 +521,13 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
 
         _isLoadingPage = true;
         _currentPage++;
+        var searchToken = _searchCts?.Token ?? CancellationToken.None;
 
         try
         {
+            if (searchToken.IsCancellationRequested)
+                return;
+
             var pageHelper = _cardManager.CreateSearchHelper();
             pageHelper.SearchCards(CurrentOptions.IncludeTokens);
             SearchOptionsApplier.Apply(pageHelper, CurrentOptions);
@@ -310,6 +536,9 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
                 .Offset((_currentPage - 1) * PageSize);
 
             var results = await _cardManager.ExecuteSearchAsync(pageHelper);
+
+            if (searchToken.IsCancellationRequested)
+                return;
 
             if (results.Length > 0)
                 await _grid.AddCardsAsync(results);
@@ -347,6 +576,7 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
         FiltersSummaryText = BuildFiltersSummary(CurrentOptions);
         OnPropertyChanged(nameof(FiltersButtonText));
         OnPropertyChanged(nameof(HasNonTextFilters));
+        OnPropertyChanged(nameof(ShowFiltersSummaryStrip));
     }
 
     private static string BuildFiltersSummary(SearchOptions options)
@@ -479,6 +709,9 @@ public partial class SearchViewModel : BaseViewModel, ISearchFilterTarget
     {
         if (options.NoVariations)
             parts.Add("No variations");
+
+        if (options.ShowAllPrintings)
+            parts.Add("All printings");
 
         if (options.IncludeTokens)
             parts.Add("Include tokens");

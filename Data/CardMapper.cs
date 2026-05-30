@@ -16,7 +16,7 @@ public static class CardMapper
 
     public sealed class CardOrdinals
     {
-        public readonly int Uuid, ScryfallId, Name, AsciiName, PrintedName;
+        public readonly int Uuid, ScryfallId, ScryfallOracleId, Name, AsciiName, PrintedName;
         public readonly int ManaCost, CardType, Text, OriginalText, FlavorText, FlavorName;
         public readonly int Colors, ColorIdentity, ColorIndicator, Keywords, ProducedMana;
         public readonly int Subtypes, Supertypes, OtherFaceIds, FrameEffects, PromoTypes;
@@ -25,7 +25,7 @@ public static class CardMapper
         public readonly int FaceName, FaceFlavorName, FacePrintedName, Watermark;
         public readonly int FrameVersion, SecurityStamp, Signature, Artist, BorderColor;
         public readonly int Language, LeadershipSkills, SourceProducts;
-        public readonly int SetCode, SetName, Number, KeyruneCode;
+        public readonly int SetCode, SetName, SetReleaseDate, Number, KeyruneCode;
         public readonly int Cmc, FaceManaValue, EdhRecRank, EdhRecSaltiness;
         public readonly int HasFoil, HasNonFoil;
         public readonly int IsPromo, IsReprint, IsAlternative, IsReserved, IsFullArt;
@@ -42,6 +42,7 @@ public static class CardMapper
         {
             Uuid = Ord(reader, "uuid");
             ScryfallId = Ord(reader, "scryfallId");
+            ScryfallOracleId = Ord(reader, "scryfallOracleId");
             Name = Ord(reader, "name");
             AsciiName = Ord(reader, "asciiName");
             PrintedName = Ord(reader, "printedName");
@@ -85,6 +86,7 @@ public static class CardMapper
             SourceProducts = Ord(reader, "sourceProducts");
             SetCode = Ord(reader, "setCode");
             SetName = Ord(reader, "setName");
+            SetReleaseDate = Ord(reader, "setReleaseDate");
             Number = Ord(reader, "number");
             KeyruneCode = Ord(reader, "keyruneCode");
             Cmc = Ord(reader, "manaValue");
@@ -144,6 +146,7 @@ public static class CardMapper
         // ── Identifiers & Basic Info ────────────────────────────────
         card.Uuid = Str(reader, o.Uuid);
         card.ScryfallId = Str(reader, o.ScryfallId);
+        card.ScryfallOracleId = Str(reader, o.ScryfallOracleId);
         card.Name = Str(reader, o.Name);
         card.AsciiName = Str(reader, o.AsciiName);
         card.PrintedName = Str(reader, o.PrintedName);
@@ -198,6 +201,7 @@ public static class CardMapper
         // ── Set Info ───────────────────────────────────────────────
         card.SetCode = Str(reader, o.SetCode);
         card.SetName = Str(reader, o.SetName);
+        card.SetReleaseDate = Str(reader, o.SetReleaseDate);
         card.Number = Str(reader, o.Number);
         var keyrune = Str(reader, o.KeyruneCode);
         card.KeyruneCode = string.IsNullOrEmpty(keyrune) ? card.SetCode : keyrune;

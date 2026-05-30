@@ -94,8 +94,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISearchFilterTarget>(sp => sp.GetRequiredService<SearchViewModel>());
         builder.Services.AddSingleton<Services.ISearchFiltersOpener, Services.SearchFiltersOpenerService>();
 
-        // ── Pages (Shell and tab content are singleton; modal/detail pages are transient so each open gets a fresh instance) ──
-        builder.Services.AddSingleton<AppShell>();
+        // ── Pages (tab content pages are singleton; AppShell is transient so Shell/Android fragments are fresh after LoadingPage) ──
+        builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddSingleton<SearchPage>();
         builder.Services.AddSingleton<CollectionPage>();

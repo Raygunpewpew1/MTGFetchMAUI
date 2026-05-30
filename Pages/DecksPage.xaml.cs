@@ -35,10 +35,37 @@ public partial class DecksPage : ContentPage
         }
     }
 
-    private async void OnDeckHubPictureButtonClicked(object? sender, EventArgs e)
+    private async void OnDeckListOverflowMenuRequested(object? sender, DeckEntity deck)
     {
-        if (sender is Button btn && btn.BindingContext is DeckEntity deck)
+        await ShowDeckOverflowMenuAsync(deck);
+    }
+
+    private async void OnDeckTileOverflowClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button btn && btn.CommandParameter is DeckEntity deck)
+            await ShowDeckOverflowMenuAsync(deck);
+    }
+
+    private async Task ShowDeckOverflowMenuAsync(DeckEntity deck)
+    {
+        if (_viewModel.IsBusy)
+            return;
+
+        const string cancel = "Cancel";
+        string pick = await DisplayActionSheetAsync(
+            deck.Name,
+            cancel,
+            null,
+            UserMessages.DeckHubPictureChooseCard,
+            UserMessages.RenameDeckTitle,
+            UserMessages.DeleteDeckTitle);
+
+        if (pick == UserMessages.DeckHubPictureChooseCard)
             await OnDeckHubPictureSheetAsync(deck);
+        else if (pick == UserMessages.RenameDeckTitle)
+            await PromptRenameDeckAsync(deck);
+        else if (pick == UserMessages.DeleteDeckTitle)
+            await ConfirmAndDeleteDeckAsync(deck);
     }
 
     private async Task OnDeckHubPictureSheetAsync(DeckEntity deck)
@@ -72,27 +99,16 @@ public partial class DecksPage : ContentPage
         await _viewModel.ApplyDeckHubCoverFromPickerAsync(deck, card);
     }
 
-    private async void OnRenameDeckButtonClicked(object? sender, EventArgs e)
+    private async Task PromptRenameDeckAsync(DeckEntity deck)
     {
-        if (sender is Button btn && btn.BindingContext is DeckEntity deck)
-        {
-            string? newName = await DisplayPromptAsync(
-                UserMessages.RenameDeckTitle,
-                UserMessages.RenameDeckPrompt,
-                initialValue: deck.Name,
-                maxLength: 80);
+        string? newName = await DisplayPromptAsync(
+            UserMessages.RenameDeckTitle,
+            UserMessages.RenameDeckPrompt,
+            initialValue: deck.Name,
+            maxLength: 80);
 
-            if (!string.IsNullOrWhiteSpace(newName) && newName != deck.Name)
-                await _viewModel.RenameDeckAsync(deck, newName.Trim());
-        }
-    }
-
-    private async void OnDeleteDeckButtonClicked(object? sender, EventArgs e)
-    {
-        if (sender is Button btn && btn.BindingContext is DeckEntity deck)
-        {
-            await ConfirmAndDeleteDeckAsync(deck);
-        }
+        if (!string.IsNullOrWhiteSpace(newName) && newName != deck.Name)
+            await _viewModel.RenameDeckAsync(deck, newName.Trim());
     }
 
     private async Task ConfirmAndDeleteDeckAsync(DeckEntity deck)
@@ -165,17 +181,12 @@ public partial class DecksPage : ContentPage
             await _viewModel.ImportDeckFromPlainTextAsync(text);
     }
 
-
     private async void OnDeckSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection?.FirstOrDefault() is DeckEntity deck)
-        {
             await _viewModel.DeckTappedCommand.ExecuteAsync(deck);
-        }
 
         if (sender is CollectionView cv)
-        {
             cv.SelectedItem = null;
-        }
     }
 }

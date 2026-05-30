@@ -55,6 +55,20 @@ public partial class SearchPage : ContentPage
         CardGrid.OnSleep();
     }
 
+    private async void OnRecentSearchesTapped(object? sender, TappedEventArgs e)
+    {
+        if (_viewModel.RecentSearches.Count == 0)
+            return;
+
+        var items = _viewModel.RecentSearches.ToArray();
+        var pick = await DisplayActionSheetAsync("Recent searches", "Cancel", null, items);
+        if (pick is null or "Cancel")
+            return;
+
+        if (_viewModel.ApplyRecentSearchCommand.CanExecute(pick))
+            await _viewModel.ApplyRecentSearchCommand.ExecuteAsync(pick);
+    }
+
     private void OnGridScrolled(object? sender, ScrolledEventArgs e)
     {
         float scrollY = (float)e.ScrollY;

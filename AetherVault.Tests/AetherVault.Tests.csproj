@@ -32,6 +32,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,9 +45,13 @@
     <Compile Include="..\Data\SearchOptionsApplier.cs" Link="Data\SearchOptionsApplier.cs" />
     <Compile Include="..\Data\SQLQueries.cs" Link="Data\SQLQueries.cs" />
     <Compile Include="..\Core\Enums.cs" Link="Core\Enums.cs" />
+    <Compile Include="..\Core\DeckHubLayoutDefaults.cs" Link="Core\DeckHubLayoutDefaults.cs" />
     <Compile Include="..\Core\ScryfallCDN.cs" Link="Core\ScryfallCDN.cs" />
     <Compile Include="..\Core\SetInfo.cs" Link="Core\SetInfo.cs" />
+    <Compile Include="..\Core\SetBrowseRow.cs" Link="Core\SetBrowseRow.cs" />
     <Compile Include="..\Core\SearchOptions.cs" Link="Core\SearchOptions.cs" />
+    <Compile Include="..\Core\KeywordAbilityGlossary.cs" Link="Core\KeywordAbilityGlossary.cs" />
+    <EmbeddedResource Include="..\Core\MtgjsonKeywordSummaries.json" Link="Core\MtgjsonKeywordSummaries.json" />
     <Compile Include="..\Core\CollectionFilterHelper.cs" Link="Core\CollectionFilterHelper.cs" />
     <Compile Include="..\Core\Layout\GridLayoutEngine.cs" Link="Core\Layout\GridLayoutEngine.cs" />
     <Compile Include="..\Core\Layout\GridState.cs" Link="Core\Layout\GridState.cs" />
@@ -72,6 +77,7 @@
     <Compile Include="..\Data\DatabaseManager.cs" Link="Data\DatabaseManager.cs" />
     <Compile Include="..\Data\DapperTypeHandlers.cs" Link="Data\DapperTypeHandlers.cs" />
     <Compile Include="..\Services\Logger.cs" Link="Services\Logger.cs" />
+    <Compile Include="..\Controls\CardGridGestureHandler.cs" Link="Controls\CardGridGestureHandler.cs" />
     <Compile Include="..\Services\NetworkHelper.cs" Link="Services\NetworkHelper.cs" />
     <Compile Include="..\Services\AppDataManager.cs" Link="Services\AppDataManager.cs" />
     <Compile Include="..\Models\DeckTypes.cs" Link="Models\DeckTypes.cs" />
@@ -86,6 +92,8 @@
     <Compile Include="..\Services\DeckBuilder\DeckSuggestionService.cs" Link="Services\DeckBuilder\DeckSuggestionService.cs" />
     <Compile Include="..\Services\DeckBuilder\DeckBrowseListCatalog.cs" Link="Services\DeckBuilder\DeckBrowseListCatalog.cs" />
     <Compile Include="..\Services\DeckBuilder\DeckBrowseListNameCollapse.cs" Link="Services\DeckBuilder\DeckBrowseListNameCollapse.cs" />
+    <Compile Include="..\Services\OracleReprintCollapse.cs" Link="Services\OracleReprintCollapse.cs" />
+    <Compile Include="..\Models\OtherPrintingSummary.cs" Link="Models\OtherPrintingSummary.cs" />
     <Compile Include="..\Services\ImportExport\DeckCsvV1.cs" Link="Services\ImportExport\DeckCsvV1.cs" />
     <Compile Include="..\Services\ImportExport\DeckTxtFormat.cs" Link="Services\ImportExport\DeckTxtFormat.cs" />
     <Compile Include="..\Services\ImportExport\CardImportResolver.cs" Link="Services\ImportExport\CardImportResolver.cs" />

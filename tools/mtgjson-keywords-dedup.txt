@@ -1,0 +1,358 @@
+﻿abilityWords	Adamant
+abilityWords	Addendum
+abilityWords	Alliance
+abilityWords	Battalion
+abilityWords	Bloodrush
+abilityWords	Celebration
+abilityWords	Channel
+abilityWords	Chroma
+abilityWords	Cohort
+abilityWords	Constellation
+abilityWords	Converge
+abilityWords	Corrupted
+abilityWords	Council's dilemma
+abilityWords	Coven
+abilityWords	Delirium
+abilityWords	Descend
+abilityWords	Disappear
+abilityWords	Domain
+abilityWords	Eerie
+abilityWords	Eminence
+abilityWords	Enrage
+abilityWords	Fateful hour
+abilityWords	Fathomless descent
+abilityWords	Ferocious
+abilityWords	Flurry
+abilityWords	Formidable
+abilityWords	Grandeur
+abilityWords	Hellbent
+abilityWords	Hero's Reward
+abilityWords	Heroic
+abilityWords	Imprint
+abilityWords	Infusion
+abilityWords	Inspired
+abilityWords	Join forces
+abilityWords	Kinfall
+abilityWords	Kinship
+abilityWords	Landfall
+abilityWords	Landship
+abilityWords	Legacy
+abilityWords	Lieutenant
+abilityWords	Magecraft
+abilityWords	Metalcraft
+abilityWords	Morbid
+abilityWords	Opus
+abilityWords	Pack tactics
+abilityWords	Paradox
+abilityWords	Parley
+abilityWords	Radiance
+abilityWords	Raid
+abilityWords	Rally
+abilityWords	Renew
+abilityWords	Repartee
+abilityWords	Revolt
+abilityWords	Secret council
+abilityWords	Spell mastery
+abilityWords	Start your engines!
+abilityWords	Strive
+abilityWords	Survival
+abilityWords	Sweep
+abilityWords	Teamwork
+abilityWords	Tempting offer
+abilityWords	Threshold
+abilityWords	Underdog
+abilityWords	Undergrowth
+abilityWords	Valiant
+abilityWords	Vivid
+abilityWords	Void
+abilityWords	Will of the Planeswalkers
+abilityWords	Will of the council
+keywordAbilities	Absorb
+keywordAbilities	Affinity
+keywordAbilities	Afflict
+keywordAbilities	Afterlife
+keywordAbilities	Aftermath
+keywordAbilities	Amplify
+keywordAbilities	Annihilator
+keywordAbilities	Ascend
+keywordAbilities	Assist
+keywordAbilities	Augment
+keywordAbilities	Aura Swap
+keywordAbilities	Awaken
+keywordAbilities	Backup
+keywordAbilities	Banding
+keywordAbilities	Bargain
+keywordAbilities	Basic landcycling
+keywordAbilities	Battle Cry
+keywordAbilities	Bestow
+keywordAbilities	Blitz
+keywordAbilities	Bloodthirst
+keywordAbilities	Boast
+keywordAbilities	Bushido
+keywordAbilities	Buyback
+keywordAbilities	Cascade
+keywordAbilities	Casualty
+keywordAbilities	Champion
+keywordAbilities	Changeling
+keywordAbilities	Choose a background
+keywordAbilities	Cipher
+keywordAbilities	Cleave
+keywordAbilities	Commander ninjutsu
+keywordAbilities	Companion
+keywordAbilities	Compleated
+keywordAbilities	Conspire
+keywordAbilities	Convoke
+keywordAbilities	Craft
+keywordAbilities	Crew
+keywordAbilities	Cumulative upkeep
+keywordAbilities	Cycling
+keywordAbilities	Dash
+keywordAbilities	Daybound
+keywordAbilities	Deathtouch
+keywordAbilities	Decayed
+keywordAbilities	Defender
+keywordAbilities	Delve
+keywordAbilities	Demonstrate
+keywordAbilities	Desertwalk
+keywordAbilities	Dethrone
+keywordAbilities	Devoid
+keywordAbilities	Devour
+keywordAbilities	Disguise
+keywordAbilities	Disturb
+keywordAbilities	Doctor's companion
+keywordAbilities	Double agenda
+keywordAbilities	Double strike
+keywordAbilities	Double team
+keywordAbilities	Dredge
+keywordAbilities	Echo
+keywordAbilities	Embalm
+keywordAbilities	Emerge
+keywordAbilities	Enchant
+keywordAbilities	Encore
+keywordAbilities	Enlist
+keywordAbilities	Entwine
+keywordAbilities	Epic
+keywordAbilities	Equip
+keywordAbilities	Escalate
+keywordAbilities	Escape
+keywordAbilities	Eternalize
+keywordAbilities	Evoke
+keywordAbilities	Evolve
+keywordAbilities	Exalted
+keywordAbilities	Exhaust
+keywordAbilities	Exploit
+keywordAbilities	Extort
+keywordAbilities	Fabricate
+keywordAbilities	Fading
+keywordAbilities	Fear
+keywordAbilities	Firebending
+keywordAbilities	First strike
+keywordAbilities	Flanking
+keywordAbilities	Flash
+keywordAbilities	Flashback
+keywordAbilities	Flying
+keywordAbilities	For Mirrodin!
+keywordAbilities	Forecast
+keywordAbilities	Forestcycling
+keywordAbilities	Forestwalk
+keywordAbilities	Foretell
+keywordAbilities	Fortify
+keywordAbilities	Freerunning
+keywordAbilities	Frenzy
+keywordAbilities	Friends forever
+keywordAbilities	Fuse
+keywordAbilities	Gift
+keywordAbilities	Graft
+keywordAbilities	Gravestorm
+keywordAbilities	Harmonize
+keywordAbilities	Haste
+keywordAbilities	Haunt
+keywordAbilities	Hexproof
+keywordAbilities	Hexproof from
+keywordAbilities	Hidden agenda
+keywordAbilities	Hideaway
+keywordAbilities	Horsemanship
+keywordAbilities	Impending
+keywordAbilities	Improvise
+keywordAbilities	Increment
+keywordAbilities	Indestructible
+keywordAbilities	Infect
+keywordAbilities	Ingest
+keywordAbilities	Intensity
+keywordAbilities	Intimidate
+keywordAbilities	Islandcycling
+keywordAbilities	Islandwalk
+keywordAbilities	Job select
+keywordAbilities	Jump-start
+keywordAbilities	Kicker
+keywordAbilities	Landcycling
+keywordAbilities	Landwalk
+keywordAbilities	Legendary landwalk
+keywordAbilities	Level Up
+keywordAbilities	Lifelink
+keywordAbilities	Living metal
+keywordAbilities	Living weapon
+keywordAbilities	Madness
+keywordAbilities	Max speed
+keywordAbilities	Mayhem
+keywordAbilities	Megamorph
+keywordAbilities	Melee
+keywordAbilities	Menace
+keywordAbilities	Mentor
+keywordAbilities	Miracle
+keywordAbilities	Mobilize
+keywordAbilities	Modular
+keywordAbilities	More Than Meets the Eye
+keywordAbilities	Morph
+keywordAbilities	Mountaincycling
+keywordAbilities	Mountainwalk
+keywordAbilities	Multikicker
+keywordAbilities	Mutate
+keywordAbilities	Myriad
+keywordAbilities	Nightbound
+keywordAbilities	Ninjutsu
+keywordAbilities	Nonbasic landwalk
+keywordAbilities	Offering
+keywordAbilities	Offspring
+keywordAbilities	Outlast
+keywordAbilities	Overload
+keywordAbilities	Paradigm
+keywordAbilities	Partner
+keywordAbilities	Partner with
+keywordAbilities	Persist
+keywordAbilities	Phasing
+keywordAbilities	Plainscycling
+keywordAbilities	Plainswalk
+keywordAbilities	Poisonous
+keywordAbilities	Protection
+keywordAbilities	Prototype
+keywordAbilities	Provoke
+keywordAbilities	Prowess
+keywordAbilities	Prowl
+keywordAbilities	Rampage
+keywordAbilities	Ravenous
+keywordAbilities	Reach
+keywordAbilities	Read Ahead
+keywordAbilities	Rebound
+keywordAbilities	Reconfigure
+keywordAbilities	Recover
+keywordAbilities	Reinforce
+keywordAbilities	Renown
+keywordAbilities	Replicate
+keywordAbilities	Retrace
+keywordAbilities	Riot
+keywordAbilities	Ripple
+keywordAbilities	Saddle
+keywordAbilities	Scavenge
+keywordAbilities	Shadow
+keywordAbilities	Shroud
+keywordAbilities	Skulk
+keywordAbilities	Slivercycling
+keywordAbilities	Sneak
+keywordAbilities	Solved
+keywordAbilities	Soulbond
+keywordAbilities	Soulshift
+keywordAbilities	Specialize
+keywordAbilities	Spectacle
+keywordAbilities	Splice
+keywordAbilities	Split second
+keywordAbilities	Spree
+keywordAbilities	Squad
+keywordAbilities	Station
+keywordAbilities	Storm
+keywordAbilities	Sunburst
+keywordAbilities	Surge
+keywordAbilities	Suspend
+keywordAbilities	Swampcycling
+keywordAbilities	Swampwalk
+keywordAbilities	Tiered
+keywordAbilities	Toxic
+keywordAbilities	Training
+keywordAbilities	Trample
+keywordAbilities	Transfigure
+keywordAbilities	Transmute
+keywordAbilities	Tribute
+keywordAbilities	Typecycling
+keywordAbilities	Umbra armor
+keywordAbilities	Undaunted
+keywordAbilities	Undying
+keywordAbilities	Unearth
+keywordAbilities	Unleash
+keywordAbilities	Vanishing
+keywordAbilities	Vigilance
+keywordAbilities	Ward
+keywordAbilities	Warp
+keywordAbilities	Web-slinging
+keywordAbilities	Wither
+keywordAbilities	Wizardcycling
+keywordActions	Abandon
+keywordActions	Activate
+keywordActions	Adapt
+keywordActions	Airbend
+keywordActions	Amass
+keywordActions	Assemble
+keywordActions	Attach
+keywordActions	Behold
+keywordActions	Blight
+keywordActions	Bolster
+keywordActions	Cast
+keywordActions	Clash
+keywordActions	Cloak
+keywordActions	Collect evidence
+keywordActions	Conjure
+keywordActions	Connive
+keywordActions	Convert
+keywordActions	Counter
+keywordActions	Create
+keywordActions	Destroy
+keywordActions	Detain
+keywordActions	Discard
+keywordActions	Discover
+keywordActions	Double
+keywordActions	Earthbend
+keywordActions	Endure
+keywordActions	Exchange
+keywordActions	Exert
+keywordActions	Exile
+keywordActions	Explore
+keywordActions	Fateseal
+keywordActions	Fight
+keywordActions	Food
+keywordActions	Forage
+keywordActions	Goad
+keywordActions	Heist
+keywordActions	Incubate
+keywordActions	Investigate
+keywordActions	Learn
+keywordActions	Manifest
+keywordActions	Manifest dread
+keywordActions	Meld
+keywordActions	Mill
+keywordActions	Monstrosity
+keywordActions	Open an Attraction
+keywordActions	Planeswalk
+keywordActions	Play
+keywordActions	Plot
+keywordActions	Populate
+keywordActions	Prepared
+keywordActions	Proliferate
+keywordActions	Regenerate
+keywordActions	Reveal
+keywordActions	Role token
+keywordActions	Roll to Visit Your Attractions
+keywordActions	Sacrifice
+keywordActions	Scry
+keywordActions	Seek
+keywordActions	Set in motion
+keywordActions	Shuffle
+keywordActions	Support
+keywordActions	Surveil
+keywordActions	Suspect
+keywordActions	Tap
+keywordActions	Time Travel
+keywordActions	Transform
+keywordActions	Treasure
+keywordActions	Untap
+keywordActions	Venture into the dungeon
+keywordActions	Vote
+keywordActions	Waterbend

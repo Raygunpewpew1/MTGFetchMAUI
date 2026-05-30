@@ -48,6 +48,7 @@ public class CardGrid : ContentView
     // Throttle shimmer-only repaints (loading placeholders) to ~25fps
     private long _lastShimmerInvalidateTickCount;
     private const int ShimmerThrottleMs = 40;
+    private const float PhoneMinCardWidthDip = 120f; // two-column grid on typical phone widths (~320–360dp)
 
     // Coalesce channel-driven layout to one main-thread pass; coalesce image-load repaints to one invalidate per UI pump
     private int _layoutFlushScheduled;
@@ -279,6 +280,31 @@ public class CardGrid : ContentView
     public void ClearCards()
         => UpdateState(s => s with { Cards = ImmutableArray<CardState>.Empty });
 
+    /// <summary>
+    /// Clears grid state before the MTG master DB is replaced so Skia/async work does not
+    /// touch stale render lists when the shell returns from the loading screen.
+    /// </summary>
+    public void ResetForDatabaseReload()
+    {
+        void Apply()
+        {
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+            _isProcessingUpdates = false;
+
+            ClearCards();
+            _currentRenderList = RenderList.Empty;
+            lock (_loadingLock)
+                _loadingImages.Clear();
+        }
+
+        if (MainThread.IsMainThread)
+            Apply();
+        else
+            MainThread.BeginInvokeOnMainThread(Apply);
+    }
+
     public void UpdateCardPrices(string uuid, CardPriceData prices)
     {
         UpdateState(s =>
@@ -376,6 +402,9 @@ public class CardGrid : ContentView
 
     public void OnResume()
     {
+        if (Handler is null || !_isLoaded)
+            return;
+
         RestoreInteractionAfterForeground();
 
         Task.Run(async () =>
@@ -406,12 +435,15 @@ public class CardGrid : ContentView
     /// </summary>
     private void RestoreInteractionAfterForeground()
     {
+        if (Handler is null || !_isLoaded)
+            return;
+
         _gestures.HandleCancel();
         _spacer.ResetEffect();
 
         void BumpLayout()
         {
-            if (!_isLoaded) return;
+            if (Handler is null || !_isLoaded) return;
             _canvas.InvalidateMeasure();
             InvalidateMeasure();
             _canvas.InvalidateSurface();
@@ -592,7 +624,7 @@ public class CardGrid : ContentView
         {
             var newConfig = s.Config with
             {
-                MinCardWidth = isLargeScreen ? 160f : 85f,
+                MinCardWidth = isLargeScreen ? 160f : PhoneMinCardWidthDip,
                 LabelHeight = isLargeScreen ? 52f : 42f
             };
             return s with
@@ -810,6 +842,13 @@ public class CardGrid : ContentView
             TouchActionEventArgs args,
             TouchActionResult action)
         {
+            // AppoMobi surfaces platform gesture abort via TouchActionType, not TouchActionResult.
+            if (type == TouchActionType.Cancelled)
+            {
+                _handler.HandleCancel();
+                return;
+            }
+
             float density = TouchEffect.Density > 0 ? TouchEffect.Density : 1f;
             float x = args.Location.X / density;
             float y = args.Location.Y / density;

@@ -54,7 +54,7 @@
 
             <!-- Commander: single full-size card -->
             <Grid IsVisible="{Binding ShowCommanderHeroArt}"
-                  HorizontalOptions="Start"
+                  HorizontalOptions="{OnIdiom Phone=Center, Default=Start}"
                   Margin="0,0,0,12">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding DeckListItemTappedCommand}"
@@ -152,11 +152,13 @@
                                         <Label Text="{Binding DisplayName}"
                                                TextColor="{StaticResource TextPrimary}"
                                                FontSize="14"
-                                               LineBreakMode="TailTruncation" />
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
                                         <Label Text="{Binding CardTypeText}"
                                                TextColor="{StaticResource TextSecondary}"
                                                FontSize="11"
-                                               LineBreakMode="TailTruncation" />
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="1" />
                                         <Label Text="{Binding OwnedShortText}"
                                                FontSize="11"
                                                TextColor="{StaticResource TextSecondary}">
@@ -169,7 +171,7 @@
                                         <Label Text="{Binding DeckLinePriceDisplay}"
                                                FontSize="11"
                                                TextColor="{StaticResource Accent}"
-                                               IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckPrices}" />
+                                               IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckRowPrices}" />
                                     </VerticalStackLayout>
                                     <Button Grid.Column="3"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.RemoveCardCommand}"

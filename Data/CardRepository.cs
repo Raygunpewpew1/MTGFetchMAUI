@@ -12,7 +12,6 @@ namespace AetherVault.Data;
 public class CardRepository : ICardRepository
 {
     private readonly DatabaseManager _db;
-    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public CardRepository(DatabaseManager databaseManager)
     {
@@ -98,20 +97,13 @@ public class CardRepository : ICardRepository
         return card?.Uuid != null ? card : null;
     }
 
-    public async Task<string> GetScryfallIdAsync(string cardUuid)
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<string> GetScryfallIdAsync(string cardUuid) =>
+        await WithMtgConnectionAsync(async () =>
         {
             var result = await _db.MtgConnection.QueryFirstOrDefaultAsync<string>(
                 SqlQueries.SelectScryfallId, new { uuid = cardUuid });
             return result ?? "";
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+        });
 
     private class CardRulingRow
     {
@@ -119,10 +111,8 @@ public class CardRepository : ICardRepository
         public string Text { get; set; } = "";
     }
 
-    public async Task<CardRuling[]> GetCardRulingsAsync(string uuid)
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<CardRuling[]> GetCardRulingsAsync(string uuid) =>
+        await WithMtgConnectionAsync(async () =>
         {
             var rows = await _db.MtgConnection.QueryAsync<CardRulingRow>(
                 SqlQueries.SelectRulings, new { uuid });
@@ -134,28 +124,16 @@ public class CardRepository : ICardRepository
                 rulings.Add(new CardRuling(date, row.Text));
             }
 
-            return [.. rulings];
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+            return (CardRuling[])[.. rulings];
+        });
 
-    public async Task<string[]> GetOtherFaceIdsAsync(string uuid)
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<string[]> GetOtherFaceIdsAsync(string uuid) =>
+        await WithMtgConnectionAsync(async () =>
         {
             var raw = await _db.MtgConnection.QueryFirstOrDefaultAsync<string>(
                 SqlQueries.SelectOtherFaces, new { uuid });
             return CardMapper.ParseOtherFaceIds(raw ?? "");
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+        });
 
     public async Task<Card[]> GetOtherFacesAsync(string uuid)
     {
@@ -242,19 +220,12 @@ public class CardRepository : ICardRepository
         return result;
     }
 
-    public async Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync()
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync() =>
+        await WithMtgConnectionAsync(async () =>
         {
             var rows = await _db.MtgConnection.QueryAsync<ImportLookupRow>(SqlQueries.SelectImportLookupRows);
-            return [.. rows];
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+            return (IReadOnlyList<ImportLookupRow>)[.. rows];
+        });
 
     public async Task<Card[]> SearchCardsAsync(string searchText, int limit = 100)
     {
@@ -341,56 +312,89 @@ public class CardRepository : ICardRepository
     public async Task<int> CountAdvancedAsync(MtgSearchHelper searchHelper)
     {
         var (sql, parameters) = searchHelper.BuildCount();
-
-        await _lock.WaitAsync();
-        try
+        return await WithMtgConnectionAsync(async () =>
         {
             var dynamicParams = new DynamicParameters();
             foreach (var (name, value) in parameters)
-            {
                 dynamicParams.Add(name, value);
-            }
 
             return await _db.MtgConnection.ExecuteScalarAsync<int>(sql, dynamicParams);
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        });
     }
 
     public MtgSearchHelper CreateSearchHelper() => new();
 
-    public async Task<IReadOnlyList<SetInfo>> GetAllSetsAsync()
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() =>
+        await WithMtgConnectionAsync(async () =>
         {
             var list = await _db.MtgConnection.QueryAsync<SetInfo>(SqlQueries.SelectSetsForFilter);
-            return [.. list];
-        }
-        finally
+            return (IReadOnlyList<SetInfo>)[.. list];
+        });
+
+    public async Task<IReadOnlyList<SetBrowseRow>> GetSetsBrowseAsync() =>
+        await WithMtgConnectionAsync(async () =>
         {
-            _lock.Release();
-        }
-    }
+            var list = await _db.MtgConnection.QueryAsync<SetBrowseRow>(SqlQueries.SelectSetsBrowse);
+            return (IReadOnlyList<SetBrowseRow>)[.. list];
+        });
 
     public async Task<bool> HasFtsAsync()
     {
-        await _lock.WaitAsync();
         try
         {
-            var valFull = await _db.MtgConnection.QueryFirstOrDefaultAsync<int>(SqlQueries.FtsExistsCheck);
-            return valFull == 1;
+            return await WithMtgConnectionAsync(async () =>
+            {
+                var valFull = await _db.MtgConnection.QueryFirstOrDefaultAsync<int>(SqlQueries.FtsExistsCheck);
+                return valFull == 1;
+            });
         }
         catch
         {
             return false;
         }
-        finally
+    }
+
+    public async Task<IReadOnlyList<OtherPrintingSummary>> GetOtherPrintingsByOracleIdAsync(string oracleId, string currentUuid)
+    {
+        if (string.IsNullOrWhiteSpace(oracleId))
+            return [];
+
+        return await WithMtgConnectionAsync(async () =>
         {
-            _lock.Release();
-        }
+            var rows = await _db.MtgConnection.QueryAsync<OtherPrintingDbRow>(
+                SqlQueries.SelectOtherPrintingsByOracleId,
+                new { OracleId = oracleId.Trim() });
+
+            var list = new List<OtherPrintingSummary>();
+            foreach (var row in rows)
+            {
+                if (string.Equals(row.Uuid, currentUuid, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                list.Add(new OtherPrintingSummary
+                {
+                    Uuid = row.Uuid ?? "",
+                    SetCode = row.SetCode ?? "",
+                    SetName = row.SetName ?? "",
+                    Number = row.Number ?? "",
+                    Rarity = EnumExtensions.ParseCardRarity(row.Rarity),
+                    SetReleaseDate = row.SetReleaseDate ?? "",
+                    IsCurrent = false
+                });
+            }
+
+            return (IReadOnlyList<OtherPrintingSummary>)list;
+        });
+    }
+
+    private sealed class OtherPrintingDbRow
+    {
+        public string? Uuid { get; set; }
+        public string? SetCode { get; set; }
+        public string? SetName { get; set; }
+        public string? Number { get; set; }
+        public string? Rarity { get; set; }
+        public string? SetReleaseDate { get; set; }
     }
 
     // ── Private helpers ─────────────────────────────────────────────
@@ -436,18 +440,30 @@ public class CardRepository : ICardRepository
     private async Task<T> WithMtgReaderAsync<T>(
         string sql,
         object? param,
-        Func<DbDataReader, Task<T>> readFunc)
-    {
-        await _lock.WaitAsync();
-        try
+        Func<DbDataReader, Task<T>> readFunc) =>
+        await WithMtgConnectionAsync(async () =>
         {
             using var reader = await _db.MtgConnection.ExecuteReaderAsync(sql, param) as DbDataReader
                 ?? throw new InvalidOperationException("Failed to create DbDataReader.");
             return await readFunc(reader);
+        });
+
+    /// <summary>
+    /// Serializes MTG reads with <see cref="DatabaseManager.ConnectionLock"/> so
+    /// <see cref="DatabaseManager.DisconnectAsync"/> cannot dispose connections mid-query.
+    /// </summary>
+    private async Task<T> WithMtgConnectionAsync<T>(Func<Task<T>> action)
+    {
+        await _db.ConnectionLock.WaitAsync();
+        try
+        {
+            if (!_db.IsConnected)
+                throw new InvalidOperationException("Database not connected.");
+            return await action();
         }
         finally
         {
-            _lock.Release();
+            _db.ConnectionLock.Release();
         }
     }
 }

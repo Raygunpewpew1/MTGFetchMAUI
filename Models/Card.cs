@@ -11,6 +11,8 @@ public class Card
     // ── Identifiers ─────────────────────────────────────────────────
     public string Uuid { get; set; } = "";
     public string ScryfallId { get; set; } = "";
+    /// <summary>Scryfall oracle id — shared by all printings of the same card.</summary>
+    public string ScryfallOracleId { get; set; } = "";
     public string BackScryfallId { get; set; } = "";
 
     // ── Basic Info ──────────────────────────────────────────────────
@@ -38,6 +40,8 @@ public class Card
     // ── Set Info ────────────────────────────────────────────────────
     public string SetName { get; set; } = "";
     public string SetCode { get; set; } = "";
+    /// <summary>Parent set release date (from MTGJSON <c>sets.releaseDate</c>).</summary>
+    public string SetReleaseDate { get; set; } = "";
     public string Number { get; set; } = "";
     public string KeyruneCode { get; set; } = "";
 

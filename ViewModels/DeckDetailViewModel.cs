@@ -77,6 +77,16 @@ public partial class DeckDetailViewModel(
     public partial ObservableCollection<DeckCardDisplayItem> SideboardCards { get; set; } = [];
 
     [ObservableProperty]
+    public partial ObservableCollection<DeckCardGroup> SideboardGroups { get; set; } = [];
+
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardGroup> FilteredSideboardGroups { get; set; } = [];
+
+    /// <summary>Flattened filtered sideboard rows for grid layout.</summary>
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardDisplayItem> SideboardGridItems { get; set; } = [];
+
+    [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> FilteredSideboardCards { get; set; } = [];
 
     [ObservableProperty]
@@ -216,6 +226,12 @@ public partial class DeckDetailViewModel(
     public ObservableCollection<DeckBrowseListChipItem> QuickBrowseListChips { get; } =
         new(DeckBrowseListCatalog.CreateChipItems());
 
+    [ObservableProperty]
+    public partial bool ShowQuickBrowseLists { get; set; }
+
+    [RelayCommand]
+    private void ToggleQuickBrowseLists() => ShowQuickBrowseLists = !ShowQuickBrowseLists;
+
     /// <summary>Deck stats tab: show subtype theme block.</summary>
     public bool HasSynergySubtypeSummary => SynergySubtypeSummaryLines.Count > 0;
 
@@ -294,6 +310,11 @@ public partial class DeckDetailViewModel(
 
     /// <summary>Bundled price DB + per-row display (Settings → price data).</summary>
     public bool ShowDeckPrices => PricePreferences.PricesDataEnabled;
+
+    /// <summary>Per-row prices hidden while find-in-deck filter is active (less clutter).</summary>
+    public bool HasActiveDeckListFilter => !string.IsNullOrWhiteSpace(DeckListFilterText);
+
+    public bool ShowDeckRowPrices => ShowDeckPrices && !HasActiveDeckListFilter;
 
     [ObservableProperty]
     public partial string DeckFormat { get; set; } = "";
@@ -473,6 +494,8 @@ public partial class DeckDetailViewModel(
 
     partial void OnDeckListFilterTextChanged(string value)
     {
+        OnPropertyChanged(nameof(HasActiveDeckListFilter));
+        OnPropertyChanged(nameof(ShowDeckRowPrices));
         _deckListFilterCts?.Cancel();
         _deckListFilterCts = new CancellationTokenSource();
         var token = _deckListFilterCts.Token;
@@ -633,6 +656,7 @@ public partial class DeckDetailViewModel(
                     ? new ObservableCollection<DeckCardDisplayItem>(commander.Skip(1))
                     : [];
                 SideboardCards = new ObservableCollection<DeckCardDisplayItem>(sideboard);
+                SideboardGroups = BuildGroups(sideboard);
                 MainDeckGroups = mainDeckGroups;
                 MainDeckCount = mainDeckCount;
                 SideboardCount = sideboardCount;
@@ -693,7 +717,9 @@ public partial class DeckDetailViewModel(
             1 => DeckEditorLayoutMode == DeckEditorLayoutMode.Grid
                 ? [.. MainDeckGridItems.Select(x => x.CardUuid)]
                 : [.. FilteredMainDeckGroups.SelectMany(g => g).Select(x => x.CardUuid)],
-            2 => [.. FilteredSideboardCards.Select(x => x.CardUuid)],
+            2 => DeckEditorLayoutMode == DeckEditorLayoutMode.Grid
+                ? [.. SideboardGridItems.Select(x => x.CardUuid)]
+                : [.. FilteredSideboardGroups.SelectMany(g => g).Select(x => x.CardUuid)],
             _ => []
         };
     }
@@ -713,6 +739,7 @@ public partial class DeckDetailViewModel(
         if (string.IsNullOrEmpty(q))
         {
             FilteredMainDeckGroups = MainDeckGroups;
+            FilteredSideboardGroups = SideboardGroups;
             FilteredSideboardCards = SideboardCards;
             FilteredAdditionalCommanderCards = AdditionalCommanderCards;
             IsCommanderHeroVisible = FirstCommander != null;
@@ -730,6 +757,17 @@ public partial class DeckDetailViewModel(
             }
 
             FilteredMainDeckGroups = filteredMain;
+
+            var filteredSideboard = new ObservableCollection<DeckCardGroup>();
+            foreach (var g in SideboardGroups)
+            {
+                var items = g.Where(i => MatchesDeckListFilter(i, q)).ToList();
+                if (items.Count == 0) continue;
+                int groupQty = items.Sum(x => x.Entity.Quantity);
+                filteredSideboard.Add(new DeckCardGroup(g.GroupName, items, groupQty));
+            }
+
+            FilteredSideboardGroups = filteredSideboard;
             FilteredSideboardCards = new ObservableCollection<DeckCardDisplayItem>(
                 SideboardCards.Where(i => MatchesDeckListFilter(i, q)));
             FilteredAdditionalCommanderCards = new ObservableCollection<DeckCardDisplayItem>(
@@ -741,7 +779,21 @@ public partial class DeckDetailViewModel(
 
         OnPropertyChanged(nameof(ShowCommanderHeroArt));
         OnPropertyChanged(nameof(ShowFilteredPartnersSection));
+        OnPropertyChanged(nameof(ShowDeckRowPrices));
         RebuildMainDeckGridItems();
+        RebuildSideboardGridItems();
+    }
+
+    private void RebuildSideboardGridItems()
+    {
+        var flat = new List<DeckCardDisplayItem>();
+        foreach (var g in FilteredSideboardGroups)
+        {
+            foreach (var item in g)
+                flat.Add(item);
+        }
+
+        SideboardGridItems = new ObservableCollection<DeckCardDisplayItem>(flat);
     }
 
     private void RebuildMainDeckGridItems()
@@ -824,6 +876,7 @@ public partial class DeckDetailViewModel(
     public void OnPriceDisplayPreferencesChanged()
     {
         OnPropertyChanged(nameof(ShowDeckPrices));
+        OnPropertyChanged(nameof(ShowDeckRowPrices));
         foreach (var item in EnumerateAllDeckRowsForPricing())
             item.NotifyDeckPriceBindingsChanged();
 
@@ -1051,7 +1104,7 @@ public partial class DeckDetailViewModel(
         {
             0 => CommanderCards.Where(i => i.IsSelected),
             1 => FilteredMainDeckGroups.SelectMany(g => g).Where(i => i.IsSelected),
-            2 => FilteredSideboardCards.Where(i => i.IsSelected),
+            2 => FilteredSideboardGroups.SelectMany(g => g).Where(i => i.IsSelected),
             _ => []
         };
     }
@@ -1062,7 +1115,7 @@ public partial class DeckDetailViewModel(
         {
             0 => CommanderCards,
             1 => FilteredMainDeckGroups.SelectMany(g => g),
-            2 => FilteredSideboardCards,
+            2 => FilteredSideboardGroups.SelectMany(g => g),
             _ => []
         };
     }
@@ -1305,6 +1358,8 @@ public partial class DeckDetailViewModel(
             item.SetDeckQuantity(newQty);
             if (section == "Main")
                 FindGroupContaining(item)?.RecalculateTotal();
+            else if (string.Equals(section, "Sideboard", StringComparison.OrdinalIgnoreCase))
+                FindSideboardGroupContaining(item)?.RecalculateTotal();
         }
 
         FinalizePresentationMutation();
@@ -1320,6 +1375,14 @@ public partial class DeckDetailViewModel(
                 break;
             case "Sideboard":
                 SideboardCards.Remove(item);
+                var sideboardGroup = FindSideboardGroupContaining(item);
+                if (sideboardGroup != null)
+                {
+                    sideboardGroup.Remove(item);
+                    sideboardGroup.RecalculateTotal();
+                    if (sideboardGroup.Count == 0)
+                        SideboardGroups.Remove(sideboardGroup);
+                }
                 break;
             default:
                 var g = FindGroupContaining(item);
@@ -1332,6 +1395,17 @@ public partial class DeckDetailViewModel(
                 }
                 break;
         }
+    }
+
+    private DeckCardGroup? FindSideboardGroupContaining(DeckCardDisplayItem item)
+    {
+        foreach (var g in SideboardGroups)
+        {
+            if (g.Contains(item))
+                return g;
+        }
+
+        return null;
     }
 
     private DeckCardGroup? FindGroupContaining(DeckCardDisplayItem item)

@@ -1,46 +1,106 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              xmlns:models="clr-namespace:AetherVault.Models"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
              x:Class="AetherVault.Controls.DeckListItem"
              x:DataType="models:DeckEntity">
-    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="0">
-        <Label Grid.Row="0"
-               Text="{Binding Name}"
-               FontSize="16"
-               FontAttributes="Bold"
-               TextColor="{StaticResource TextPrimary}"
-               LineBreakMode="TailTruncation" />
-        <HorizontalStackLayout Grid.Row="1"
-                               Spacing="8"
-                               Margin="0,6,0,0">
-            <Border BackgroundColor="{StaticResource Surface}"
-                    Padding="10,4"
-                    StrokeShape="RoundRectangle 8"
-                    Stroke="Transparent">
-                <Label Text="{Binding CardCount, StringFormat='{0} cards'}"
-                       FontSize="12"
-                       TextColor="{StaticResource TextSecondary}" />
+    <Border Style="{StaticResource CardStyle}"
+            Padding="12,10"
+            MinimumHeightRequest="72">
+        <Grid ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="12"
+              VerticalOptions="Center">
+            <!-- Thumbnail -->
+            <Border Grid.Column="0"
+                    WidthRequest="48"
+                    HeightRequest="68"
+                    StrokeShape="RoundRectangle 6"
+                    Stroke="{StaticResource CardBackground}"
+                    StrokeThickness="1"
+                    BackgroundColor="{StaticResource CardBackground}"
+                    VerticalOptions="Center">
+                <Grid>
+                    <controls:CachedCardImage CardUuid="{Binding PreviewImageId}"
+                                               ImageSize="small"
+                                               IsVisible="{Binding HasPreviewImage}"
+                                               HorizontalOptions="Fill"
+                                               VerticalOptions="Fill" />
+                    <Label FontFamily="FASolid"
+                           Text="{x:Static fa:Solid.LayerGroup}"
+                           FontSize="20"
+                           TextColor="#555560"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           IsVisible="{Binding HasPreviewImage, Converter={StaticResource InvertedBool}}" />
+                </Grid>
             </Border>
-            <Border BackgroundColor="{StaticResource Surface}"
-                    Padding="10,4"
-                    StrokeShape="RoundRectangle 8"
-                    Stroke="Transparent">
-                <Label Text="{Binding FormatDisplay}"
-                       FontSize="12"
-                       TextColor="{StaticResource TextSecondary}" />
-            </Border>
-        </HorizontalStackLayout>
-        <VerticalStackLayout Grid.Row="2"
-                             Spacing="2"
-                             Margin="0,4,0,0">
-            <Label Text="{Binding CommanderDisplay}"
-                   IsVisible="{Binding HasCommander}"
-                   FontSize="12"
-                   TextColor="{StaticResource Accent}" />
-            <Label Text="{Binding DateModified, StringFormat='Modified {0:MMM d, yyyy}'}"
-                   FontSize="11"
-                   TextColor="{StaticResource TextSecondary}" />
-        </VerticalStackLayout>
-    </Grid>
+
+            <!-- Name + badges -->
+            <VerticalStackLayout Grid.Column="1"
+                                 Spacing="4"
+                                 VerticalOptions="Center">
+                <Label Text="{Binding Name}"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="2" />
+                <HorizontalStackLayout Spacing="8">
+                    <Border BackgroundColor="{StaticResource Surface}"
+                            Padding="8,3"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="Transparent">
+                        <Label Text="{Binding FormatDisplay}"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1" />
+                    </Border>
+                    <Border BackgroundColor="{StaticResource Surface}"
+                            Padding="8,3"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="Transparent">
+                        <Label Text="{Binding CardCount, StringFormat='{0} cards'}"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </Border>
+                </HorizontalStackLayout>
+                <Label Text="{Binding CommanderDisplay}"
+                       IsVisible="{Binding HasCommander}"
+                       FontSize="11"
+                       TextColor="{StaticResource Accent}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </VerticalStackLayout>
+
+            <!-- Mana + overflow -->
+            <VerticalStackLayout Grid.Column="2"
+                                 Spacing="6"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="End">
+                <controls:ManaCostView ManaText="{Binding ColorIdentityManaText}"
+                                       SymbolSize="16"
+                                       IsVisible="{Binding HasColorIdentity}"
+                                       HorizontalOptions="End" />
+                <Button x:Name="OverflowButton"
+                        Clicked="OnOverflowClicked"
+                        BackgroundColor="{StaticResource Surface}"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        Padding="0"
+                        CornerRadius="18"
+                        HorizontalOptions="End"
+                        SemanticProperties.Hint="Deck actions">
+                    <Button.ImageSource>
+                        <FontImageSource FontFamily="FASolid"
+                                         Glyph="{x:Static fa:Solid.EllipsisVertical}"
+                                         Size="14"
+                                         Color="{StaticResource TextPrimary}" />
+                    </Button.ImageSource>
+                </Button>
+            </VerticalStackLayout>
+        </Grid>
+    </Border>
 </ContentView>

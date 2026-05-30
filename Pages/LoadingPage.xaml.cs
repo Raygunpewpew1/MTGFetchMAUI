@@ -45,9 +45,7 @@ public partial class LoadingPage : ContentPage
 
         var entranceTask = RunEntranceAnimationsAsync();
         _viewModel.SetMinimumDisplayTask(entranceTask);
-        // Defer init until after the first frame is painted so the loading screen is visible
-        // during DB checks instead of the static native splash.
-        await Task.Delay(100);
+        // Run init in parallel with entrance animations; InitAsync uses Task.Run for file/DB I/O.
         try
         {
             _initTask = _viewModel.InitAsync();

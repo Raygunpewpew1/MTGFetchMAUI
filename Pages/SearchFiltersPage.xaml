@@ -603,6 +603,24 @@
                 <Grid ColumnDefinitions="*,Auto"
                       Padding="16,14"
                       ColumnSpacing="12">
+                    <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                        <Label Text="Show all printings"
+                               FontSize="14"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Off = one row per card in search"
+                               FontSize="11"
+                               TextColor="{StaticResource TextSecondary}" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding ChkShowAllPrintings, Mode=TwoWay}"
+                            OnColor="{StaticResource Primary}"
+                            VerticalOptions="Center" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource FilterHairline}" />
+
+                <Grid ColumnDefinitions="*,Auto"
+                      Padding="16,14"
+                      ColumnSpacing="12">
                     <Label Text="Include tokens"
                            FontSize="14"
                            TextColor="{StaticResource TextPrimary}"

@@ -74,7 +74,6 @@ public class CollectionRepository : ICollectionRepository
     }
 
     private readonly DatabaseManager _db;
-    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public CollectionRepository(DatabaseManager databaseManager)
     {
@@ -118,31 +117,13 @@ public class CollectionRepository : ICollectionRepository
         });
     }
 
-    public async Task RemoveCardAsync(string cardUuid)
-    {
-        await _lock.WaitAsync();
-        try
-        {
-            await _db.CollectionConnection.ExecuteAsync(SqlQueries.CollectionDeleteCard, new { uuid = cardUuid });
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+    public async Task RemoveCardAsync(string cardUuid) =>
+        await WithCollectionConnectionAsync(conn =>
+            conn.ExecuteAsync(SqlQueries.CollectionDeleteCard, new { uuid = cardUuid }));
 
-    public async Task ClearCollectionAsync()
-    {
-        await _lock.WaitAsync();
-        try
-        {
-            await _db.CollectionConnection.ExecuteAsync(SqlQueries.CollectionDeleteAll);
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+    public async Task ClearCollectionAsync() =>
+        await WithCollectionConnectionAsync(conn =>
+            conn.ExecuteAsync(SqlQueries.CollectionDeleteAll));
 
     public async Task UpdateQuantityAsync(string cardUuid, int quantity, bool isFoil = false, bool isEtched = false)
     {
@@ -244,21 +225,14 @@ public class CollectionRepository : ICollectionRepository
         return card;
     }
 
-    public async Task<IReadOnlyList<(string Uuid, int Quantity, bool IsFoil, bool IsEtched)>> GetPricingEntriesAsync()
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<IReadOnlyList<(string Uuid, int Quantity, bool IsFoil, bool IsEtched)>> GetPricingEntriesAsync() =>
+        await WithCollectionConnectionAsync(async conn =>
         {
-            var rows = await _db.CollectionConnection.QueryAsync<CollectionRow>(SqlQueries.CollectionGetForPricing);
+            var rows = await conn.QueryAsync<CollectionRow>(SqlQueries.CollectionGetForPricing);
             return rows
                 .Select(r => (Uuid: r.CardUuid, Quantity: r.Quantity, IsFoil: r.IsFoil.HasValue && r.IsFoil.Value != 0, IsEtched: r.IsEtched.HasValue && r.IsEtched.Value != 0))
                 .ToList();
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+        });
 
     public async Task<CollectionStats> GetCollectionStatsAsync()
     {
@@ -367,33 +341,16 @@ public class CollectionRepository : ICollectionRepository
         }
     }
 
-    public async Task<bool> IsInCollectionAsync(string cardUuid)
-    {
-        await _lock.WaitAsync();
-        try
+    public async Task<bool> IsInCollectionAsync(string cardUuid) =>
+        await WithCollectionConnectionAsync(async conn =>
         {
-            var result = await _db.CollectionConnection.QueryFirstOrDefaultAsync<int?>(
+            var result = await conn.QueryFirstOrDefaultAsync<int?>(
                 SqlQueries.CollectionCheckExists, new { uuid = cardUuid });
             return result.HasValue;
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+        });
 
-    public async Task<int> GetQuantityAsync(string cardUuid)
-    {
-        await _lock.WaitAsync();
-        try
-        {
-            return await GetQuantityInternalAsync(_db.CollectionConnection, cardUuid);
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+    public async Task<int> GetQuantityAsync(string cardUuid) =>
+        await WithCollectionConnectionAsync(conn => GetQuantityInternalAsync(conn, cardUuid));
 
     public async Task<Dictionary<string, int>> GetQuantitiesAsync(IEnumerable<string> cardUuids)
     {
@@ -402,8 +359,7 @@ public class CollectionRepository : ICollectionRepository
         if (distinct.Length == 0)
             return map;
 
-        await _lock.WaitAsync();
-        try
+        return await WithCollectionConnectionAsync(async conn =>
         {
             // Microsoft.Data.Sqlite does not accept Dapper's "IN @uuids" expansion; build explicit placeholders.
             var sql = new StringBuilder("SELECT card_uuid AS CardUuid, quantity AS Quantity FROM my_collection WHERE card_uuid IN (");
@@ -417,7 +373,7 @@ public class CollectionRepository : ICollectionRepository
             }
 
             sql.Append(')');
-            var rows = await _db.CollectionConnection.QueryAsync<CollectionQtyRow>(sql.ToString(), dp);
+            var rows = await conn.QueryAsync<CollectionQtyRow>(sql.ToString(), dp);
             foreach (var row in rows)
             {
                 if (!string.IsNullOrEmpty(row.CardUuid))
@@ -425,11 +381,7 @@ public class CollectionRepository : ICollectionRepository
             }
 
             return map;
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        });
     }
 
     private sealed class CollectionQtyRow
@@ -480,21 +432,16 @@ public class CollectionRepository : ICollectionRepository
         if (string.IsNullOrEmpty(cardUuid))
             return null;
 
-        await _lock.WaitAsync();
-        try
+        return await WithCollectionConnectionAsync<(bool IsFoil, bool IsEtched)?>(async conn =>
         {
-            var row = await _db.CollectionConnection.QueryFirstOrDefaultAsync<CollectionFinishRow>(
+            var row = await conn.QueryFirstOrDefaultAsync<CollectionFinishRow>(
                 SqlQueries.CollectionGetFinishFlags,
                 new { uuid = cardUuid });
             if (row == null)
                 return null;
 
             return (row.IsFoil.HasValue && row.IsFoil.Value != 0, row.IsEtched.HasValue && row.IsEtched.Value != 0);
-        }
-        finally
-        {
-            _lock.Release();
-        }
+        });
     }
 
     public async Task TrySetReferenceBaselineIfMissingAsync(string cardUuid, double unitPriceUsd, DateTime capturedUtc)
@@ -502,22 +449,15 @@ public class CollectionRepository : ICollectionRepository
         if (string.IsNullOrEmpty(cardUuid) || unitPriceUsd <= 0)
             return;
 
-        await _lock.WaitAsync();
-        try
-        {
-            await _db.CollectionConnection.ExecuteAsync(
+        await WithCollectionConnectionAsync(conn =>
+            conn.ExecuteAsync(
                 SqlQueries.CollectionTrySetReferenceBaselineIfMissing,
                 new
                 {
                     uuid = cardUuid,
                     price = unitPriceUsd,
                     captured = capturedUtc.ToString("o", CultureInfo.InvariantCulture),
-                });
-        }
-        finally
-        {
-            _lock.Release();
-        }
+                }));
     }
 
     public async Task SetReferenceBaselineAsync(string cardUuid, double unitPriceUsd, DateTime capturedUtc)
@@ -525,22 +465,15 @@ public class CollectionRepository : ICollectionRepository
         if (string.IsNullOrEmpty(cardUuid) || unitPriceUsd <= 0)
             return;
 
-        await _lock.WaitAsync();
-        try
-        {
-            await _db.CollectionConnection.ExecuteAsync(
+        await WithCollectionConnectionAsync(conn =>
+            conn.ExecuteAsync(
                 SqlQueries.CollectionSetReferenceBaseline,
                 new
                 {
                     uuid = cardUuid,
                     price = unitPriceUsd,
                     captured = capturedUtc.ToString("o", CultureInfo.InvariantCulture),
-                });
-        }
-        finally
-        {
-            _lock.Release();
-        }
+                }));
     }
 
     // ── Private helpers ─────────────────────────────────────────────
@@ -555,10 +488,8 @@ public class CollectionRepository : ICollectionRepository
 
     private async Task WithCollectionTransactionAsync(Func<SqliteConnection, SqliteTransaction, Task> action)
     {
-        await _lock.WaitAsync();
-        try
+        await WithCollectionConnectionAsync(async conn =>
         {
-            var conn = _db.CollectionConnection;
             using var transaction = conn.BeginTransaction();
             try
             {
@@ -570,10 +501,36 @@ public class CollectionRepository : ICollectionRepository
                 transaction.Rollback();
                 throw;
             }
+        });
+    }
+
+    private async Task WithCollectionConnectionAsync(Func<SqliteConnection, Task> action)
+    {
+        await _db.ConnectionLock.WaitAsync();
+        try
+        {
+            if (!_db.IsConnected)
+                throw new InvalidOperationException("Database not connected.");
+            await action(_db.CollectionConnection);
         }
         finally
         {
-            _lock.Release();
+            _db.ConnectionLock.Release();
+        }
+    }
+
+    private async Task<T> WithCollectionConnectionAsync<T>(Func<SqliteConnection, Task<T>> action)
+    {
+        await _db.ConnectionLock.WaitAsync();
+        try
+        {
+            if (!_db.IsConnected)
+                throw new InvalidOperationException("Database not connected.");
+            return await action(_db.CollectionConnection);
+        }
+        finally
+        {
+            _db.ConnectionLock.Release();
         }
     }
 }

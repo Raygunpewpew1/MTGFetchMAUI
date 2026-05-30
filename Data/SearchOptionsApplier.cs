@@ -1,4 +1,5 @@
 using AetherVault.Core;
+using AetherVault.Services;
 
 namespace AetherVault.Data;
 
@@ -87,5 +88,8 @@ public static class SearchOptionsApplier
 
         if (options.FinishesFilter.Count > 0)
             helper.WhereFinishesAny(options.FinishesFilter);
+
+        if (OracleReprintCollapse.ShouldApply(options, helper.IsCollectionQuery))
+            helper.CollapseReprints();
     }
 }

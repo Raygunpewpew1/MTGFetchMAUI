@@ -21,12 +21,23 @@
               VerticalOptions="Fill"
               HorizontalOptions="Fill">
             <CollectionView x:Name="SideboardCollection"
-                            ItemsSource="{Binding FilteredSideboardCards}"
+                            ItemsSource="{Binding FilteredSideboardGroups}"
+                            IsGrouped="True"
                             SelectionMode="Single"
                             SelectionChanged="OnSideboardItemSelected"
                             VerticalOptions="Fill"
                             HorizontalOptions="Fill"
                             IsVisible="{Binding IsDeckEditorLayoutStandard}">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardGroup">
+                        <Label Text="{Binding HeaderText}"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}"
+                               BackgroundColor="{StaticResource Background}"
+                               Padding="12,8,12,4" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:DeckCardDisplayItem">
                         <Border Margin="12,5"
@@ -88,26 +99,28 @@
                                     <Label Text="{Binding DisplayName}"
                                            TextColor="{StaticResource TextPrimary}"
                                            FontSize="15"
-                                           LineBreakMode="TailTruncation" />
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="{Binding CardTypeText}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource TextSecondary}"
-                                               LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding OwnedShortText}"
-                                               FontSize="11"
-                                               TextColor="{StaticResource TextSecondary}">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsOverCollection}" Value="True">
-                                                    <Setter Property="TextColor" Value="#FFB74D" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </HorizontalStackLayout>
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Label Text="{Binding CardTypeText}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Label Text="{Binding OwnedShortText}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsOverCollection}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFB74D" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
                                     <Label Text="{Binding DeckLinePriceDisplay}"
                                            FontSize="11"
                                            TextColor="{StaticResource Accent}"
-                                           IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckPrices}" />
+                                           IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckRowPrices}" />
                                 </VerticalStackLayout>
                                 <Grid Grid.Row="1"
                                       Grid.Column="1"
@@ -176,12 +189,23 @@
             </CollectionView>
 
             <CollectionView x:Name="SideboardCompactCollection"
-                            ItemsSource="{Binding FilteredSideboardCards}"
+                            ItemsSource="{Binding FilteredSideboardGroups}"
+                            IsGrouped="True"
                             SelectionMode="Single"
                             SelectionChanged="OnSideboardItemSelected"
                             VerticalOptions="Fill"
                             HorizontalOptions="Fill"
                             IsVisible="{Binding IsDeckEditorLayoutCompact}">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardGroup">
+                        <Label Text="{Binding HeaderText}"
+                               FontSize="12"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}"
+                               BackgroundColor="{StaticResource Background}"
+                               Padding="10,6,10,2" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:DeckCardDisplayItem">
                         <Border Margin="8,3"
@@ -243,26 +267,28 @@
                                     <Label Text="{Binding DisplayName}"
                                            TextColor="{StaticResource TextPrimary}"
                                            FontSize="14"
-                                           LineBreakMode="TailTruncation" />
-                                    <HorizontalStackLayout Spacing="6">
-                                        <Label Text="{Binding CardTypeText}"
-                                               FontSize="10"
-                                               TextColor="{StaticResource TextSecondary}"
-                                               LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding OwnedShortText}"
-                                               FontSize="10"
-                                               TextColor="{StaticResource TextSecondary}">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding IsOverCollection}" Value="True">
-                                                    <Setter Property="TextColor" Value="#FFB74D" />
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </HorizontalStackLayout>
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Label Text="{Binding CardTypeText}"
+                                           FontSize="10"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Label Text="{Binding OwnedShortText}"
+                                           FontSize="10"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsOverCollection}" Value="True">
+                                                <Setter Property="TextColor" Value="#FFB74D" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
                                     <Label Text="{Binding DeckLinePriceDisplay}"
                                            FontSize="10"
                                            TextColor="{StaticResource Accent}"
-                                           IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckPrices}" />
+                                           IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckRowPrices}" />
                                 </VerticalStackLayout>
                                 <Grid Grid.Row="1"
                                       Grid.Column="1"
@@ -331,7 +357,7 @@
             </CollectionView>
 
             <CollectionView x:Name="SideboardGridCollection"
-                            ItemsSource="{Binding FilteredSideboardCards}"
+                            ItemsSource="{Binding SideboardGridItems}"
                             SelectionMode="Single"
                             SelectionChanged="OnSideboardItemSelected"
                             VerticalOptions="Fill"
@@ -413,13 +439,13 @@
                                 <Label Text="{Binding DeckLinePriceDisplay}"
                                        FontSize="11"
                                        TextColor="{StaticResource Accent}"
-                                       IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckPrices}" />
+                                       IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckRowPrices}" />
                             </VerticalStackLayout>
                             <Grid Grid.Row="2"
-                                  ColumnDefinitions="Auto,*,Auto"
+                                  ColumnDefinitions="*,Auto,Auto"
                                   ColumnSpacing="8"
                                   VerticalOptions="Center">
-                                    <Button Grid.Column="0"
+                                    <Button Grid.Column="1"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource CardBackground}"
@@ -435,15 +461,8 @@
                                                              Color="{StaticResource TextPrimary}" />
                                         </Button.ImageSource>
                                     </Button>
-                                <Label Grid.Column="1"
-                                       Text="{Binding DeckQtyLabel}"
-                                       FontSize="14"
-                                       FontAttributes="Bold"
-                                       TextColor="{StaticResource TextPrimary}"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                                    <Button Grid.Column="2"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
+                                <Button Grid.Column="2"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
                                             CommandParameter="{Binding .}"
                                             BackgroundColor="{StaticResource Accent}"
                                             TextColor="Black"

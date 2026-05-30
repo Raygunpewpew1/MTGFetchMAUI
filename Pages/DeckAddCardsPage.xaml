@@ -22,7 +22,7 @@
         <Border Grid.Row="0"
                 BackgroundColor="{StaticResource Surface}"
                 StrokeThickness="0"
-                Padding="0,0,0,10">
+                Padding="12,8,12,8">
             <VerticalStackLayout Spacing="8"
                                  Padding="12,10,12,0">
 
@@ -95,7 +95,8 @@
                                FontSize="12"
                                TextColor="{StaticResource Accent}"
                                VerticalOptions="Center"
-                               LineBreakMode="TailTruncation" />
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1" />
                         <Button Grid.Column="1"
                                 Text="{x:Static constants:UserMessages.DeckAddClearThemeFilter}"
                                 Command="{Binding ClearAddCardSynergyPresetCommand}"

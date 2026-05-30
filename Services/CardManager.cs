@@ -56,6 +56,12 @@ public class CardManager : IDisposable
     /// <summary>Fired when a new MTG database version is available remotely.</summary>
     public event Action<string>? OnDatabaseUpdateAvailable;
 
+    /// <summary>Fired on the main thread before disconnecting for an MTG DB replace (cancel UI/DB work).</summary>
+    public event Action? MtgDatabaseReplacing;
+
+    /// <summary>Fired on the main thread after a new MTG DB file is connected.</summary>
+    public event Action? MtgDatabaseReplaced;
+
     /// <summary>Fired after any collection mutation (add, remove, update, clear, bulk add). Use to invalidate stats caches.</summary>
     public event Action? CollectionChanged;
 
@@ -102,7 +108,36 @@ public class CardManager : IDisposable
     {
         var mtgPath = AppDataManager.GetMtgDatabasePath();
         var collectionPath = AppDataManager.GetCollectionDatabasePath();
-        return await _databaseManager.ConnectAsync(mtgPath, collectionPath);
+        var connected = await _databaseManager.ConnectAsync(mtgPath, collectionPath);
+        if (connected)
+            NotifyMtgDatabaseReplaced();
+        return connected;
+    }
+
+    /// <summary>
+    /// Cancels downloads, notifies singleton VMs/grids to reset, so disconnect can wait on
+    /// <see cref="DatabaseManager.ConnectionLock"/> without use-after-dispose on SQLite.
+    /// </summary>
+    public async Task PrepareForMtgDatabaseReplacementAsync()
+    {
+        Logger.LogStuff("Preparing for MTG database replacement.", LogLevel.Info);
+        _imageService.CancelPendingDownloads();
+        _ftsAvailable = null;
+
+        if (MainThread.IsMainThread)
+            MtgDatabaseReplacing?.Invoke();
+        else
+            await MainThread.InvokeOnMainThreadAsync(() => MtgDatabaseReplacing?.Invoke()).ConfigureAwait(false);
+    }
+
+    /// <summary>Notifies listeners that a new MTG master DB is connected (main thread).</summary>
+    public void NotifyMtgDatabaseReplaced()
+    {
+        _ftsAvailable = null;
+        if (MainThread.IsMainThread)
+            MtgDatabaseReplaced?.Invoke();
+        else
+            MainThread.BeginInvokeOnMainThread(() => MtgDatabaseReplaced?.Invoke());
     }
 
     /// <summary>
@@ -186,7 +221,6 @@ public class CardManager : IDisposable
     /// </summary>
     public void DownloadDatabase()
     {
-        Disconnect();
         _downloadCts?.Cancel();
         _downloadCts = new CancellationTokenSource();
         var ct = _downloadCts.Token;
@@ -198,6 +232,8 @@ public class CardManager : IDisposable
             bool success;
             try
             {
+                await PrepareForMtgDatabaseReplacementAsync().ConfigureAwait(false);
+                await DisconnectAsync().ConfigureAwait(false);
                 success = await AppDataManager.DownloadDatabaseAsync(ct);
             }
             catch (OperationCanceledException)
@@ -425,6 +461,9 @@ public class CardManager : IDisposable
     /// <summary>Returns all sets (code + name) for filter dropdowns, ordered by name.</summary>
     public async Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => await _cardRepository.GetAllSetsAsync();
 
+    /// <summary>Browse metadata for Search → Sets (counts, release date, preview flag).</summary>
+    public async Task<IReadOnlyList<SetBrowseRow>> GetSetsBrowseAsync() => await _cardRepository.GetSetsBrowseAsync();
+
     public async Task<Card[]> ExecuteSearchAsync(MtgSearchHelper searchHelper)
     {
         return await _cardRepository.SearchAdvancedAsync(searchHelper);
@@ -470,6 +509,9 @@ public class CardManager : IDisposable
     {
         return await _cardRepository.GetCardDetailsAsync(uuid);
     }
+
+    public Task<IReadOnlyList<OtherPrintingSummary>> GetOtherPrintingsAsync(string oracleId, string currentUuid) =>
+        _cardRepository.GetOtherPrintingsByOracleIdAsync(oracleId, currentUuid);
 
     public async Task<Card> GetCardWithLegalitiesAsync(string uuid)
     {

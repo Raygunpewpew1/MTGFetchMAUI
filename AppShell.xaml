@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Main shell: tab bar (Search, Collection, Stats, Decks, Settings). Tab content is assigned in AppShell.xaml.cs from DI-injected pages. -->
+<!-- Main shell: tab bar (Search, Collection, Stats, Decks, Settings). Tab content is assigned in AppShell.xaml.cs from DI. -->
 <Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-       xmlns:pages="clr-namespace:AetherVault.Pages"
        xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
        x:Class="AetherVault.AppShell"
        Title="AetherVault"
@@ -12,8 +11,7 @@
     <TabBar>
         <ShellContent
             x:Name="SearchTab"
-            Title="Search"
-            ContentTemplate="{DataTemplate pages:SearchPage}">
+            Title="Search">
             <ShellContent.Icon>
                 <FontImageSource FontFamily="FASolid"
                                  Glyph="{x:Static fa:Solid.MagnifyingGlass}"
@@ -24,8 +22,7 @@
 
         <ShellContent
             x:Name="CollectionTab"
-            Title="Collection"
-            ContentTemplate="{DataTemplate pages:CollectionPage}">
+            Title="Collection">
             <ShellContent.Icon>
                 <FontImageSource FontFamily="FASolid"
                                  Glyph="{x:Static fa:Solid.BoxArchive}"
@@ -36,8 +33,7 @@
 
         <ShellContent
             x:Name="StatsTab"
-            Title="Stats"
-            ContentTemplate="{DataTemplate pages:StatsPage}">
+            Title="Stats">
             <ShellContent.Icon>
                 <FontImageSource FontFamily="FASolid"
                                  Glyph="{x:Static fa:Solid.ChartColumn}"
@@ -48,8 +44,7 @@
 
         <ShellContent
             x:Name="DecksTab"
-            Title="Decks"
-            ContentTemplate="{DataTemplate pages:DecksPage}">
+            Title="Decks">
             <ShellContent.Icon>
                 <FontImageSource FontFamily="FASolid"
                                  Glyph="{x:Static fa:Solid.LayerGroup}"
@@ -60,8 +55,7 @@
 
         <ShellContent
             x:Name="SettingsTab"
-            Title="Settings"
-            ContentTemplate="{DataTemplate pages:SettingsPage}">
+            Title="Settings">
             <ShellContent.Icon>
                 <FontImageSource FontFamily="FASolid"
                                  Glyph="{x:Static fa:Solid.Gear}"

@@ -12,6 +12,10 @@ namespace AetherVault.Data;
 /// </summary>
 public sealed class DatabaseManager : IDisposable
 {
+    /// <summary>Bump when <see cref="MigrateCollectionSchemaAsync"/> gains new steps; persisted marker skips PRAGMA checks on warm connect.</summary>
+    private const int CollectionSchemaVersion = 1;
+    private const string CollectionSchemaMarkerFile = "collection_schema_version.txt";
+
     private SqliteConnection? _mtgConnection;
     private SqliteConnection? _collectionConnection;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
@@ -242,6 +246,12 @@ public sealed class DatabaseManager : IDisposable
 
     private static async Task MigrateCollectionSchemaAsync(SqliteConnection conn)
     {
+        if (IsCollectionSchemaMarkerCurrent())
+        {
+            Logger.LogStuff("Collection schema migration skipped (marker matches).", LogLevel.Debug);
+            return;
+        }
+
         Logger.LogStuff("Starting collection schema migration check.", LogLevel.Info);
 
         bool hasSortOrder = false;
@@ -315,7 +325,54 @@ public sealed class DatabaseManager : IDisposable
             await ExecuteNonQueryAsync(conn, SqlQueries.DecksAddCommanderArchetype);
         }
 
+        WriteCollectionSchemaMarker();
         Logger.LogStuff("Collection schema migration check completed.", LogLevel.Info);
+    }
+
+    private static string GetCollectionSchemaMarkerPath() =>
+        Path.Combine(AppDataManager.GetAppDataPath(), CollectionSchemaMarkerFile);
+
+    private static bool IsCollectionSchemaMarkerCurrent()
+    {
+        try
+        {
+            var path = GetCollectionSchemaMarkerPath();
+            if (!File.Exists(path))
+                return false;
+
+            var stored = File.ReadAllText(path).Trim();
+            return string.Equals(stored, CollectionSchemaVersion.ToString(), StringComparison.Ordinal);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static void WriteCollectionSchemaMarker()
+    {
+        try
+        {
+            File.WriteAllText(GetCollectionSchemaMarkerPath(), CollectionSchemaVersion.ToString());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogStuff($"Could not write collection schema marker: {ex.Message}", LogLevel.Warning);
+        }
+    }
+
+    public static void ClearCollectionSchemaMarker()
+    {
+        try
+        {
+            var path = GetCollectionSchemaMarkerPath();
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Logger.LogStuff($"Could not clear collection schema marker: {ex.Message}", LogLevel.Warning);
+        }
     }
 
     private static async Task ExecuteNonQueryAsync(SqliteConnection connection, string sql)

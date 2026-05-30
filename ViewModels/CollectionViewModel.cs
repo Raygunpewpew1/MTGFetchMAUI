@@ -23,6 +23,8 @@ public partial class CollectionViewModel : BaseViewModel, ISearchFilterTarget
     private readonly CollectionExporter _exporter;
     private CardGrid? _grid;
     private CollectionItem[] _allItems = [];
+    private CollectionItem[] _cachedFilteredItems = [];
+    private bool _gridApplyPending;
     private bool _hasLoadedOnce;
     private int _lastLoadedCollectionVersion = -1;
 
@@ -164,6 +166,28 @@ public partial class CollectionViewModel : BaseViewModel, ISearchFilterTarget
         };
 
         _cardManager.OnPricesUpdated += OnCardManagerPricesUpdated;
+        _cardManager.MtgDatabaseReplacing += OnMtgDatabaseReplacing;
+        _cardManager.MtgDatabaseReplaced += OnMtgDatabaseReplaced;
+    }
+
+    private void OnMtgDatabaseReplacing()
+    {
+        _filterCts?.Cancel();
+        _filterDebounceCts?.Cancel();
+        _allItems = [];
+        _cachedFilteredItems = [];
+        _gridApplyPending = false;
+        _hasLoadedOnce = false;
+        _lastLoadedCollectionVersion = -1;
+        IsCollectionEmpty = true;
+        IsBusy = false;
+        InvalidateSortUnitPriceCache();
+        _grid?.ResetForDatabaseReload();
+    }
+
+    private void OnMtgDatabaseReplaced()
+    {
+        _hasLoadedOnce = false;
     }
 
     private void OnCardManagerPricesUpdated()
@@ -188,8 +212,42 @@ public partial class CollectionViewModel : BaseViewModel, ISearchFilterTarget
         _grid = grid;
         _grid.ViewMode = ViewMode;
         _grid.VisibleRangeChanged += OnVisibleRangeChanged;
-        if (_hasLoadedOnce)
+        if (_hasLoadedOnce && _gridApplyPending)
+            _ = ApplyCachedFilteredToGridAsync();
+    }
+
+    /// <summary>
+    /// Applies a filter/sort result cached during background warm-up (when the grid did not exist yet)
+    /// without re-running the full filter pipeline.
+    /// </summary>
+    private async Task ApplyCachedFilteredToGridAsync()
+    {
+        if (_grid == null || !_gridApplyPending)
+            return;
+
+        try
+        {
+            await _grid.SetCollectionAsync(_cachedFilteredItems);
+            _gridApplyPending = false;
+
+            await Task.Delay(50);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (_grid == null)
+                    return;
+
+                var (start, end) = _grid.GetVisibleRange();
+                if (end >= start && start >= 0)
+                    _gridPriceLoadService.LoadVisiblePrices(_grid, start, end, isCollectionGrid: true);
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"ApplyCachedFilteredToGrid failed: {ex.Message}", LogLevel.Warning);
+            _gridApplyPending = false;
             _ = ApplyFilterAndSortAsync(immediate: true);
+        }
     }
 
     protected override void OnViewModeUpdated(ViewMode value)
@@ -276,6 +334,8 @@ public partial class CollectionViewModel : BaseViewModel, ISearchFilterTarget
         if (_allItems.Length == 0)
         {
             Logger.LogStuff("[CollectionUI] ApplyFilterAndSort: empty branch, _allItems=0", LogLevel.Debug);
+            _cachedFilteredItems = [];
+            _gridApplyPending = false;
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 IsCollectionEmpty = true;
@@ -401,7 +461,16 @@ public partial class CollectionViewModel : BaseViewModel, ISearchFilterTarget
 
             if (token.IsCancellationRequested) return;
 
-            if (_grid != null) await _grid.SetCollectionAsync(filtered);
+            _cachedFilteredItems = filtered;
+            if (_grid != null)
+            {
+                await _grid.SetCollectionAsync(filtered);
+                _gridApplyPending = false;
+            }
+            else
+            {
+                _gridApplyPending = filtered.Length > 0;
+            }
 
             if (token.IsCancellationRequested) return;
 

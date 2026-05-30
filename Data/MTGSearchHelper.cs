@@ -14,6 +14,7 @@ public class MtgSearchHelper
     private string _limitClause = "";
     private string _offsetClause = "";
     private string _orderByClause = "";
+    private bool _collapseReprints;
     private int _paramCounter;
     private readonly Dictionary<string, object> _params = new();
     private readonly List<string> _whereConditions = [];
@@ -35,6 +36,9 @@ public class MtgSearchHelper
     /// <summary>True when WhereFts was used; callers can skip setting OrderBy("c.name") and use FTS relevance order.</summary>
     public bool UsedFts { get; private set; }
 
+    /// <summary>When true, search returns one representative printing per oracle card.</summary>
+    public bool CollapseReprintsEnabled => _collapseReprints;
+
     // ════════════════════════════════════════════════════════════════
     // Build — returns SQL + parameters for CardRepository to execute
     // ════════════════════════════════════════════════════════════════
@@ -46,7 +50,7 @@ public class MtgSearchHelper
     public (string sql, List<(string name, object value)> parameters) Build()
     {
         EnsureSideFilter();
-        var sql = GetSql();
+        var sql = _collapseReprints ? BuildCollapsedSelect(includeResultTotal: false) : GetSql();
         var paramList = _params.Select(kv => (kv.Key, kv.Value)).ToList();
         return (sql, paramList);
     }
@@ -57,7 +61,9 @@ public class MtgSearchHelper
     public (string sql, List<(string name, object value)> parameters) BuildCount()
     {
         EnsureSideFilter();
-        var countSql = SqlQueries.CountWrapper + GetBaseWhereSql() + ")";
+        var countSql = _collapseReprints
+            ? BuildCollapsedCount()
+            : SqlQueries.CountWrapper + GetBaseWhereSql() + ")";
         var paramList = _params.Select(kv => (kv.Key, kv.Value)).ToList();
         return (countSql, paramList);
     }
@@ -73,15 +79,9 @@ public class MtgSearchHelper
             throw new InvalidOperationException("BuildWithResultTotal requires SearchCards (or cards+tokens).");
 
         EnsureSideFilter();
-        var withTotal = InsertResultTotalWindowColumn(GetBaseWhereSql());
-        var sql = withTotal;
-        if (!string.IsNullOrEmpty(_orderByClause))
-            sql += " " + _orderByClause;
-        if (!string.IsNullOrEmpty(_limitClause))
-            sql += " " + _limitClause;
-        if (!string.IsNullOrEmpty(_offsetClause))
-            sql += _offsetClause;
-
+        var sql = _collapseReprints
+            ? BuildCollapsedSelect(includeResultTotal: true)
+            : AppendPaging(InsertResultTotalWindowColumn(GetBaseWhereSql()));
         var paramList = _params.Select(kv => (kv.Key, kv.Value)).ToList();
         return (sql, paramList);
     }
@@ -162,6 +162,13 @@ public class MtgSearchHelper
     public MtgSearchHelper IncludeAllFaces(bool include = true)
     {
         _includeAllFaces = include;
+        return this;
+    }
+
+    /// <summary>Deduplicate catalog search to one printing per Scryfall oracle id.</summary>
+    public MtgSearchHelper CollapseReprints(bool collapse = true)
+    {
+        _collapseReprints = collapse;
         return this;
     }
 
@@ -749,17 +756,84 @@ public class MtgSearchHelper
 
     private string GetSql()
     {
-        var sql = GetBaseWhereSql();
+        return AppendPaging(GetBaseWhereSql());
+    }
 
+    private string AppendPaging(string sql)
+    {
         if (!string.IsNullOrEmpty(_orderByClause))
-            sql += " " + _orderByClause;
+            sql += " " + NormalizeOrderByClause(_orderByClause);
         if (!string.IsNullOrEmpty(_limitClause))
             sql += " " + _limitClause;
         if (!string.IsNullOrEmpty(_offsetClause))
             sql += _offsetClause;
-
         return sql;
     }
+
+    private string BuildCollapsedSelect(bool includeResultTotal)
+    {
+        var filtered = GetBaseWhereSql();
+        var totalColumn = includeResultTotal
+            ? $", COUNT(*) OVER() AS {SqlQueries.ResultTotalCountColumnName}"
+            : "";
+
+        var sql = $"""
+            WITH av_filtered AS (
+            {filtered}
+            ),
+            av_deduped AS (
+              SELECT av_filtered.*,
+                ROW_NUMBER() OVER (
+                  PARTITION BY COALESCE(NULLIF(TRIM(av_filtered.scryfallOracleId), ''), av_filtered.uuid)
+                  ORDER BY
+                    CASE WHEN lower(COALESCE(av_filtered.language, '')) IN ('', 'english') THEN 0 ELSE 1 END,
+                    CASE WHEN instr(lower(COALESCE(av_filtered.availability, '')), 'paper') > 0 THEN 0 ELSE 1 END,
+                    av_filtered.setReleaseDate DESC NULLS LAST,
+                    CASE WHEN COALESCE(av_filtered.edhrecRank, 0) > 0 THEN av_filtered.edhrecRank ELSE 999999999 END,
+                    av_filtered.setCode DESC,
+                    av_filtered.uuid
+                ) AS av_oracle_rn
+              FROM av_filtered
+            )
+            SELECT d.*{totalColumn}
+            FROM av_deduped d
+            WHERE d.av_oracle_rn = 1
+            """;
+
+        return AppendPaging(sql);
+    }
+
+    private string BuildCollapsedCount()
+    {
+        var filtered = GetBaseWhereSql();
+        return $"""
+            WITH av_filtered AS (
+            {filtered}
+            ),
+            av_deduped AS (
+              SELECT
+                ROW_NUMBER() OVER (
+                  PARTITION BY COALESCE(NULLIF(TRIM(av_filtered.scryfallOracleId), ''), av_filtered.uuid)
+                  ORDER BY
+                    CASE WHEN lower(COALESCE(av_filtered.language, '')) IN ('', 'english') THEN 0 ELSE 1 END,
+                    CASE WHEN instr(lower(COALESCE(av_filtered.availability, '')), 'paper') > 0 THEN 0 ELSE 1 END,
+                    av_filtered.setReleaseDate DESC NULLS LAST,
+                    CASE WHEN COALESCE(av_filtered.edhrecRank, 0) > 0 THEN av_filtered.edhrecRank ELSE 999999999 END,
+                    av_filtered.setCode DESC,
+                    av_filtered.uuid
+                ) AS av_oracle_rn
+              FROM av_filtered
+            )
+            SELECT COUNT(*) AS {SqlQueries.CountField}
+            FROM av_deduped
+            WHERE av_oracle_rn = 1
+            """;
+    }
+
+    private string NormalizeOrderByClause(string orderByClause) =>
+        _collapseReprints
+            ? orderByClause.Replace("c.", "", StringComparison.Ordinal)
+            : orderByClause;
 
     private void EnsureSideFilter()
     {

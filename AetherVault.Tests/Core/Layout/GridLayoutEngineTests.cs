@@ -57,15 +57,14 @@ public class GridLayoutEngineTests
     }
 
     [Fact]
-    public void Calculate_NarrowSmallScreen_Returns3Columns()
+    public void Calculate_NarrowSmallScreen_Returns2Columns()
     {
         // Samsung S24 can report ~332dp logical width when One UI applies display size scaling.
-        // With MinCardWidth=100 the old threshold required >=352dp for 3 columns; 332dp gave 2.
-        // With MinCardWidth=85 the threshold drops to ~292dp, so 332dp gives 3 columns.
+        // CardGrid uses MinCardWidth 120f on phone — ~2 columns at this width (larger card art).
         var viewport = new Viewport(332f, 800f, 0f);
         var config = new GridConfig
         {
-            MinCardWidth = 85f,   // matches CardGrid.OnSizeAllocated for small screens
+            MinCardWidth = 120f,   // matches CardGrid.ApplySizing for small screens
             CardSpacing = 8f,
             LabelHeight = 42f
         };
@@ -78,12 +77,12 @@ public class GridLayoutEngineTests
         var result = GridLayoutEngine.Calculate(state);
 
         // availWidth = 332 - 20 = 312
-        // columns = floor((312 - 8) / (85 + 8)) = floor(304 / 93) = 3
-        // cardWidth = (312 - 8 * 4) / 3 = 280 / 3 = 93.33
+        // columns = floor((312 - 8) / (120 + 8)) = floor(304 / 128) = 2
+        // cardWidth = (312 - 8 * 3) / 2 = 288 / 2 = 144
         Assert.Equal(6, result.Commands.Length);
-        Assert.Equal(93.33f, result.CardWidth, 0.1f);
+        Assert.Equal(144f, result.CardWidth, 0.1f);
 
-        // Verify layout: cards 0,1,2 on row 0; cards 3,4,5 on row 1
+        // Verify layout: cards 0,1 on row 0; cards 2,3 on row 1; cards 4,5 on row 2
         var cmds = result.Commands.OfType<DrawCardCommand>().ToList();
         float col0X = cmds[0].Rect.Left;
         float col1X = cmds[1].Rect.Left;
@@ -91,8 +90,8 @@ public class GridLayoutEngineTests
         float col3X = cmds[3].Rect.Left;
 
         Assert.True(col1X > col0X, "Card 1 should be right of card 0");
-        Assert.True(col2X > col1X, "Card 2 should be right of card 1");
-        Assert.Equal(col0X, col3X, 0.1f); // Card 3 wraps to row 2, same column as card 0
+        Assert.Equal(col0X, col2X, 0.1f); // Card 2 wraps to row 1, same column as card 0
+        Assert.True(col3X > col2X, "Card 3 should be right of card 2");
     }
 
     [Fact]

@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:AetherVault.Controls"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              x:Class="AetherVault.Pages.AddToDeckPage"
              Title="Add to deck"
              BackgroundColor="{StaticResource Background}">
@@ -55,39 +56,19 @@
                 <VerticalStackLayout x:Name="DeckPickerPanel" Spacing="20">
 
                     <Border Style="{StaticResource CardStyle}" Padding="16">
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="Deck"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Picker x:Name="DeckPicker"
-                                    Title="Choose a deck..."
-                                    FontSize="16"
-                                    TextColor="{StaticResource TextPrimary}"
-                                    TitleColor="{StaticResource TextSecondary}"
-                                    BackgroundColor="{StaticResource Surface}"
-                                    HeightRequest="48" />
-                        </VerticalStackLayout>
+                        <material:PickerField x:Name="DeckPicker"
+                                              Title="Choose a deck..."
+                                              TextColor="{StaticResource TextPrimary}"
+                                              TitleColor="{StaticResource TextSecondary}"
+                                              AccentColor="{StaticResource Accent}" />
                     </Border>
 
                     <Border Style="{StaticResource CardStyle}" Padding="16">
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="Section"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource TextSecondary}" />
-                            <Picker x:Name="SectionPicker"
-                                    FontSize="16"
-                                    TextColor="{StaticResource TextPrimary}"
-                                    BackgroundColor="{StaticResource Surface}"
-                                    HeightRequest="48">
-                                <Picker.Items>
-                                    <x:String>Main</x:String>
-                                    <x:String>Sideboard</x:String>
-                                    <x:String>Commander</x:String>
-                                </Picker.Items>
-                            </Picker>
-                        </VerticalStackLayout>
+                        <material:PickerField x:Name="SectionPicker"
+                                              Title="Section"
+                                              TextColor="{StaticResource TextPrimary}"
+                                              TitleColor="{StaticResource TextSecondary}"
+                                              AccentColor="{StaticResource Accent}" />
                     </Border>
 
                     <!-- Quantity -->

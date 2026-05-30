@@ -36,7 +36,7 @@ public partial class CollectionPage : ContentPage
             AetherVault.Services.Logger.LogStuff("[CollectionUI] CollectionLoaded fired (will ScrollToAsync grid)", AetherVault.Services.LogLevel.Debug);
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                if (!_viewModel.IsCollectionEmpty)
+                if (!_viewModel.IsCollectionEmpty && CollectionGrid.Handler is not null)
                     await CollectionGrid.ScrollToAsync(0, false);
             });
         };

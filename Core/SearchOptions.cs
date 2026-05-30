@@ -43,6 +43,8 @@ public class SearchOptions
     // Special filters
     public bool PrimarySideOnly { get; set; } = true;
     public bool NoVariations { get; set; }
+    /// <summary>When true, search lists every printing instead of one representative per oracle card.</summary>
+    public bool ShowAllPrintings { get; set; }
     public bool IncludeAllFaces { get; set; }
     public bool IncludeTokens { get; set; }
     /// <summary>When true, only cards that can be a commander (Legendary Creature or "can be your commander").</summary>
@@ -88,6 +90,7 @@ public class SearchOptions
         UseLegalFormat = false;
         PrimarySideOnly = true;
         NoVariations = false;
+        ShowAllPrintings = false;
         IncludeAllFaces = false;
         IncludeTokens = false;
         CommanderOnly = false;
@@ -120,6 +123,7 @@ public class SearchOptions
             if (!string.IsNullOrWhiteSpace(ArtistFilter)) count++;
             if (IncludeTokens) count++;
             if (NoVariations) count++;
+            if (ShowAllPrintings) count++;
             if (!PrimarySideOnly || IncludeAllFaces) count++;
             if (CommanderOnly) count++;
             if (GameChangerOnly) count++;
@@ -150,6 +154,7 @@ public class SearchOptions
         UseLegalFormat ||
         IncludeTokens ||
         NoVariations ||
+        ShowAllPrintings ||
         !PrimarySideOnly ||
         IncludeAllFaces ||
         CommanderOnly ||
@@ -186,6 +191,7 @@ public class SearchOptions
         UseLegalFormat = UseLegalFormat,
         PrimarySideOnly = PrimarySideOnly,
         NoVariations = NoVariations,
+        ShowAllPrintings = ShowAllPrintings,
         IncludeAllFaces = IncludeAllFaces,
         IncludeTokens = IncludeTokens,
         CommanderOnly = CommanderOnly,

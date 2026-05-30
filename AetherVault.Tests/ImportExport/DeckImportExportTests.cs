@@ -317,7 +317,12 @@ public class DeckImportExportTests
         public Task<int> CountAdvancedAsync(MtgSearchHelper searchHelper) => throw new NotImplementedException();
         public MtgSearchHelper CreateSearchHelper() => throw new NotImplementedException();
         public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
+
+        public Task<IReadOnlyList<SetBrowseRow>> GetSetsBrowseAsync() => Task.FromResult<IReadOnlyList<SetBrowseRow>>([]);
         public Task<bool> HasFtsAsync() => Task.FromResult(false);
+
+        public Task<IReadOnlyList<OtherPrintingSummary>> GetOtherPrintingsByOracleIdAsync(string oracleId, string currentUuid) =>
+            Task.FromResult<IReadOnlyList<OtherPrintingSummary>>([]);
 
         public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
         {

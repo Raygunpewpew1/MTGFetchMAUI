@@ -970,7 +970,11 @@ public class MockCardRepository : ICardRepository
     public MtgSearchHelper CreateSearchHelper() => new();
     public Task<IReadOnlyList<ImportLookupRow>> GetImportLookupRowsAsync() => Task.FromResult<IReadOnlyList<ImportLookupRow>>([]);
     public Task<IReadOnlyList<SetInfo>> GetAllSetsAsync() => Task.FromResult<IReadOnlyList<SetInfo>>([]);
+    public Task<IReadOnlyList<SetBrowseRow>> GetSetsBrowseAsync() => Task.FromResult<IReadOnlyList<SetBrowseRow>>([]);
     public Task<bool> HasFtsAsync() => Task.FromResult(false);
+
+    public Task<IReadOnlyList<OtherPrintingSummary>> GetOtherPrintingsByOracleIdAsync(string oracleId, string currentUuid) =>
+        Task.FromResult<IReadOnlyList<OtherPrintingSummary>>([]);
 
     public Task<Card?> GetCardByScryfallIdAsync(string scryfallId)
     {

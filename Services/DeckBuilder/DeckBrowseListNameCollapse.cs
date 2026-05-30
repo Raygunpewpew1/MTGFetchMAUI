@@ -1,4 +1,5 @@
 using AetherVault.Models;
+using AetherVault.Services;
 
 namespace AetherVault.Services.DeckBuilder;
 
@@ -53,19 +54,5 @@ public static class DeckBrowseListNameCollapse
     }
 
     private static Card SelectBestPrinting(List<Card> sameName) =>
-        sameName.Count == 1
-            ? sameName[0]
-            : sameName
-                .OrderByDescending(BestPrintingScore)
-                .ThenByDescending(c => c.SetCode, StringComparer.Ordinal)
-                .ThenBy(c => c.Uuid, StringComparer.Ordinal)
-                .First();
-
-    /// <summary>Lower edhrec rank = more popular; unknown rank (0) scores last, then sort by set code.</summary>
-    private static int BestPrintingScore(Card c)
-    {
-        int r = c.EdhRecRank;
-        if (r > 0) return 1_000_000 - Math.Min(r, 999_999);
-        return 0;
-    }
+        OracleReprintCollapse.SelectBestPrinting(sameName);
 }

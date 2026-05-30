@@ -136,6 +136,13 @@ public enum DeckEditorLayoutMode
     Grid,
 }
 
+/// <summary>Decks tab hub presentation: full-width rows or art-forward tiles.</summary>
+public enum DeckHubLayoutMode
+{
+    List,
+    Tiles,
+}
+
 public static class EnumExtensions
 {
     static EnumExtensions()

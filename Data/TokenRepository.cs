@@ -6,52 +6,39 @@ namespace AetherVault.Data;
 public class TokenRepository : ITokenRepository
 {
     private readonly DatabaseManager _db;
-    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public TokenRepository(DatabaseManager databaseManager)
     {
         _db = databaseManager;
     }
 
-    public async Task<TokenEntity?> GetTokenByUuidAsync(string uuid)
-    {
-        await _lock.WaitAsync();
-        try
-        {
-            return await _db.MtgConnection.QueryFirstOrDefaultAsync<TokenEntity>(
-                SqlQueries.SelectTokenByUuid, new { uuid });
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+    public async Task<TokenEntity?> GetTokenByUuidAsync(string uuid) =>
+        await WithMtgConnectionAsync(async () =>
+            await _db.MtgConnection.QueryFirstOrDefaultAsync<TokenEntity>(
+                SqlQueries.SelectTokenByUuid, new { uuid }));
 
-    public async Task<TokenIdentifierEntity?> GetTokenIdentifierAsync(string uuid)
-    {
-        await _lock.WaitAsync();
-        try
-        {
-            return await _db.MtgConnection.QueryFirstOrDefaultAsync<TokenIdentifierEntity>(
-                SqlQueries.SelectTokenIdentifierByUuid, new { uuid });
-        }
-        finally
-        {
-            _lock.Release();
-        }
-    }
+    public async Task<TokenIdentifierEntity?> GetTokenIdentifierAsync(string uuid) =>
+        await WithMtgConnectionAsync(async () =>
+            await _db.MtgConnection.QueryFirstOrDefaultAsync<TokenIdentifierEntity>(
+                SqlQueries.SelectTokenIdentifierByUuid, new { uuid }));
 
-    public async Task<IEnumerable<TokenEntity>> GetTokensBySetCodeAsync(string setCode)
+    public async Task<IEnumerable<TokenEntity>> GetTokensBySetCodeAsync(string setCode) =>
+        await WithMtgConnectionAsync(async () =>
+            await _db.MtgConnection.QueryAsync<TokenEntity>(
+                SqlQueries.SelectTokensBySetCode, new { setCode }));
+
+    private async Task<T> WithMtgConnectionAsync<T>(Func<Task<T>> action)
     {
-        await _lock.WaitAsync();
+        await _db.ConnectionLock.WaitAsync();
         try
         {
-            return await _db.MtgConnection.QueryAsync<TokenEntity>(
-                SqlQueries.SelectTokensBySetCode, new { setCode });
+            if (!_db.IsConnected)
+                throw new InvalidOperationException("Database not connected.");
+            return await action();
         }
         finally
         {
-            _lock.Release();
+            _db.ConnectionLock.Release();
         }
     }
 }

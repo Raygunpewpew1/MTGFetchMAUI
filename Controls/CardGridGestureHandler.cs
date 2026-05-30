@@ -5,13 +5,22 @@ namespace AetherVault.Controls;
 internal sealed class CardGridGestureHandler
 {
     /// <summary>Minimum list scroll (Y) between touch down and up to treat the gesture as a scroll, not a tap.</summary>
-    private const double ScrollDeltaSuppressTap = 8d;
+    private const double ScrollDeltaSuppressTap = 10d;
 
     /// <summary>Squared distance (DIP) finger must move from press point to cancel a tap (thumb slop).</summary>
     private const float TapCancelDistanceSquared = 8f * 8f;
 
     /// <summary>Axis drift (DIP) that cancels long-press arming so ScrollView can take the pan.</summary>
     private const float LongPressCancelAxisSlop = 5f;
+
+    /// <summary>Vertical pan (DIP) that marks scroll intent when |dy| exceeds |dx|.</summary>
+    private const float VerticalScrollIntentThreshold = 6f;
+
+    /// <summary>Scroll-Y jitter below this (DIP) still counts as a stationary tap.</summary>
+    private const double ImmediateTapMaxScrollDelta = 2d;
+
+    /// <summary>Zero-delay main-thread posts before firing an ambiguous deferred tap.</summary>
+    private const int DeferredTapRecheckTicks = 1;
 
     public event Action<string>? Tapped;
     public event Action<string>? LongPressed;
@@ -45,7 +54,13 @@ internal sealed class CardGridGestureHandler
     private readonly Func<double> _getScrollY;
 
     private double _scrollYAtPress;
-    private bool _scrolledSinceDown;
+
+    /// <summary>Monotonic id for the active pointer-down gesture.</summary>
+    private int _gestureToken;
+    /// <summary>Token value when NotifyScrolled last fired; survives PressTracking→Idle.</summary>
+    private int _scrollSeenForToken;
+    /// <summary>Token value when vertical scroll intent was detected via Panning.</summary>
+    private int _verticalScrollIntentForToken;
 
     public CardGridGestureHandler(
         IDispatcher dispatcher,
@@ -67,8 +82,7 @@ internal sealed class CardGridGestureHandler
     /// </summary>
     internal void NotifyScrolled()
     {
-        if (_gestureState == GestureState.PressTracking)
-            _scrolledSinceDown = true;
+        _scrollSeenForToken = _gestureToken;
     }
 
     internal void HandleDown(float x, float y)
@@ -77,10 +91,12 @@ internal sealed class CardGridGestureHandler
         // compete for vertical pans (same pattern as SwipeGestureContainer).
         ResetScrollShareForGestureStart?.Invoke();
 
+        _gestureToken++;
+        _scrollSeenForToken = 0;
+        _verticalScrollIntentForToken = 0;
         _pressPoint = new Point(x, y);
         _hasMovedBeyondTapThreshold = false;
         _scrollYAtPress = _getScrollY();
-        _scrolledSinceDown = false;
         _gestureState = GestureState.PressTracking;
         _armedUuid = null;
         _armedIndex = -1;
@@ -124,6 +140,15 @@ internal sealed class CardGridGestureHandler
                     float dy = y - (float)_pressPoint.Y;
                     if (dx * dx + dy * dy > TapCancelDistanceSquared)
                         _hasMovedBeyondTapThreshold = true;
+
+                    // Vertical pan intent: clearly a scroll, not a tap (direction-lock lite).
+                    if (Math.Abs(dy) > Math.Abs(dx) && Math.Abs(dy) >= VerticalScrollIntentThreshold)
+                    {
+                        _verticalScrollIntentForToken = _gestureToken;
+                        _gestureState = GestureState.Idle;
+                        _longPressTimer?.Stop();
+                        break;
+                    }
                 }
 
                 // Cancel long-press if pointer drifts (lets the ScrollView scroll)
@@ -143,13 +168,13 @@ internal sealed class CardGridGestureHandler
                     var uuid = _armedUuid!;
                     var index = _armedIndex;
                     _gestureState = GestureState.Dragging;
-                    MainThread.BeginInvokeOnMainThread(() => DragStarted?.Invoke(uuid, index));
-                    MainThread.BeginInvokeOnMainThread(() => DragMoved?.Invoke(x, y));
+                    DispatchOnMainThread(() => DragStarted?.Invoke(uuid, index));
+                    DispatchOnMainThread(() => DragMoved?.Invoke(x, y));
                 }
                 break;
 
             case GestureState.Dragging:
-                MainThread.BeginInvokeOnMainThread(() => DragMoved?.Invoke(x, y));
+                DispatchOnMainThread(() => DragMoved?.Invoke(x, y));
                 break;
         }
     }
@@ -161,25 +186,27 @@ internal sealed class CardGridGestureHandler
             case GestureState.PressTracking:
                 // Quick tap: only if finger stayed within slop and the list did not scroll
                 // (ScrollView often consumes pans, so we may not see pointer moves during scroll).
-                _gestureState = GestureState.Idle;
-                _longPressTimer?.Stop();
-                bool scrolled = _scrolledSinceDown || Math.Abs(_getScrollY() - _scrollYAtPress) >= ScrollDeltaSuppressTap;
-                if (!_hasMovedBeyondTapThreshold && !scrolled)
                 {
-                    // ScrollY and Scrolled often update one or more UI ticks after finger-up when
-                    // the parent ScrollView owns the pan. Re-check after two main-thread posts so
-                    // we do not open CardDetail on a scroll that committed just after HandleUp.
+                    var token = _gestureToken;
                     var tapPoint = _pressPoint;
-                    double scrollSnap = _getScrollY();
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            if (Math.Abs(_getScrollY() - scrollSnap) >= ScrollDeltaSuppressTap) return;
-                            var (uuid, _) = _hitTest((float)tapPoint.X, (float)tapPoint.Y);
-                            if (uuid != null) Tapped?.Invoke(uuid);
-                        });
-                    });
+                    var scrollYAtPress = _scrollYAtPress;
+                    double scrollDelta = Math.Abs(_getScrollY() - scrollYAtPress);
+
+                    _gestureState = GestureState.Idle;
+                    _longPressTimer?.Stop();
+
+                    if (_hasMovedBeyondTapThreshold || IsScrollSuppressed(token, scrollYAtPress))
+                        break;
+
+                    bool canTapImmediately =
+                        _scrollSeenForToken != token
+                        && _verticalScrollIntentForToken != token
+                        && scrollDelta < ImmediateTapMaxScrollDelta;
+
+                    if (canTapImmediately)
+                        FireTapIfValid(token, tapPoint, scrollYAtPress);
+                    else
+                        ScheduleDeferredTap(token, tapPoint, scrollYAtPress);
                 }
                 break;
 
@@ -190,13 +217,13 @@ internal sealed class CardGridGestureHandler
                 _longPressTimer?.Stop();
                 AllowScrollIntercept?.Invoke();
                 if (armedUuid != null)
-                    MainThread.BeginInvokeOnMainThread(() => LongPressed?.Invoke(armedUuid));
+                    DispatchOnMainThread(() => LongPressed?.Invoke(armedUuid));
                 break;
 
             case GestureState.Dragging:
                 _gestureState = GestureState.Idle;
                 AllowScrollIntercept?.Invoke();
-                MainThread.BeginInvokeOnMainThread(() => DragEnded?.Invoke());
+                DispatchOnMainThread(() => DragEnded?.Invoke());
                 break;
 
             default:
@@ -214,7 +241,7 @@ internal sealed class CardGridGestureHandler
         {
             _gestureState = GestureState.Idle;
             AllowScrollIntercept?.Invoke();
-            MainThread.BeginInvokeOnMainThread(() => DragCancelled?.Invoke());
+            DispatchOnMainThread(() => DragCancelled?.Invoke());
         }
         else
         {
@@ -223,5 +250,65 @@ internal sealed class CardGridGestureHandler
             _gestureState = GestureState.Idle;
             AllowScrollIntercept?.Invoke();
         }
+    }
+
+    private bool IsScrollSuppressed(int token, double scrollYAtPress)
+    {
+        if (_scrollSeenForToken == token || _verticalScrollIntentForToken == token)
+            return true;
+        return Math.Abs(_getScrollY() - scrollYAtPress) >= ScrollDeltaSuppressTap;
+    }
+
+    private void FireTapIfValid(int token, Point tapPoint, double scrollYAtPress)
+    {
+        if (IsScrollSuppressed(token, scrollYAtPress))
+            return;
+
+        var (uuid, _) = _hitTest((float)tapPoint.X, (float)tapPoint.Y);
+        if (uuid != null)
+            Tapped?.Invoke(uuid);
+    }
+
+    private bool ShouldSuppressDeferredTap(int token, double scrollYAtPress, double scrollSnap)
+    {
+        if (_scrollSeenForToken == token || _verticalScrollIntentForToken == token)
+            return true;
+        if (Math.Abs(_getScrollY() - scrollYAtPress) >= ScrollDeltaSuppressTap)
+            return true;
+        if (Math.Abs(_getScrollY() - scrollSnap) >= ScrollDeltaSuppressTap)
+            return true;
+        return false;
+    }
+
+    private void ScheduleDeferredTap(int token, Point tapPoint, double scrollYAtPress)
+    {
+        double scrollSnap = _getScrollY();
+        RecheckDeferredTap(token, tapPoint, scrollYAtPress, scrollSnap, DeferredTapRecheckTicks);
+    }
+
+    private void RecheckDeferredTap(int token, Point tapPoint, double scrollYAtPress, double scrollSnap, int ticksRemaining)
+    {
+        // Zero-delay posts: wait for ScrollY/Scrolled to catch up without adding perceptible tap lag.
+        _dispatcher.DispatchDelayed(TimeSpan.Zero, () =>
+        {
+            if (ShouldSuppressDeferredTap(token, scrollYAtPress, scrollSnap))
+                return;
+
+            if (ticksRemaining > 0)
+            {
+                RecheckDeferredTap(token, tapPoint, scrollYAtPress, scrollSnap, ticksRemaining - 1);
+                return;
+            }
+
+            FireTapIfValid(token, tapPoint, scrollYAtPress);
+        });
+    }
+
+    private void DispatchOnMainThread(Action action)
+    {
+        if (_dispatcher.IsDispatchRequired)
+            _dispatcher.Dispatch(action);
+        else
+            action();
     }
 }

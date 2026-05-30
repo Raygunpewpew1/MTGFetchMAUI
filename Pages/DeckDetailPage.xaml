@@ -53,7 +53,7 @@
                 </Border.GestureRecognizers>
                 <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
                     <Label FontFamily="FASolid" Text="{x:Static fa:Solid.Crown}" FontSize="14" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
-                    <Label Text="Commander" FontSize="11" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
+                    <Label Text="{OnIdiom Phone='Cmdr', Default='Commander'}" FontSize="11" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
                     <BoxView HeightRequest="2" Color="{Binding Tab0Color}" Opacity="{Binding Tab0Indicator}" HorizontalOptions="Fill" />
                 </VerticalStackLayout>
             </Border>
@@ -106,56 +106,104 @@
                            VerticalTextAlignment="Center"
                            Margin="0,0,4,0"
                            MinimumWidthRequest="72" />
-                    <Button Text="All"
-                            Command="{Binding SelectAllInCurrentSectionCommand}"
+                    <Button Command="{Binding SelectAllInCurrentSectionCommand}"
+                            Text="{OnIdiom Phone='', Default='All'}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
-                    <Button Text="None"
-                            Command="{Binding ClearDeckSelectionCommand}"
+                            TextColor="{StaticResource TextPrimary}"
+                            SemanticProperties.Description="Select all">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.CheckDouble}"
+                                             Size="12"
+                                             Color="{StaticResource TextPrimary}" />
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding ClearDeckSelectionCommand}"
+                            Text="{OnIdiom Phone='', Default='None'}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
-                    <Button Text="-1"
-                            Command="{Binding BulkDecrementSelectionCommand}"
+                            TextColor="{StaticResource TextPrimary}"
+                            SemanticProperties.Description="Clear selection">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Eraser}"
+                                             Size="12"
+                                             Color="{StaticResource TextPrimary}" />
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding BulkDecrementSelectionCommand}"
+                            Text="{OnIdiom Phone='', Default='-1'}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
-                    <Button Text="+1"
-                            Command="{Binding BulkIncrementSelectionCommand}"
+                            TextColor="{StaticResource TextPrimary}"
+                            SemanticProperties.Description="Decrease selected by 1">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Minus}"
+                                             Size="12"
+                                             Color="{StaticResource TextPrimary}" />
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding BulkIncrementSelectionCommand}"
+                            Text="{OnIdiom Phone='', Default='+1'}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource Accent}"
-                            TextColor="Black" />
-                    <Button Text="To Main"
+                            TextColor="Black"
+                            SemanticProperties.Description="Increase selected by 1">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Plus}"
+                                             Size="12"
+                                             Color="Black" />
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Text="{OnIdiom Phone='Main', Default='To Main'}"
                             Command="{Binding BulkMoveSelectionToMainCommand}"
                             IsVisible="{Binding IsSideboardTab}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
                             TextColor="{StaticResource TextPrimary}" />
-                    <Button Text="To Side"
+                    <Button Text="{OnIdiom Phone='Side', Default='To Side'}"
                             Command="{Binding BulkMoveSelectionToSideboardCommand}"
                             IsVisible="{Binding IsMainTab}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
                             TextColor="{StaticResource TextPrimary}" />
-                    <Button Text="Remove"
-                            Command="{Binding BulkRemoveSelectionCommand}"
+                    <Button Command="{Binding BulkRemoveSelectionCommand}"
+                            Text="{OnIdiom Phone='', Default='Remove'}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="#B00020"
-                            TextColor="White" />
-                    <Button Text="Done"
-                            Command="{Binding ToggleSelectionModeCommand}"
+                            TextColor="White"
+                            SemanticProperties.Description="Remove selected">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.TrashCan}"
+                                             Size="12"
+                                             Color="White" />
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding ToggleSelectionModeCommand}"
+                            Text="{OnIdiom Phone='', Default='Done'}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource Primary}"
-                            TextColor="White" />
+                            TextColor="White"
+                            SemanticProperties.Description="Exit selection mode">
+                        <Button.ImageSource>
+                            <FontImageSource FontFamily="FASolid"
+                                             Glyph="{x:Static fa:Solid.Check}"
+                                             Size="12"
+                                             Color="White" />
+                        </Button.ImageSource>
+                    </Button>
                 </HorizontalStackLayout>
             </ScrollView>
         </Border>
@@ -252,14 +300,19 @@
                 </Grid>
 
                 <VerticalStackLayout Spacing="6"
-                                     Margin="0,8,0,0">
-                    <Label Text="{x:Static constants:UserMessages.DeckAddQuickListsTitle}"
-                           FontSize="12"
-                           FontAttributes="Bold"
-                           TextColor="{StaticResource TextSecondary}" />
+                                     Margin="0,4,0,0">
+                    <Button Text="{x:Static constants:UserMessages.DeckAddBrowseOpen}"
+                            Command="{Binding ToggleQuickBrowseListsCommand}"
+                            FontSize="12"
+                            Padding="10,6"
+                            CornerRadius="14"
+                            HorizontalOptions="Start"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}" />
                     <ScrollView Orientation="Horizontal"
                                 HeightRequest="40"
-                                HorizontalScrollBarVisibility="Never">
+                                HorizontalScrollBarVisibility="Never"
+                                IsVisible="{Binding ShowQuickBrowseLists}">
                         <HorizontalStackLayout Spacing="8"
                                                VerticalOptions="Center"
                                                BindableLayout.ItemsSource="{Binding QuickBrowseListChips}">
@@ -334,43 +387,45 @@
         </Grid>
 
         <!-- Row 5: Deck summary bar + status -->
-        <Grid Grid.Row="5"
-              RowDefinitions="Auto,Auto"
-              Padding="12,8"
-              BackgroundColor="{StaticResource Primary}"
-              RowSpacing="4">
-            <Label Grid.Row="0"
-                   Text="{Binding DeckSummaryText}"
-                   FontSize="14"
-                   FontAttributes="Bold"
-                   TextColor="White"
-                   HorizontalOptions="Center"
-                   VerticalOptions="Center" />
-            <Grid Grid.Row="1"
-                  ColumnDefinitions="*,Auto"
-                  ColumnSpacing="8"
-                  VerticalOptions="Center"
-                  IsVisible="{Binding ShowDeckDetailStatusRow}">
-                <Label Grid.Column="0"
-                       Text="{Binding StatusDisplayText}"
-                       FontSize="12"
-                       TextColor="{Binding StatusTextColor}"
+        <Border Grid.Row="5"
+                Padding="12,8"
+                BackgroundColor="{StaticResource Surface}"
+                Stroke="{StaticResource CardBackground}"
+                StrokeThickness="1">
+            <Grid RowDefinitions="Auto,Auto"
+                  RowSpacing="4">
+                <Label Grid.Row="0"
+                       Text="{Binding DeckSummaryText}"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
                        HorizontalOptions="Center"
-                       HorizontalTextAlignment="Center"
-                       VerticalOptions="Center"
-                       Opacity="0.9" />
-                <Button Grid.Column="1"
-                        Text="{x:Static constants:UserMessages.ValidationDetailsButton}"
-                        Command="{Binding ShowValidationDetailsCommand}"
-                        IsVisible="{Binding ShowValidationDetailsEntry}"
-                        BackgroundColor="#33FFFFFF"
-                        TextColor="White"
-                        FontSize="12"
-                        Padding="12,6"
-                        CornerRadius="8"
-                        VerticalOptions="Center" />
+                       VerticalOptions="Center" />
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="*,Auto"
+                      ColumnSpacing="8"
+                      VerticalOptions="Center"
+                      IsVisible="{Binding ShowDeckDetailStatusRow}">
+                    <Label Grid.Column="0"
+                           Text="{Binding StatusDisplayText}"
+                           FontSize="12"
+                           TextColor="{Binding StatusTextColor}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"
+                           VerticalOptions="Center" />
+                    <Button Grid.Column="1"
+                            Text="{x:Static constants:UserMessages.ValidationDetailsButton}"
+                            Command="{Binding ShowValidationDetailsCommand}"
+                            IsVisible="{Binding ShowValidationDetailsEntry}"
+                            BackgroundColor="{StaticResource CardBackground}"
+                            TextColor="{StaticResource TextPrimary}"
+                            FontSize="12"
+                            Padding="12,6"
+                            CornerRadius="8"
+                            VerticalOptions="Center" />
+                </Grid>
             </Grid>
-        </Grid>
+        </Border>
 
     </Grid>
 

@@ -10,6 +10,10 @@ using System.Windows.Input;
 namespace AetherVault.ViewModels;
 
 public record PurchaseLink(string Label, string Url);
+
+/// <summary>Keyword from MTGJSON <c>keywords</c> plus a short in-app summary (or fallback text).</summary>
+public record KeywordHelpRow(string Keyword, string Summary);
+
 public record LegalityItem(string Format, LegalityStatus Status)
 {
     public string StatusText => Status switch
@@ -97,6 +101,12 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
     public partial bool IsSetSymbolVisible { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOtherPrintings))]
+    public partial List<OtherPrintingSummary> OtherPrintings { get; set; } = [];
+
+    public bool HasOtherPrintings => OtherPrintings.Count > 0;
+
+    [ObservableProperty]
     public partial bool IsArtistVisible { get; set; }
 
     [ObservableProperty]
@@ -108,6 +118,13 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
 
     [ObservableProperty]
     public partial List<LegalityItem> Legalities { get; set; } = [];
+
+    /// <summary>Union of <see cref="Card.Keywords"/> across all loaded faces, with glossary text where available.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasKeywordHelp))]
+    public partial List<KeywordHelpRow> KeywordHelpRows { get; set; } = [];
+
+    public bool HasKeywordHelp => KeywordHelpRows.Count > 0;
 
     public ICommand OpenLinkCommand => new Command<string>(async (url) =>
     {
@@ -255,6 +272,8 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
             UpdateCardDetails();
 
             UpdateGalleryState();
+
+            await LoadOtherPrintingsAsync(uuid);
         }
         catch (Exception ex)
         {
@@ -327,7 +346,66 @@ public partial class CardDetailViewModel : BaseViewModel, IDisposable
         // Legalities
         Legalities = GetLegalityList();
 
+        KeywordHelpRows = BuildKeywordHelpRows(Faces);
+
         DeckSynergyHintLine = _deckSynergyNavigationContext.GetOverlapHint(CurrentFace) ?? "";
+    }
+
+    private async Task LoadOtherPrintingsAsync(string currentUuid)
+    {
+        var oracleId = Card.ScryfallOracleId;
+        if (string.IsNullOrWhiteSpace(oracleId))
+        {
+            OtherPrintings = [];
+            return;
+        }
+
+        try
+        {
+            var rows = await _cardManager.GetOtherPrintingsAsync(oracleId, currentUuid);
+            OtherPrintings = rows.Count > 0 ? [.. rows] : [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogStuff($"Other printings load failed: {ex.Message}", LogLevel.Warning);
+            OtherPrintings = [];
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenOtherPrinting(OtherPrintingSummary? printing)
+    {
+        if (printing is null || string.IsNullOrEmpty(printing.Uuid))
+            return;
+
+        await LoadCardAsync(printing.Uuid);
+    }
+
+    private static List<KeywordHelpRow> BuildKeywordHelpRows(Card[] faces)
+    {
+        if (faces.Length == 0)
+            return [];
+
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var face in faces)
+        {
+            foreach (var k in face.GetKeywordsArray())
+            {
+                if (!string.IsNullOrWhiteSpace(k))
+                    set.Add(k.Trim());
+            }
+        }
+
+        if (set.Count == 0)
+            return [];
+
+        const string fallback =
+            "No glossary entry — see reminder text on the card or the Comprehensive Rules.";
+
+        return set
+            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
+            .Select(k => new KeywordHelpRow(k, KeywordAbilityGlossary.TryGetSummary(k) ?? fallback))
+            .ToList();
     }
 
     private void UpdateGalleryState()

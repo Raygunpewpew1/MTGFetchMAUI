@@ -95,7 +95,8 @@
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource TextPrimary}"
-                                   LineBreakMode="TailTruncation" />
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1" />
                             <Label Grid.Row="1" Grid.Column="0"
                                    Text="{Binding Type}"
                                    FontSize="12"
