@@ -504,33 +504,9 @@ public class CollectionRepository : ICollectionRepository
         });
     }
 
-    private async Task WithCollectionConnectionAsync(Func<SqliteConnection, Task> action)
-    {
-        await _db.ConnectionLock.WaitAsync();
-        try
-        {
-            if (!_db.IsConnected)
-                throw new InvalidOperationException("Database not connected.");
-            await action(_db.CollectionConnection);
-        }
-        finally
-        {
-            _db.ConnectionLock.Release();
-        }
-    }
+    private Task WithCollectionConnectionAsync(Func<SqliteConnection, Task> action) =>
+        _db.WithConnectedAsync(() => action(_db.CollectionConnection));
 
-    private async Task<T> WithCollectionConnectionAsync<T>(Func<SqliteConnection, Task<T>> action)
-    {
-        await _db.ConnectionLock.WaitAsync();
-        try
-        {
-            if (!_db.IsConnected)
-                throw new InvalidOperationException("Database not connected.");
-            return await action(_db.CollectionConnection);
-        }
-        finally
-        {
-            _db.ConnectionLock.Release();
-        }
-    }
+    private Task<T> WithCollectionConnectionAsync<T>(Func<SqliteConnection, Task<T>> action) =>
+        _db.WithConnectedAsync(() => action(_db.CollectionConnection));
 }

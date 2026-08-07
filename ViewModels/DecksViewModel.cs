@@ -171,32 +171,13 @@ public partial class DecksViewModel : BaseViewModel
             var result = await FilePickerHelper.PickDeckImportFileAsync("Select a deck file to import (CSV or TXT)");
             if (result == null) return;
 
-            IsBusy = true;
-            StatusIsError = false;
-            StatusMessage = UserMessages.ImportingDecks;
-
-            void OnProgress(string message, int _)
-            {
-                MainThread.BeginInvokeOnMainThread(() => { StatusMessage = message; });
-            }
-
-            using var stream = await result.OpenReadAsync();
-            var importResult = await Task.Run(async () =>
-                await _deckImporter.ImportFromFileStreamAsync(stream, result.FileName, OnProgress));
-
-            if (importResult.Errors.Count > 0)
-                Logger.LogStuff($"Deck import completed with {importResult.Errors.Count} errors. First: {importResult.Errors[0]}", LogLevel.Warning);
-            if (importResult.Warnings.Count > 0)
-                Logger.LogStuff($"Deck import completed with {importResult.Warnings.Count} warnings. First: {importResult.Warnings[0]}", LogLevel.Warning);
-
-            await RefreshDecksListAsync(updateStatusLineWithDeckCount: false);
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                StatusIsError = importResult.Errors.Count > 0;
-                StatusMessage = importResult.Errors.Count > 0
-                    ? UserMessages.ImportFailed(importResult.Errors[0])
-                    : UserMessages.ImportedDecksToast(importResult.ImportedDecks, importResult.ImportedCards);
-            });
+            await RunDeckImportAsync(
+                "file",
+                progress => Task.Run(async () =>
+                {
+                    using var stream = await result.OpenReadAsync();
+                    return await _deckImporter.ImportFromFileStreamAsync(stream, result.FileName, progress);
+                }));
         }
         catch (Exception ex)
         {
@@ -204,13 +185,22 @@ public partial class DecksViewModel : BaseViewModel
             StatusIsError = true;
             StatusMessage = UserMessages.ImportFailed(ex.Message);
         }
-        finally
-        {
-            IsBusy = false;
-        }
     }
 
-    public async Task ImportDeckFromUrlAsync(string url)
+    public Task ImportDeckFromUrlAsync(string url) =>
+        RunDeckImportAsync(
+            "URL",
+            progress => Task.Run(() => _deckUrlImporter.ImportFromUrlAsync(url, progress)));
+
+    public Task ImportDeckFromPlainTextAsync(string text) =>
+        RunDeckImportAsync(
+            "Paste",
+            progress => Task.Run(() =>
+                _deckImporter.ImportFromPlainTextAsync(text, "Pasted deck", progress)));
+
+    private async Task RunDeckImportAsync(
+        string sourceLabel,
+        Func<Action<string, int>, Task<DeckImportResult>> import)
     {
         if (IsBusy) return;
         IsBusy = true;
@@ -224,13 +214,12 @@ public partial class DecksViewModel : BaseViewModel
 
         try
         {
-            var importResult = await Task.Run(async () =>
-                await _deckUrlImporter.ImportFromUrlAsync(url, OnProgress));
+            var importResult = await import(OnProgress);
 
             if (importResult.Errors.Count > 0)
-                Logger.LogStuff($"URL import: {importResult.Errors.Count} errors. First: {importResult.Errors[0]}", LogLevel.Warning);
+                Logger.LogStuff($"{sourceLabel} import completed with {importResult.Errors.Count} errors. First: {importResult.Errors[0]}", LogLevel.Warning);
             if (importResult.Warnings.Count > 0)
-                Logger.LogStuff($"URL import: {importResult.Warnings.Count} warnings. First: {importResult.Warnings[0]}", LogLevel.Warning);
+                Logger.LogStuff($"{sourceLabel} import completed with {importResult.Warnings.Count} warnings. First: {importResult.Warnings[0]}", LogLevel.Warning);
 
             await RefreshDecksListAsync(updateStatusLineWithDeckCount: false);
             MainThread.BeginInvokeOnMainThread(() =>
@@ -243,50 +232,7 @@ public partial class DecksViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            Logger.LogStuff($"URL deck import failed: {ex.Message}", LogLevel.Error);
-            StatusIsError = true;
-            StatusMessage = UserMessages.ImportFailed(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    public async Task ImportDeckFromPlainTextAsync(string text)
-    {
-        if (IsBusy) return;
-        IsBusy = true;
-        StatusIsError = false;
-        StatusMessage = UserMessages.ImportingDecks;
-
-        void OnProgress(string message, int _)
-        {
-            MainThread.BeginInvokeOnMainThread(() => { StatusMessage = message; });
-        }
-
-        try
-        {
-            var importResult = await Task.Run(async () =>
-                await _deckImporter.ImportFromPlainTextAsync(text, "Pasted deck", OnProgress));
-
-            if (importResult.Errors.Count > 0)
-                Logger.LogStuff($"Paste import: {importResult.Errors.Count} errors. First: {importResult.Errors[0]}", LogLevel.Warning);
-            if (importResult.Warnings.Count > 0)
-                Logger.LogStuff($"Paste import: {importResult.Warnings.Count} warnings. First: {importResult.Warnings[0]}", LogLevel.Warning);
-
-            await RefreshDecksListAsync(updateStatusLineWithDeckCount: false);
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                StatusIsError = importResult.Errors.Count > 0;
-                StatusMessage = importResult.Errors.Count > 0
-                    ? UserMessages.ImportFailed(importResult.Errors[0])
-                    : UserMessages.ImportedDecksToast(importResult.ImportedDecks, importResult.ImportedCards);
-            });
-        }
-        catch (Exception ex)
-        {
-            Logger.LogStuff($"Paste deck import failed: {ex.Message}", LogLevel.Error);
+            Logger.LogStuff($"{sourceLabel} deck import failed: {ex.Message}", LogLevel.Error);
             StatusIsError = true;
             StatusMessage = UserMessages.ImportFailed(ex.Message);
         }

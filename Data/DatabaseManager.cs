@@ -179,6 +179,50 @@ public sealed class DatabaseManager : IDisposable
     /// </summary>
     public SemaphoreSlim ConnectionLock => _connectionLock;
 
+    /// <summary>
+    /// Holds <see cref="ConnectionLock"/> for the duration of <paramref name="action"/>.
+    /// Callers are responsible for checking <see cref="IsConnected"/> when needed.
+    /// </summary>
+    public async Task<T> RunWithConnectionLockAsync<T>(Func<Task<T>> action)
+    {
+        await _connectionLock.WaitAsync();
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+    }
+
+    /// <inheritdoc cref="RunWithConnectionLockAsync{T}"/>
+    public Task RunWithConnectionLockAsync(Func<Task> action) =>
+        RunWithConnectionLockAsync(async () =>
+        {
+            await action();
+            return true;
+        });
+
+    /// <summary>
+    /// Like <see cref="RunWithConnectionLockAsync{T}"/> but throws when the databases are not connected.
+    /// </summary>
+    public Task<T> WithConnectedAsync<T>(Func<Task<T>> action) =>
+        RunWithConnectionLockAsync(async () =>
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Database not connected.");
+            return await action();
+        });
+
+    /// <inheritdoc cref="WithConnectedAsync{T}"/>
+    public Task WithConnectedAsync(Func<Task> action) =>
+        WithConnectedAsync(async () =>
+        {
+            await action();
+            return true;
+        });
+
     private static SqliteConnection CreateConnection(string dbPath, bool readOnly)
     {
         // Pooling must be off: pooled MTG handles can retain an ATTACH AS col across "dispose",

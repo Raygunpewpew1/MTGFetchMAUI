@@ -60,6 +60,8 @@
     <Compile Include="..\Models\Card.cs" Link="Models\Card.cs" />
     <Compile Include="..\Core\ColorIdentity.cs" Link="Core\ColorIdentity.cs" />
     <Compile Include="..\Core\ManaCostPipAnalyzer.cs" Link="Core\ManaCostPipAnalyzer.cs" />
+    <Compile Include="..\Core\ManaCostSymbols.cs" Link="Core\ManaCostSymbols.cs" />
+    <Compile Include="..\Core\SearchFiltersSummaryBuilder.cs" Link="Core\SearchFiltersSummaryBuilder.cs" />
     <Compile Include="..\Constants\MTGConstants.cs" Link="Constants\MTGConstants.cs" />
     <Compile Include="..\Constants\UserMessages.cs" Link="Constants\UserMessages.cs" />
     <Compile Include="..\Core\CardLegalities.cs" Link="Models\CardLegalities.cs" />
@@ -95,6 +97,7 @@
     <Compile Include="..\Services\OracleReprintCollapse.cs" Link="Services\OracleReprintCollapse.cs" />
     <Compile Include="..\Models\OtherPrintingSummary.cs" Link="Models\OtherPrintingSummary.cs" />
     <Compile Include="..\Services\ImportExport\DeckCsvV1.cs" Link="Services\ImportExport\DeckCsvV1.cs" />
+    <Compile Include="..\Services\ImportExport\CsvImportHelpers.cs" Link="Services\ImportExport\CsvImportHelpers.cs" />
     <Compile Include="..\Services\ImportExport\DeckTxtFormat.cs" Link="Services\ImportExport\DeckTxtFormat.cs" />
     <Compile Include="..\Services\ImportExport\CardImportResolver.cs" Link="Services\ImportExport\CardImportResolver.cs" />
     <Compile Include="..\Services\ImportExport\DeckImportFormatSniffer.cs" Link="Services\ImportExport\DeckImportFormatSniffer.cs" />

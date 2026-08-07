@@ -1,7 +1,5 @@
 using AetherVault.Data;
 using CsvHelper;
-using CsvHelper.Configuration;
-using System.Globalization;
 
 namespace AetherVault.Services.ImportExport;
 
@@ -29,14 +27,7 @@ public class CollectionImporter
         var cardsToAdd = new List<(string uuid, int quantity, bool isFoil, bool isEtched)>();
         var seenUuids = new Dictionary<string, int>(); // uuid → index in cardsToAdd, to deduplicate
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = true,
-            MissingFieldFound = null,
-            HeaderValidated = null,
-            IgnoreBlankLines = true,
-            TrimOptions = TrimOptions.Trim,
-        };
+        var config = CsvImportHelpers.CreateReaderConfiguration();
 
         using var reader = new StreamReader(csvStream);
         using var csv = new CsvReader(reader, config);
@@ -54,37 +45,16 @@ public class CollectionImporter
             return result;
         }
 
-        var lowerHeaders = headers.Select(h => h.ToLowerInvariant().Trim()).ToArray();
+        var lowerHeaders = CsvImportHelpers.ToLowerHeaders(headers);
 
-        // Find column indices
-        int nameIdx = Array.IndexOf(lowerHeaders, "name");
-        if (nameIdx == -1) nameIdx = Array.IndexOf(lowerHeaders, "card name"); // MTGO, Deckbox?
-
-        int countIdx = Array.IndexOf(lowerHeaders, "count"); // Deckbox, Moxfield, Decked Builder???
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "quantity"); // MTGO, TCGplayer, ManaBox??
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "qty"); // MTG Studio, Helvault??
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "amount"); // Deckstats??
-        if (countIdx == -1) countIdx = Array.IndexOf(lowerHeaders, "reg qty"); // Decked Builder???
-
-        int setIdx = Array.IndexOf(lowerHeaders, "edition"); // Deckbox, MTG Studio, Archidekt (short)
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition (printing)"); // Archidekt full header
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set"); // MTGO, Decked Builder, Moxfield, TappedOut
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set code"); // Helvault, CardSphere, Dragon Shield
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "set name"); // Dragon Shield fallback
-        if (setIdx == -1) setIdx = Array.IndexOf(lowerHeaders, "edition code"); // ManaBox
-
-        int foilIdx = Array.IndexOf(lowerHeaders, "foil"); // Deckbox, MTG Studio, Moxfield <--
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "is foil"); // Helvault
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "premium"); // MTGO
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "foil qty"); // Decked Builder
-        if (foilIdx == -1) foilIdx = Array.IndexOf(lowerHeaders, "printing"); // TCGplayer, ManaBox <--
-
-        int scryfallIdx = Array.IndexOf(lowerHeaders, "scryfall id"); // Moxfield
-        if (scryfallIdx == -1) scryfallIdx = Array.IndexOf(lowerHeaders, "scryfall_id");
-
-        int numberIdx = Array.IndexOf(lowerHeaders, "collector number"); // Moxfield, Archidekt
-        if (numberIdx == -1) numberIdx = Array.IndexOf(lowerHeaders, "card number"); // TCGplayer
-        if (numberIdx == -1) numberIdx = Array.IndexOf(lowerHeaders, "number"); // Dragon Shield
+        // Find column indices (aliases cover Moxfield, Archidekt, Deckbox, MTGO, etc.)
+        int nameIdx = CsvImportHelpers.FindHeader(lowerHeaders, "name", "card name");
+        int countIdx = CsvImportHelpers.FindHeader(lowerHeaders, "count", "quantity", "qty", "amount", "reg qty");
+        int setIdx = CsvImportHelpers.FindHeader(lowerHeaders,
+            "edition", "edition (printing)", "set", "set code", "set name", "edition code");
+        int foilIdx = CsvImportHelpers.FindHeader(lowerHeaders, "foil", "is foil", "premium", "foil qty", "printing");
+        int scryfallIdx = CsvImportHelpers.FindHeader(lowerHeaders, "scryfall id", "scryfall_id");
+        int numberIdx = CsvImportHelpers.FindHeader(lowerHeaders, "collector number", "card number", "number");
 
         // Ensure Name or Scryfall ID column is found
         if (nameIdx == -1 && scryfallIdx == -1)

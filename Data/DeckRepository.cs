@@ -51,8 +51,7 @@ public class DeckRepository : IDeckRepository
     {
         if (!_databaseManager.IsConnected) return;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        await _databaseManager.RunWithConnectionLockAsync(async () =>
         {
             await _databaseManager.CollectionConnection.ExecuteAsync(
                 SqlQueries.DeckUpdate,
@@ -68,11 +67,7 @@ public class DeckRepository : IDeckRepository
                     CommanderArchetype = string.IsNullOrEmpty(deck.CommanderArchetype) ? "Unknown" : deck.CommanderArchetype,
                     deck.Id
                 });
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+        });
     }
 
     public async Task DeleteDeckAsync(int deckId)
@@ -97,33 +92,21 @@ public class DeckRepository : IDeckRepository
     {
         if (!_databaseManager.IsConnected) return null;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
-        {
-            return await _databaseManager.CollectionConnection.QueryFirstOrDefaultAsync<DeckEntity>(
+        return await _databaseManager.RunWithConnectionLockAsync(() =>
+            _databaseManager.CollectionConnection.QueryFirstOrDefaultAsync<DeckEntity>(
                 SqlQueries.DeckGet,
-                new { Id = deckId });
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+                new { Id = deckId }));
     }
 
     public async Task<List<DeckEntity>> GetAllDecksAsync()
     {
         if (!_databaseManager.IsConnected) return new List<DeckEntity>();
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        return await _databaseManager.RunWithConnectionLockAsync(async () =>
         {
             var result = await _databaseManager.CollectionConnection.QueryAsync<DeckEntity>(SqlQueries.DeckGetAll);
             return result.ToList();
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+        });
     }
 
     public async Task AddCardToDeckAsync(DeckCardEntity card)
@@ -187,34 +170,22 @@ public class DeckRepository : IDeckRepository
     {
         if (!_databaseManager.IsConnected) return new List<DeckCardEntity>();
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+        return await _databaseManager.RunWithConnectionLockAsync(async () =>
         {
             var result = await _databaseManager.CollectionConnection.QueryAsync<DeckCardEntity>(
                 SqlQueries.DeckGetCards,
                 new { DeckId = deckId });
             return result.ToList();
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+        });
     }
 
     public async Task<int> GetDeckCardCountAsync(int deckId)
     {
         if (!_databaseManager.IsConnected) return 0;
 
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
-        {
-            var conn = _databaseManager.CollectionConnection;
-            return await conn.ExecuteScalarAsync<int>(SqlQueries.DeckGetCardCount, new { DeckId = deckId });
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
+        return await _databaseManager.RunWithConnectionLockAsync(() =>
+            _databaseManager.CollectionConnection.ExecuteScalarAsync<int>(
+                SqlQueries.DeckGetCardCount, new { DeckId = deckId }));
     }
 
     public async Task ApplyMutationsAsync(int deckId, IReadOnlyList<DeckCardPersistenceMutation> mutations)
@@ -280,10 +251,8 @@ public class DeckRepository : IDeckRepository
         });
     }
 
-    private async Task<T> WithDeckTransactionAsync<T>(Func<SqliteConnection, SqliteTransaction, Task<T>> action)
-    {
-        await _databaseManager.ConnectionLock.WaitAsync();
-        try
+    private Task<T> WithDeckTransactionAsync<T>(Func<SqliteConnection, SqliteTransaction, Task<T>> action) =>
+        _databaseManager.RunWithConnectionLockAsync(async () =>
         {
             var conn = _databaseManager.CollectionConnection;
             using var transaction = conn.BeginTransaction();
@@ -298,12 +267,7 @@ public class DeckRepository : IDeckRepository
                 transaction.Rollback();
                 throw;
             }
-        }
-        finally
-        {
-            _databaseManager.ConnectionLock.Release();
-        }
-    }
+        });
 
     private Task WithDeckTransactionAsync(Func<SqliteConnection, SqliteTransaction, Task> action) =>
         WithDeckTransactionAsync(async (conn, trans) =>
