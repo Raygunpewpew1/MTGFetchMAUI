@@ -27,18 +27,6 @@ public class TokenRepository : ITokenRepository
             await _db.MtgConnection.QueryAsync<TokenEntity>(
                 SqlQueries.SelectTokensBySetCode, new { setCode }));
 
-    private async Task<T> WithMtgConnectionAsync<T>(Func<Task<T>> action)
-    {
-        await _db.ConnectionLock.WaitAsync();
-        try
-        {
-            if (!_db.IsConnected)
-                throw new InvalidOperationException("Database not connected.");
-            return await action();
-        }
-        finally
-        {
-            _db.ConnectionLock.Release();
-        }
-    }
+    private Task<T> WithMtgConnectionAsync<T>(Func<Task<T>> action) =>
+        _db.WithConnectedAsync(action);
 }

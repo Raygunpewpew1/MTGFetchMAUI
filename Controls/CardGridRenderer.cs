@@ -1,3 +1,4 @@
+using AetherVault.Core;
 using AetherVault.Core.Layout;
 using AetherVault.Services;
 using SkiaSharp;
@@ -148,30 +149,8 @@ internal sealed class CardGridRenderer : IDisposable
         _imageRoundRect?.Dispose(); _imageRoundRect = null;
     }
 
-    internal static string[] ParseManaSymbolsForTrail(string? manaCost, int max = 6)
-    {
-        if (string.IsNullOrEmpty(manaCost) || max <= 0)
-            return ["C"];
-
-        var list = new List<string>(max);
-        int i = 0;
-        while (i < manaCost.Length && list.Count < max)
-        {
-            if (manaCost[i] == '{')
-            {
-                int end = manaCost.IndexOf('}', i);
-                if (end > i)
-                {
-                    list.Add(manaCost.Substring(i + 1, end - i - 1));
-                    i = end + 1;
-                    continue;
-                }
-            }
-            i++;
-        }
-
-        return list.Count > 0 ? list.ToArray() : ["C"];
-    }
+    internal static string[] ParseManaSymbolsForTrail(string? manaCost, int max = 6) =>
+        ManaCostSymbols.Take(manaCost, max, fallbackWhenEmpty: "C");
 
     private static SKColor TrailColorForManaSymbol(string symbol)
     {
@@ -570,23 +549,12 @@ internal sealed class CardGridRenderer : IDisposable
         if (string.IsNullOrEmpty(manaCost)) return x;
 
         float currentX = x;
-        int i = 0;
-        while (i < manaCost.Length)
+        foreach (var symbol in ManaCostSymbols.Enumerate(manaCost))
         {
-            if (manaCost[i] == '{')
-            {
-                int end = manaCost.IndexOf('}', i);
-                if (end > i)
-                {
-                    string symbol = manaCost.Substring(i + 1, end - i - 1);
-                    ManaSvgCache.DrawSymbol(canvas, symbol, currentX, y, size);
-                    currentX += size + 2f;
-                    i = end + 1;
-                    continue;
-                }
-            }
-            i++;
+            ManaSvgCache.DrawSymbol(canvas, symbol, currentX, y, size);
+            currentX += size + 2f;
         }
+
         return currentX;
     }
 

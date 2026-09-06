@@ -1,3 +1,6 @@
+using AetherVault.Core;
+using AetherVault.Services;
+
 namespace AetherVault.Controls;
 
 public class ManaCostView : HorizontalStackLayout
@@ -54,29 +57,14 @@ public class ManaCostView : HorizontalStackLayout
         Children.Clear();
         if (string.IsNullOrEmpty(manaText)) return;
 
-        int i = 0;
-        while (i < manaText.Length)
-        {
-            if (manaText[i] == '{')
-            {
-                int end = manaText.IndexOf('}', i);
-                if (end > i)
-                {
-                    string symbol = manaText.Substring(i + 1, end - i - 1);
-                    AddSymbol(symbol);
-                    i = end + 1;
-                    continue;
-                }
-            }
-            i++;
-        }
+        foreach (var symbol in ManaCostSymbols.Enumerate(manaText))
+            AddSymbol(symbol);
     }
 
     private void AddSymbol(string symbol)
     {
-        // Normalize symbol name for resource lookup
-        // Example: {2/U} -> 2/U -> 2_u -> mana_2_u.png
-        string normalized = symbol.Replace("/", "_").ToLowerInvariant();
+        // Match ManaSvgCache normalization: {2/U} -> 2_u for maui image resources.
+        string normalized = ManaSvgCache.NormalizeSymbol(symbol).ToLowerInvariant();
         string source = $"mana_{normalized}";
 
         var img = new Image

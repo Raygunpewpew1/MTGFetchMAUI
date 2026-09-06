@@ -452,18 +452,6 @@ public class CardRepository : ICardRepository
     /// Serializes MTG reads with <see cref="DatabaseManager.ConnectionLock"/> so
     /// <see cref="DatabaseManager.DisconnectAsync"/> cannot dispose connections mid-query.
     /// </summary>
-    private async Task<T> WithMtgConnectionAsync<T>(Func<Task<T>> action)
-    {
-        await _db.ConnectionLock.WaitAsync();
-        try
-        {
-            if (!_db.IsConnected)
-                throw new InvalidOperationException("Database not connected.");
-            return await action();
-        }
-        finally
-        {
-            _db.ConnectionLock.Release();
-        }
-    }
+    private async Task<T> WithMtgConnectionAsync<T>(Func<Task<T>> action) =>
+        await _db.WithConnectedAsync(action);
 }

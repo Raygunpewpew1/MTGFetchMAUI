@@ -14,22 +14,8 @@ public static class ManaCostPipAnalyzer
         if (counts.Length < SlotCount || quantity == 0 || string.IsNullOrEmpty(manaCost))
             return;
 
-        int i = 0;
-        while (i < manaCost.Length)
-        {
-            if (manaCost[i] != '{')
-            {
-                i++;
-                continue;
-            }
-
-            int close = manaCost.IndexOf('}', i + 1);
-            if (close < 0)
-                break;
-
-            AccumulateInner(manaCost.AsSpan(i + 1, close - i - 1), quantity, counts);
-            i = close + 1;
-        }
+        foreach (var symbol in ManaCostSymbols.Enumerate(manaCost))
+            AccumulateInner(symbol.AsSpan(), quantity, counts);
     }
 
     private static void AccumulateInner(ReadOnlySpan<char> inner, int qty, int[] counts)

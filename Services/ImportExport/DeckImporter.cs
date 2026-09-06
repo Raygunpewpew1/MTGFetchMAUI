@@ -2,8 +2,6 @@ using AetherVault.Core;
 using AetherVault.Data;
 using AetherVault.Services.DeckBuilder;
 using CsvHelper;
-using CsvHelper.Configuration;
-using System.Globalization;
 
 namespace AetherVault.Services.ImportExport;
 
@@ -105,14 +103,7 @@ public class DeckImporter
     {
         var result = new DeckImportResult();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = true,
-            MissingFieldFound = null,
-            HeaderValidated = null,
-            IgnoreBlankLines = true,
-            TrimOptions = TrimOptions.Trim,
-        };
+        var config = CsvImportHelpers.CreateReaderConfiguration();
 
         using var reader = new StreamReader(csvStream);
         using var csv = new CsvReader(reader, config);
@@ -130,17 +121,17 @@ public class DeckImporter
             return result;
         }
 
-        var lowerHeaders = headers.Select(h => h.ToLowerInvariant().Trim()).ToArray();
+        var lowerHeaders = CsvImportHelpers.ToLowerHeaders(headers);
 
-        int deckNameIdx = FindHeader(lowerHeaders, ["deck name", "deck"]);
-        int formatIdx = FindHeader(lowerHeaders, ["format"]);
-        int sectionIdx = FindHeader(lowerHeaders, ["section"]);
-        int qtyIdx = FindHeader(lowerHeaders, ["quantity", "qty", "count", "amount"]);
-        int uuidIdx = FindHeader(lowerHeaders, ["card uuid", "uuid", "cardid", "card id"]);
-        int cardNameIdx = FindHeader(lowerHeaders, ["card name", "name"]);
-        int setIdx = FindHeader(lowerHeaders, ["set code", "set", "edition"]);
-        int numberIdx = FindHeader(lowerHeaders, ["collector number", "number", "card number"]);
-        int scryfallIdx = FindHeader(lowerHeaders, ["scryfall id", "scryfall_id"]);
+        int deckNameIdx = CsvImportHelpers.FindHeader(lowerHeaders, "deck name", "deck");
+        int formatIdx = CsvImportHelpers.FindHeader(lowerHeaders, "format");
+        int sectionIdx = CsvImportHelpers.FindHeader(lowerHeaders, "section");
+        int qtyIdx = CsvImportHelpers.FindHeader(lowerHeaders, "quantity", "qty", "count", "amount");
+        int uuidIdx = CsvImportHelpers.FindHeader(lowerHeaders, "card uuid", "uuid", "cardid", "card id");
+        int cardNameIdx = CsvImportHelpers.FindHeader(lowerHeaders, "card name", "name");
+        int setIdx = CsvImportHelpers.FindHeader(lowerHeaders, "set code", "set", "edition");
+        int numberIdx = CsvImportHelpers.FindHeader(lowerHeaders, "collector number", "number", "card number");
+        int scryfallIdx = CsvImportHelpers.FindHeader(lowerHeaders, "scryfall id", "scryfall_id");
 
         if (deckNameIdx == -1)
         {
@@ -399,16 +390,6 @@ public class DeckImporter
                 result.ImportedCards += r.Quantity;
             }
         }
-    }
-
-    private static int FindHeader(string[] lowerHeaders, string[] candidates)
-    {
-        for (int i = 0; i < candidates.Length; i++)
-        {
-            int idx = Array.IndexOf(lowerHeaders, candidates[i]);
-            if (idx != -1) return idx;
-        }
-        return -1;
     }
 
     private static string MakeUniqueName(string baseName, HashSet<string> usedNames)
