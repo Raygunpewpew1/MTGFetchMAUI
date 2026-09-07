@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
              xmlns:controls="clr-namespace:AetherVault.Controls"
-             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
-             xmlns:models="clr-namespace:AetherVault.Models"
              xmlns:vm="clr-namespace:AetherVault.ViewModels"
-             xmlns:pages="clr-namespace:AetherVault.Pages"
              xmlns:views="clr-namespace:AetherVault.Views"
              xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
              xmlns:constants="clr-namespace:AetherVault.Constants"
-             xmlns:deckbrowse="clr-namespace:AetherVault.Services.DeckBuilder;assembly=AetherVault"
              x:Class="AetherVault.Pages.DeckDetailPage"
              Title="{Binding Deck.Name}"
              BackgroundColor="{StaticResource Background}"
@@ -31,65 +26,146 @@
                      Priority="2" />
     </ContentPage.ToolbarItems>
 
-    <!-- Row 0 Auto: commander banner only on Commander tab — frees vertical space on Main/Sideboard/Stats. -->
-    <Grid x:Name="DeckDetailRoot" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+    <Grid x:Name="DeckDetailRoot"
+          RowDefinitions="Auto,Auto,Auto,*,Auto">
 
-        <!-- Row 0: Commander art header (Commander tab only; avoids cropping pressure on grid/list below). -->
-        <skia:SKCanvasView Grid.Row="0"
-                           x:Name="CommanderArtCanvas"
-                           HeightRequest="100"
-                           IsVisible="{Binding IsCommanderTab}"
-                           PaintSurface="OnCommanderArtPaint" />
+        <!-- Row 0: Build header — commander slot, progress toward target, validation chip. Always visible. -->
+        <Border Grid.Row="0"
+                Padding="12,10"
+                BackgroundColor="{StaticResource Surface}"
+                StrokeThickness="0">
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  ColumnSpacing="12">
 
-        <!-- Row 1: Section Tab Bar (icons + labels for easier tapping) -->
+                <!-- Commander slot (commander-zone formats only): thumbnail or "choose" placeholder. -->
+                <Border Grid.Column="0"
+                        WidthRequest="46"
+                        HeightRequest="64"
+                        StrokeShape="RoundRectangle 6"
+                        Stroke="{StaticResource CardBackground}"
+                        StrokeThickness="1"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        IsVisible="{Binding IsCommanderZoneFormat}"
+                        SemanticProperties.Hint="Commander — tap to view, change, or choose">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCommanderSlotTapped" />
+                    </Border.GestureRecognizers>
+                    <Grid>
+                        <controls:CachedCardImage CardUuid="{Binding FirstCommander.ImageId}"
+                                                  ImageSize="small"
+                                                  InputTransparent="True"
+                                                  HorizontalOptions="Fill"
+                                                  VerticalOptions="Fill"
+                                                  IsVisible="{Binding HasNoCommander, Converter={StaticResource InvertedBool}}" />
+                        <Label FontFamily="FASolid"
+                               Text="{x:Static fa:Solid.Crown}"
+                               FontSize="18"
+                               TextColor="{StaticResource TextSecondary}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               InputTransparent="True"
+                               IsVisible="{Binding HasNoCommander}" />
+                    </Grid>
+                </Border>
+
+                <!-- Progress -->
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="5"
+                                     VerticalOptions="Center">
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                        <Label Grid.Column="0"
+                               LineBreakMode="TailTruncation"
+                               MaxLines="1"
+                               VerticalOptions="Center">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding DeckFormat}"
+                                          FontSize="12"
+                                          TextColor="{StaticResource TextSecondary}" />
+                                    <Span Text="  " />
+                                    <Span Text="{Binding DeckProgressText}"
+                                          FontSize="15"
+                                          FontAttributes="Bold"
+                                          TextColor="{StaticResource TextPrimary}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <Label Grid.Column="1"
+                               Text="{Binding DeckPriceSummaryDisplay}"
+                               FontSize="11"
+                               TextColor="{StaticResource Accent}"
+                               VerticalOptions="Center"
+                               IsVisible="{Binding ShowDeckPrices}" />
+                    </Grid>
+                    <ProgressBar Progress="{Binding DeckProgressFraction}"
+                                 ProgressColor="{StaticResource Primary}"
+                                 BackgroundColor="{StaticResource CardBackground}"
+                                 HeightRequest="6">
+                        <ProgressBar.Triggers>
+                            <DataTrigger TargetType="ProgressBar"
+                                         Binding="{Binding IsDeckProgressComplete}"
+                                         Value="True">
+                                <Setter Property="ProgressColor" Value="{StaticResource Accent}" />
+                            </DataTrigger>
+                        </ProgressBar.Triggers>
+                    </ProgressBar>
+                </VerticalStackLayout>
+
+                <!-- Validation chip -->
+                <Button Grid.Column="2"
+                        Text="{x:Static constants:UserMessages.ValidationDetailsButton}"
+                        Command="{Binding ShowValidationDetailsCommand}"
+                        IsVisible="{Binding ShowValidationDetailsEntry}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        TextColor="#FFB74D"
+                        FontSize="12"
+                        Padding="10,6"
+                        CornerRadius="10"
+                        VerticalOptions="Center">
+                    <Button.ImageSource>
+                        <FontImageSource FontFamily="FASolid"
+                                         Glyph="{x:Static fa:Solid.TriangleExclamation}"
+                                         Size="12"
+                                         Color="#FFB74D" />
+                    </Button.ImageSource>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Row 1: Two tabs — Cards / Insights -->
         <Grid Grid.Row="1"
-              ColumnDefinitions="*,*,*,*"
+              ColumnDefinitions="*,*"
               BackgroundColor="{StaticResource Surface}"
-              HeightRequest="52"
+              HeightRequest="48"
               ColumnSpacing="0">
-            <Border Grid.Column="0" StrokeThickness="0" Padding="4,8">
+            <Border Grid.Column="0" StrokeThickness="0" Padding="4,6">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectCommanderCommand}" />
+                    <TapGestureRecognizer Command="{Binding SelectCardsCommand}" />
                 </Border.GestureRecognizers>
                 <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
-                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.Crown}" FontSize="14" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
-                    <Label Text="{OnIdiom Phone='Cmdr', Default='Commander'}" FontSize="11" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" HorizontalOptions="Center" />
+                    <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                        <Label FontFamily="FASolid" Text="{x:Static fa:Solid.List}" FontSize="13" TextColor="{Binding Tab0Color}" VerticalOptions="Center" />
+                        <Label Text="Cards" FontSize="13" FontAttributes="{Binding Tab0Font}" TextColor="{Binding Tab0Color}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
                     <BoxView HeightRequest="2" Color="{Binding Tab0Color}" Opacity="{Binding Tab0Indicator}" HorizontalOptions="Fill" />
                 </VerticalStackLayout>
             </Border>
-            <Border Grid.Column="1" StrokeThickness="0" Padding="4,8">
+            <Border Grid.Column="1" StrokeThickness="0" Padding="4,6">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectMainCommand}" />
+                    <TapGestureRecognizer Command="{Binding SelectInsightsCommand}" />
                 </Border.GestureRecognizers>
                 <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
-                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.List}" FontSize="14" TextColor="{Binding Tab1Color}" HorizontalOptions="Center" />
-                    <Label Text="Main" FontSize="11" FontAttributes="{Binding Tab1Font}" TextColor="{Binding Tab1Color}" HorizontalOptions="Center" />
+                    <HorizontalStackLayout Spacing="6" HorizontalOptions="Center">
+                        <Label FontFamily="FASolid" Text="{x:Static fa:Solid.ChartColumn}" FontSize="13" TextColor="{Binding Tab1Color}" VerticalOptions="Center" />
+                        <Label Text="Insights" FontSize="13" FontAttributes="{Binding Tab1Font}" TextColor="{Binding Tab1Color}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
                     <BoxView HeightRequest="2" Color="{Binding Tab1Color}" Opacity="{Binding Tab1Indicator}" HorizontalOptions="Fill" />
-                </VerticalStackLayout>
-            </Border>
-            <Border Grid.Column="2" StrokeThickness="0" Padding="4,8">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectSideboardCommand}" />
-                </Border.GestureRecognizers>
-                <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
-                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.LayerGroup}" FontSize="14" TextColor="{Binding Tab2Color}" HorizontalOptions="Center" />
-                    <Label Text="Sideboard" FontSize="11" FontAttributes="{Binding Tab2Font}" TextColor="{Binding Tab2Color}" HorizontalOptions="Center" />
-                    <BoxView HeightRequest="2" Color="{Binding Tab2Color}" Opacity="{Binding Tab2Indicator}" HorizontalOptions="Fill" />
-                </VerticalStackLayout>
-            </Border>
-            <Border Grid.Column="3" StrokeThickness="0" Padding="4,8">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectStatsCommand}" />
-                </Border.GestureRecognizers>
-                <VerticalStackLayout Spacing="2" HorizontalOptions="Center" VerticalOptions="Center">
-                    <Label FontFamily="FASolid" Text="{x:Static fa:Solid.ChartColumn}" FontSize="14" TextColor="{Binding Tab3Color}" HorizontalOptions="Center" />
-                    <Label Text="Stats" FontSize="11" FontAttributes="{Binding Tab3Font}" TextColor="{Binding Tab3Color}" HorizontalOptions="Center" />
-                    <BoxView HeightRequest="2" Color="{Binding Tab3Color}" Opacity="{Binding Tab3Indicator}" HorizontalOptions="Fill" />
                 </VerticalStackLayout>
             </Border>
         </Grid>
 
-        <!-- Row 2: Bulk edit toolbar (Main / Sideboard / Commander lists) -->
+        <!-- Row 2: Bulk edit toolbar (selection mode) -->
         <Border Grid.Row="2"
                 Padding="8,6"
                 BackgroundColor="{StaticResource Surface}"
@@ -164,14 +240,12 @@
                     </Button>
                     <Button Text="{OnIdiom Phone='Main', Default='To Main'}"
                             Command="{Binding BulkMoveSelectionToMainCommand}"
-                            IsVisible="{Binding IsSideboardTab}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
                             TextColor="{StaticResource TextPrimary}" />
                     <Button Text="{OnIdiom Phone='Side', Default='To Side'}"
                             Command="{Binding BulkMoveSelectionToSideboardCommand}"
-                            IsVisible="{Binding IsMainTab}"
                             Padding="10,6"
                             FontSize="12"
                             BackgroundColor="{StaticResource CardBackground}"
@@ -208,150 +282,16 @@
             </ScrollView>
         </Border>
 
-        <!-- Row 3: Quick find + Main/Sideboard layout toggles -->
-        <Border Grid.Row="3"
-                Padding="12,6"
-                BackgroundColor="{StaticResource Background}"
-                StrokeThickness="0"
-                IsVisible="{Binding IsStatsTab, Converter={StaticResource InvertedBool}}">
-            <VerticalStackLayout Spacing="4">
-                <Label Text="{Binding DeckPriceSummaryDisplay}"
-                       FontSize="12"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource Accent}"
-                       IsVisible="{Binding ShowDeckPrices}" />
-                <Grid ColumnDefinitions="*,Auto"
-                      ColumnSpacing="8"
-                      RowDefinitions="Auto">
-                    <material:TextField Grid.Column="0"
-                                        Title="Find in deck…"
-                                        Text="{Binding DeckListFilterText, Mode=TwoWay}"
-                                        BackgroundColor="{StaticResource Surface}"
-                                        TextColor="{StaticResource TextPrimary}"
-                                        TitleColor="{StaticResource TextSecondary}"
-                                        AccentColor="{StaticResource Primary}"
-                                        AllowClear="True" />
-                    <HorizontalStackLayout Grid.Column="1"
-                                           Spacing="4"
-                                           VerticalOptions="End"
-                                           Margin="0,0,0,2"
-                                           IsVisible="{Binding IsMainOrSideboardTab}">
-                        <Button Command="{Binding SelectDeckLayoutStandardCommand}"
-                                WidthRequest="44"
-                                HeightRequest="40"
-                                Padding="0"
-                                CornerRadius="10"
-                                FontFamily="FASolid"
-                                FontSize="16"
-                                Text="{x:Static fa:Solid.List}"
-                                TextColor="{StaticResource TextPrimary}"
-                                BackgroundColor="{StaticResource CardBackground}"
-                                SemanticProperties.Description="{x:Static constants:UserMessages.DeckDetailLayoutListFull}">
-                            <Button.Triggers>
-                                <DataTrigger TargetType="Button"
-                                             Binding="{Binding IsDeckEditorLayoutStandard}"
-                                             Value="True">
-                                    <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
-                                    <Setter Property="TextColor" Value="Black" />
-                                </DataTrigger>
-                            </Button.Triggers>
-                        </Button>
-                        <Button Command="{Binding SelectDeckLayoutCompactCommand}"
-                                WidthRequest="44"
-                                HeightRequest="40"
-                                Padding="0"
-                                CornerRadius="10"
-                                FontFamily="FASolid"
-                                FontSize="16"
-                                Text="{x:Static fa:Solid.Bars}"
-                                TextColor="{StaticResource TextPrimary}"
-                                BackgroundColor="{StaticResource CardBackground}"
-                                SemanticProperties.Description="{x:Static constants:UserMessages.DeckDetailLayoutListCompact}">
-                            <Button.Triggers>
-                                <DataTrigger TargetType="Button"
-                                             Binding="{Binding IsDeckEditorLayoutCompact}"
-                                             Value="True">
-                                    <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
-                                    <Setter Property="TextColor" Value="Black" />
-                                </DataTrigger>
-                            </Button.Triggers>
-                        </Button>
-                        <Button Command="{Binding SelectDeckLayoutGridCommand}"
-                                WidthRequest="44"
-                                HeightRequest="40"
-                                Padding="0"
-                                CornerRadius="10"
-                                FontFamily="FASolid"
-                                FontSize="16"
-                                Text="{x:Static fa:Solid.TableCells}"
-                                TextColor="{StaticResource TextPrimary}"
-                                BackgroundColor="{StaticResource CardBackground}"
-                                SemanticProperties.Description="{x:Static constants:UserMessages.DeckDetailLayoutCardGrid}">
-                            <Button.Triggers>
-                                <DataTrigger TargetType="Button"
-                                             Binding="{Binding IsDeckEditorLayoutGrid}"
-                                             Value="True">
-                                    <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
-                                    <Setter Property="TextColor" Value="Black" />
-                                </DataTrigger>
-                            </Button.Triggers>
-                        </Button>
-                    </HorizontalStackLayout>
-                </Grid>
-
-                <VerticalStackLayout Spacing="6"
-                                     Margin="0,4,0,0">
-                    <Button Text="{x:Static constants:UserMessages.DeckAddBrowseOpen}"
-                            Command="{Binding ToggleQuickBrowseListsCommand}"
-                            FontSize="12"
-                            Padding="10,6"
-                            CornerRadius="14"
-                            HorizontalOptions="Start"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}" />
-                    <ScrollView Orientation="Horizontal"
-                                HeightRequest="40"
-                                HorizontalScrollBarVisibility="Never"
-                                IsVisible="{Binding ShowQuickBrowseLists}">
-                        <HorizontalStackLayout Spacing="8"
-                                               VerticalOptions="Center"
-                                               BindableLayout.ItemsSource="{Binding QuickBrowseListChips}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="deckbrowse:DeckBrowseListChipItem">
-                                    <Button Text="{Binding DisplayText}"
-                                            Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.OpenAddCardsFromQuickListCommand}"
-                                            CommandParameter="{Binding .}"
-                                            FontSize="11"
-                                            Padding="10,6"
-                                            CornerRadius="14"
-                                            BackgroundColor="{StaticResource CardBackground}"
-                                            TextColor="{StaticResource TextPrimary}" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </HorizontalStackLayout>
-                    </ScrollView>
-                </VerticalStackLayout>
-            </VerticalStackLayout>
-        </Border>
-
-
-        <!-- Row 4: Tab content + floating add button -->
-        <Grid Grid.Row="4"
+        <!-- Row 3: Tab content + floating add button -->
+        <Grid Grid.Row="3"
               VerticalOptions="Fill"
               HorizontalOptions="Fill">
-            <views:DeckCommanderTabView x:Name="CommanderTabView"
-                                         VerticalOptions="Fill"
-                                         HorizontalOptions="Fill"
-                                         IsVisible="{Binding IsCommanderTab}" />
-            <views:DeckMainTabView VerticalOptions="Fill"
-                                   HorizontalOptions="Fill"
-                                   IsVisible="{Binding IsMainTab}" />
-            <views:DeckSideboardTabView VerticalOptions="Fill"
-                                        HorizontalOptions="Fill"
-                                        IsVisible="{Binding IsSideboardTab}" />
+            <views:DeckCardsTabView VerticalOptions="Fill"
+                                    HorizontalOptions="Fill"
+                                    IsVisible="{Binding IsCardsTab}" />
             <views:DeckStatsTabView VerticalOptions="Fill"
                                     HorizontalOptions="Fill"
-                                    IsVisible="{Binding IsStatsTab}" />
+                                    IsVisible="{Binding IsInsightsTab}" />
 
             <!-- Icon FAB: fixed 52×52, no stroke (avoids dark ring on some platforms), light shadow only. -->
             <Border HorizontalOptions="End"
@@ -365,7 +305,7 @@
                     StrokeThickness="0"
                     BackgroundColor="{StaticResource Accent}"
                     Shadow="{Shadow Brush=Black, Offset='0,2', Radius=8, Opacity=0.22}"
-                    IsVisible="{Binding IsStatsTab, Converter={StaticResource InvertedBool}}">
+                    IsVisible="{Binding IsCardsTab}">
                 <Button Clicked="OnAddCardsClicked"
                         BackgroundColor="Transparent"
                         Padding="0"
@@ -386,44 +326,33 @@
             </Border>
         </Grid>
 
-        <!-- Row 5: Deck summary bar + status -->
-        <Border Grid.Row="5"
+        <!-- Row 4: Status strip (errors / transient edit feedback only) -->
+        <Border Grid.Row="4"
                 Padding="12,8"
                 BackgroundColor="{StaticResource Surface}"
                 Stroke="{StaticResource CardBackground}"
-                StrokeThickness="1">
-            <Grid RowDefinitions="Auto,Auto"
-                  RowSpacing="4">
-                <Label Grid.Row="0"
-                       Text="{Binding DeckSummaryText}"
-                       FontSize="14"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
+                StrokeThickness="1"
+                IsVisible="{Binding ShowDeckDetailStatusRow}">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="8"
+                  VerticalOptions="Center">
+                <Label Grid.Column="0"
+                       Text="{Binding StatusDisplayText}"
+                       FontSize="12"
+                       TextColor="{Binding StatusTextColor}"
                        HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
                        VerticalOptions="Center" />
-                <Grid Grid.Row="1"
-                      ColumnDefinitions="*,Auto"
-                      ColumnSpacing="8"
-                      VerticalOptions="Center"
-                      IsVisible="{Binding ShowDeckDetailStatusRow}">
-                    <Label Grid.Column="0"
-                           Text="{Binding StatusDisplayText}"
-                           FontSize="12"
-                           TextColor="{Binding StatusTextColor}"
-                           HorizontalOptions="Center"
-                           HorizontalTextAlignment="Center"
-                           VerticalOptions="Center" />
-                    <Button Grid.Column="1"
-                            Text="{x:Static constants:UserMessages.ValidationDetailsButton}"
-                            Command="{Binding ShowValidationDetailsCommand}"
-                            IsVisible="{Binding ShowValidationDetailsEntry}"
-                            BackgroundColor="{StaticResource CardBackground}"
-                            TextColor="{StaticResource TextPrimary}"
-                            FontSize="12"
-                            Padding="12,6"
-                            CornerRadius="8"
-                            VerticalOptions="Center" />
-                </Grid>
+                <Button Grid.Column="1"
+                        Text="{x:Static constants:UserMessages.ValidationDetailsButton}"
+                        Command="{Binding ShowValidationDetailsCommand}"
+                        IsVisible="{Binding ShowValidationDetailsEntry}"
+                        BackgroundColor="{StaticResource CardBackground}"
+                        TextColor="{StaticResource TextPrimary}"
+                        FontSize="12"
+                        Padding="12,6"
+                        CornerRadius="8"
+                        VerticalOptions="Center" />
             </Grid>
         </Border>
 

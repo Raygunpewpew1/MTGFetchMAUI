@@ -1,8 +1,10 @@
 using AetherVault.Models;
 using AetherVault.Services;
+using AetherVault.Services.DeckBuilder;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using UraniumUI.Icons.FontAwesome;
 
 namespace AetherVault.ViewModels;
 
@@ -87,6 +89,10 @@ public partial class DeckCardDisplayItem : ObservableObject
     /// <summary>List row fill: solid for 1 or 3+ colors, horizontal WUBRG gradient for exactly two colors.</summary>
     public Brush StripBackground => DeckRowStripBrushes.GetDeckRowStripBackgroundBrush(Card);
 
+    /// <summary>Commander rows hide the ± stepper (change via the row menu instead).</summary>
+    public bool ShowQuantityControls =>
+        !string.Equals(Entity.Section, DeckCardSections.Commander, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Multi-select mode for bulk deck edits.</summary>
     [ObservableProperty]
     public partial bool IsSelected { get; set; }
@@ -137,6 +143,28 @@ public partial class StagedDeckAddItem : ObservableObject
 
     [ObservableProperty]
     public partial int Quantity { get; set; }
+}
+
+/// <summary>Chip wrapper for a <see cref="DeckNextStep"/> in the deck editor guidance strip.</summary>
+public sealed class DeckNextStepItem(DeckNextStep step)
+{
+    public DeckNextStep Step { get; } = step;
+
+    public string Title => Step.Title;
+
+    /// <summary>Ready chip renders celebratory (accent) instead of actionable.</summary>
+    public bool IsReady => Step.Kind == DeckNextStepKind.Ready;
+
+    public string Glyph => Step.Kind switch
+    {
+        DeckNextStepKind.ChooseCommander => Solid.Crown,
+        DeckNextStepKind.AddCards => Solid.Plus,
+        DeckNextStepKind.AddLands => Solid.Mountain,
+        DeckNextStepKind.RoleGap => Solid.WandMagicSparkles,
+        DeckNextStepKind.TrimMain or DeckNextStepKind.TrimSideboard => Solid.Minus,
+        DeckNextStepKind.Ready => Solid.Trophy,
+        _ => Solid.CircleInfo
+    };
 }
 
 /// <summary>

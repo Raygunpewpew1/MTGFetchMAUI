@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:AetherVault.Controls"
+             xmlns:vm="clr-namespace:AetherVault.ViewModels"
+             xmlns:pages="clr-namespace:AetherVault.Pages"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:fa="clr-namespace:UraniumUI.Icons.FontAwesome;assembly=UraniumUI.Icons.FontAwesome"
+             xmlns:constants="clr-namespace:AetherVault.Constants"
+             x:Class="AetherVault.Views.DeckCardsTabView"
+             x:DataType="vm:DeckDetailViewModel">
+    <Grid RowDefinitions="Auto,Auto,*"
+          RowSpacing="0">
+
+        <!-- Next steps: one horizontal strip of actionable build guidance chips. -->
+        <ScrollView Grid.Row="0"
+                    Orientation="Horizontal"
+                    HorizontalScrollBarVisibility="Never"
+                    Padding="12,8,12,4">
+            <HorizontalStackLayout Spacing="8"
+                                   BindableLayout.ItemsSource="{Binding NextSteps}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DeckNextStepItem">
+                        <Border Padding="12,8"
+                                StrokeShape="RoundRectangle 16"
+                                StrokeThickness="0"
+                                BackgroundColor="{StaticResource CardBackground}">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsReady}"
+                                             Value="True">
+                                    <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DeckDetailViewModel}}, Path=NextStepTappedCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <HorizontalStackLayout Spacing="6">
+                                <Label FontFamily="FASolid"
+                                       Text="{Binding Glyph}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Accent}"
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label"
+                                                     Binding="{Binding IsReady}"
+                                                     Value="True">
+                                            <Setter Property="TextColor" Value="Black" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                                <Label Text="{Binding Title}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label"
+                                                     Binding="{Binding IsReady}"
+                                                     Value="True">
+                                            <Setter Property="TextColor" Value="Black" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </HorizontalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <!-- Find in deck -->
+        <material:TextField Grid.Row="1"
+                            Title="Find in deck…"
+                            Text="{Binding DeckListFilterText, Mode=TwoWay}"
+                            Margin="12,0,12,4"
+                            BackgroundColor="{StaticResource Surface}"
+                            TextColor="{StaticResource TextPrimary}"
+                            TitleColor="{StaticResource TextSecondary}"
+                            AccentColor="{StaticResource Primary}"
+                            AllowClear="True" />
+
+        <!-- Unified deck list: Commander → main type groups → Sideboard. -->
+        <Grid Grid.Row="2">
+            <CollectionView x:Name="DeckCardsCollection"
+                            ItemsSource="{Binding CombinedDeckGroups}"
+                            IsGrouped="True"
+                            SelectionMode="Single"
+                            SelectionChanged="OnDeckItemSelected"
+                            VerticalOptions="Fill"
+                            HorizontalOptions="Fill">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardGroup">
+                        <Label Text="{Binding HeaderText}"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextSecondary}"
+                               BackgroundColor="{StaticResource Background}"
+                               Padding="12,10,12,4" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DeckCardDisplayItem">
+                        <Border Margin="10,4"
+                                Padding="10,8"
+                                MinimumHeightRequest="56"
+                                Background="{Binding StripBackground}"
+                                StrokeShape="RoundRectangle 8"
+                                Stroke="Transparent"
+                                StrokeThickness="0">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsSelected}"
+                                             Value="True">
+                                    <Setter Property="Stroke" Value="{StaticResource Accent}" />
+                                    <Setter Property="StrokeThickness" Value="2" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Grid ColumnDefinitions="Auto,*,Auto"
+                                  ColumnSpacing="10"
+                                  VerticalOptions="Center">
+                                <!-- Thumbnail + ⋯ actions -->
+                                <Grid Grid.Column="0"
+                                      WidthRequest="44"
+                                      HeightRequest="62"
+                                      VerticalOptions="Center">
+                                    <Border StrokeShape="RoundRectangle 5"
+                                            Stroke="{StaticResource CardBackground}"
+                                            StrokeThickness="1"
+                                            Padding="0">
+                                        <Grid>
+                                            <controls:CachedCardImage CardUuid="{Binding ImageId}"
+                                                                      ImageSize="small"
+                                                                      InputTransparent="True"
+                                                                      HorizontalOptions="Fill"
+                                                                      VerticalOptions="Fill" />
+                                            <Button HorizontalOptions="Start"
+                                                    VerticalOptions="Start"
+                                                    Margin="1"
+                                                    WidthRequest="24"
+                                                    HeightRequest="24"
+                                                    Padding="0"
+                                                    CornerRadius="12"
+                                                    BackgroundColor="#99000000"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.RequestDeckRowMenuCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    SemanticProperties.Hint="Move, remove, or card details">
+                                                <Button.ImageSource>
+                                                    <FontImageSource FontFamily="FASolid"
+                                                                     Glyph="{x:Static fa:Solid.EllipsisVertical}"
+                                                                     Size="10"
+                                                                     Color="White" />
+                                                </Button.ImageSource>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Name / type / mana / owned -->
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="2"
+                                                     VerticalOptions="Center">
+                                    <Label Text="{Binding DisplayName}"
+                                           TextColor="{StaticResource TextPrimary}"
+                                           FontSize="14"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <Label Text="{Binding CardTypeText}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextSecondary}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <HorizontalStackLayout Spacing="8">
+                                        <controls:ManaCostView InputTransparent="True"
+                                                               ManaText="{Binding ManaCostText}"
+                                                               SymbolSize="12"
+                                                               VerticalOptions="Center" />
+                                        <Label Text="{Binding OwnedShortText}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextSecondary}"
+                                               VerticalOptions="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding IsOverCollection}"
+                                                             Value="True">
+                                                    <Setter Property="TextColor" Value="#FFB74D" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Label Text="{Binding DeckLinePriceDisplay}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource Accent}"
+                                               VerticalOptions="Center"
+                                               IsVisible="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.ShowDeckRowPrices}" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+
+                                <!-- Qty stepper (hidden for commander rows) -->
+                                <HorizontalStackLayout Grid.Column="2"
+                                                       Spacing="6"
+                                                       VerticalOptions="Center"
+                                                       IsVisible="{Binding ShowQuantityControls}">
+                                    <Button Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.DecrementCardCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="{StaticResource Surface}"
+                                            TextColor="{StaticResource TextPrimary}"
+                                            WidthRequest="38"
+                                            HeightRequest="38"
+                                            Padding="0"
+                                            CornerRadius="8">
+                                        <Button.ImageSource>
+                                            <FontImageSource FontFamily="FASolid"
+                                                             Glyph="{x:Static fa:Solid.Minus}"
+                                                             Size="13"
+                                                             Color="{StaticResource TextPrimary}" />
+                                        </Button.ImageSource>
+                                    </Button>
+                                    <Border BackgroundColor="{StaticResource Surface}"
+                                            Padding="6,3"
+                                            StrokeShape="RoundRectangle 6"
+                                            Stroke="Transparent"
+                                            VerticalOptions="Center"
+                                            MinimumWidthRequest="26">
+                                        <Label Text="{Binding DeckQtyLabel}"
+                                               TextColor="{StaticResource TextPrimary}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               HorizontalOptions="Center" />
+                                    </Border>
+                                    <Button Command="{Binding Source={RelativeSource AncestorType={x:Type pages:DeckDetailPage}}, Path=BindingContext.IncrementCardCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="{StaticResource Accent}"
+                                            TextColor="Black"
+                                            WidthRequest="38"
+                                            HeightRequest="38"
+                                            Padding="0"
+                                            CornerRadius="8">
+                                        <Button.ImageSource>
+                                            <FontImageSource FontFamily="FASolid"
+                                                             Glyph="{x:Static fa:Solid.Plus}"
+                                                             Size="13"
+                                                             Color="Black" />
+                                        </Button.ImageSource>
+                                    </Button>
+                                </HorizontalStackLayout>
+
+                                <!-- Commander badge instead of stepper -->
+                                <Border Grid.Column="2"
+                                        BackgroundColor="{StaticResource Accent}"
+                                        Padding="8,4"
+                                        StrokeShape="RoundRectangle 8"
+                                        Stroke="Transparent"
+                                        VerticalOptions="Center"
+                                        IsVisible="{Binding ShowQuantityControls, Converter={StaticResource InvertedBool}}">
+                                    <Label FontFamily="FASolid"
+                                           Text="{x:Static fa:Solid.Crown}"
+                                           FontSize="13"
+                                           TextColor="Black"
+                                           HorizontalOptions="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="76"
+                             Color="Transparent" />
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <!-- Empty deck CTA -->
+            <VerticalStackLayout IsVisible="{Binding ShowEmptyDeckCta}"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="14"
+                                 Padding="32">
+                <Label FontFamily="FASolid"
+                       Text="{x:Static fa:Solid.LayerGroup}"
+                       FontSize="40"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalOptions="Center"
+                       Opacity="0.6" />
+                <Label Text="Let's build this deck"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}"
+                       HorizontalOptions="Center" />
+                <Label Text="Follow the chips above, or jump straight in — search any card and add it here."
+                       FontSize="14"
+                       TextColor="{StaticResource TextSecondary}"
+                       HorizontalTextAlignment="Center"
+                       MaxLines="4" />
+                <Button Text="{x:Static constants:UserMessages.DeckDetailFabAddCards}"
+                        Command="{Binding RequestAddCardsModalCommand}"
+                        BackgroundColor="{StaticResource Accent}"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        FontSize="14"
+                        CornerRadius="12"
+                        Padding="24,12"
+                        HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <!-- Filter hid everything -->
+            <Label Text="No cards match your filter."
+                   FontSize="13"
+                   TextColor="{StaticResource TextSecondary}"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   IsVisible="{Binding ShowNoFilterMatchesHint}" />
+        </Grid>
+    </Grid>
+</ContentView>

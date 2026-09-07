@@ -29,9 +29,6 @@ public partial class DeckDetailViewModel(
     private List<DeckCardEntity> _deckEntitiesCache = [];
     private int _deckId;
     private CancellationTokenSource? _deckListFilterCts;
-    private const string PrefDeckEditorLayoutMode = "DeckEditorLayoutMode";
-    private bool _deckEditorLayoutPrefLoaded;
-    private static bool _gridLayoutHintShownThisProcess;
     private IReadOnlyList<string> _validationDetailLines = [];
     private bool _deckDetailStatusBindingsRegistered;
 
@@ -69,10 +66,6 @@ public partial class DeckDetailViewModel(
     [ObservableProperty]
     public partial ObservableCollection<DeckCardGroup> FilteredMainDeckGroups { get; set; } = [];
 
-    /// <summary>Flattened filtered main-deck rows for grid layout (same item instances as in groups).</summary>
-    [ObservableProperty]
-    public partial ObservableCollection<DeckCardDisplayItem> MainDeckGridItems { get; set; } = [];
-
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> SideboardCards { get; set; } = [];
 
@@ -82,71 +75,34 @@ public partial class DeckDetailViewModel(
     [ObservableProperty]
     public partial ObservableCollection<DeckCardGroup> FilteredSideboardGroups { get; set; } = [];
 
-    /// <summary>Flattened filtered sideboard rows for grid layout.</summary>
-    [ObservableProperty]
-    public partial ObservableCollection<DeckCardDisplayItem> SideboardGridItems { get; set; } = [];
-
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> FilteredSideboardCards { get; set; } = [];
 
     [ObservableProperty]
     public partial ObservableCollection<DeckCardDisplayItem> CommanderCards { get; set; } = [];
 
-    /// <summary>First commander card for the full-size hero display (partner: primary only).</summary>
+    /// <summary>Single unified card list: Commander group, then main-deck type groups, then Sideboard.</summary>
+    [ObservableProperty]
+    public partial ObservableCollection<DeckCardGroup> CombinedDeckGroups { get; set; } = [];
+
+    /// <summary>Big "add your first cards" CTA (deck empty, no filter active).</summary>
+    public bool ShowEmptyDeckCta => CombinedDeckGroups.Count == 0 && !HasActiveDeckListFilter;
+
+    /// <summary>"No matches" hint when the in-deck filter hides everything.</summary>
+    public bool ShowNoFilterMatchesHint => CombinedDeckGroups.Count == 0 && HasActiveDeckListFilter;
+
+    /// <summary>First commander card for the header thumbnail (partner: primary only).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasNoCommander))]
     public partial DeckCardDisplayItem? FirstCommander { get; set; }
 
-    /// <summary>Commander cards after the first (e.g. partner), for the compact list below the hero.</summary>
+    /// <summary>True for formats with a commander zone (shows the commander slot in the header).</summary>
     [ObservableProperty]
-    public partial ObservableCollection<DeckCardDisplayItem> AdditionalCommanderCards { get; set; } = [];
-
-    [ObservableProperty]
-    public partial ObservableCollection<DeckCardDisplayItem> FilteredAdditionalCommanderCards { get; set; } = [];
-
-    /// <summary>False when deck filter text hides the primary commander art (name/type mismatch).</summary>
-    [ObservableProperty]
-    public partial bool IsCommanderHeroVisible { get; set; }
-
-    [ObservableProperty]
-    public partial bool ShowCommanderHiddenByFilterHint { get; set; }
+    public partial bool IsCommanderZoneFormat { get; set; }
 
     /// <summary>Filter for cards already in this deck (Main / Sideboard / Commander lists).</summary>
     [ObservableProperty]
     public partial string DeckListFilterText { get; set; } = "";
-
-    /// <summary>Hero art + menu when commander exists and passes in-deck filter.</summary>
-    public bool ShowCommanderHeroArt => !HasNoCommander && IsCommanderHeroVisible;
-
-    /// <summary>Show partner / other commander rows when any remain after filter.</summary>
-    public bool ShowFilteredPartnersSection => FilteredAdditionalCommanderCards.Count > 0;
-
-    [ObservableProperty]
-    public partial DeckEditorLayoutMode DeckEditorLayoutMode { get; set; } = DeckEditorLayoutMode.Standard;
-
-    public bool IsDeckEditorLayoutStandard => DeckEditorLayoutMode == DeckEditorLayoutMode.Standard;
-    public bool IsDeckEditorLayoutCompact => DeckEditorLayoutMode == DeckEditorLayoutMode.Compact;
-    public bool IsDeckEditorLayoutGrid => DeckEditorLayoutMode == DeckEditorLayoutMode.Grid;
-
-    partial void OnDeckEditorLayoutModeChanged(DeckEditorLayoutMode value)
-    {
-        OnPropertyChanged(nameof(IsDeckEditorLayoutStandard));
-        OnPropertyChanged(nameof(IsDeckEditorLayoutCompact));
-        OnPropertyChanged(nameof(IsDeckEditorLayoutGrid));
-        if (value == DeckEditorLayoutMode.Grid && !_gridLayoutHintShownThisProcess)
-        {
-            _gridLayoutHintShownThisProcess = true;
-            _toast.Show(UserMessages.DeckGridLayoutHint, 5000);
-        }
-        try
-        {
-            Preferences.Default.Set(PrefDeckEditorLayoutMode, value.ToString());
-        }
-        catch
-        {
-            // ignore storage failures
-        }
-    }
 
     /// <summary>Show validation bullet list (page shows an alert).</summary>
     public bool ShowValidationDetailsEntry => _validationDetailLines.Count > 0;
@@ -181,25 +137,33 @@ public partial class DeckDetailViewModel(
     /// <summary>Raised when FAB add-cards flow should open (e.g. commander empty state).</summary>
     public event Action? AddCardsModalRequested;
 
+    private int _pendingAddModalTargetSection = 1;
+
+    /// <summary>Opens the add-cards modal targeting a section (0 = Commander, 1 = Main, 2 = Sideboard).</summary>
+    public void RequestAddCardsForSection(int sectionIndex)
+    {
+        _pendingAddModalTargetSection = sectionIndex;
+        AddCardsModalRequested?.Invoke();
+    }
+
+    /// <summary>Consumed once when the add-cards modal opens (defaults back to Main).</summary>
+    internal int ConsumePendingAddModalTargetSection()
+    {
+        int v = _pendingAddModalTargetSection;
+        _pendingAddModalTargetSection = 1;
+        return v;
+    }
+
     [RelayCommand]
-    private void RequestAddCardsModal() => AddCardsModalRequested?.Invoke();
+    private void RequestAddCardsModal() => RequestAddCardsForSection(1);
+
+    [RelayCommand]
+    private void RequestAddCommander() => RequestAddCardsForSection(0);
 
     private async Task ShowDeckDataTruthHelpAsync()
     {
         await _dialogService.DisplayAlertAsync(UserMessages.DeckDataTruthHelpTitle, DataTruthLabels.HelpBody, "OK");
     }
-
-    /// <summary>Called from <see cref="Pages.DeckDetailPage"/> layout action sheet (and tests).</summary>
-    public void SetDeckEditorLayout(DeckEditorLayoutMode mode) => DeckEditorLayoutMode = mode;
-
-    [RelayCommand]
-    private void SelectDeckLayoutStandard() => SetDeckEditorLayout(DeckEditorLayoutMode.Standard);
-
-    [RelayCommand]
-    private void SelectDeckLayoutCompact() => SetDeckEditorLayout(DeckEditorLayoutMode.Compact);
-
-    [RelayCommand]
-    private void SelectDeckLayoutGrid() => SetDeckEditorLayout(DeckEditorLayoutMode.Grid);
 
     [ObservableProperty]
     public partial DeckStats Stats { get; set; } = new();
@@ -222,16 +186,6 @@ public partial class DeckDetailViewModel(
     [ObservableProperty]
     public partial ObservableCollection<string> SynergyKeywordSummaryLines { get; set; } = [];
 
-    /// <summary>Deck editor toolbar: horizontal chips for curated lists (opens add-cards with list pre-selected).</summary>
-    public ObservableCollection<DeckBrowseListChipItem> QuickBrowseListChips { get; } =
-        new(DeckBrowseListCatalog.CreateChipItems());
-
-    [ObservableProperty]
-    public partial bool ShowQuickBrowseLists { get; set; }
-
-    [RelayCommand]
-    private void ToggleQuickBrowseLists() => ShowQuickBrowseLists = !ShowQuickBrowseLists;
-
     /// <summary>Deck stats tab: show subtype theme block.</summary>
     public bool HasSynergySubtypeSummary => SynergySubtypeSummaryLines.Count > 0;
 
@@ -239,31 +193,18 @@ public partial class DeckDetailViewModel(
     public bool HasSynergyKeywordSummary => SynergyKeywordSummaryLines.Count > 0;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsCommanderTab))]
-    [NotifyPropertyChangedFor(nameof(IsMainTab))]
-    [NotifyPropertyChangedFor(nameof(IsSideboardTab))]
-    [NotifyPropertyChangedFor(nameof(IsStatsTab))]
+    [NotifyPropertyChangedFor(nameof(IsCardsTab))]
+    [NotifyPropertyChangedFor(nameof(IsInsightsTab))]
     [NotifyPropertyChangedFor(nameof(Tab0Color))]
     [NotifyPropertyChangedFor(nameof(Tab1Color))]
-    [NotifyPropertyChangedFor(nameof(Tab2Color))]
-    [NotifyPropertyChangedFor(nameof(Tab3Color))]
     [NotifyPropertyChangedFor(nameof(Tab0Font))]
     [NotifyPropertyChangedFor(nameof(Tab1Font))]
-    [NotifyPropertyChangedFor(nameof(Tab2Font))]
-    [NotifyPropertyChangedFor(nameof(Tab3Font))]
     [NotifyPropertyChangedFor(nameof(Tab0Indicator))]
     [NotifyPropertyChangedFor(nameof(Tab1Indicator))]
-    [NotifyPropertyChangedFor(nameof(Tab2Indicator))]
-    [NotifyPropertyChangedFor(nameof(Tab3Indicator))]
-    public partial int SelectedSectionIndex { get; set; } = 1; // Default to Main tab
+    public partial int SelectedSectionIndex { get; set; } // 0 = Cards, 1 = Insights
 
-    public bool IsCommanderTab => SelectedSectionIndex == 0;
-    public bool IsMainTab => SelectedSectionIndex == 1;
-    public bool IsSideboardTab => SelectedSectionIndex == 2;
-    public bool IsStatsTab => SelectedSectionIndex == 3;
-
-    /// <summary>Main and Sideboard share list/grid layout controls (not Commander or Stats).</summary>
-    public bool IsMainOrSideboardTab => IsMainTab || IsSideboardTab;
+    public bool IsCardsTab => SelectedSectionIndex == 0;
+    public bool IsInsightsTab => SelectedSectionIndex == 1;
 
     private static readonly Color TabSelectedColor = Color.FromArgb("#03DAC5");
     private static readonly Color TabUnselectedColor = Color.FromArgb("#888888");
@@ -274,36 +215,79 @@ public partial class DeckDetailViewModel(
 
     public Color Tab0Color => GetTabColor(0);
     public Color Tab1Color => GetTabColor(1);
-    public Color Tab2Color => GetTabColor(2);
-    public Color Tab3Color => GetTabColor(3);
 
     public FontAttributes Tab0Font => GetTabFont(0);
     public FontAttributes Tab1Font => GetTabFont(1);
-    public FontAttributes Tab2Font => GetTabFont(2);
-    public FontAttributes Tab3Font => GetTabFont(3);
 
     public double Tab0Indicator => GetTabIndicator(0);
     public double Tab1Indicator => GetTabIndicator(1);
-    public double Tab2Indicator => GetTabIndicator(2);
-    public double Tab3Indicator => GetTabIndicator(3);
 
     [ObservableProperty]
     public partial int TotalCardCount { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DeckSummaryText))]
     public partial int MainDeckCount { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DeckSummaryText))]
-    [NotifyPropertyChangedFor(nameof(SideboardHeaderText))]
     public partial int SideboardCount { get; set; }
 
-    /// <summary>e.g. "100 main deck / 0 sideboard" for the bottom summary bar.</summary>
-    public string DeckSummaryText => $"{MainDeckCount} main deck / {SideboardCount} sideboard";
+    // ── Build progress + next steps (header + guidance strip) ────────
 
-    /// <summary>e.g. "Sideboard (15)" for the sideboard section header.</summary>
-    public string SideboardHeaderText => $"Sideboard ({SideboardCount})";
+    /// <summary>e.g. "88 / 100" toward the format's build target.</summary>
+    [ObservableProperty]
+    public partial string DeckProgressText { get; set; } = "";
+
+    [ObservableProperty]
+    public partial double DeckProgressFraction { get; set; }
+
+    /// <summary>Target met and not over it — header progress turns "ready" colored.</summary>
+    [ObservableProperty]
+    public partial bool IsDeckProgressComplete { get; set; }
+
+    /// <summary>Actionable build guidance chips (from <see cref="DeckNextStepAdvisor"/>).</summary>
+    [ObservableProperty]
+    public partial ObservableCollection<DeckNextStepItem> NextSteps { get; set; } = [];
+
+    private void UpdateProgressAndNextSteps()
+    {
+        if (Deck == null) return;
+        var format = EnumExtensions.ParseDeckFormat(Deck.Format);
+        int commanderCount = CommanderCards.Sum(i => i.Entity.Quantity);
+        var progress = DeckNextStepAdvisor.ComputeProgress(format, MainDeckCount, commanderCount);
+        DeckProgressText = progress.DisplayText;
+        DeckProgressFraction = progress.Fraction;
+        IsDeckProgressComplete = progress.IsComplete && !progress.IsOverTarget;
+
+        var steps = DeckNextStepAdvisor.GetNextSteps(format, Stats, MainDeckCount, commanderCount, SideboardCount);
+        NextSteps = new ObservableCollection<DeckNextStepItem>(steps.Select(s => new DeckNextStepItem(s)));
+    }
+
+    [RelayCommand]
+    private async Task NextStepTappedAsync(DeckNextStepItem? item)
+    {
+        if (item == null) return;
+        switch (item.Step.Kind)
+        {
+            case DeckNextStepKind.ChooseCommander:
+                RequestAddCardsForSection(0);
+                break;
+            case DeckNextStepKind.AddCards:
+            case DeckNextStepKind.RoleGap:
+                RequestAddCardsForSection(1);
+                break;
+            case DeckNextStepKind.AddLands:
+                await SuggestLandsAsync();
+                break;
+            case DeckNextStepKind.TrimMain:
+            case DeckNextStepKind.TrimSideboard:
+                if (!IsSelectionMode)
+                {
+                    IsSelectionMode = true;
+                    _toast.Show(UserMessages.DeckTrimSelectionHint, 4000);
+                }
+                break;
+        }
+    }
 
     [ObservableProperty]
     public partial string DeckPriceSummaryDisplay { get; set; } = "";
@@ -320,24 +304,12 @@ public partial class DeckDetailViewModel(
     public partial string DeckFormat { get; set; } = "";
 
     public bool HasNoCommander => CommanderCards.Count == 0;
-    /// <summary>True when there are two or more commander cards (e.g. partner).</summary>
-    public bool HasMultipleCommanders => CommanderCards.Count > 1;
 
     /// <summary>Invoked when deck cohesion profile updates; <see cref="DeckAddCardsViewModel"/> subscribes while the add modal is open.</summary>
     public Action<DeckCohesionProfile>? AddCardsCohesionProfileHook { get; set; }
 
-    private DeckBrowseListChipItem? _pendingAddModalQuickList;
-
-    /// <summary>Consumed once when the add-cards modal opens after <see cref="OpenAddCardsFromQuickList"/>.</summary>
-    internal DeckBrowseListChipItem? ConsumePendingAddModalQuickList()
-    {
-        var x = _pendingAddModalQuickList;
-        _pendingAddModalQuickList = null;
-        return x;
-    }
-
-    /// <summary>Raised for main/sideboard grid ⋯ menu (page shows action sheet).</summary>
-    public event Action<DeckCardDisplayItem, bool>? DeckGridOverflowRequested;
+    /// <summary>Raised for a deck row's ⋯ menu (page shows the action sheet based on the row's section).</summary>
+    public event Action<DeckCardDisplayItem>? DeckRowMenuRequested;
 
     [ObservableProperty]
     public partial bool IsSelectionMode { get; set; }
@@ -450,29 +422,16 @@ public partial class DeckDetailViewModel(
     public IAsyncRelayCommand MoveCardRowToMainCommand => _moveCardRowToMainCommand ??= new AsyncRelayCommand<DeckCardDisplayItem?>(MoveCardRowToMainAsync);
 
     [RelayCommand]
-    private void SelectCommander() => SelectedSectionIndex = 0;
+    private void SelectCards() => SelectedSectionIndex = 0;
 
     [RelayCommand]
-    private void SelectMain() => SelectedSectionIndex = 1;
+    private void SelectInsights() => SelectedSectionIndex = 1;
 
     [RelayCommand]
-    private void SelectSideboard() => SelectedSectionIndex = 2;
-
-    [RelayCommand]
-    private void SelectStats() => SelectedSectionIndex = 3;
-
-    [RelayCommand]
-    private void RequestMainDeckGridMenu(DeckCardDisplayItem? item)
+    private void RequestDeckRowMenu(DeckCardDisplayItem? item)
     {
         if (item != null)
-            DeckGridOverflowRequested?.Invoke(item, true);
-    }
-
-    [RelayCommand]
-    private void RequestSideboardDeckGridMenu(DeckCardDisplayItem? item)
-    {
-        if (item != null)
-            DeckGridOverflowRequested?.Invoke(item, false);
+            DeckRowMenuRequested?.Invoke(item);
     }
 
     [RelayCommand]
@@ -482,7 +441,6 @@ public partial class DeckDetailViewModel(
     {
         IsSelectionMode = false;
         ClearDeckListSelection();
-        OnPropertyChanged(nameof(IsMainOrSideboardTab));
     }
 
     partial void OnIsSelectionModeChanged(bool value)
@@ -511,15 +469,6 @@ public partial class DeckDetailViewModel(
     {
         var stats = ComputeStatsAndCohesion(_deckEntitiesCache, _cardMapCache, out var profile);
         return (stats, profile);
-    }
-
-    /// <summary>From deck editor: open add-cards; optional quick list is applied via <see cref="ConsumePendingAddModalQuickList"/>.</summary>
-    [RelayCommand]
-    private void OpenAddCardsFromQuickList(DeckBrowseListChipItem? item)
-    {
-        if (item == null) return;
-        _pendingAddModalQuickList = item;
-        AddCardsModalRequested?.Invoke();
     }
 
     private static void ApplyOwnedQuantities(List<DeckCardDisplayItem> items, Dictionary<string, int> qtyOwned)
@@ -562,20 +511,6 @@ public partial class DeckDetailViewModel(
     {
         EnsureDeckDetailStatusBindings();
         _deckId = deckId;
-        if (!_deckEditorLayoutPrefLoaded)
-        {
-            _deckEditorLayoutPrefLoaded = true;
-            try
-            {
-                string s = Preferences.Default.Get(PrefDeckEditorLayoutMode, DeckEditorLayoutMode.Standard.ToString());
-                if (Enum.TryParse(s, out DeckEditorLayoutMode layoutMode))
-                    DeckEditorLayoutMode = layoutMode;
-            }
-            catch
-            {
-                // ignore
-            }
-        }
 
         if (!preserveState)
         {
@@ -610,7 +545,9 @@ public partial class DeckDetailViewModel(
                 Deck = newDeck;
             }
 
-            DeckFormat = EnumExtensions.ParseDeckFormat(newDeck.Format).ToDisplayName();
+            var parsedFormat = EnumExtensions.ParseDeckFormat(newDeck.Format);
+            DeckFormat = parsedFormat.ToDisplayName();
+            IsCommanderZoneFormat = parsedFormat.UsesCommanderZone();
 
             var cardEntities = await _deckService.GetDeckCardsAsync(deckId);
             _deckEntitiesCache = cardEntities;
@@ -652,9 +589,6 @@ public partial class DeckDetailViewModel(
                 ApplyDeckPricesToSectionLists(commander, main, sideboard, []);
                 CommanderCards = new ObservableCollection<DeckCardDisplayItem>(commander);
                 FirstCommander = commander.Count > 0 ? commander[0] : null;
-                AdditionalCommanderCards = commander.Count > 1
-                    ? new ObservableCollection<DeckCardDisplayItem>(commander.Skip(1))
-                    : [];
                 SideboardCards = new ObservableCollection<DeckCardDisplayItem>(sideboard);
                 SideboardGroups = BuildGroups(sideboard);
                 MainDeckGroups = mainDeckGroups;
@@ -665,8 +599,8 @@ public partial class DeckDetailViewModel(
                 RefreshDeckDataTruthLabels();
                 UpdateSynergyCollections(cohesionProfile);
                 OnPropertyChanged(nameof(HasNoCommander));
-                OnPropertyChanged(nameof(HasMultipleCommanders));
                 RefreshDeckListFilter();
+                UpdateProgressAndNextSteps();
                 RecalculateDeckPriceTotals();
                 StatusIsError = validation.Level == ValidationLevel.Error;
                 StatusMessage = statusMessage;
@@ -708,21 +642,9 @@ public partial class DeckDetailViewModel(
     /// <summary>Card map snapshot paired with <see cref="GetDeckEntitiesSnapshotForSynergy"/>.</summary>
     public IReadOnlyDictionary<string, Card> GetDeckCardMapSnapshotForSynergy() => _cardMapCache;
 
-    /// <summary>Returns the ordered list of card UUIDs for the current tab (Commander, Main, or Sideboard) for swipe context.</summary>
-    public IReadOnlyList<string> GetOrderedUuidsForCurrentSection()
-    {
-        return SelectedSectionIndex switch
-        {
-            0 => [.. CommanderCards.Select(x => x.CardUuid)],
-            1 => DeckEditorLayoutMode == DeckEditorLayoutMode.Grid
-                ? [.. MainDeckGridItems.Select(x => x.CardUuid)]
-                : [.. FilteredMainDeckGroups.SelectMany(g => g).Select(x => x.CardUuid)],
-            2 => DeckEditorLayoutMode == DeckEditorLayoutMode.Grid
-                ? [.. SideboardGridItems.Select(x => x.CardUuid)]
-                : [.. FilteredSideboardGroups.SelectMany(g => g).Select(x => x.CardUuid)],
-            _ => []
-        };
-    }
+    /// <summary>Ordered card UUIDs of the visible unified list (swipe context in card detail).</summary>
+    public IReadOnlyList<string> GetOrderedUuidsForCurrentSection() =>
+        [.. CombinedDeckGroups.SelectMany(g => g).Select(x => x.CardUuid)];
 
     private static bool MatchesDeckListFilter(DeckCardDisplayItem item, string qTrimmed)
     {
@@ -741,9 +663,6 @@ public partial class DeckDetailViewModel(
             FilteredMainDeckGroups = MainDeckGroups;
             FilteredSideboardGroups = SideboardGroups;
             FilteredSideboardCards = SideboardCards;
-            FilteredAdditionalCommanderCards = AdditionalCommanderCards;
-            IsCommanderHeroVisible = FirstCommander != null;
-            ShowCommanderHiddenByFilterHint = false;
         }
         else
         {
@@ -770,42 +689,35 @@ public partial class DeckDetailViewModel(
             FilteredSideboardGroups = filteredSideboard;
             FilteredSideboardCards = new ObservableCollection<DeckCardDisplayItem>(
                 SideboardCards.Where(i => MatchesDeckListFilter(i, q)));
-            FilteredAdditionalCommanderCards = new ObservableCollection<DeckCardDisplayItem>(
-                AdditionalCommanderCards.Where(i => MatchesDeckListFilter(i, q)));
-
-            IsCommanderHeroVisible = FirstCommander != null && MatchesDeckListFilter(FirstCommander, q);
-            ShowCommanderHiddenByFilterHint = FirstCommander != null && !IsCommanderHeroVisible;
         }
 
-        OnPropertyChanged(nameof(ShowCommanderHeroArt));
-        OnPropertyChanged(nameof(ShowFilteredPartnersSection));
         OnPropertyChanged(nameof(ShowDeckRowPrices));
-        RebuildMainDeckGridItems();
-        RebuildSideboardGridItems();
+        RebuildCombinedDeckGroups(q);
     }
 
-    private void RebuildSideboardGridItems()
+    /// <summary>One list to rule them all: Commander group, main type groups, then a single Sideboard group.</summary>
+    private void RebuildCombinedDeckGroups(string filterQuery)
     {
-        var flat = new List<DeckCardDisplayItem>();
-        foreach (var g in FilteredSideboardGroups)
-        {
-            foreach (var item in g)
-                flat.Add(item);
-        }
+        var groups = new ObservableCollection<DeckCardGroup>();
 
-        SideboardGridItems = new ObservableCollection<DeckCardDisplayItem>(flat);
-    }
+        var commanderItems = CommanderCards
+            .Where(i => MatchesDeckListFilter(i, filterQuery))
+            .ToList();
+        if (commanderItems.Count > 0)
+            groups.Add(new DeckCardGroup(
+                DeckCardSections.Commander, commanderItems, commanderItems.Sum(x => x.Entity.Quantity)));
 
-    private void RebuildMainDeckGridItems()
-    {
-        var flat = new List<DeckCardDisplayItem>();
         foreach (var g in FilteredMainDeckGroups)
-        {
-            foreach (var item in g)
-                flat.Add(item);
-        }
+            groups.Add(g);
 
-        MainDeckGridItems = new ObservableCollection<DeckCardDisplayItem>(flat);
+        var sideboardItems = FilteredSideboardCards.ToList();
+        if (sideboardItems.Count > 0)
+            groups.Add(new DeckCardGroup(
+                DeckCardSections.Sideboard, sideboardItems, sideboardItems.Sum(x => x.Entity.Quantity)));
+
+        CombinedDeckGroups = groups;
+        OnPropertyChanged(nameof(ShowEmptyDeckCta));
+        OnPropertyChanged(nameof(ShowNoFilterMatchesHint));
     }
 
     private static void ApplyDeckPricesToSectionLists(
@@ -1005,15 +917,11 @@ public partial class DeckDetailViewModel(
                 ? UserMessages.DeckValidationUnknownError
                 : validation.Message;
 
+        // Counts live in the header progress display; the strip only carries the warning itself.
         if (validation.Level == ValidationLevel.Warning)
-        {
-            var baseMessage = $"{totalCardCount} cards";
-            return string.IsNullOrWhiteSpace(validation.Message)
-                ? baseMessage
-                : $"{baseMessage} • {validation.Message}";
-        }
+            return string.IsNullOrWhiteSpace(validation.Message) ? "" : validation.Message;
 
-        // Success: counts already appear in DeckSummaryText; keep the footer quiet.
+        // Success: keep the footer quiet.
         return "";
     }
 
@@ -1098,27 +1006,11 @@ public partial class DeckDetailViewModel(
         OnPropertyChanged(nameof(BulkSelectionCountText));
     }
 
-    private IEnumerable<DeckCardDisplayItem> GetSelectedVisibleItems()
-    {
-        return SelectedSectionIndex switch
-        {
-            0 => CommanderCards.Where(i => i.IsSelected),
-            1 => FilteredMainDeckGroups.SelectMany(g => g).Where(i => i.IsSelected),
-            2 => FilteredSideboardGroups.SelectMany(g => g).Where(i => i.IsSelected),
-            _ => []
-        };
-    }
+    private IEnumerable<DeckCardDisplayItem> GetSelectedVisibleItems() =>
+        CombinedDeckGroups.SelectMany(g => g).Where(i => i.IsSelected);
 
-    private IEnumerable<DeckCardDisplayItem> GetAllItemsInCurrentSection()
-    {
-        return SelectedSectionIndex switch
-        {
-            0 => CommanderCards,
-            1 => FilteredMainDeckGroups.SelectMany(g => g),
-            2 => FilteredSideboardGroups.SelectMany(g => g),
-            _ => []
-        };
-    }
+    private IEnumerable<DeckCardDisplayItem> GetAllItemsInCurrentSection() =>
+        CombinedDeckGroups.SelectMany(g => g);
 
     private void ToggleSelectionMode()
     {
@@ -1421,11 +1313,7 @@ public partial class DeckDetailViewModel(
     private void SyncCommanderHero()
     {
         FirstCommander = CommanderCards.Count > 0 ? CommanderCards[0] : null;
-        AdditionalCommanderCards = CommanderCards.Count > 1
-            ? new ObservableCollection<DeckCardDisplayItem>([.. CommanderCards.Skip(1)])
-            : [];
         OnPropertyChanged(nameof(HasNoCommander));
-        OnPropertyChanged(nameof(HasMultipleCommanders));
         RefreshDeckListFilter();
     }
 
@@ -1453,9 +1341,8 @@ public partial class DeckDetailViewModel(
         TotalCardCount = entities.Sum(e => e.Quantity);
         Stats = ComputeStatsAndCohesion(entities, _cardMapCache, out var cohesionProfile);
         UpdateSynergyCollections(cohesionProfile);
-        OnPropertyChanged(nameof(DeckSummaryText));
-        OnPropertyChanged(nameof(SideboardHeaderText));
         RefreshDeckListFilter();
+        UpdateProgressAndNextSteps();
         RecalculateDeckPriceTotals();
         _ = HydrateMissingDeckPricesAsync();
         _ = ApplyValidationUiAsync();
