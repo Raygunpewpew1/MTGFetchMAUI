@@ -1,7 +1,4 @@
-using AetherVault.Controls;
 using AetherVault.ViewModels;
-using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Extensions;
 
 namespace AetherVault.Pages;
 
@@ -19,13 +16,20 @@ public partial class DeckAddCardsPage : ContentPage
 
     private void OnAddResultCardClicked(string cardUuid) => _addCardsVm.OnResultCardClicked(cardUuid);
 
-    private async void OnBrowseClicked(object? sender, EventArgs e)
+    /// <summary>Strategy chip: pick a commander archetype for the suggestion engine.</summary>
+    private async void OnStrategyChipClicked(object? sender, EventArgs e)
     {
-        var popup = new DeckAddCardsBrowsePopup { BindingContext = _addCardsVm };
-        await this.ShowPopupAsync(popup, new PopupOptions
-        {
-            PageOverlayColor = Color.FromRgba(0, 0, 0, 0.45)
-        });
+        const string cancel = "Cancel";
+        string pick = await DisplayActionSheetAsync(
+            Constants.UserMessages.DeckAddStrategySheetTitle,
+            cancel,
+            null,
+            _addCardsVm.CommanderArchetypePickerItems);
+        if (string.IsNullOrEmpty(pick) || pick == cancel) return;
+
+        int index = Array.IndexOf(_addCardsVm.CommanderArchetypePickerItems, pick);
+        if (index >= 0)
+            _addCardsVm.CommanderArchetypePickerIndex = index;
     }
 
     protected override void OnAppearing()
@@ -39,11 +43,8 @@ public partial class DeckAddCardsPage : ContentPage
     /// <summary>Pops the modal using the same navigation object that opened it.</summary>
     public void Init(DeckDetailViewModel deckVm, Func<Task> dismissModal)
     {
-        var pending = deckVm.ConsumePendingAddModalQuickList();
-        _addCardsVm.PrepareModalTargetFromDeckTab(deckVm.SelectedSectionIndex);
+        _addCardsVm.PrepareModalTarget(deckVm.ConsumePendingAddModalTargetSection());
         _addCardsVm.AttachHost(deckVm);
-        if (pending != null)
-            _addCardsVm.ApplyQuickBrowseListFromPending(pending);
 
         BindingContext = _addCardsVm;
         _dismissModal = dismissModal;

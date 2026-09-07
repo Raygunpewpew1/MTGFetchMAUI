@@ -37,28 +37,28 @@ public partial class DeckAddCardsViewModel(
     /// <summary>Set by <see cref="Pages.DeckAddCardsPage"/> while the modal is open.</summary>
     public Func<Task>? AddCardsModalDismissAction { get; set; }
 
-    /// <summary>Maps deck editor tab index to add-modal section (commander / main / sideboard).</summary>
-    public void PrepareModalTargetFromDeckTab(int selectedSectionIndex)
+    /// <summary>Sets the add-modal target section (0 = Commander, 1 = Main, 2 = Sideboard).</summary>
+    public void PrepareModalTarget(int targetSectionIndex)
     {
-        AddCardsModalTargetSectionIndex = selectedSectionIndex switch
-        {
-            0 => 0,
-            2 => 2,
-            _ => 1
-        };
+        AddCardsModalTargetSectionIndex = targetSectionIndex is 0 or 2 ? targetSectionIndex : 1;
     }
 
     [ObservableProperty]
     public partial string AddCardSearchText { get; set; } = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAnyAddCardWorkBusy))]
     public partial bool IsAddCardSearchBusy { get; set; }
 
     [ObservableProperty]
     public partial bool AddCardSearchOnlyCollection { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAnyAddCardWorkBusy))]
     public partial bool IsDeckSuggestionBusy { get; set; }
+
+    /// <summary>Single busy spinner for search or suggestion loading.</summary>
+    public bool IsAnyAddCardWorkBusy => IsAddCardSearchBusy || IsDeckSuggestionBusy;
 
     [ObservableProperty]
     public partial bool AddCardResultsAreSuggestions { get; set; }
@@ -67,7 +67,15 @@ public partial class DeckAddCardsViewModel(
         [.. Enum.GetValues<CommanderArchetype>().Select(static a => a.ToDisplayName())];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StrategyChipText))]
     public partial int CommanderArchetypePickerIndex { get; set; }
+
+    /// <summary>e.g. "Strategy: Aggro" — chip that opens the strategy action sheet.</summary>
+    public string StrategyChipText =>
+        UserMessages.DeckAddStrategyChip(
+            CommanderArchetypePickerIndex >= 0 && CommanderArchetypePickerIndex < CommanderArchetypePickerItems.Length
+                ? CommanderArchetypePickerItems[CommanderArchetypePickerIndex]
+                : CommanderArchetype.Unknown.ToDisplayName());
 
     [ObservableProperty]
     public partial ObservableCollection<DeckAddSearchResultRow> AddCardSearchResultRows { get; set; } = [];
@@ -114,9 +122,6 @@ public partial class DeckAddCardsViewModel(
     public bool HasStagedAddItems => StagedAddItems.Count > 0;
 
     public bool IsAddCardResultsEmpty => AddCardSearchResultRows.Count == 0;
-
-    /// <summary>Bottom dock: staging controls or commander-only hint.</summary>
-    public bool ShowAddCardsBottomBar => IsStagedAddActive || IsAddModalCommanderFlow;
 
     public bool ShowDeckSuggestionUi =>
         _host?.Deck != null
@@ -169,7 +174,6 @@ public partial class DeckAddCardsViewModel(
     {
         SyncArchetypePickerFromHostDeck();
         OnPropertyChanged(nameof(ShowDeckSuggestionUi));
-        OnPropertyChanged(nameof(ShowAddCardsBottomBar));
     }
 
     private void SyncArchetypePickerFromHostDeck()
@@ -229,7 +233,6 @@ public partial class DeckAddCardsViewModel(
         OnPropertyChanged(nameof(IsAddModalTargetMain));
         OnPropertyChanged(nameof(IsAddModalTargetSideboard));
         OnPropertyChanged(nameof(AddStagedCardsToDeckButtonText));
-        OnPropertyChanged(nameof(ShowAddCardsBottomBar));
     }
 
     partial void OnAddCardSearchTextChanged(string value)
@@ -519,7 +522,22 @@ public partial class DeckAddCardsViewModel(
         OnPropertyChanged(nameof(IsAddCardResultsEmpty));
     }
 
-    public void NotifyAddCardsSheetAppeared() => _ = ExecuteAddCardSearchAsync();
+    /// <summary>On open: load deck suggestions right away when they apply, otherwise run the (possibly empty) search.</summary>
+    public void NotifyAddCardsSheetAppeared()
+    {
+        if (ShouldAutoLoadSuggestions())
+            _ = ExecuteLoadDeckSuggestionsAsync();
+        else
+            _ = ExecuteAddCardSearchAsync();
+    }
+
+    private bool ShouldAutoLoadSuggestions() =>
+        AddCardsModalTargetSectionIndex != 0
+        && string.IsNullOrWhiteSpace(AddCardSearchText)
+        && _addCardSynergyPreset == null
+        && _addCardQuickBrowseOptions == null
+        && AddCardSearchResultRows.Count == 0
+        && ShowDeckSuggestionUi;
 
     [RelayCommand]
     private void ApplyAddCardSynergyPreset(DeckSynergyChipItem? chip)
@@ -550,12 +568,6 @@ public partial class DeckAddCardsViewModel(
         if (item == null) return;
         ApplyQuickBrowseListCore(item);
         _ = ExecuteAddCardSearchAsync();
-    }
-
-    /// <summary>Called from host when opening the modal with a pending quick-list chip. Search runs once from <see cref="NotifyAddCardsSheetAppeared"/> after the grid attaches.</summary>
-    public void ApplyQuickBrowseListFromPending(DeckBrowseListChipItem item)
-    {
-        ApplyQuickBrowseListCore(item);
     }
 
     [RelayCommand]

@@ -139,7 +139,6 @@ public static class UserMessages
 
     public const string DeckDetailMoreImportCsv = "Import into this deck";
     public const string DeckDetailMoreExportCsv = "Export this deck";
-    public const string DeckDetailMoreLayout = "Deck layout…";
 
     public const string DeckDetailMoreBuyCards = "Buy cards…";
 
@@ -159,11 +158,17 @@ public static class UserMessages
     public const string DeckHubPictureNothingToClear = "No custom deck picture is set.";
     public const string DeckHubPictureButtonSemanticHint = "Deck tile picture — search for a card or clear custom art";
 
-    public const string DeckGridLayoutHint =
-        "Use +/− for quantity. Tap ⋯ on the card thumbnail for move, remove, or card details (list and grid).";
-
     /// <summary>Deck editor — floating add affordance (opens add-cards flow).</summary>
     public const string DeckDetailFabAddCards = "Add cards";
+
+    /// <summary>Toast when a Trim next-step chip turns on selection mode.</summary>
+    public const string DeckTrimSelectionHint = "Select cards, then use the toolbar to remove or move them.";
+
+    /// <summary>Commander header slot — action sheet title and entries.</summary>
+    public const string DeckCommanderActionsTitle = "Commander";
+    public const string DeckChangeCommander = "Change commander";
+    public const string DeckRemoveCommander = "Remove commander";
+    public const string DeckChooseCommander = "Choose a commander";
 
     /// <summary>Add-cards modal — staging summary when empty.</summary>
     public const string DeckAddStagingEmpty = "Nothing staged.";
@@ -181,8 +186,6 @@ public static class UserMessages
 
     public const string DeckAddTargetSideboardShort = "Sideboard";
 
-    public const string DeckAddHintStaged = "Tap results to stage or unstage.";
-
     public const string DeckAddHintCommander = "Tap a card to set commander.";
 
     public const string DeckAddRowHintStage = "Tap to stage or unstage.";
@@ -190,19 +193,19 @@ public static class UserMessages
     public const string DeckAddRowHintCommander = "Tap to set commander.";
 
     public const string DeckAddResultsEmpty =
-        "No results yet. Type to search, or tap Browse for deck themes, popular lists, and commander suggestions. Theme chips only appear when your deck has matching subtypes or keywords.";
+        "No results yet. Type to search, or tap a chip for suggestions, deck themes, and popular lists.";
 
-    /// <summary>Add-cards modal — collapsed section for synergy chips, quick lists, and strategy UI.</summary>
-    public const string DeckAddBrowseMoreTitle = "Browse & suggestions";
+    /// <summary>Add-cards — chip that loads scored suggestions for this deck.</summary>
+    public const string DeckAddSuggestionsChip = "For your deck";
 
-    /// <summary>Add-cards browse sheet — one-line description under the title.</summary>
-    public const string DeckAddBrowseSheetSubtitle = "Deck themes, quick lists, and commander suggestions live here so the main screen stays focused on search and picks.";
+    /// <summary>Add-cards — caption shown above results when they came from the suggestion engine.</summary>
+    public const string DeckAddSuggestionsCaption = "Suggested for this deck — tap a card to pick it";
 
-    /// <summary>Add-cards browse sheet — dismiss control.</summary>
-    public const string DeckAddBrowseClose = "Done";
+    /// <summary>Add-cards — strategy chip label (opens strategy action sheet).</summary>
+    public static string DeckAddStrategyChip(string strategyName) => $"Strategy: {strategyName}";
 
-    /// <summary>Add-cards — opens the browse sheet (toolbar).</summary>
-    public const string DeckAddBrowseOpen = "Browse";
+    /// <summary>Add-cards — strategy action sheet title.</summary>
+    public const string DeckAddStrategySheetTitle = "Suggestion strategy";
 
     /// <summary>Add-cards — collapsed header for the staged card list.</summary>
     public const string DeckAddStagingReviewTitle = "Review staged cards";
@@ -240,16 +243,6 @@ public static class UserMessages
     public const string DeckGridRemoveCard = "Remove from deck";
 
     public const string DeckGridViewDetails = "View details";
-
-    public const string DeckDetailLayoutSheetTitle = "Deck layout";
-
-    public const string DeckDetailLayoutListFull = "List (full)";
-
-    public const string DeckDetailLayoutListCompact = "List (compact)";
-
-    public const string DeckDetailLayoutCardGrid = "Card grid";
-
-    public const string DeckDetailLayoutStatsHint = "Layout options apply to Main deck and Sideboard.";
 
     public const string DeckDataTruthHelpTitle = "About this data";
 

@@ -3,8 +3,6 @@ using AetherVault.Services;
 using AetherVault.Services.DeckBuilder;
 using AetherVault.Services.ImportExport;
 using AetherVault.ViewModels;
-using SkiaSharp;
-using SkiaSharp.Views.Maui;
 using System.Text;
 
 namespace AetherVault.Pages;
@@ -17,11 +15,8 @@ public partial class DeckDetailPage : ContentPage
     private readonly DeckBuilderService _deckService;
     private readonly DeckExporter _deckExporter;
     private readonly DeckImporter _deckImporter;
-    private readonly ImageDownloadService _imageDownloadService;
     private readonly CardGalleryContext _galleryContext;
     private readonly DeckSynergyNavigationContext _deckSynergyNavigationContext;
-
-    private SKImage? _commanderArtImage;
 
     /// <summary>Reuse the add-cards modal so each open does not re-parse the full XAML tree (major win on Android).</summary>
     private DeckAddCardsPage? _cachedAddCardsPage;
@@ -41,7 +36,6 @@ public partial class DeckDetailPage : ContentPage
         DeckBuilderService deckService,
         DeckExporter deckExporter,
         DeckImporter deckImporter,
-        ImageDownloadService imageDownloadService,
         CardGalleryContext galleryContext,
         DeckSynergyNavigationContext deckSynergyNavigationContext)
     {
@@ -51,23 +45,9 @@ public partial class DeckDetailPage : ContentPage
         _deckService = deckService;
         _deckExporter = deckExporter;
         _deckImporter = deckImporter;
-        _imageDownloadService = imageDownloadService;
         _galleryContext = galleryContext;
         _deckSynergyNavigationContext = deckSynergyNavigationContext;
         BindingContext = viewModel;
-
-        _viewModel.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName is nameof(DeckDetailViewModel.Deck)
-                               or nameof(DeckDetailViewModel.HasNoCommander))
-            {
-                if (Window != null)
-                {
-                    _ = TryLoadCommanderArtAsync();
-                    try { CommanderArtCanvas?.InvalidateSurface(); } catch { /* ignore if view detached */ }
-                }
-            }
-        };
     }
 
     private void OnDeckPricePreferencesChanged(object? sender, EventArgs e) =>
@@ -83,8 +63,7 @@ public partial class DeckDetailPage : ContentPage
             UserMessages.DeckDetailMoreHubPicture,
             UserMessages.DeckDetailMoreBuyCards,
             UserMessages.DeckDetailMoreImportCsv,
-            UserMessages.DeckDetailMoreExportCsv,
-            UserMessages.DeckDetailMoreLayout);
+            UserMessages.DeckDetailMoreExportCsv);
 
         if (pick == UserMessages.DeckDetailMoreHubPicture)
             await OpenDeckHubPictureFlowAsync();
@@ -94,8 +73,6 @@ public partial class DeckDetailPage : ContentPage
             await ImportDeckCsvAsync();
         else if (pick == UserMessages.DeckDetailMoreExportCsv)
             await ExportDeckAsync();
-        else if (pick == UserMessages.DeckDetailMoreLayout)
-            await PickDeckLayoutAsync();
     }
 
     private async Task OpenDeckBuyCardsFlowAsync()
@@ -171,29 +148,6 @@ public partial class DeckDetailPage : ContentPage
             await DisplayAlertAsync(UserMessages.DeckHubPictureSheetTitle, setResult.Message, "OK");
     }
 
-    private async Task PickDeckLayoutAsync()
-    {
-        if (_viewModel.IsStatsTab)
-        {
-            await DisplayAlertAsync(UserMessages.DeckDetailLayoutSheetTitle, UserMessages.DeckDetailLayoutStatsHint, "OK");
-            return;
-        }
-
-        var pick = await DisplayActionSheetAsync(
-            UserMessages.DeckDetailLayoutSheetTitle,
-            "Cancel",
-            null,
-            UserMessages.DeckDetailLayoutListFull,
-            UserMessages.DeckDetailLayoutListCompact,
-            UserMessages.DeckDetailLayoutCardGrid);
-        if (pick == UserMessages.DeckDetailLayoutListFull)
-            _viewModel.SetDeckEditorLayout(DeckEditorLayoutMode.Standard);
-        else if (pick == UserMessages.DeckDetailLayoutListCompact)
-            _viewModel.SetDeckEditorLayout(DeckEditorLayoutMode.Compact);
-        else if (pick == UserMessages.DeckDetailLayoutCardGrid)
-            _viewModel.SetDeckEditorLayout(DeckEditorLayoutMode.Grid);
-    }
-
     private async void OnAddCardsClicked(object? sender, EventArgs e)
     {
         await OpenAddCardsModalAsync();
@@ -217,16 +171,65 @@ public partial class DeckDetailPage : ContentPage
             MainThread.BeginInvokeOnMainThread(() => _ = OpenAddCardsModalAsync());
     }
 
+    /// <summary>Header commander slot: choose when empty, otherwise view / change / remove.</summary>
+    private async void OnCommanderSlotTapped(object? sender, EventArgs e)
+    {
+        if (_viewModel.HasNoCommander)
+        {
+            _viewModel.RequestAddCardsForSection(0);
+            return;
+        }
+
+        var commander = _viewModel.FirstCommander;
+        if (commander == null) return;
+
+        const string cancel = "Cancel";
+        string pick = await DisplayActionSheetAsync(
+            UserMessages.DeckCommanderActionsTitle,
+            cancel,
+            UserMessages.DeckRemoveCommander,
+            UserMessages.DeckGridViewDetails,
+            UserMessages.DeckChangeCommander);
+
+        if (pick == UserMessages.DeckGridViewDetails)
+            _viewModel.ShowCardQuickDetailCommand.Execute(commander);
+        else if (pick == UserMessages.DeckChangeCommander)
+            _viewModel.RequestAddCardsForSection(0);
+        else if (pick == UserMessages.DeckRemoveCommander)
+            await _viewModel.RemoveCardCommand.ExecuteAsync(commander);
+    }
+
     private async Task OnValidationDetailsAlertRequested(string body) =>
         await DisplayAlertAsync(UserMessages.ValidationDetailsTitle, body, "OK");
 
-    private void OnDeckGridOverflowRequested(DeckCardDisplayItem item, bool isMainDeck) =>
-        MainThread.BeginInvokeOnMainThread(() => _ = DeckGridOverflowMenuAsync(item, isMainDeck));
+    private void OnDeckRowMenuRequested(DeckCardDisplayItem item) =>
+        MainThread.BeginInvokeOnMainThread(() => _ = DeckRowMenuAsync(item));
 
-    private async Task DeckGridOverflowMenuAsync(DeckCardDisplayItem item, bool isMainDeck)
+    /// <summary>Row ⋯ menu: options depend on the row's section (Commander / Main / Sideboard).</summary>
+    private async Task DeckRowMenuAsync(DeckCardDisplayItem item)
     {
         const string cancel = "Cancel";
-        string move = isMainDeck ? UserMessages.DeckGridMoveToSideboard : UserMessages.DeckGridMoveToMain;
+        bool isCommander = string.Equals(item.Entity.Section, DeckCardSections.Commander, StringComparison.OrdinalIgnoreCase);
+        bool isMain = string.Equals(item.Entity.Section, DeckCardSections.Main, StringComparison.OrdinalIgnoreCase);
+
+        if (isCommander)
+        {
+            string commanderPick = await DisplayActionSheetAsync(
+                UserMessages.DeckCommanderActionsTitle,
+                cancel,
+                UserMessages.DeckRemoveCommander,
+                UserMessages.DeckGridViewDetails,
+                UserMessages.DeckChangeCommander);
+            if (commanderPick == UserMessages.DeckGridViewDetails)
+                _viewModel.ShowCardQuickDetailCommand.Execute(item);
+            else if (commanderPick == UserMessages.DeckChangeCommander)
+                _viewModel.RequestAddCardsForSection(0);
+            else if (commanderPick == UserMessages.DeckRemoveCommander)
+                await _viewModel.RemoveCardCommand.ExecuteAsync(item);
+            return;
+        }
+
+        string move = isMain ? UserMessages.DeckGridMoveToSideboard : UserMessages.DeckGridMoveToMain;
         var pick = await DisplayActionSheetAsync(
             UserMessages.DeckGridCardActionsTitle,
             cancel,
@@ -236,7 +239,7 @@ public partial class DeckDetailPage : ContentPage
             UserMessages.DeckGridViewDetails);
         if (pick == move)
         {
-            if (isMainDeck)
+            if (isMain)
                 await _viewModel.MoveCardRowToSideboardCommand.ExecuteAsync(item);
             else
                 await _viewModel.MoveCardRowToMainCommand.ExecuteAsync(item);
@@ -245,19 +248,6 @@ public partial class DeckDetailPage : ContentPage
             await _viewModel.RemoveCardCommand.ExecuteAsync(item);
         else if (pick == UserMessages.DeckGridViewDetails)
             _viewModel.ShowCardQuickDetailCommand.Execute(item);
-    }
-
-    private async void OnCommanderMenuRequested(object? sender, EventArgs e)
-    {
-        if (_viewModel.FirstCommander == null) return;
-        const string viewDetails = "View details";
-        const string removeCommander = "Remove commander";
-        const string cancel = "Cancel";
-        var action = await DisplayActionSheetAsync("Commander", cancel, removeCommander, viewDetails);
-        if (action == viewDetails)
-            _viewModel.ShowCardQuickDetailCommand.Execute(_viewModel.FirstCommander);
-        else if (action == removeCommander)
-            await _viewModel.RemoveCardCommand.ExecuteAsync(_viewModel.FirstCommander);
     }
 
     private async void OnRequestShowQuickDetail(DeckCardDisplayItem item)
@@ -364,47 +354,6 @@ public partial class DeckDetailPage : ContentPage
         }
     }
 
-    private async Task TryLoadCommanderArtAsync()
-    {
-        var first = _viewModel.CommanderCards.FirstOrDefault();
-        if (first?.Card == null)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                if (Window == null) return;
-                _commanderArtImage?.Dispose();
-                _commanderArtImage = null;
-                try { CommanderArtCanvas?.InvalidateSurface(); } catch { /* ignore if view detached */ }
-            });
-            return;
-        }
-
-        string imageId = first.Card.ImageId;
-        if (string.IsNullOrEmpty(imageId)) return;
-
-        try
-        {
-            var image = await _imageDownloadService.DownloadImageDirectAsync(imageId, "art_crop", "front");
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                if (Window == null) { image?.Dispose(); return; }
-                var currentFirst = _viewModel.CommanderCards.FirstOrDefault();
-                if (currentFirst?.Card?.ImageId != imageId)
-                {
-                    image?.Dispose();
-                    return;
-                }
-                _commanderArtImage?.Dispose();
-                _commanderArtImage = image;
-                try { CommanderArtCanvas?.InvalidateSurface(); } catch { /* ignore if view detached */ }
-            });
-        }
-        catch (Exception ex)
-        {
-            Logger.LogStuff($"Commander art load failed: {ex.Message}", LogLevel.Warning);
-        }
-    }
-
     protected override void OnAppearing()
     {
         base.OnAppearing();
@@ -412,26 +361,19 @@ public partial class DeckDetailPage : ContentPage
         _viewModel.RequestShowQuickDetail += OnRequestShowQuickDetail;
         _viewModel.ValidationDetailsAlertRequested += OnValidationDetailsAlertRequested;
         _viewModel.AddCardsModalRequested += OnAddCardsModalRequested;
-        _viewModel.DeckGridOverflowRequested += OnDeckGridOverflowRequested;
-        CommanderTabView.CommanderMenuRequested += OnCommanderMenuRequested;
+        _viewModel.DeckRowMenuRequested += OnDeckRowMenuRequested;
         PricePreferences.PriceDisplayPreferencesChanged += OnDeckPricePreferencesChanged;
-        // Reload commander art when returning to the page (it was cleared in OnDisappearing).
-        _ = TryLoadCommanderArtAsync();
-        try { CommanderArtCanvas?.InvalidateSurface(); } catch { /* ignore if view detached */ }
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        CommanderTabView.CommanderMenuRequested -= OnCommanderMenuRequested;
         PricePreferences.PriceDisplayPreferencesChanged -= OnDeckPricePreferencesChanged;
         _viewModel.ReloadCompleted -= RunDeferredLayoutPass;
         _viewModel.RequestShowQuickDetail -= OnRequestShowQuickDetail;
         _viewModel.ValidationDetailsAlertRequested -= OnValidationDetailsAlertRequested;
         _viewModel.AddCardsModalRequested -= OnAddCardsModalRequested;
-        _viewModel.DeckGridOverflowRequested -= OnDeckGridOverflowRequested;
-        _commanderArtImage?.Dispose();
-        _commanderArtImage = null;
+        _viewModel.DeckRowMenuRequested -= OnDeckRowMenuRequested;
     }
 
     /// <summary>Delay so invalidate runs after WindowManager destroys modal surface (logcat: Destroying surface → focus change).</summary>
@@ -444,10 +386,8 @@ public partial class DeckDetailPage : ContentPage
             if (Window == null) return;
             try
             {
-                _ = TryLoadCommanderArtAsync();
                 (Content as View)?.InvalidateMeasure();
                 DeckDetailRoot.InvalidateMeasure();
-                CommanderArtCanvas.InvalidateSurface();
             }
             catch (Exception ex)
             {
@@ -464,7 +404,6 @@ public partial class DeckDetailPage : ContentPage
                 {
                     (Content as View)?.InvalidateMeasure();
                     DeckDetailRoot.InvalidateMeasure();
-                    CommanderArtCanvas.InvalidateSurface();
                 }
                 catch (Exception ex)
                 {
@@ -472,78 +411,5 @@ public partial class DeckDetailPage : ContentPage
                 }
             });
         });
-    }
-
-    private void OnCommanderArtPaint(object? sender, SKPaintSurfaceEventArgs e)
-    {
-        var canvas = e.Surface.Canvas;
-        canvas.Clear(SKColors.Transparent);
-
-        float w = e.Info.Width;
-        float h = e.Info.Height;
-
-        if (w <= 0 || h <= 0) return;
-
-        try
-        {
-            if (_commanderArtImage != null)
-            {
-                float imgW = _commanderArtImage.Width;
-                float imgH = _commanderArtImage.Height;
-                if (imgW > 0 && imgH > 0)
-                {
-                    float scale = Math.Max(w / imgW, h / imgH);
-                    float drawW = imgW * scale;
-                    float drawH = imgH * scale;
-                    float x = (w - drawW) / 2f;
-                    float y = (h - drawH) / 2f;
-                    canvas.DrawImage(_commanderArtImage, new SKRect(x, y, x + drawW, y + drawH));
-                }
-            }
-
-            var colorIdentity = _viewModel.Deck?.ColorIdentity ?? "";
-            // Single solid overlay: identity-tinted darkening + text legibility (replaces two gradient passes).
-            var tint = GetCommanderIdentityOverlayColor(colorIdentity);
-            using (var paint = new SKPaint { Color = tint })
-                canvas.DrawRect(0, 0, w, h, paint);
-
-            string headline = _viewModel.Deck?.CommanderName is { Length: > 0 } cn
-                ? cn
-                : (_viewModel.Deck?.Name ?? "");
-
-            if (!string.IsNullOrEmpty(headline))
-            {
-                using var typeface = SKTypeface.FromFamilyName("sans-serif");
-                using var textFont = new SKFont(typeface) { Size = Math.Min(h * 0.2f, 28f), Embolden = true, Subpixel = true };
-                using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
-                float textY = h - textFont.Size * 0.5f;
-                canvas.DrawText(headline, 16f, textY, SKTextAlign.Left, textFont, textPaint);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogStuff($"Error drawing commander art: {ex}", LogLevel.Error);
-        }
-    }
-
-    private static SKColor GetCommanderIdentityOverlayColor(string colorIdentity)
-    {
-        bool w = colorIdentity.Contains('W');
-        bool u = colorIdentity.Contains('U');
-        bool b = colorIdentity.Contains('B');
-        bool r = colorIdentity.Contains('R');
-        bool g = colorIdentity.Contains('G');
-        int count = (w ? 1 : 0) + (u ? 1 : 0) + (b ? 1 : 0) + (r ? 1 : 0) + (g ? 1 : 0);
-
-        if (count == 0) return new SKColor(0x12, 0x12, 0x1A, 0x9A);
-        if (count >= 3) return new SKColor(0x3B, 0x2C, 0x0A, 0xA0);
-
-        var primary = u ? new SKColor(0x1A, 0x5C, 0x9E)
-            : g ? new SKColor(0x1A, 0x6B, 0x3A)
-            : r ? new SKColor(0x9E, 0x1A, 0x1A)
-            : b ? new SKColor(0x3A, 0x2A, 0x6B)
-            : new SKColor(0x7A, 0x6A, 0x4A);
-        // Uniform tint + alpha; no shaders.
-        return new SKColor((byte)(primary.Red * 0.35f + 0x12 * 0.65f), (byte)(primary.Green * 0.35f + 0x12 * 0.65f), (byte)(primary.Blue * 0.35f + 0x1A * 0.65f), 0x9A);
     }
 }
