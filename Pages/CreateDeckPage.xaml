@@ -38,6 +38,11 @@
                                               TitleColor="{StaticResource TextSecondary}"
                                               AccentColor="{StaticResource Accent}" />
 
+                        <Label x:Name="FormatDescriptionLabel"
+                               FontSize="12"
+                               TextColor="{StaticResource TextSecondary}"
+                               LineBreakMode="WordWrap" />
+
                         <VerticalStackLayout Spacing="6">
                             <Label Text="Description (optional)"
                                    FontSize="12"
