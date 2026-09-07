@@ -148,7 +148,9 @@ Use enums, not magic strings: `LegalityStatus`, `CardRarity`, `CardLayout`, `Dec
 - **UraniumUI** `TextField` / `PickerField`: global `Entry` **BackgroundColor** `Transparent` in `App.xaml` avoids stray fills/shadows.
 - **CheckBox columns**: prefer **`Grid`** over `FlexLayout` for alignment.
 - **DataTemplate → parent command**: `Source={RelativeSource AncestorType={x:Type viewmodels:…}}` to avoid MAUIG2045 / reflection binding.
-- **Deck list rows (`DeckMainTabView` / `DeckSideboardTabView`)**: use **`SelectionMode="Single"`** and **`SelectionChanged`** for tap-to-detail; **`SwipeView`** was removed (it stole width from names and fought ±). Move/remove: ⋯ on the thumbnail (same action sheet as grid).
+- **Deck editor (`DeckDetailPage`)**: two tabs — **Cards** (`Views/DeckCardsTabView`) and **Insights** (`Views/DeckStatsTabView`). One grouped CollectionView shows Commander → main type groups → Sideboard (`DeckDetailViewModel.CombinedDeckGroups`); the header shows commander slot + build progress; **`DeckNextStepAdvisor`** (pure, tested) produces the actionable "next steps" chips. There is no per-tab layout mode and no `DeckMainTabView`/`DeckSideboardTabView`/`DeckCommanderTabView` (obsolete names).
+- **Deck list rows (`DeckCardsTabView`)**: use **`SelectionMode="Single"`** and **`SelectionChanged`** for tap-to-detail; **`SwipeView`** was removed (it stole width from names and fought ±). Move/remove: ⋯ on the thumbnail; commander rows hide the ± stepper (`ShowQuantityControls`).
+- **Add-cards modal (`DeckAddCardsPage`)**: suggestions auto-load for commander decks with a commander set; theme/curated-list/strategy chips are inline under the search bar (the browse popup was removed — obsolete name `DeckAddCardsBrowsePopup`). Target section is passed via `DeckDetailViewModel.RequestAddCardsForSection` / `ConsumePendingAddModalTargetSection`.
 
 ### SkiaSharp (`CardGridRenderer`)
 
